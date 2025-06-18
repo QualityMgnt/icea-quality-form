@@ -3,89 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quality Assessment Form - ICEA LION GROUP</title>
+    <title>Reports - ICEA LION GROUP</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Link to your custom CSS file (for reports page and shared nav/footer if any) -->
     <link rel="stylesheet" href="style.css">
-
-    <!-- jsPDF and html2canvas for PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-
     <style>
-        /* Custom styles for body and utility classes not directly in Tailwind's default */
         body {
             font-family: 'Inter', sans-serif;
-        }
-        /* Custom blue for ICEALION branding, as used in your login and form header */
-        .icealion-blue {
-            background-color: #1a73e8;
-            color: white;
-        }
-        .icealion-orange-text {
-            color: #f57c00;
-        }
-        .error-message {
-            color: #dc2626; /* Red color for error messages */
-            font-size: 0.875rem; /* Equivalent to text-sm */
-            margin-top: 0.5rem; /* Equivalent to mt-2 */
-            text-align: center;
-        }
-
-        /* Styles for section headers background */
-        .section-header-bg {
-            background-color: #1a73e8; /* A shade of blue for section headers */
-        }
-        /* Styles for numbered icons background colors */
-        .icon-bg-orange { background-color: #f57c00; }
-        .icon-bg-blue { background-color: #2196f3; }
-        .icon-bg-green { background-color: #4caf50; }
-        .icon-bg-yellow { background-color: #ffc107; }
-
-        /* Row background colors for zebra striping effect */
-        .form-row-light { background-color: #f9fafb; }
-        .form-row-dark { background-color: #edf2f7; }
-
-        /* Specific adjustments for input padding in grid layout */
-        .form-grid-input {
-            padding: 8px; /* Standard padding for basic info inputs */
-        }
-
-        /* Adjustments for main content display, positioned relative to body flow */
-        body > .form-container,
-        body > .reports-container {
-            margin-top: 20px; /* Space from top */
-            margin-bottom: 20px; /* Space at bottom */
-            padding-left: 20px;
-            padding-right: 20px;
-            box-sizing: border-box; /* Ensure padding is included in element's total width */
-        }
-
-        /* Ensure main content containers are centered horizontally within the body flow */
-        body {
+            background-color: #f0f2f5;
             display: flex;
             flex-direction: column;
-            align-items: center; /* Center content horizontally */
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            padding: 0;
         }
 
-        /* Progress bar (if applicable, though not directly used now, kept from snippet) */
-        .progress-bar-container {
-            background-color: #e0e0e0;
-            border-radius: 9999px;
-            overflow: hidden;
-        }
-        .progress-bar {
-            background-color: #4CAF50;
-            height: 10px;
-            width: 24%; /* Example width, will be dynamic */
-            border-radius: 9999px;
+        /* Adjustments for reports container relative to body flow */
+        body > .reports-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
         }
     </style>
 </head>
@@ -93,15 +38,16 @@
     <!-- Navigation Menu (Always present if logged in) -->
     <nav class="main-nav" id="mainNav">
         <ul>
-            <li><a href="index.html" class="active"><i class="fas fa-file-alt"></i> Audit Form</a></li>
-            <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="index.html"><i class="fas fa-file-alt"></i> Audit Form</a></li>
+            <li><a href="reports.html" class="active"><i class="fas fa-chart-bar"></i> Reports</a></li>
             <li><a href="admin.html"><i class="fas fa-cog"></i> Admin</a></li>
         </ul>
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
 
-    <!-- Login Page (always positioned absolutely to overlay everything) -->
-    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage">
+    <!-- Login Page (re-used from index.html, needs identical styling for consistency) -->
+    <!-- This will be hidden/shown by JS based on login status -->
+    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage" style="display: none;">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
                 <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
@@ -129,709 +75,154 @@
         </div>
     </div>
 
-    <!-- Main Form Content (Initially Hidden) -->
-    <!-- This entire div is the form-container with the new layout -->
-    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl" id="mainFormContent" style="display: none;">
-        <div class="icealion-blue p-4 flex items-center justify-between">
-            <div class="text-xl font-semibold">Quality Assessment Form - ICEALION GROUP Contact Centre</div>
-            <!-- Using a placeholder logo. Replace with your actual logo if needed -->
-            <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
+
+    <div class="reports-container" id="reportsContent" style="display: none;">
+        <h1>Audit Reports</h1>
+
+        <div class="filter-section">
+            <label for="reportMonth">Select Month:</label>
+            <select id="reportMonth">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+            <label for="reportYear">Select Year:</label>
+            <select id="reportYear"></select> <!-- Populated by JS -->
+            <button class="btn btn-primary" id="generateReportsBtn">Generate Reports</button>
         </div>
 
-        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-                <label for="contact-id" class="block text-sm font-medium text-gray-700">Contact ID</label>
-                <input type="text" id="contact-id" name="contactId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
-            </div>
-            <div>
-                <label for="client-name" class="block text-sm font-medium text-gray-700">Client Name</label>
-                <input type="text" id="client-name" name="clientName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" placeholder="e.g., John Doe" required>
-            </div>
-            <div>
-                <label for="cer-name" class="block text-sm font-medium text-gray-700">CER Name</label>
-                <select id="cer-name" name="cerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
-                    <option value="">Select CER</option>
-                    <option value="Ann Nyokabi">Ann Nyokabi</option>
-                    <option value="Cliff Kiyaka">Cliff Kiyaka</option>
-                    <option value="Edith watahi">Edith watahi</option>
-                    <option value="Faith Irungu">Faith Irungu</option>
-                    <option value="Ian Wanyagi">Ian Wanyagi</option>
-                    <option value="Kelvin Nyagaka">Kelvin Nyagaka</option>
-                    <option value="Lawrence Ochola">Lawrence Ochola</option>
-                    <option value="Linnet Chege">Linnet Chege</option>
-                    <option value="Margaret Mukulu">Margaret Mukulu</option>
-                    <option value="Bonface Masiaga">Bonface Masiaga</option>
-                    <option value="Maureen Ongola">Maureen Ongola</option>
-                    <option value="Melinda Omballa">Melinda Omballa</option>
-                    <option value="Nancy Wanjiku">Nancy Wanjiku</option>
-                    <option value="Patricia Mumbi">Patricia Mumbi</option>
-                    <option value="Philly Osikeh">Philly Osikeh</option>
-                    <option value="Phina Owiti">Phina Owiti</option>
-                    <option value="Sharon Wambugu">Sharon Wambugu</option>
-                    <option value="Victor Kibet">Victor Kibet</option>
-                    <option value="Harlod Mwiti">Harlod Mwiti</option>
-                </select>
-            </div>
-            <div>
-                <label for="cer-role" class="block text-sm font-medium text-gray-700">CER Role</label>
-                <select id="cer-role" name="cerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
-                    <option value="">Select Role</option>
-                    <option value="Outbound Sales">Outbound Sales</option>
-                    <option value="Onboarding outbound">Onboarding outbound</option>
-                    <option value="Social Media">Social Media</option>
-                    <option value="Live Chat">Live Chat</option>
-                    <option value="Inbound">Inbound</option>
-                    <option value="Email">Email</option>
-                    <option value="Digital troubleshooting">Digital troubleshooting</option>
-                    <option value="SMS">SMS</option>
-                    <option value="NPS outbound">NPS outbound</option>
-                    <option value="Reviewed case handling">Reviewed case handling</option>
-                </select>
-            </div>
-            <div>
-                <label for="call-date-time" class="block text-sm font-medium text-gray-700">Call Date and Time</label>
-                <input type="datetime-local" id="call-date-time" name="callDateTime" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
-            </div>
-            <div>
-                <label for="reviewer-name" class="block text-sm font-medium text-gray-700">Reviewer's Name</label>
-                <select id="reviewer-name" name="reviewerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
-                    <option value="">Select Reviewer</option>
-                    <option value="Rebecca Nduta">Rebecca Nduta</option>
-                    <option value="Lawrence Ochola">Lawrence Ochola</option>
-                    <option value="Other">Other</option>
-                </select>
-                <input type="text" id="other-reviewer-name" name="otherReviewerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input hidden" placeholder="Enter Reviewer Name">
-            </div>
-            <div>
-                <label for="autofail-type" class="block text-sm font-medium text-gray-700">Auto Fail Type</label>
-                <select id="autofail-type" name="autofailType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input">
-                    <option value="">Select Autofail Type</option>
-                    <option value="First Contact Resolution">First Contact Resolution</option>
-                    <option value="KYC">KYC</option>
-                    <option value="Data Capture">Data Capture</option>
-                    <option value="Follow-up & action items">Follow-up & action items</option>
-                </select>
-            </div>
-            <div>
-                <label for="review-date" class="block text-sm font-medium text-gray-700">Evaluation Date</label>
-                <input type="date" id="review-date" name="evaluationDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
-            </div>
-            <div>
-                <label for="duration" class="block text-sm font-medium text-gray-700">Call Duration</label>
-                <input type="text" id="duration" name="callDuration" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" placeholder="e.g., 30 mins">
-            </div>
-        </div>
-
-        <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
-            <div class="text-sm font-medium text-gray-600">Scores:</div>
-            <div class="flex justify-around w-full gap-2">
-                <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
-                    <div class="text-xs font-medium text-gray-600 mb-1">Overall Score</div>
-                    <div class="text-xl font-bold text-blue-600" id="overall-score-display">0%</div>
-                </div>
-                <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
-                    <div class="text-xs font-medium text-gray-600 mb-1">Business & Compliance Accuracy</div>
-                    <div class="text-xl font-bold text-blue-600" id="business-compliance-accuracy">0%</div>
-                </div>
-            </div>
-        </div>
-
-        <form id="assessment-form">
-            <div class="mt-4">
-                <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
-                    <i class="fas fa-user tile-icon"></i> <!-- Font Awesome icon for Customer Experience -->
-                    CUSTOMER EXPERIENCE
-                </div>
-                <div class="p-4">
-                    <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <div class="col-span-6">Description</div>
-                        <div class="col-span-2 text-center">Rating</div>
-                        <div class="col-span-1 text-center">Weight</div>
-                        <div class="col-span-1 text-center">Pnts</div>
-                        <div class="col-span-2">Remarks</div>
-                    </div>
-
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-light mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-orange rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">1</span>
-                            Did the CER provide proper branding and personalize the call?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="cxRating1" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="6">6</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="cxPoints1" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="cxRemarks1" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-dark mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-blue rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">2</span>
-                            Did the CER demonstrate confidence and business etiquette althroughout the call session?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="cxRating2" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="6">6</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="cxPoints2" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="cxRemarks2" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-light mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-green rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">3</span>
-                            Did the CER express a sincere acknowledgement/empathy statement when applicable?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="cxRating3" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="7">7</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="cxPoints3" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="cxRemarks3" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-dark mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-yellow rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">4</span>
-                            Did the CER convey his/her thoughts in an understandable clear and concise manner?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="cxRating4" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="7">7</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="cxPoints4" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="cxRemarks4" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-light mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-orange rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">5</span>
-                            Was the CER able to hold rapport?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="cxRating5" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="6">6</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="cxPoints5" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="cxRemarks5" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
-                    <i class="fas fa-lightbulb tile-icon"></i> <!-- Font Awesome icon for Problem Solving -->
-                    PROBLEM SOLVING SKILLS
-                </div>
-                <div class="p-4">
-                    <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <div class="col-span-6">Description</div>
-                        <div class="col-span-2 text-center">Rating</div>
-                        <div class="col-span-1 text-center">Weight</div>
-                        <div class="col-span-1 text-center">Pnts</div>
-                        <div class="col-span-2">Remarks</div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-light mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-orange rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">6</span>
-                            Did the CER ask effective probing questions to ensure accurate diagnosis?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="psRating1" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="8">8</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="psPoints1" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="psRemarks1" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-dark mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-blue rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">7</span>
-                            Did the CER do proper research and check all related tools required?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="psRating2" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="7">7</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="psPoints2" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="psRemarks2" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-light mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-green rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">8</span>
-                            Did the CER show ownership and actively listen?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="psRating3" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="8">8</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="psPoints3" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="psRemarks3" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-dark mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-yellow rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">9</span>
-                            Did the CER document all action items & follow-up? (Autofail)
-                        </div>
-                        <div class="col-span-2">
-                            <select name="psRating4" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border" data-autofail-question="true">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="10">10</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="psPoints4" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="psRemarks4" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-light mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-orange rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">10</span>
-                            Was the CER able to sell to the customer?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="psRating5" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="7">7</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="psPoints5" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="psRemarks5" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-dark mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-blue rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">11</span>
-                            Capture precise details of the resolution
-                        </div>
-                        <div class="col-span-2">
-                            <select name="psRating6" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="8">8</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="psPoints6" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="psRemarks6" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
-                    <i class="fas fa-check-circle tile-icon"></i> <!-- Font Awesome icon for Compliance -->
-                    COMPLIANCE AND BUSINESS CRITICAL ACCURACY
-                </div>
-                <div class="p-4">
-                    <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <div class="col-span-6">Description</div>
-                        <div class="col-span-2 text-center">Rating</div>
-                        <div class="col-span-1 text-center">Weight</div>
-                        <div class="col-span-1 text-center">Pnts</div>
-                        <div class="col-span-2">Remarks</div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-light mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-orange rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">12</span>
-                            Did the CER log call information correctly? (Data capture)
-                        </div>
-                        <div class="col-span-2">
-                            <select name="caRating1" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border" data-autofail-question="true">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="7">7</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="caPoints1" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="caRemarks1" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-dark mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-blue rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">13</span>
-                            Did the CER adhere to Company Policies & Procedures? (Autofail)
-                        </div>
-                        <div class="col-span-2">
-                            <select name="caRating2" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border" data-autofail-question="true">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="10">10</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="caPoints2" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="caRemarks2" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-light mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-green rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">14</span>
-                            Did the CER Comply with industry and legal requirements?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="caRating3" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="9">9</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="caPoints3" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="caRemarks3" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-12 gap-2 py-2 items-center rounded-md form-row-dark mb-2 p-2">
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="icon-bg-yellow rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">15</span>
-                            Was the CER able to identify real opportunity for Upselling & Cross Selling?
-                        </div>
-                        <div class="col-span-2">
-                            <select name="caRating4" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border">
-                                <option value="" selected>None</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center" data-weightage="5">5</div> 
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="caPoints4" class="w-full text-center p-1 border rounded-md" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="caRemarks4" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="p-6 flex flex-col items-end">
-                <table class="score-summary-table w-full md:w-1/2 lg:w-1/3 text-right text-sm border-collapse border border-blue-500">
-                    <tbody>
-                        <tr class="border-b border-blue-500">
-                            <td class="text-left font-medium p-2 border border-blue-500">Total Pts.</td>
-                            <td class="text-right text-gray-500 p-2 border border-blue-500" id="total-pts-percentage">0%</td>
-                        </tr>
-                        <tr class="border-b border-blue-500">
-                            <td class="text-left font-medium p-2 border border-blue-500">Available Pts.</td>
-                            <td class="text-right text-gray-500 p-2 border border-blue-500">100%</td>
-                        </tr>
+        <div class="report-section">
+            <h2>Number of Audits Done per Agent</h2>
+            <div class="table-scroll-wrapper">
+                <table id="auditsPerAgentTable" class="report-table">
+                    <thead>
                         <tr>
-                            <td class="text-left font-bold icealion-orange-text p-2 border border-blue-500">Overall Score</td>
-                            <td class="text-right font-bold icealion-orange-text p-2 border border-blue-500" id="overall-final-percentage-display">0%</td>
+                            <th>Name</th>
+                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
+                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
+                            <th>Total</th>
                         </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
                     </tbody>
                 </table>
-                <div class="flex items-center justify-between w-full mt-4">
-                    <img src="https://placehold.co/150x50/FFFFFF/1a73e8?text=ICEALION%0AGROUP" alt="ICEALION Group" class="h-12 rounded-md">
-                    <div class="flex space-x-4">
-                        <!-- Removed Score button -->
-                        <button type="button" id="print-email-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                            PDF & Email
-                        </button>
-                        <button type="button" id="save-reset-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                            Save & Reset
-                        </button>
-                    </div>
-                </div>
             </div>
-        </form>
+            <div id="auditsPerAgentLoading" class="loading-message">Loading...</div>
+            <div id="auditsPerAgentNoData" class="no-data-message">No data available for this month.</div>
+        </div>
+
+        <div class="report-section">
+            <h2>Number of Autofails</h2>
+            <div class="table-scroll-wrapper">
+                <table id="autofailsTable" class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
+                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="autofailsLoading" class="loading-message">Loading...</div>
+            <div id="autofailsNoData" class="no-data-message">No data available for this month.</div>
+        </div>
+
+        <div class="report-section">
+            <h2>Number of Audits Per Queue</h2>
+            <div class="table-scroll-wrapper">
+                <table id="auditsPerQueueTable" class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
+                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="auditsPerQueueLoading" class="loading-message">Loading...</div>
+            <div id="auditsPerQueueNoData" class="no-data-message">No data available for this month.</div>
+        </div>
+
+        <div class="report-section">
+            <h2>Number of Autofails Per Individual</h2>
+            <div class="table-scroll-wrapper">
+                <table id="autofailsPerIndividualTable" class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
+                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="autofailsPerIndividualLoading" class="loading-message">Loading...</div>
+            <div id="autofailsPerIndividualNoData" class="no-data-message">No data available for this month.</div>
+        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM fully loaded and parsed. Script starting.");
+            // **IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL**
+            const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec'; // This is from index.html
 
             // Login elements
             const loginPage = document.getElementById('loginPage');
             const loginForm = document.getElementById('loginForm');
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
-            const loginMessage = document.getElementById('loginMessage'); // This is the error-display div
-            const mainFormContent = document.getElementById('mainFormContent'); // The main form container
+            const loginMessage = document.getElementById('loginMessage');
 
-
-            // Form buttons (main form)
-            const printEmailBtn = document.getElementById('print-email-btn');
-            const saveResetBtn = document.getElementById('save-reset-btn');
-            
-            // Basic Info Fields (new IDs from the provided snippet)
-            const contactIdInput = document.getElementById('contact-id');
-            const clientNameInput = document.getElementById('client-name');
-            const cerNameSelect = document.getElementById('cer-name');
-            const cerRoleSelect = document.getElementById('cer-role');
-            const callDateTimeInput = document.getElementById('call-date-time');
-            const reviewerNameSelect = document.getElementById('reviewer-name');
-            const otherReviewerNameInput = document.getElementById('other-reviewer-name'); // Input for 'Other' reviewer
-            const autofailTypeSelect = document.getElementById('autofail-type');
-            const evaluationDateInput = document.getElementById('review-date'); // Renamed from evaluationDate to review-date
-            const durationInput = document.getElementById('duration'); // Renamed from duration to call-duration
-
-            // Score displays at the top
-            const overallScoreDisplay = document.getElementById('overall-score-display');
-            const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
-
-            // Score displays at the bottom (footer)
-            const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
-            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
-
-
-            // Navigation and Logout
+            // Reports Page Content
+            const reportsContent = document.getElementById('reportsContent');
             const mainNav = document.getElementById('mainNav'); // Get the main navigation
             const logoutBtn = document.getElementById('logoutBtn'); // Get the logout button
 
 
-            // --- Global Variables for Calculation ---
-            let globalTotalPoints = 0;
-            let globalMaxPossiblePoints = 0; // The sum of all weightages
-            let globalBusinessComplianceAccuracyValue = 0; // The raw percentage for business & compliance
+            const reportMonthSelect = document.getElementById('reportMonth');
+            const reportYearSelect = document.getElementById('reportYear');
+            const generateReportsBtn = document.getElementById('generateReportsBtn');
 
-            // Define the structure of questions, mapping new names to weightages
-            const sections = {
-                'CUSTOMER EXPERIENCE': [
-                    { name: 'cxRating1', weightage: 6, pointsInputId: 'cxPoints1' }, // Q1
-                    { name: 'cxRating2', weightage: 6, pointsInputId: 'cxPoints2' }, // Q2
-                    { name: 'cxRating3', weightage: 7, pointsInputId: 'cxPoints3' }, // Q3
-                    { name: 'cxRating4', weightage: 7, pointsInputId: 'cxPoints4' }, // Q4
-                    { name: 'cxRating5', weightage: 6, pointsInputId: 'cxPoints5' } // Q5
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { name: 'psRating1', weightage: 8, pointsInputId: 'psPoints1' }, // Q6
-                    { name: 'psRating2', weightage: 7, pointsInputId: 'psPoints2' }, // Q7
-                    { name: 'psRating3', weightage: 8, pointsInputId: 'psPoints3' }, // Q8
-                    { name: 'psRating4', weightage: 10, pointsInputId: 'psPoints4', autofail: true }, // Q9 - Autofail
-                    { name: 'psRating5', weightage: 7, pointsInputId: 'psPoints5' }, // Q10 (Changed from 6 to 7 to match previous conversation)
-                    { name: 'psRating6', weightage: 8, pointsInputId: 'psPoints6' } // Q11
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { name: 'caRating1', weightage: 7, pointsInputId: 'caPoints1', autofail: true }, // Q12 - Autofail
-                    { name: 'caRating2', weightage: 10, pointsInputId: 'caPoints2', autofail: true }, // Q13 - Autofail
-                    { name: 'caRating3', weightage: 9, pointsInputId: 'caPoints3' }, // Q14
-                    { name: 'caRating4', weightage: 5, pointsInputId: 'caPoints4' } // Q15
-                ]
-            };
+            const auditsPerAgentTableBody = document.querySelector('#auditsPerAgentTable tbody');
+            const autofailsTableBody = document.querySelector('#autofailsTable tbody');
+            const auditsPerQueueTableBody = document.querySelector('#auditsPerQueueTable tbody');
+            const autofailsPerIndividualTableBody = document.querySelector('#autofailsPerIndividualTable tbody');
 
-            // --- Calculate Score Function ---
-            const calculateScore = () => {
-                console.log("calculateScore called.");
-                globalTotalPoints = 0; // Reset for recalculation
-                globalMaxPossiblePoints = 0; // Reset for recalculation
-                let autofailTriggered = false;
+            const loadingMessages = document.querySelectorAll('.loading-message');
+            const noDataMessages = document.querySelectorAll('.no-data-message');
 
-                let complianceCurrentPoints = 0;
-                let complianceMaxPoints = 0;
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
 
-                for (const sectionKey in sections) {
-                    sections[sectionKey].forEach(item => {
-                        const selectElement = item.selectElement; // Use the mapped element
-                        const pointsElement = item.pointsElement; // Use the mapped element
-
-                        if (!selectElement || !pointsElement) {
-                            console.warn(`Skipping calculation for missing element: ${item.name}`);
-                            return;
-                        }
-
-                        const rating = selectElement.value;
-                        let currentPoints = 0;
-
-                        // Reset background color before applying new logic
-                        pointsElement.style.backgroundColor = '#e9ecef'; // Default readonly background
-                        pointsElement.style.color = '#555'; // Default text color
-
-
-                        if (rating === 'Yes') {
-                            currentPoints = item.weightage;
-                            pointsElement.readOnly = false; // Make it editable again
-                            pointsElement.style.backgroundColor = '#fff'; // White for editable
-                        } else if (rating === 'No') {
-                            currentPoints = 0;
-                            pointsElement.readOnly = true; // Make it read-only when 0
-                            
-                            // Apply red background for specific autofail questions when 'No'
-                            if (item.autofail) { // Check if it's one of the autofail questions
-                                pointsElement.style.backgroundColor = '#fca5a5'; // Red background (tailwind red-300)
-                                pointsElement.style.color = '#dc2626'; // Darker red text (tailwind red-700)
-                            } else {
-                                pointsElement.style.backgroundColor = '#e0e0e0'; // Grey out background for non-autofail 'No'
-                            }
-
-                        } else { // Handle 'None' or empty selection
-                            currentPoints = 0;
-                            pointsElement.readOnly = true;
-                            pointsElement.style.backgroundColor = '#e9ecef'; // Default readonly background
-                        }
-
-                        pointsElement.value = currentPoints; // Update individual points input
-
-                        globalTotalPoints += currentPoints;
-                        globalMaxPossiblePoints += item.weightage; // Sum all possible weightages
-
-                        // Check for autofail conditions
-                        if (item.autofail && rating === 'No') {
-                            autofailTriggered = true;
-                        }
-
-                        // Calculate Business & Compliance Accuracy (only for 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY' section)
-                        if (sectionKey === 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY') {
-                            if (rating === 'Yes') {
-                                complianceCurrentPoints += item.weightage;
-                            }
-                            // Only add to complianceMaxPoints if the question was answered (Yes or No)
-                            if (rating === 'Yes' || rating === 'No') {
-                                complianceMaxPoints += item.weightage;
-                            }
-                        }
-                    });
-                }
-
-                let overallPercentage = 0;
-                if (autofailTriggered) {
-                    overallPercentage = 0;
-                } else {
-                    if (globalMaxPossiblePoints > 0) {
-                        overallPercentage = ((globalTotalPoints / globalMaxPossiblePoints) * 100).toFixed(0);
-                    } else {
-                        overallPercentage = 0;
-                    }
-                }
-
-                // Update the main overall score display at the top
-                overallScoreDisplay.textContent = `${overallPercentage}%`;
-
-                // Update footer percentage displays
-                totalPtsPercentageDisplay.textContent = `${overallPercentage}%`; // Reflects final score logic
-                overallFinalPercentageDisplay.textContent = `${overallPercentage}%`; // Final Overall Score Percentage
-
-                let businessCompliancePct = 0;
-                if (complianceMaxPoints > 0) {
-                    businessCompliancePct = ((complianceCurrentPoints / complianceMaxPoints) * 100).toFixed(0);
-                } else {
-                    businessCompliancePct = 0;
-                }
-                businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
-
-                // Store final values in global variables for later use (e.g., submission)
-                globalBusinessComplianceAccuracyValue = businessCompliancePct;
-            };
-
-
-            // --- Initialize Form Scores Function ---
-            function initializeFormScores() {
-                console.log("initializeFormScores called.");
-                globalTotalPoints = 0;
-                globalMaxPossiblePoints = 0;
-                globalBusinessComplianceAccuracyValue = 0;
-
-                for (const sectionKey in sections) {
-                    sections[sectionKey].forEach(item => {
-                        // Use querySelector to find elements by name attribute
-                        const selectElement = document.querySelector(`select[name="${item.name}"]`);
-                        const pointsInput = document.querySelector(`input[name="${item.pointsInputId}"]`);
-                        
-                        if (selectElement && pointsInput) {
-                            item.selectElement = selectElement;
-                            item.pointsElement = pointsInput;
-                            // Add event listener here directly to the select element
-                            selectElement.addEventListener('change', calculateScore);
-                        } else {
-                            console.warn(`Missing element for ${item.name} (select) or ${item.pointsInputId} (points input). Calculation might be inaccurate.`);
-                        }
-                    });
-                }
-                // Perform initial calculation
-                calculateScore();
-
-                // Make PDF & Email and Save & Reset buttons visible by default
-                printEmailBtn.classList.remove('hidden');
-                saveResetBtn.classList.remove('hidden');
-                console.log("Buttons should be visible.");
-            }
-
-
-            // --- Login Logic ---
-            const CORRECT_USERNAME = 'Supervisor';
-            const CORRECT_PASSWORD = 'Supervisor';
+            // --- Login Logic (repeated from index.html for consistency) ---
+            const CORRECT_USERNAME = 'Supervisor'; // This is now a fallback, real auth is via Apps Script
+            const CORRECT_PASSWORD = 'Supervisor'; // This is now a fallback, real auth is via Apps Script
 
             const showLoginErrorMessage = (message) => {
                 loginMessage.textContent = message;
@@ -843,21 +234,20 @@
                 loginMessage.textContent = '';
             };
 
-            // Check for login state on page load
+            // Initial login state check for reports.html
             const isLoggedIn = sessionStorage.getItem('loggedIn');
-
             if (isLoggedIn === 'true') {
-                loginPage.style.display = 'none'; // Hide login page
-                mainFormContent.style.display = 'block'; // Show the main form
-                mainNav.style.display = 'flex'; // Show the navigation
-                initializeFormScores(); // Call function to set initial scores
+                loginPage.style.display = 'none'; // Hide login if already logged in
+                reportsContent.style.display = 'block'; // Show reports content
+                mainNav.style.display = 'flex'; // Show navigation
+                populateYears(); // Populate years dropdown
+                setDefaultMonth(); // Set default month
+                fetchAndRenderReports(); // Fetch reports on load
             } else {
-                // Not logged in, ensure login page is visible and others are hidden
-                loginPage.style.display = 'flex'; // Use flex for login layout
-                mainFormContent.style.display = 'none'; // Hide the main form
-                mainNav.style.display = 'none'; // Hide the navigation
+                loginPage.style.display = 'flex'; // Show login
+                reportsContent.style.display = 'none'; // Hide reports content
+                mainNav.style.display = 'none'; // Hide navigation
             }
-
 
             loginForm.addEventListener('submit', function(event) {
                 event.preventDefault();
@@ -866,7 +256,7 @@
                 const enteredUsername = usernameInput.value;
                 const enteredPassword = passwordInput.value;
 
-                // --- Authenticate via Apps Script (New Logic) ---
+                // Authenticate via Apps Script
                 const authUrl = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec'; // Your Apps Script URL
                 
                 fetch(authUrl + '?action=authenticate&username=' + encodeURIComponent(enteredUsername) + '&password=' + encodeURIComponent(enteredPassword))
@@ -874,10 +264,7 @@
                     .then(data => {
                         if (data.status === 'SUCCESS' && data.authenticated) {
                             sessionStorage.setItem('loggedIn', 'true');
-                            loginPage.style.display = 'none'; // Hide login
-                            mainFormContent.style.display = 'block'; // Show the main form
-                            mainNav.style.display = 'flex'; // Show navigation
-                            initializeFormScores(); // Initialize form scores after login
+                            window.location.reload(); // Reload page to apply new login state
                         } else {
                             showLoginErrorMessage('Invalid username or password.');
                         }
@@ -888,7 +275,7 @@
                     });
             });
 
-            // Logout functionality
+            // Logout functionality (also present on reports.html)
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', function() {
                     sessionStorage.removeItem('loggedIn');
@@ -896,270 +283,120 @@
                 });
             }
 
-            // Toggle 'Other' reviewer name input
-            reviewerNameSelect.addEventListener('change', () => {
-                if (reviewerNameSelect.value === 'Other') {
-                    otherReviewerNameInput.classList.remove('hidden');
-                    otherReviewerNameInput.setAttribute('required', 'required');
-                } else {
-                    otherReviewerNameInput.classList.add('hidden');
-                    otherReviewerNameInput.value = '';
-                    otherReviewerNameInput.removeAttribute('required');
-                    otherReviewerNameInput.style.borderColor = '';
+
+            // Populate year dropdown
+            function populateYears() {
+                const currentYear = new Date().getFullYear();
+                for (let i = currentYear - 5; i <= currentYear + 1; i++) { // Current year +/- a few years
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    reportYearSelect.appendChild(option);
                 }
-            });
+                reportYearSelect.value = currentYear; // Default to current year
+            }
 
-            // Handle form submission (for saving data to Google Sheet via Apps Script)
-            const assessmentForm = document.getElementById('assessment-form'); // Get the main form element
-            assessmentForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                console.log("Save & Reset button clicked - attempting form submission.");
+            // Set current month as default
+            function setDefaultMonth() {
+                reportMonthSelect.value = new Date().getMonth() + 1; // Month is 0-indexed
+            }
 
-                // Basic client-side validation for required fields
-                const requiredInputs = assessmentForm.querySelectorAll('[required]:not(.hidden)');
-                let allRequiredFilled = true;
-                for (const input of requiredInputs) {
-                    if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
-                        allRequiredFilled = false;
-                        input.style.borderColor = 'red';
-                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        input.focus();
-                        alert('Please fill out all required fields.');
-                        return;
-                    } else {
-                        input.style.borderColor = '';
-                    }
-                }
-                
-                // Collect data for submission
-                const formDataForSubmission = {
-                    cerName: cerNameSelect.value,
-                    cerRoles: cerRoleSelect.value,
-                    reviewerName: reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value,
-                    evaluationDate: evaluationDateInput.value,
-                    contactID: contactIdInput.value,
-                    duration: durationInput.value,
-                    clientName: clientNameInput.value,
-                    autofailType: autofailTypeSelect.value,
-                    callDateTime: callDateTimeInput.value,
-                    overallScore: overallScoreDisplay.textContent, // e.g., "90%"
-                    complianceAccuracy: businessComplianceAccuracyDisplay.textContent, // e.g., "85%"
-                    totalPoints: globalTotalPoints, // Use the calculated total points (autofail adjusted)
-                    availablePoints: globalMaxPossiblePoints, // Total possible weightage
-                    finalScore: overallFinalPercentageDisplay.textContent, // The final percentage including autofail
-                };
+            function showLoading() {
+                loadingMessages.forEach(msg => msg.style.display = 'block');
+                noDataMessages.forEach(msg => msg.style.display = 'none');
+                auditsPerAgentTableBody.innerHTML = '';
+                autofailsTableBody.innerHTML = '';
+                auditsPerQueueTableBody.innerHTML = '';
+                autofailsPerIndividualTableBody.innerHTML = '';
+            }
 
-                // Populate question-specific ratings for the sheet based on predefined sections/questions
-                const questionHeaderMap = {
-                    "Did the CER provide proper branding and personalize the call?": "cxRating1",
-                    "Did the CER demonstrate confidence and business etiquette althroughout the call session?": "cxRating2",
-                    "Did the CER express a sincere acknowledgement/empathy statement when applicable?": "cxRating3",
-                    "Did the CER convey his/her thoughts in an understandable clear and concise manner?": "cxRating4",
-                    "Was the CER able to hold rapport?": "cxRating5",
-                    "Did the CER ask effective probing questions to ensure accurate diagnosis?": "psRating1",
-                    "Did the CER do proper research and check all related tools required?": "psRating2",
-                    "Did the CER show ownership and actively listen?": "psRating3",
-                    "Did the CER document all action items & follow-up? (Autofail)": "psRating4",
-                    "Was the CER able to sell to the customer?": "psRating5",
-                    "Capture precise details of the resolution": "psRating6",
-                    "Did the CER log call information correctly? (Data capture)": "caRating1",
-                    "Did the CER adhere to Company Policies & Procedures?(Autofail)": "caRating2",
-                    "Did the CER Comply with industry and legal requirements?": "caRating3",
-                    "Was the CER able to identify real opportunity for Upselling & Cross Selling?": "caRating4"
-                };
+            function hideLoading() {
+                loadingMessages.forEach(msg => msg.style.display = 'none');
+            }
 
-                for (const formQuestionText in questionHeaderMap) {
-                    const ratingName = questionHeaderMap[formQuestionText]; // e.g., 'cxRating1'
-                    const selectElement = document.querySelector(`select[name="${ratingName}"]`);
-                    if (selectElement) {
-                        formDataForSubmission[formQuestionText] = selectElement.value; // Add the rating directly
-                    } else {
-                        formDataForSubmission[formQuestionText] = ''; // Ensure field exists even if element is missing
-                    }
-                }
-                
-                console.log("Collected Data for Submission (Flattened):", formDataForSubmission);
+            function showNoData(tableIdPrefix) {
+                document.getElementById(tableIdPrefix + 'NoData').style.display = 'block';
+            }
 
-                const GOOGLE_APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
+            // Function to fetch and render reports
+            async function fetchAndRenderReports() {
+                showLoading();
+
+                const selectedMonth = reportMonthSelect.value;
+                const selectedYear = reportYearSelect.value;
 
                 try {
-                    saveResetBtn.textContent = 'Saving...';
-                    saveResetBtn.disabled = true;
-                    console.log("Sending fetch request with JSON body.");
-
-                    const response = await fetch(googleAppsScriptURL, {
-                        method: 'POST',
-                        mode: 'cors', // Ensure CORS is enabled on Apps Script
-                        headers: {
-                            'Content-Type': 'application/json', // Changed to application/json
-                        },
-                        body: JSON.stringify(formDataForSubmission) // Send JSON string directly
+                    const response = await fetch(`${googleAppsScriptURL}?action=getReports&month=${selectedMonth}&year=${selectedYear}`, {
+                        method: 'GET',
+                        mode: 'cors'
                     });
-                    console.log("Fetch request sent. Waiting for response.");
 
-                    const responseData = await response.json();
-                    console.log("Response received from Apps Script:", responseData);
-                    if (responseData.status === 'SUCCESS') {
-                        alert('Form data saved successfully to Google Sheet! The form will now reset.');
-                        resetForm();
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    hideLoading();
+
+                    if (data.status === 'SUCCESS' && data.reports) {
+                        renderTable(auditsPerAgentTableBody, data.reports.auditsPerAgent, 'auditsPerAgent');
+                        renderTable(autofailsTableBody, data.reports.autofails, 'autofails');
+                        renderTable(auditsPerQueueTableBody, data.reports.auditsPerQueue, 'auditsPerQueue');
+                        renderTable(autofailsPerIndividualTableBody, data.reports.autofailsPerIndividual, 'autofailsPerIndividual');
                     } else {
-                        alert('Failed to save form data: ' + responseData.message + '. Please check console for details.');
-                        console.error('Apps Script Error:', responseData.message);
+                        console.error('Error fetching reports:', data.message || 'Unknown error');
+                        noDataMessages.forEach(msg => msg.style.display = 'block');
                     }
 
                 } catch (error) {
-                    console.error('Error saving form data (network/fetch error):', error);
-                    alert('Failed to save form data. Please try again. Check console for network/script errors.');
-                } finally {
-                    saveResetBtn.textContent = 'Save & Reset';
-                    saveResetBtn.disabled = false;
-                    console.log("Save & Reset button re-enabled.");
+                    console.error('Network or script error:', error);
+                    hideLoading();
+                    noDataMessages.forEach(msg => msg.style.display = 'block');
                 }
-            });
-
-            // Reset Form Functionality
-            function resetForm() {
-                console.log("Resetting form.");
-                // Reset main form fields by referencing their IDs
-                contactIdInput.value = '';
-                clientNameInput.value = '';
-                cerNameSelect.value = '';
-                cerRoleSelect.value = '';
-                callDateTimeInput.value = '';
-                reviewerNameSelect.value = '';
-                otherReviewerNameInput.classList.add('hidden');
-                otherReviewerNameInput.value = '';
-                otherReviewerNameInput.removeAttribute('required');
-                otherReviewerNameInput.style.borderColor = '';
-                autofailTypeSelect.value = '';
-                evaluationDateInput.valueAsDate = new Date(); // Reset to today
-                const now = new Date();
-                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                callDateTimeInput.value = now.toISOString().slice(0,16);
-                durationInput.value = '';
-
-
-                // Reset all question select elements to default 'None'
-                // Re-initialize all sections to trigger their default state and score recalculation
-                for (const sectionKey in sections) {
-                    sections[sectionKey].forEach(item => {
-                        if (item.selectElement) {
-                            item.selectElement.value = ''; // Set to empty string for 'None' option
-                            // No need to dispatch change event here, calculateScore will be called once after loop
-                        }
-                        if (item.pointsElement) {
-                            item.pointsElement.value = 0; // Reset points to 0 directly
-                            item.pointsElement.readOnly = true; // Make it read-only
-                            item.pointsElement.style.backgroundColor = '#e9ecef'; // Default grey background
-                            item.pointsElement.style.color = '#555'; // Default text color
-                        }
-                        if (document.querySelector(`textarea[name="${item.name.replace('Rating', 'Remarks')}"]`)) {
-                             document.querySelector(`textarea[name="${item.name.replace('Rating', 'Remarks')}"]`).value = '';
-                        }
-                    });
-                }
-                // Call calculateScore once after all fields are reset to update global scores
-                calculateScore();
-
-                console.log("Form fields reset. Scores recalculated.");
             }
 
+            // Generic function to render report tables
+            function renderTable(tableBody, reportData, tableIdPrefix) {
+                tableBody.innerHTML = ''; // Clear previous data
 
-            // PDF & Email Button functionality
-            printEmailBtn.addEventListener('click', async () => {
-                console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
-
-                const element = document.getElementById('mainFormContent'); // Capture the entire form content div
-                if (!element) {
-                    console.error('Error: Form container not found for PDF generation.');
-                    alert('Could not find the form to generate PDF. Please try again.');
+                if (Object.keys(reportData).length === 0) {
+                    showNoData(tableIdPrefix + 'Table');
                     return;
                 }
 
-                // Temporarily hide elements for cleaner PDF.
-                // Store their original display styles to restore them later.
-                const elementsToHide = [mainNav, printEmailBtn, saveResetBtn];
-                const originalDisplays = [];
-                elementsToHide.forEach(el => {
-                    if (el) {
-                        originalDisplays.push({ el: el, display: el.style.display });
-                        el.style.display = 'none';
+                // Get sorted keys (names) for consistent ordering
+                const sortedNames = Object.keys(reportData).sort();
+
+                sortedNames.forEach(name => {
+                    const rowData = reportData[name];
+                    const tr = document.createElement('tr');
+                    tr.classList.add('hover:bg-gray-100'); // Add hover effect
+                    
+                    const tdName = document.createElement('td');
+                    tdName.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'font-medium', 'text-gray-900', 'text-left'); // Align name to left
+                    tdName.textContent = name;
+                    tr.appendChild(tdName);
+
+                    let total = 0;
+                    for (let i = 1; i <= 12; i++) {
+                        const monthKey = months[i - 1]; // Get month name
+                        const count = rowData[monthKey] || 0;
+                        const tdCount = document.createElement('td');
+                        tdCount.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-gray-700', 'text-center'); // Center counts
+                        tdCount.textContent = count;
+                        tr.appendChild(tdCount);
+                        total += count;
                     }
+
+                    const tdTotal = document.createElement('td');
+                    tdTotal.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'font-bold', 'text-gray-900', 'text-center'); // Center total and make bold
+                    tdTotal.textContent = total;
+                    tr.appendChild(tdTotal);
+                    tableBody.appendChild(tr);
                 });
-                console.log("Elements hidden for PDF capture.");
+            }
 
-                try {
-                    const canvas = await html2canvas(element, {
-                        scale: 2, // Higher scale for better resolution in PDF
-                        useCORS: true, // Crucial for external images (like your logo placeholder)
-                        logging: false // Disable logging for cleaner console
-                    });
-                    console.log("html2canvas capture complete.");
-                    
-                    const imgData = canvas.toDataURL('image/jpeg', 0.8); // Changed to JPEG with quality 0.8 for smaller size
-                    const imgWidth = 210; // A4 width in mm
-                    const pageHeight = 297; // A4 height in mm
-                    const imgHeight = canvas.height * imgWidth / canvas.width;
-                    let heightLeft = imgHeight;
-
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    console.log("jsPDF initialized.");
-
-                    let position = 0;
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST'); // Use JPEG and FAST compression
-                    heightLeft -= pageHeight;
-
-                    while (heightLeft > -1) { // Adjusted condition: as long as there's content left to draw
-                        position = heightLeft - imgHeight; // Calculate position for the next page segment
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST'); // Use JPEG and FAST compression
-                        heightLeft -= pageHeight;
-                    }
-                    console.log("PDF images added.");
-
-                    // Generate a more specific filename
-                    const contactIdForPdf = contactIdInput.value || 'UnknownContact';
-                    const cerNameForPdf = cerNameSelect.value || 'UnknownCER';
-                    const reviewDateForPdf = evaluationDateInput.value || 'UnknownDate';
-                    pdf.save(`QA_Form_${contactIdForPdf}_${cerNameForPdf}_${reviewDateForPdf}.pdf`);
-                    console.log("PDF saved.");
-
-                    // Prepare email details
-                    const cerNameVal = cerNameSelect.value;
-                    const evaluationDateVal = evaluationDateInput.value;
-                    const overallScoreVal = overallFinalPercentageDisplay.textContent;
-                    const contactIdVal = contactIdInput.value;
-                    const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
-
-
-                    const subject = `Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'} - CER: ${cerNameVal || 'N/A'} - Date: ${evaluationDateVal || 'N/A'}.\n\nOverall Score: ${overallScoreVal || 'N/A'}`;
-                    const body = `Dear Team,\n\nPlease find the attached Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'},\nCER: ${cerNameVal || 'N/A'},\nEvaluated on: ${evaluationDateVal || 'N/A'}.\n\nThe overall score is: ${overallScoreVal || 'N/A'}.\n\nRegards,\n${reviewerNameVal || 'Reviewer'}`;
-
-                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}` /* &body=${encodeURIComponent(body)} */ ; // Removed body from mailto for better PDF attachment experience
-                    
-                    window.location.href = mailtoLink;
-                    alert('PDF generated and downloaded. Please attach the PDF manually to your email client.');
-                    console.log("Mailto link triggered and alert shown.");
-
-                } catch (error) {
-                    console.error("Critical Error during PDF generation or mailto attempt:", error);
-                    alert("Failed to generate PDF or open email client. Please check your browser console (F12) for details.");
-                } finally {
-                    // Always restore original display styles after operation
-                    originalDisplays.forEach(({ el, display }) => {
-                        if (el) el.style.display = display;
-                    });
-                    console.log("Elements restored.");
-                }
-            });
-
-            // Set default date to today
-            evaluationDateInput.valueAsDate = new Date();
-            // Set default call date and time to now
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            callDateTimeInput.value = now.toISOString().slice(0,16);
+            generateReportsBtn.addEventListener('click', fetchAndRenderReports);
         });
     </script>
 </body>
