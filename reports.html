@@ -40,6 +40,7 @@
         <ul>
             <li><a href="index.html"><i class="fas fa-file-alt"></i> Audit Form</a></li>
             <li><a href="reports.html" class="active"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="admin.html"><i class="fas fa-cog"></i> Admin</a></li>
         </ul>
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
@@ -219,9 +220,9 @@
                 'July', 'August', 'September', 'October', 'November', 'December'
             ];
 
-            // --- Login Logic ---
-            const CORRECT_USERNAME = 'Supervisor';
-            const CORRECT_PASSWORD = 'Supervisor';
+            // --- Login Logic (repeated from index.html for consistency) ---
+            const CORRECT_USERNAME = 'Supervisor'; // This is now a fallback, real auth is via Apps Script
+            const CORRECT_PASSWORD = 'Supervisor'; // This is now a fallback, real auth is via Apps Script
 
             const showLoginErrorMessage = (message) => {
                 loginMessage.textContent = message;
@@ -255,15 +256,26 @@
                 const enteredUsername = usernameInput.value;
                 const enteredPassword = passwordInput.value;
 
-                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
-                    sessionStorage.setItem('loggedIn', 'true');
-                    window.location.reload(); // Reload page to apply new login state
-                } else {
-                    showLoginErrorMessage('Invalid Username or Password. Please try again.');
-                }
+                // Authenticate via Apps Script
+                const authUrl = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec'; // Your Apps Script URL
+                
+                fetch(authUrl + '?action=authenticate&username=' + encodeURIComponent(enteredUsername) + '&password=' + encodeURIComponent(enteredPassword))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'SUCCESS' && data.authenticated) {
+                            sessionStorage.setItem('loggedIn', 'true');
+                            window.location.reload(); // Reload page to apply new login state
+                        } else {
+                            showLoginErrorMessage('Invalid username or password.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Authentication Error:', error);
+                        showLoginErrorMessage('An error occurred during login. Please try again.');
+                    });
             });
 
-            // Logout functionality
+            // Logout functionality (also present on reports.html)
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', function() {
                     sessionStorage.removeItem('loggedIn');
@@ -314,7 +326,7 @@
                 const selectedYear = reportYearSelect.value;
 
                 try {
-                    const response = await fetch(`${googleAppsScriptURL}?month=${selectedMonth}&year=${selectedYear}&action=getReports`, {
+                    const response = await fetch(`${googleAppsScriptURL}?action=getReports&month=${selectedMonth}&year=${selectedYear}`, {
                         method: 'GET',
                         mode: 'cors'
                     });
