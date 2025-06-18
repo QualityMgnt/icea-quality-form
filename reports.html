@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - ICEA LION GROUP</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            padding: 0;
+        }
+
+        /* Adjustments for reports container relative to body flow */
+        body > .reports-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation Menu (Always present if logged in) -->
+    <nav class="main-nav" id="mainNav">
+        <ul>
+            <li><a href="index.html"><i class="fas fa-file-alt"></i> Audit Form</a></li>
+            <li><a href="reports.html" class="active"><i class="fas fa-chart-bar"></i> Reports</a></li>
+        </ul>
+        <button id="logoutBtn" class="logout-button">Logout</button>
+    </nav>
+
+    <!-- Login Page (re-used from index.html, needs identical styling for consistency) -->
+    <!-- This will be hidden/shown by JS based on login status -->
+    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage" style="display: none;">
+        <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
+            <div class="icealion-blue p-6 rounded-t-lg text-center">
+                <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
+            </div>
+
+            <form id="loginForm" class="p-8 space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="username" name="username" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" 
+                           required placeholder="Enter your username">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" name="password" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" 
+                           required placeholder="Enter your password">
+                </div>
+                <button type="submit" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                    Login
+                </button>
+                <div id="loginMessage" class="error-message hidden"></div>
+            </form>
+        </div>
+    </div>
+
+
+    <div class="reports-container" id="reportsContent" style="display: none;">
+        <h1>Audit Reports</h1>
+
+        <div class="filter-section">
+            <label for="reportMonth">Select Month:</label>
+            <select id="reportMonth">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+            <label for="reportYear">Select Year:</label>
+            <select id="reportYear"></select> <!-- Populated by JS -->
+            <button class="btn btn-primary" id="generateReportsBtn">Generate Reports</button>
+        </div>
+
+        <div class="report-section">
+            <h2>Number of Audits Done per Agent</h2>
+            <div class="table-scroll-wrapper">
+                <table id="auditsPerAgentTable" class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
+                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="auditsPerAgentLoading" class="loading-message">Loading...</div>
+            <div id="auditsPerAgentNoData" class="no-data-message">No data available for this month.</div>
+        </div>
+
+        <div class="report-section">
+            <h2>Number of Autofails</h2>
+            <div class="table-scroll-wrapper">
+                <table id="autofailsTable" class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
+                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="autofailsLoading" class="loading-message">Loading...</div>
+            <div id="autofailsNoData" class="no-data-message">No data available for this month.</div>
+        </div>
+
+        <div class="report-section">
+            <h2>Number of Audits Per Queue</h2>
+            <div class="table-scroll-wrapper">
+                <table id="auditsPerQueueTable" class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
+                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="auditsPerQueueLoading" class="loading-message">Loading...</div>
+            <div id="auditsPerQueueNoData" class="no-data-message">No data available for this month.</div>
+        </div>
+
+        <div class="report-section">
+            <h2>Number of Autofails Per Individual</h2>
+            <div class="table-scroll-wrapper">
+                <table id="autofailsPerIndividualTable" class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
+                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be populated here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="autofailsPerIndividualLoading" class="loading-message">Loading...</div>
+            <div id="autofailsPerIndividualNoData" class="no-data-message">No data available for this month.</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // **IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL**
+            const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec'; // This is from index.html
+
+            // Login elements
+            const loginPage = document.getElementById('loginPage');
+            const loginForm = document.getElementById('loginForm');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const loginMessage = document.getElementById('loginMessage');
+
+            // Reports Page Content
+            const reportsContent = document.getElementById('reportsContent');
+            const mainNav = document.getElementById('mainNav'); // Get the main navigation
+            const logoutBtn = document.getElementById('logoutBtn'); // Get the logout button
+
+
+            const reportMonthSelect = document.getElementById('reportMonth');
+            const reportYearSelect = document.getElementById('reportYear');
+            const generateReportsBtn = document.getElementById('generateReportsBtn');
+
+            const auditsPerAgentTableBody = document.querySelector('#auditsPerAgentTable tbody');
+            const autofailsTableBody = document.querySelector('#autofailsTable tbody');
+            const auditsPerQueueTableBody = document.querySelector('#auditsPerQueueTable tbody');
+            const autofailsPerIndividualTableBody = document.querySelector('#autofailsPerIndividualTable tbody');
+
+            const loadingMessages = document.querySelectorAll('.loading-message');
+            const noDataMessages = document.querySelectorAll('.no-data-message');
+
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            // --- Login Logic ---
+            const CORRECT_USERNAME = 'Supervisor';
+            const CORRECT_PASSWORD = 'Supervisor';
+
+            const showLoginErrorMessage = (message) => {
+                loginMessage.textContent = message;
+                loginMessage.classList.remove('hidden');
+            };
+
+            const hideLoginErrorMessage = () => {
+                loginMessage.classList.add('hidden');
+                loginMessage.textContent = '';
+            };
+
+            // Initial login state check for reports.html
+            const isLoggedIn = sessionStorage.getItem('loggedIn');
+            if (isLoggedIn === 'true') {
+                loginPage.style.display = 'none'; // Hide login if already logged in
+                reportsContent.style.display = 'block'; // Show reports content
+                mainNav.style.display = 'flex'; // Show navigation
+                populateYears(); // Populate years dropdown
+                setDefaultMonth(); // Set default month
+                fetchAndRenderReports(); // Fetch reports on load
+            } else {
+                loginPage.style.display = 'flex'; // Show login
+                reportsContent.style.display = 'none'; // Hide reports content
+                mainNav.style.display = 'none'; // Hide navigation
+            }
+
+            loginForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                hideLoginErrorMessage();
+
+                const enteredUsername = usernameInput.value;
+                const enteredPassword = passwordInput.value;
+
+                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
+                    sessionStorage.setItem('loggedIn', 'true');
+                    window.location.reload(); // Reload page to apply new login state
+                } else {
+                    showLoginErrorMessage('Invalid Username or Password. Please try again.');
+                }
+            });
+
+            // Logout functionality
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    sessionStorage.removeItem('loggedIn');
+                    window.location.href = 'index.html'; // Redirect to login
+                });
+            }
+
+
+            // Populate year dropdown
+            function populateYears() {
+                const currentYear = new Date().getFullYear();
+                for (let i = currentYear - 5; i <= currentYear + 1; i++) { // Current year +/- a few years
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    reportYearSelect.appendChild(option);
+                }
+                reportYearSelect.value = currentYear; // Default to current year
+            }
+
+            // Set current month as default
+            function setDefaultMonth() {
+                reportMonthSelect.value = new Date().getMonth() + 1; // Month is 0-indexed
+            }
+
+            function showLoading() {
+                loadingMessages.forEach(msg => msg.style.display = 'block');
+                noDataMessages.forEach(msg => msg.style.display = 'none');
+                auditsPerAgentTableBody.innerHTML = '';
+                autofailsTableBody.innerHTML = '';
+                auditsPerQueueTableBody.innerHTML = '';
+                autofailsPerIndividualTableBody.innerHTML = '';
+            }
+
+            function hideLoading() {
+                loadingMessages.forEach(msg => msg.style.display = 'none');
+            }
+
+            function showNoData(tableIdPrefix) {
+                document.getElementById(tableIdPrefix + 'NoData').style.display = 'block';
+            }
+
+            // Function to fetch and render reports
+            async function fetchAndRenderReports() {
+                showLoading();
+
+                const selectedMonth = reportMonthSelect.value;
+                const selectedYear = reportYearSelect.value;
+
+                try {
+                    const response = await fetch(`${googleAppsScriptURL}?month=${selectedMonth}&year=${selectedYear}&action=getReports`, {
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    hideLoading();
+
+                    if (data.status === 'SUCCESS' && data.reports) {
+                        renderTable(auditsPerAgentTableBody, data.reports.auditsPerAgent, 'auditsPerAgent');
+                        renderTable(autofailsTableBody, data.reports.autofails, 'autofails');
+                        renderTable(auditsPerQueueTableBody, data.reports.auditsPerQueue, 'auditsPerQueue');
+                        renderTable(autofailsPerIndividualTableBody, data.reports.autofailsPerIndividual, 'autofailsPerIndividual');
+                    } else {
+                        console.error('Error fetching reports:', data.message || 'Unknown error');
+                        noDataMessages.forEach(msg => msg.style.display = 'block');
+                    }
+
+                } catch (error) {
+                    console.error('Network or script error:', error);
+                    hideLoading();
+                    noDataMessages.forEach(msg => msg.style.display = 'block');
+                }
+            }
+
+            // Generic function to render report tables
+            function renderTable(tableBody, reportData, tableIdPrefix) {
+                tableBody.innerHTML = ''; // Clear previous data
+
+                if (Object.keys(reportData).length === 0) {
+                    showNoData(tableIdPrefix + 'Table');
+                    return;
+                }
+
+                // Get sorted keys (names) for consistent ordering
+                const sortedNames = Object.keys(reportData).sort();
+
+                sortedNames.forEach(name => {
+                    const rowData = reportData[name];
+                    const tr = document.createElement('tr');
+                    tr.classList.add('hover:bg-gray-100'); // Add hover effect
+                    
+                    const tdName = document.createElement('td');
+                    tdName.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'font-medium', 'text-gray-900', 'text-left'); // Align name to left
+                    tdName.textContent = name;
+                    tr.appendChild(tdName);
+
+                    let total = 0;
+                    for (let i = 1; i <= 12; i++) {
+                        const monthKey = months[i - 1]; // Get month name
+                        const count = rowData[monthKey] || 0;
+                        const tdCount = document.createElement('td');
+                        tdCount.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-gray-700', 'text-center'); // Center counts
+                        tdCount.textContent = count;
+                        tr.appendChild(tdCount);
+                        total += count;
+                    }
+
+                    const tdTotal = document.createElement('td');
+                    tdTotal.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'font-bold', 'text-gray-900', 'text-center'); // Center total and make bold
+                    tdTotal.textContent = total;
+                    tr.appendChild(tdTotal);
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            generateReportsBtn.addEventListener('click', fetchAndRenderReports);
+        });
+    </script>
+</body>
+</html>
