@@ -620,6 +620,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM fully loaded and parsed. Script starting.");
+
             // Login elements
             const loginPage = document.getElementById('loginPage');
             const loginForm = document.getElementById('loginForm');
@@ -630,7 +632,6 @@
 
 
             // Form buttons (main form)
-            // const scoreBtn = document.getElementById('score-btn'); // Removed
             const printEmailBtn = document.getElementById('print-email-btn');
             const saveResetBtn = document.getElementById('save-reset-btn');
             
@@ -763,12 +764,14 @@
             // This function maps the actual HTML input elements to the 'sections' structure
             // It needs to be called after the DOM is fully loaded and before calculations.
             function initializeFormScores() {
+                console.log("initializeFormScores called.");
                 globalTotalPoints = 0;
                 globalMaxPossiblePoints = 0;
                 globalBusinessComplianceAccuracyValue = 0;
 
                 for (const sectionKey in sections) {
                     sections[sectionKey].forEach(item => {
+                        // Use querySelector to find elements by name attribute
                         const selectElement = document.querySelector(`select[name="${item.name}"]`);
                         const pointsInput = document.querySelector(`input[name="${item.pointsInputId}"]`);
                         
@@ -778,7 +781,7 @@
                             // Add event listener here directly to the select element
                             selectElement.addEventListener('change', calculateScore);
                         } else {
-                            console.warn(`Missing element for ${item.name} or ${item.pointsInputId}. Calculation might be inaccurate.`);
+                            console.warn(`Missing element for ${item.name} (select) or ${item.pointsInputId} (points input). Calculation might be inaccurate.`);
                         }
                     });
                 }
@@ -788,11 +791,13 @@
                 // Make PDF & Email and Save & Reset buttons visible by default
                 printEmailBtn.classList.remove('hidden');
                 saveResetBtn.classList.remove('hidden');
+                console.log("Buttons should be visible.");
             }
 
 
             // Calculate score based on ratings and weightages
             const calculateScore = () => {
+                console.log("calculateScore called.");
                 globalTotalPoints = 0; // Reset for recalculation
                 globalMaxPossiblePoints = 0; // Reset for recalculation
                 let autofailTriggered = false;
@@ -902,6 +907,7 @@
             const assessmentForm = document.getElementById('assessment-form'); // Get the main form element
             assessmentForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
+                console.log("Save & Reset button clicked - attempting form submission.");
 
                 // Basic client-side validation for required fields
                 const requiredInputs = assessmentForm.querySelectorAll('[required]:not(.hidden)');
@@ -1037,6 +1043,7 @@
 
             // Reset Form Functionality
             function resetForm() {
+                console.log("Resetting form.");
                 // Reset main form fields
                 assessmentForm.reset();
                 contactIdInput.value = '';
@@ -1076,7 +1083,7 @@
 
             // PDF & Email Button functionality
             printEmailBtn.addEventListener('click', async () => {
-                console.log('Attempting PDF generation and Email...');
+                console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
 
                 const element = document.getElementById('mainFormContent'); // Capture the entire form content div
                 if (!element) {
@@ -1087,7 +1094,6 @@
 
                 // Temporarily hide elements for cleaner PDF.
                 // Store their original display styles to restore them later.
-                // Removed scoreBtn from here as it's removed from HTML
                 const elementsToHide = [mainNav, printEmailBtn, saveResetBtn];
                 const originalDisplays = [];
                 elementsToHide.forEach(el => {
@@ -1096,6 +1102,7 @@
                         el.style.display = 'none';
                     }
                 });
+                console.log("Elements hidden for PDF capture.");
 
                 try {
                     const canvas = await html2canvas(element, {
@@ -1103,6 +1110,7 @@
                         useCORS: true, // Crucial for external images (like your logo placeholder)
                         logging: false // Disable logging for cleaner console
                     });
+                    console.log("html2canvas capture complete.");
                     
                     const imgData = canvas.toDataURL('image/jpeg', 0.8); // Changed to JPEG with quality 0.8 for smaller size
                     const imgWidth = 210; // A4 width in mm
@@ -1112,6 +1120,7 @@
 
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF('p', 'mm', 'a4');
+                    console.log("jsPDF initialized.");
 
                     let position = 0;
                     pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST'); // Use JPEG and FAST compression
@@ -1123,12 +1132,14 @@
                         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST'); // Use JPEG and FAST compression
                         heightLeft -= pageHeight;
                     }
+                    console.log("PDF images added.");
 
                     // Generate a more specific filename
                     const contactIdForPdf = contactIdInput.value || 'UnknownContact';
                     const cerNameForPdf = cerNameSelect.value || 'UnknownCER';
                     const reviewDateForPdf = evaluationDateInput.value || 'UnknownDate';
                     pdf.save(`QA_Form_${contactIdForPdf}_${cerNameForPdf}_${reviewDateForPdf}.pdf`);
+                    console.log("PDF saved.");
 
                     // Prepare email details
                     const cerNameVal = cerNameSelect.value;
@@ -1145,6 +1156,7 @@
                     
                     window.location.href = mailtoLink;
                     alert('PDF generated and downloaded. Please attach the PDF manually to your email client.');
+                    console.log("Mailto link triggered and alert shown.");
 
                 } catch (error) {
                     console.error("Critical Error during PDF generation or mailto attempt:", error);
@@ -1154,6 +1166,7 @@
                     originalDisplays.forEach(({ el, display }) => {
                         if (el) el.style.display = display;
                     });
+                    console.log("Elements restored.");
                 }
             });
 
