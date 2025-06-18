@@ -667,7 +667,6 @@
             let globalBusinessComplianceAccuracyValue = 0; // The raw percentage for business & compliance
 
             // Define the structure of questions, mapping new names to weightages
-            // This needs to be defined BEFORE initializeFormScores and calculateScore
             const sections = {
                 'CUSTOMER EXPERIENCE': [
                     { name: 'cxRating1', weightage: 6, pointsInputId: 'cxPoints1' }, // Q1
@@ -692,110 +691,9 @@
                 ]
             };
 
-            // --- Login Logic ---
-            const CORRECT_USERNAME = 'Supervisor';
-            const CORRECT_PASSWORD = 'Supervisor';
-
-            const showLoginErrorMessage = (message) => {
-                loginMessage.textContent = message;
-                loginMessage.classList.remove('hidden');
-            };
-
-            const hideLoginErrorMessage = () => {
-                loginMessage.classList.add('hidden');
-                loginMessage.textContent = '';
-            };
-
-            // Check for login state on page load
-            const isLoggedIn = sessionStorage.getItem('loggedIn');
-
-            if (isLoggedIn === 'true') {
-                loginPage.style.display = 'none'; // Hide login page
-                mainFormContent.style.display = 'block'; // Show the main form
-                mainNav.style.display = 'flex'; // Show the navigation
-                initializeFormScores(); // Call function to set initial scores
-            } else {
-                // Not logged in, ensure login page is visible and others are hidden
-                loginPage.style.display = 'flex'; // Use flex for login layout
-                mainFormContent.style.display = 'none'; // Hide the main form
-                mainNav.style.display = 'none'; // Hide the navigation
-            }
-
-
-            loginForm.addEventListener('submit', function(event) {
-                event.preventDefault();
-                hideLoginErrorMessage();
-
-                const enteredUsername = usernameInput.value;
-                const enteredPassword = passwordInput.value;
-
-                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
-                    sessionStorage.setItem('loggedIn', 'true');
-                    loginPage.style.display = 'none'; // Hide login
-                    mainFormContent.style.display = 'block'; // Show the main form
-                    mainNav.style.display = 'flex'; // Show navigation
-                    initializeFormScores(); // Initialize form scores after login
-                } else {
-                    showLoginErrorMessage('Invalid Username or Password. Please try again.');
-                }
-            });
-
-            // Logout functionality
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    sessionStorage.removeItem('loggedIn');
-                    window.location.href = 'index.html'; // Redirect to login
-                });
-            }
-
-            // Toggle 'Other' reviewer name input
-            reviewerNameSelect.addEventListener('change', () => {
-                if (reviewerNameSelect.value === 'Other') {
-                    otherReviewerNameInput.classList.remove('hidden');
-                    otherReviewerNameInput.setAttribute('required', 'required');
-                } else {
-                    otherReviewerNameInput.classList.add('hidden');
-                    otherReviewerNameInput.value = '';
-                    otherReviewerNameInput.removeAttribute('required');
-                    otherReviewerNameInput.style.borderColor = '';
-                }
-            });
-
-            // This function maps the actual HTML input elements to the 'sections' structure
-            // It needs to be called after the DOM is fully loaded and before calculations.
-            function initializeFormScores() {
-                console.log("initializeFormScores called.");
-                globalTotalPoints = 0;
-                globalMaxPossiblePoints = 0;
-                globalBusinessComplianceAccuracyValue = 0;
-
-                for (const sectionKey in sections) {
-                    sections[sectionKey].forEach(item => {
-                        // Use querySelector to find elements by name attribute
-                        const selectElement = document.querySelector(`select[name="${item.name}"]`);
-                        const pointsInput = document.querySelector(`input[name="${item.pointsInputId}"]`);
-                        
-                        if (selectElement && pointsInput) {
-                            item.selectElement = selectElement;
-                            item.pointsElement = pointsInput;
-                            // Add event listener here directly to the select element
-                            selectElement.addEventListener('change', calculateScore);
-                        } else {
-                            console.warn(`Missing element for ${item.name} (select) or ${item.pointsInputId} (points input). Calculation might be inaccurate.`);
-                        }
-                    });
-                }
-                // Perform initial calculation
-                calculateScore();
-
-                // Make PDF & Email and Save & Reset buttons visible by default
-                printEmailBtn.classList.remove('hidden');
-                saveResetBtn.classList.remove('hidden');
-                console.log("Buttons should be visible.");
-            }
-
-
-            // Calculate score based on ratings and weightages
+            // --- Calculate Score Function ---
+            // Moved this function definition to the top of the common script scope
+            // so it is defined before it's called anywhere.
             const calculateScore = () => {
                 console.log("calculateScore called.");
                 globalTotalPoints = 0; // Reset for recalculation
@@ -899,9 +797,108 @@
             };
 
 
-            // Score button is removed, so this event listener is no longer needed.
-            // scoreBtn.addEventListener('click', (event) => { /* ... */ });
+            // --- Initialize Form Scores Function ---
+            // Moved this function definition above where it's called initially
+            function initializeFormScores() {
+                console.log("initializeFormScores called.");
+                globalTotalPoints = 0;
+                globalMaxPossiblePoints = 0;
+                globalBusinessComplianceAccuracyValue = 0;
 
+                for (const sectionKey in sections) {
+                    sections[sectionKey].forEach(item => {
+                        // Use querySelector to find elements by name attribute
+                        const selectElement = document.querySelector(`select[name="${item.name}"]`);
+                        const pointsInput = document.querySelector(`input[name="${item.pointsInputId}"]`);
+                        
+                        if (selectElement && pointsInput) {
+                            item.selectElement = selectElement;
+                            item.pointsElement = pointsInput;
+                            // Add event listener here directly to the select element
+                            selectElement.addEventListener('change', calculateScore);
+                        } else {
+                            console.warn(`Missing element for ${item.name} (select) or ${item.pointsInputId} (points input). Calculation might be inaccurate.`);
+                        }
+                    });
+                }
+                // Perform initial calculation
+                calculateScore();
+
+                // Make PDF & Email and Save & Reset buttons visible by default
+                printEmailBtn.classList.remove('hidden');
+                saveResetBtn.classList.remove('hidden');
+                console.log("Buttons should be visible.");
+            }
+
+
+            // --- Login Logic ---
+            const CORRECT_USERNAME = 'Supervisor';
+            const CORRECT_PASSWORD = 'Supervisor';
+
+            const showLoginErrorMessage = (message) => {
+                loginMessage.textContent = message;
+                loginMessage.classList.remove('hidden');
+            };
+
+            const hideLoginErrorMessage = () => {
+                loginMessage.classList.add('hidden');
+                loginMessage.textContent = '';
+            };
+
+            // Check for login state on page load
+            const isLoggedIn = sessionStorage.getItem('loggedIn');
+
+            if (isLoggedIn === 'true') {
+                loginPage.style.display = 'none'; // Hide login page
+                mainFormContent.style.display = 'block'; // Show the main form
+                mainNav.style.display = 'flex'; // Show the navigation
+                initializeFormScores(); // Call function to set initial scores
+            } else {
+                // Not logged in, ensure login page is visible and others are hidden
+                loginPage.style.display = 'flex'; // Use flex for login layout
+                mainFormContent.style.display = 'none'; // Hide the main form
+                mainNav.style.display = 'none'; // Hide the navigation
+            }
+
+
+            loginForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                hideLoginErrorMessage();
+
+                const enteredUsername = usernameInput.value;
+                const enteredPassword = passwordInput.value;
+
+                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
+                    sessionStorage.setItem('loggedIn', 'true');
+                    loginPage.style.display = 'none'; // Hide login
+                    mainFormContent.style.display = 'block'; // Show the main form
+                    mainNav.style.display = 'flex'; // Show navigation
+                    initializeFormScores(); // Initialize form scores after login
+                } else {
+                    showLoginErrorMessage('Invalid Username or Password. Please try again.');
+                }
+            });
+
+            // Logout functionality
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    sessionStorage.removeItem('loggedIn');
+                    window.location.href = 'index.html'; // Redirect to login
+                });
+            }
+
+            // Toggle 'Other' reviewer name input
+            reviewerNameSelect.addEventListener('change', () => {
+                if (reviewerNameSelect.value === 'Other') {
+                    otherReviewerNameInput.classList.remove('hidden');
+                    otherReviewerNameInput.setAttribute('required', 'required');
+                } else {
+                    otherReviewerNameInput.classList.add('hidden');
+                    otherReviewerNameInput.value = '';
+                    otherReviewerNameInput.removeAttribute('required');
+                    otherReviewerNameInput.style.borderColor = '';
+                }
+            });
 
             // Handle form submission (for saving data to Google Sheet via Apps Script)
             const assessmentForm = document.getElementById('assessment-form'); // Get the main form element
