@@ -665,6 +665,32 @@
             let globalMaxPossiblePoints = 0; // The sum of all weightages
             let globalBusinessComplianceAccuracyValue = 0; // The raw percentage for business & compliance
 
+            // Define the structure of questions, mapping new names to weightages
+            // This needs to be defined BEFORE initializeFormScores and calculateScore
+            const sections = {
+                'CUSTOMER EXPERIENCE': [
+                    { name: 'cxRating1', weightage: 6, pointsInputId: 'cxPoints1' }, // Q1
+                    { name: 'cxRating2', weightage: 6, pointsInputId: 'cxPoints2' }, // Q2
+                    { name: 'cxRating3', weightage: 7, pointsInputId: 'cxPoints3' }, // Q3
+                    { name: 'cxRating4', weightage: 7, pointsInputId: 'cxPoints4' }, // Q4
+                    { name: 'cxRating5', weightage: 6, pointsInputId: 'cxPoints5' } // Q5
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { name: 'psRating1', weightage: 8, pointsInputId: 'psPoints1' }, // Q6
+                    { name: 'psRating2', weightage: 7, pointsInputId: 'psPoints2' }, // Q7
+                    { name: 'psRating3', weightage: 8, pointsInputId: 'psPoints3' }, // Q8
+                    { name: 'psRating4', weightage: 10, pointsInputId: 'psPoints4', autofail: true }, // Q9 - Autofail
+                    { name: 'psRating5', weightage: 7, pointsInputId: 'psPoints5' }, // Q10 (Changed from 6 to 7 to match previous conversation)
+                    { name: 'psRating6', weightage: 8, pointsInputId: 'psPoints6' } // Q11
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { name: 'caRating1', weightage: 7, pointsInputId: 'caPoints1', autofail: true }, // Q12 - Autofail
+                    { name: 'caRating2', weightage: 10, pointsInputId: 'caPoints2', autofail: true }, // Q13 - Autofail
+                    { name: 'caRating3', weightage: 9, pointsInputId: 'caPoints3' }, // Q14
+                    { name: 'caRating4', weightage: 5, pointsInputId: 'caPoints4' } // Q15
+                ]
+            };
+
             // --- Login Logic ---
             const CORRECT_USERNAME = 'Supervisor';
             const CORRECT_PASSWORD = 'Supervisor';
@@ -733,32 +759,6 @@
                     otherReviewerNameInput.style.borderColor = '';
                 }
             });
-
-            // Define the structure of questions, mapping new names to weightages
-            // This structure will be used for calculations
-            const sections = {
-                'CUSTOMER EXPERIENCE': [
-                    { name: 'cxRating1', weightage: 6, pointsInputId: 'cxPoints1' }, // Q1
-                    { name: 'cxRating2', weightage: 6, pointsInputId: 'cxPoints2' }, // Q2
-                    { name: 'cxRating3', weightage: 7, pointsInputId: 'cxPoints3' }, // Q3
-                    { name: 'cxRating4', weightage: 7, pointsInputId: 'cxPoints4' }, // Q4
-                    { name: 'cxRating5', weightage: 6, pointsInputId: 'cxPoints5' } // Q5
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { name: 'psRating1', weightage: 8, pointsInputId: 'psPoints1' }, // Q6
-                    { name: 'psRating2', weightage: 7, pointsInputId: 'psPoints2' }, // Q7
-                    { name: 'psRating3', weightage: 8, pointsInputId: 'psPoints3' }, // Q8
-                    { name: 'psRating4', weightage: 10, pointsInputId: 'psPoints4', autofail: true }, // Q9 - Autofail
-                    { name: 'psRating5', weightage: 7, pointsInputId: 'psPoints5' }, // Q10 (Changed from 6 to 7 to match previous conversation)
-                    { name: 'psRating6', weightage: 8, pointsInputId: 'psPoints6' } // Q11
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { name: 'caRating1', weightage: 7, pointsInputId: 'caPoints1', autofail: true }, // Q12 - Autofail
-                    { name: 'caRating2', weightage: 10, pointsInputId: 'caPoints2', autofail: true }, // Q13 - Autofail
-                    { name: 'caRating3', weightage: 9, pointsInputId: 'caPoints3' }, // Q14
-                    { name: 'caRating4', weightage: 5, pointsInputId: 'caPoints4' } // Q15
-                ]
-            };
 
             // This function maps the actual HTML input elements to the 'sections' structure
             // It needs to be called after the DOM is fully loaded and before calculations.
