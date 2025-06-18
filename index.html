@@ -939,38 +939,12 @@
                     availablePoints: globalMaxPossiblePoints, // Total possible weightage
                     finalScore: overallFinalPercentageDisplay.textContent, // The final percentage including autofail
                     
-                    // Collect questions data for submission
-                    questions: []
+                    // Collect questions data for submission - no longer using 'questions' array
+                    // Data will be flattened directly into formDataForSubmission
                 };
 
-                const collectTableData = (tableId) => {
-                    const tableRows = document.getElementById(tableId).querySelectorAll('tbody tr');
-                    const data = [];
-                    tableRows.forEach(row => {
-                        // Assuming the question text is within a specific element (e.g., div.question-content)
-                        const questionTextElement = row.querySelector('.col-span-6:not(.text-center)'); 
-                        const questionText = questionTextElement ? questionTextElement.textContent.trim().replace(/^\d+\s/, '') : ''; // Remove leading number if present
-                        
-                        const rating = row.querySelector('select[name$="Rating"]')?.value;
-                        const points = row.querySelector('input[name$="Points"]')?.value;
-                        const weightage = row.querySelector('div[data-weightage]')?.dataset.weightage;
-                        const remarks = row.querySelector('textarea[name$="Remarks"]')?.value;
-                        
-                        data.push({ questionText, rating, points, weightage, remarks });
-                    });
-                    return data;
-                };
-
-
-                formDataForSubmission.questions = [
-                    ...collectTableData('customerExperienceTable'),
-                    ...collectTableData('problemSolvingTable'),
-                    ...collectTableData('complianceAccuracyTable')
-                ];
-                
-                // For compliance questions, specifically extract from the defined section object,
-                // as `collectTableData` might get simplified text.
-                // We need to map to the exact header text for Google Sheet.
+                // Populate question-specific ratings for the sheet based on `questionHeaderMap`
+                // This ensures correct columns are filled in the Google Sheet.
                 const questionHeaderMap = {
                     "Did the CER provide proper branding and personalize the call?": "cxRating1",
                     "Did the CER demonstrate confidence and business etiquette althroughout the call session?": "cxRating2",
@@ -989,20 +963,16 @@
                     "Was the CER able to identify real opportunity for Upselling & Cross Selling?": "caRating4"
                 };
 
-                // Populate question-specific ratings for the sheet based on `questionHeaderMap`
-                // This ensures correct columns are filled in the Google Sheet.
                 for (const formQuestionText in questionHeaderMap) {
-                    const ratingName = questionHeaderMap[formQuestionText];
-                    const questionData = formDataForSubmission.questions.find(q => q.questionText === formQuestionText);
-                    if (questionData) {
-                        formDataForSubmission[formQuestionText] = questionData.rating; // Add directly as a top-level field
+                    const ratingName = questionHeaderMap[formQuestionText]; // e.g., 'cxRating1'
+                    const selectElement = document.querySelector(`select[name="${ratingName}"]`);
+                    if (selectElement) {
+                        formDataForSubmission[formQuestionText] = selectElement.value; // Add the rating directly
                     } else {
-                        formDataForSubmission[formQuestionText] = ''; // Ensure field exists even if no data
+                        formDataForSubmission[formQuestionText] = ''; // Ensure field exists even if element is missing
                     }
                 }
-                // Remove the 'questions' array as we've flattened the data
-                delete formDataForSubmission.questions;
-
+                
                 console.log("Collected Data for Submission (Flattened):", formDataForSubmission);
 
                 const GOOGLE_APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
@@ -1010,17 +980,20 @@
                 try {
                     saveResetBtn.textContent = 'Saving...';
                     saveResetBtn.disabled = true;
+                    console.log("Sending fetch request with JSON body.");
 
                     const response = await fetch(googleAppsScriptURL, {
                         method: 'POST',
                         mode: 'cors', // Ensure CORS is enabled on Apps Script
                         headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Content-Type': 'application/json', // Changed to application/json
                         },
-                        body: new URLSearchParams(formDataForSubmission).toString() // Send flattened data
+                        body: JSON.stringify(formDataForSubmission) // Send JSON string directly
                     });
+                    console.log("Fetch request sent. Waiting for response.");
 
                     const responseData = await response.json();
+                    console.log("Response received from Apps Script:", responseData);
                     if (responseData.status === 'SUCCESS') {
                         alert('Form data saved successfully to Google Sheet! The form will now reset.');
                         resetForm();
@@ -1030,19 +1003,19 @@
                     }
 
                 } catch (error) {
-                    console.error('Error saving form data:', error);
+                    console.error('Error saving form data (network/fetch error):', error);
                     alert('Failed to save form data. Please try again. Check console for network/script errors.');
                 } finally {
                     saveResetBtn.textContent = 'Save & Reset';
                     saveResetBtn.disabled = false;
+                    console.log("Save & Reset button re-enabled.");
                 }
             });
 
             // Reset Form Functionality
             function resetForm() {
                 console.log("Resetting form.");
-                // Reset main form fields
-                assessmentForm.reset();
+                // Reset main form fields by referencing their IDs
                 contactIdInput.value = '';
                 clientNameInput.value = '';
                 cerNameSelect.value = '';
@@ -1061,20 +1034,29 @@
                 durationInput.value = '';
 
 
-                // Reset all select elements to default 'None'
-                document.querySelectorAll('select[name$="Rating"]').forEach(select => {
-                    select.value = ''; // Set to empty string for 'None' option
-                });
+                // Reset all question select elements to default 'None'
+                // Re-initialize all sections to trigger their default state and score recalculation
+                for (const sectionKey in sections) {
+                    sections[sectionKey].forEach(item => {
+                        if (item.selectElement) {
+                            item.selectElement.value = ''; // Set to empty string for 'None' option
+                            // No need to dispatch change event here, calculateScore will be called once after loop
+                        }
+                        if (item.pointsElement) {
+                            item.pointsElement.value = 0; // Reset points to 0 directly
+                            item.pointsElement.readOnly = true; // Make it read-only
+                            item.pointsElement.style.backgroundColor = '#e9ecef'; // Default grey background
+                            item.pointsElement.style.color = '#555'; // Default text color
+                        }
+                        if (document.querySelector(`textarea[name="${item.name.replace('Rating', 'Remarks')}"]`)) {
+                             document.querySelector(`textarea[name="${item.name.replace('Rating', 'Remarks')}"]`).value = '';
+                        }
+                    });
+                }
+                // Call calculateScore once after all fields are reset to update global scores
+                calculateScore();
 
-                // Reset all textarea fields
-                document.querySelectorAll('textarea').forEach(textarea => {
-                    textarea.value = '';
-                });
-
-                // Reset individual points inputs and trigger a recalculation
-                initializeFormScores(); // This will reset points to 0 and recalculate overall scores.
-
-                // Buttons are always visible now, no need to toggle hidden class.
+                console.log("Form fields reset. Scores recalculated.");
             }
 
 
