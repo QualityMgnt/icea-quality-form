@@ -871,26 +871,16 @@
                 const enteredUsername = usernameInput.value;
                 const enteredPassword = passwordInput.value;
 
-                // --- Authenticate via Apps Script (New Logic) ---
-                const authUrl = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec'; // Your Apps Script URL
-                
-                fetch(authUrl + '?action=authenticate&username=' + encodeURIComponent(enteredUsername) + '&password=' + encodeURIComponent(enteredPassword))
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'SUCCESS' && data.authenticated) {
-                            sessionStorage.setItem('loggedIn', 'true');
-                            loginPage.style.display = 'none'; // Hide login
-                            mainFormContent.style.display = 'block'; // Show the main form
-                            mainNav.style.display = 'flex'; // Show navigation
-                            initializeFormScores(); // Initialize form scores after login
-                        } else {
-                            showLoginErrorMessage('Invalid username or password.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Authentication Error:', error);
-                        showLoginErrorMessage('An error occurred during login. Please try again.');
-                    });
+                // --- Revert to Hardcoded Authentication ---
+                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
+                    sessionStorage.setItem('loggedIn', 'true');
+                    loginPage.style.display = 'none';
+                    mainFormContent.style.display = 'block';
+                    mainNav.style.display = 'flex';
+                    initializeFormScores();
+                } else {
+                    showLoginErrorMessage('Invalid username or password.');
+                }
             });
 
             // Logout functionality
@@ -914,16 +904,19 @@
                 }
             });
 
-            // Handle Reset button click
-            saveResetBtn.addEventListener('click', function(event) {
-                event.preventDefault(); // Prevent default form submission for reset
-                console.log("Reset button clicked - resetting form.");
-                resetForm();
-            });
+            // Handle Reset button click (now only resets fields)
+            if (saveResetBtn) { // Ensure button exists
+                saveResetBtn.addEventListener('click', function(event) {
+                    event.preventDefault(); // Prevent default form submission for reset
+                    console.log("Reset button clicked - resetting form.");
+                    resetForm();
+                });
+            }
 
-            // Handle Submit button functionality (new button)
+
+            // Handle Submit button functionality
             const assessmentForm = document.getElementById('assessment-form'); // Get the main form element
-            if (submitFormBtn) {
+            if (submitFormBtn) { // Ensure button exists
                 submitFormBtn.addEventListener('click', async function(event) {
                     event.preventDefault(); // Prevent default form submission
                     console.log("Submit button clicked - attempting form submission.");
@@ -998,18 +991,18 @@
                     try {
                         submitFormBtn.textContent = 'Submitting...';
                         submitFormBtn.disabled = true;
-                        saveResetBtn.disabled = true; // Disable reset while submitting
+                        if (saveResetBtn) saveResetBtn.disabled = true; // Disable reset while submitting
                         printEmailBtn.disabled = true; // Disable PDF while submitting
                         
                         console.log("Sending fetch request with JSON body.");
 
                         const response = await fetch(googleAppsScriptURL, {
                             method: 'POST',
-                            mode: 'cors', // Ensure CORS is enabled on Apps Script
+                            mode: 'cors',
                             headers: {
-                                'Content-Type': 'application/json', // Changed to application/json
+                                'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify(formDataForSubmission) // Send JSON string directly
+                            body: JSON.stringify(formDataForSubmission)
                         });
                         console.log("Fetch request sent. Waiting for response.");
 
@@ -1018,6 +1011,7 @@
                         if (responseData.status === 'SUCCESS') {
                             alert('Form data submitted successfully to Google Sheet! The form will now reset.');
                             resetForm();
+                            // No need to explicitly trigger reports fetch here, reports.html fetches on load
                         } else {
                             alert('Failed to submit form data: ' + responseData.message + '. Please check console for details.');
                             console.error('Apps Script Error:', responseData.message);
@@ -1029,7 +1023,7 @@
                     } finally {
                         submitFormBtn.textContent = 'Submit'; // Restore button text
                         submitFormBtn.disabled = false; // Re-enable button
-                        saveResetBtn.disabled = false;
+                        if (saveResetBtn) saveResetBtn.disabled = false;
                         printEmailBtn.disabled = false;
                         console.log("Submit button re-enabled.");
                     }
@@ -1098,9 +1092,10 @@
 
                 // Temporarily hide elements for cleaner PDF.
                 // Store their original display styles to restore them later.
-                const elementsToHide = [mainNav, saveResetBtn]; 
-                if (submitFormBtn) elementsToHide.push(submitFormBtn); // If submit button exists
+                const elementsToHide = [mainNav]; 
+                if (submitFormBtn) elementsToHide.push(submitFormBtn); // Hide Submit button
                 if (printEmailBtn) elementsToHide.push(printEmailBtn); // Hide itself
+                if (saveResetBtn) elementsToHide.push(saveResetBtn); // Hide Reset button
 
                 const originalDisplays = [];
                 elementsToHide.forEach(el => {
