@@ -257,6 +257,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("Admin DOM loaded.");
             // **IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL**
             const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
 
@@ -294,6 +295,7 @@
                 element.textContent = message;
                 element.classList.remove('hidden', 'success', 'error');
                 element.classList.add(type);
+                console.log(`Admin message: ${message} (${type})`);
                 setTimeout(() => { element.classList.add('hidden'); }, 3000);
             };
 
@@ -312,13 +314,20 @@
             loginForm.addEventListener('submit', function(event) {
                 event.preventDefault();
                 hideLoginErrorMessage();
+                console.log("Login form submitted on admin.html.");
 
                 const username = usernameInput.value;
                 const password = passwordInput.value;
 
                 fetch(`${googleAppsScriptURL}?action=authenticate&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log("Auth response data:", data);
                         if (data.status === 'SUCCESS' && data.authenticated) {
                             sessionStorage.setItem('loggedIn', 'true');
                             // Now that login is handled here, reload to show admin content
@@ -328,12 +337,12 @@
                         }
                     })
                     .catch(error => {
-                        console.error('Login Error:', error);
-                        showLoginErrorMessage('An error occurred during login. Please try again.');
+                        console.error('Authentication Error:', error);
+                        showLoginErrorMessage('An error occurred during login. Please try again. Check console for details.');
                     });
             });
 
-            // Initial check for login status
+            // Initial check for login status on admin.html load
             const isLoggedIn = sessionStorage.getItem('loggedIn');
             if (isLoggedIn === 'true') {
                 loginPage.style.display = 'none'; // Hide login page
@@ -358,6 +367,7 @@
 
             dropdownTypeSelect.addEventListener('change', async function() {
                 currentSelectedDropdownType = this.value;
+                console.log(`Dropdown type selected: ${currentSelectedDropdownType}`);
                 currentDropdownItems.innerHTML = ''; // Clear previous list
                 dropdownValueInputGroup.style.display = 'none';
                 dropdownMessage.classList.add('hidden');
@@ -369,10 +379,15 @@
             });
 
             async function fetchAndRenderDropdownOptions(type) {
+                console.log(`Fetching options for dropdown: ${type}`);
                 currentDropdownItems.innerHTML = '<li>Loading...</li>';
                 try {
                     const response = await fetch(`${googleAppsScriptURL}?action=getDropdownOptions&type=${type}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
+                    console.log("Dropdown options fetch response:", data);
                     
                     currentDropdownItems.innerHTML = ''; // Clear loading message
 
@@ -411,6 +426,7 @@
                     showMessage(dropdownMessage, 'Value cannot be empty.', 'error');
                     return;
                 }
+                console.log(`Adding value '${newValue}' to dropdown '${currentSelectedDropdownType}'.`);
 
                 try {
                     const response = await fetch(googleAppsScriptURL, {
@@ -418,6 +434,9 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ action: 'addDropdownOption', type: currentSelectedDropdownType, value: newValue })
                     });
+                    if (!response.ok) {
+                         throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
                     if (data.status === 'SUCCESS') {
                         showMessage(dropdownMessage, 'Value added successfully!', 'success');
@@ -445,6 +464,7 @@
                     showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
                     return;
                 }
+                console.log(`Removing values ${JSON.stringify(selectedItems)} from dropdown '${currentSelectedDropdownType}'.`);
 
                 if (!confirm(`Are you sure you want to remove these ${selectedItems.length} item(s)?`)) {
                     return;
@@ -456,6 +476,9 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ action: 'removeDropdownOption', type: currentSelectedDropdownType, values: selectedItems })
                     });
+                    if (!response.ok) {
+                         throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
                     if (data.status === 'SUCCESS') {
                         showMessage(dropdownMessage, 'Value(s) removed successfully!', 'success');
@@ -479,6 +502,7 @@
                     showMessage(userMessage, 'Username and password cannot be empty.', 'error');
                     return;
                 }
+                console.log(`Creating user: ${username} with role ${role}`);
 
                 try {
                     const response = await fetch(googleAppsScriptURL, {
@@ -486,6 +510,9 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ action: 'createUser', username: username, password: password, role: role })
                     });
+                    if (!response.ok) {
+                         throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
                     if (data.status === 'SUCCESS') {
                         showMessage(userMessage, 'User created successfully!', 'success');
@@ -503,10 +530,15 @@
             });
 
             async function fetchAndRenderUsers() {
+                console.log('Fetching all users for list.');
                 existingUsersList.innerHTML = '<li>Loading users...</li>';
                 try {
                     const response = await fetch(`${googleAppsScriptURL}?action=getUsers`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
+                    console.log("Users fetch response:", data);
 
                     existingUsersList.innerHTML = ''; // Clear loading message
 
@@ -544,12 +576,16 @@
             }
 
             async function removeUser(username) {
+                console.log(`Attempting to remove user: ${username}`);
                 try {
                     const response = await fetch(googleAppsScriptURL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ action: 'removeUser', username: username })
                     });
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
                     if (data.status === 'SUCCESS') {
                         showMessage(userMessage, 'User removed successfully!', 'success');
