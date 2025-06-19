@@ -257,7 +257,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("Admin DOM loaded. Script execution started."); // Added log
+            console.log("Admin DOM loaded. Script execution started."); 
             // **IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL**
             const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
 
@@ -342,19 +342,19 @@
             });
 
             // Initial check for login status on admin.html load
-            console.log("Checking login status on admin.html load."); // Added log
+            console.log("Checking login status on admin.html load."); 
             const isLoggedIn = sessionStorage.getItem('loggedIn');
             if (isLoggedIn === 'true') {
                 loginPage.style.display = 'none'; // Hide login page
                 adminContent.style.display = 'block'; // Show admin content
                 mainNav.style.display = 'flex'; // Show navigation
                 fetchAndRenderUsers(); // Load users on admin page load
-                console.log("Logged in: Displaying admin content."); // Added log
+                console.log("Logged in: Displaying admin content."); 
             } else {
                 loginPage.style.display = 'flex'; // Show login
                 adminContent.style.display = 'none'; // Hide admin content
                 mainNav.style.display = 'none'; // Hide navigation
-                console.log("Not logged in: Displaying login page."); // Added log
+                console.log("Not logged in: Displaying login page."); 
             }
 
             // Logout functionality
@@ -365,24 +365,29 @@
 
 
             // --- Dropdown Management Logic ---
-            let currentSelectedDropdownType = ''; // To store which dropdown is currently selected
+            let currentSelectedDropdownType = ''; 
 
-            dropdownTypeSelect.addEventListener('change', async function() {
-                console.log("Dropdown type select change event triggered."); // Added log
-                currentSelectedDropdownType = this.value;
-                console.log(`Dropdown type selected: ${currentSelectedDropdownType}`);
-                currentDropdownItems.innerHTML = ''; // Clear previous list
-                dropdownValueInputGroup.style.display = 'none';
-                dropdownMessage.classList.add('hidden');
+            if (dropdownTypeSelect) { // Added check to ensure element exists before adding listener
+                dropdownTypeSelect.addEventListener('change', async function() {
+                    console.log("Dropdown type select change event triggered."); 
+                    currentSelectedDropdownType = this.value;
+                    console.log(`Dropdown type selected: ${currentSelectedDropdownType}`);
+                    currentDropdownItems.innerHTML = ''; // Clear previous list
+                    dropdownValueInputGroup.style.display = 'none';
+                    dropdownMessage.classList.add('hidden');
 
-                if (currentSelectedDropdownType) {
-                    await fetchAndRenderDropdownOptions(currentSelectedDropdownType);
-                    dropdownValueInputGroup.style.display = 'block';
-                }
-            });
+                    if (currentSelectedDropdownType) {
+                        await fetchAndRenderDropdownOptions(currentSelectedDropdownType);
+                        dropdownValueInputGroup.style.display = 'block';
+                    }
+                });
+            } else {
+                console.error("dropdownTypeSelect not found. Dropdown management may not work.");
+            }
+
 
             async function fetchAndRenderDropdownOptions(type) {
-                console.log(`Function fetchAndRenderDropdownOptions called for type: ${type}`); // Added log
+                console.log(`Function fetchAndRenderDropdownOptions called for type: ${type}`); 
                 currentDropdownItems.innerHTML = '<li>Loading...</li>';
                 try {
                     const response = await fetch(`${googleAppsScriptURL}?action=getDropdownOptions&type=${type}`);
@@ -392,7 +397,7 @@
                     const data = await response.json();
                     console.log("Dropdown options fetch response:", data);
                     
-                    currentDropdownItems.innerHTML = ''; // Clear loading message
+                    currentDropdownItems.innerHTML = ''; 
 
                     if (data.status === 'SUCCESS' && data.options) {
                         if (data.options.length === 0) {
@@ -401,9 +406,8 @@
                             data.options.forEach(item => {
                                 const li = document.createElement('li');
                                 li.textContent = item;
-                                // Allow selection for removal (simple click for now)
                                 li.addEventListener('click', () => {
-                                    li.classList.toggle('bg-blue-200'); // Highlight selected item
+                                    li.classList.toggle('bg-blue-200'); 
                                 });
                                 currentDropdownItems.appendChild(li);
                             });
@@ -419,124 +423,139 @@
                 }
             }
 
-            addDropdownValueBtn.addEventListener('click', async function() {
-                console.log("Add dropdown value button clicked."); // Added log
-                const newValue = newDropdownValueInput.value.trim();
-                if (!currentSelectedDropdownType) {
-                    showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
-                    return;
-                }
-                if (!newValue) {
-                    showMessage(dropdownMessage, 'Value cannot be empty.', 'error');
-                    return;
-                }
-                console.log(`Adding value '${newValue}' to dropdown '${currentSelectedDropdownType}'.`);
-
-                try {
-                    const response = await fetch(googleAppsScriptURL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'addDropdownOption', type: currentSelectedDropdownType, value: newValue })
-                    });
-                    if (!response.ok) {
-                         throw new Error(`HTTP error! status: ${response.status}`);
+            if (addDropdownValueBtn) { // Added check
+                addDropdownValueBtn.addEventListener('click', async function() {
+                    console.log("Add dropdown value button clicked."); 
+                    const newValue = newDropdownValueInput.value.trim();
+                    if (!currentSelectedDropdownType) {
+                        showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                        return;
                     }
-                    const data = await response.json();
-                    if (data.status === 'SUCCESS') {
-                        showMessage(dropdownMessage, 'Value added successfully!', 'success');
-                        newDropdownValueInput.value = '';
-                        await fetchAndRenderDropdownOptions(currentSelectedDropdownType); // Refresh list
-                    } else {
-                        showMessage(dropdownMessage, `Failed to add value: ${data.message}`, 'error');
+                    if (!newValue) {
+                        showMessage(dropdownMessage, 'Value cannot be empty.', 'error');
+                        return;
                     }
-                } catch (error) {
-                    console.error('Add dropdown value error:', error);
-                    showMessage(dropdownMessage, 'Network error adding value.', 'error');
-                }
-            });
+                    console.log(`Adding value '${newValue}' to dropdown '${currentSelectedDropdownType}'.`);
 
-            removeDropdownValueBtn.addEventListener('click', async function() {
-                console.log("Remove dropdown value button clicked."); // Added log
-                const selectedItems = Array.from(currentDropdownItems.children)
-                                         .filter(li => li.classList.contains('bg-blue-200'))
-                                         .map(li => li.textContent.trim());
-
-                if (!currentSelectedDropdownType) {
-                    showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
-                    return;
-                }
-                if (selectedItems.length === 0) {
-                    showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
-                    return;
-                }
-                console.log(`Removing values ${JSON.stringify(selectedItems)} from dropdown '${currentSelectedDropdownType}'.`);
-
-                if (!confirm(`Are you sure you want to remove these ${selectedItems.length} item(s)?`)) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(googleAppsScriptURL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'removeDropdownOption', type: currentSelectedDropdownType, values: selectedItems })
-                    });
-                    if (!response.ok) {
-                         throw new Error(`HTTP error! status: ${response.status}`);
+                    try {
+                        const response = await fetch(googleAppsScriptURL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'addDropdownOption', type: currentSelectedDropdownType, value: newValue })
+                        });
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const data = await response.json();
+                        if (data.status === 'SUCCESS') {
+                            showMessage(dropdownMessage, 'Value added successfully!', 'success');
+                            newDropdownValueInput.value = '';
+                            await fetchAndRenderDropdownOptions(currentSelectedDropdownType); 
+                        } else {
+                            showMessage(dropdownMessage, `Failed to add value: ${data.message}`, 'error');
+                        }
+                    } catch (error) {
+                        console.error('Add dropdown value error:', error);
+                        showMessage(dropdownMessage, 'Network error adding value.', 'error');
                     }
-                    const data = await response.json();
-                    if (data.status === 'SUCCESS') {
-                        showMessage(dropdownMessage, 'Value(s) removed successfully!', 'success');
-                        await fetchAndRenderDropdownOptions(currentSelectedDropdownType); // Refresh list
-                    } else {
-                        showMessage(dropdownMessage, `Failed to remove value(s): ${data.message}`, 'error');
+                });
+            } else {
+                console.error("addDropdownValueBtn not found. Add functionality may not work.");
+            }
+
+
+            if (removeDropdownValueBtn) { // Added check
+                removeDropdownValueBtn.addEventListener('click', async function() {
+                    console.log("Remove dropdown value button clicked."); 
+                    const selectedItems = Array.from(currentDropdownItems.children)
+                                            .filter(li => li.classList.contains('bg-blue-200'))
+                                            .map(li => li.textContent.trim());
+
+                    if (!currentSelectedDropdownType) {
+                        showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                        return;
                     }
-                } catch (error) {
-                    console.error('Remove dropdown value error:', error);
-                    showMessage(dropdownMessage, 'Network error removing value(s).', 'error');
-                }
-            });
+                    if (selectedItems.length === 0) {
+                        showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
+                        return;
+                    }
+                    console.log(`Removing values ${JSON.stringify(selectedItems)} from dropdown '${currentSelectedDropdownType}'.`);
+
+                    if (!confirm(`Are you sure you want to remove these ${selectedItems.length} item(s)?`)) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(googleAppsScriptURL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'removeDropdownOption', type: currentSelectedDropdownType, values: selectedItems })
+                        });
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const data = await response.json();
+                        if (data.status === 'SUCCESS') {
+                            showMessage(dropdownMessage, 'Value(s) removed successfully!', 'success');
+                            await fetchAndRenderDropdownOptions(currentSelectedDropdownType); 
+                        } else {
+                            showMessage(dropdownMessage, `Failed to remove value(s): ${data.message}`, 'error');
+                        }
+                    } catch (error) {
+                        console.error('Remove dropdown value error:', error);
+                        showMessage(dropdownMessage, 'Network error removing value(s).', 'error');
+                    }
+                });
+            } else {
+                console.error("removeDropdownValueBtn not found. Remove functionality may not work.");
+            }
+
 
             // --- User Management Logic ---
-            createUserBtn.addEventListener('click', async function() {
-                console.log("Create user button clicked."); // Added log
-                const username = newUsernameInput.value.trim();
-                const password = newPasswordInput.value.trim();
-                const role = newUserRoleSelect.value;
+            if (createUserBtn) { // Added check
+                createUserBtn.addEventListener('click', async function() {
+                    console.log("Create user button clicked."); 
+                    const username = newUsernameInput.value.trim();
+                    const password = newPasswordInput.value.trim();
+                    const role = newUserRoleSelect.value;
 
-                if (!username || !password) {
-                    showMessage(userMessage, 'Username and password cannot be empty.', 'error');
-                    return;
-                }
-                console.log(`Creating user: ${username} with role ${role}`);
+                    if (!username || !password) {
+                        showMessage(userMessage, 'Username and password cannot be empty.', 'error');
+                        return;
+                    }
+                    console.log(`Creating user: ${username} with role ${role}`);
 
-                try {
-                    const response = await fetch(googleAppsScriptURL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'createUser', username: username, password: password, role: role })
-                    });
-                    if (!response.ok) {
-                         throw new Error(`HTTP error! status: ${response.status}`);
+                    try {
+                        const response = await fetch(googleAppsScriptURL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'createUser', username: username, password: password, role: role })
+                        });
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const data = await response.json();
+                        if (data.status === 'SUCCESS') {
+                            showMessage(userMessage, 'User created successfully!', 'success');
+                            newUsernameInput.value = '';
+                            newPasswordInput.value = '';
+                            newUserRoleSelect.value = 'User';
+                            await fetchAndRenderUsers(); 
+                        } else {
+                            showMessage(userMessage, `Failed to create user: ${data.message}`, 'error');
+                        }
+                    } catch (error) {
+                        console.error('Create user error:', error);
+                        showMessage(userMessage, 'Network error creating user.', 'error');
                     }
-                    const data = await response.json();
-                    if (data.status === 'SUCCESS') {
-                        showMessage(userMessage, 'User created successfully!', 'success');
-                        newUsernameInput.value = '';
-                        newPasswordInput.value = '';
-                        newUserRoleSelect.value = 'User';
-                        await fetchAndRenderUsers(); // Refresh user list
-                    } else {
-                        showMessage(userMessage, `Failed to create user: ${data.message}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Create user error:', error);
-                    showMessage(userMessage, 'Network error creating user.', 'error');
-                }
-            });
+                });
+            } else {
+                console.error("createUserBtn not found. User creation may not work.");
+            }
+
 
             async function fetchAndRenderUsers() {
-                console.log('Fetching all users for list.'); // Added log
+                console.log('Fetching all users for list.'); 
                 existingUsersList.innerHTML = '<li>Loading users...</li>';
                 try {
                     const response = await fetch(`${googleAppsScriptURL}?action=getUsers`);
@@ -546,7 +565,7 @@
                     const data = await response.json();
                     console.log("Users fetch response:", data);
 
-                    existingUsersList.innerHTML = ''; // Clear loading message
+                    existingUsersList.innerHTML = ''; 
 
                     if (data.status === 'SUCCESS' && data.users) {
                         if (data.users.length === 0) {
@@ -555,7 +574,7 @@
                             data.users.forEach(user => {
                                 const li = document.createElement('li');
                                 li.textContent = `${user.Username} (${user.Role})`;
-                                li.dataset.username = user.Username; // Store username for removal
+                                li.dataset.username = user.Username; 
                                 li.classList.add('flex', 'items-center', 'justify-between');
 
                                 const removeBtn = document.createElement('button');
@@ -582,7 +601,7 @@
             }
 
             async function removeUser(username) {
-                console.log(`Attempting to remove user: ${username}`); // Added log
+                console.log(`Attempting to remove user: ${username}`); 
                 try {
                     const response = await fetch(googleAppsScriptURL, {
                         method: 'POST',
@@ -595,7 +614,7 @@
                     const data = await response.json();
                     if (data.status === 'SUCCESS') {
                         showMessage(userMessage, 'User removed successfully!', 'success');
-                        await fetchAndRenderUsers(); // Refresh user list
+                        await fetchAndRenderUsers(); 
                     } else {
                         showMessage(userMessage, `Failed to remove user: ${data.message}`, 'error');
                     }
