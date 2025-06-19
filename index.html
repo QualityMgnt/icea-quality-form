@@ -95,6 +95,7 @@
         <ul>
             <li><a href="index.html" class="active"><i class="fas fa-file-alt"></i> Audit Form</a></li>
             <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="admin.html"><i class="fas fa-cog"></i> Admin</a></li>
         </ul>
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
@@ -605,12 +606,15 @@
                 <div class="flex items-center justify-between w-full mt-4">
                     <img src="https://placehold.co/150x50/FFFFFF/1a73e8?text=ICEALION%0AGROUP" alt="ICEALION Group" class="h-12 rounded-md">
                     <div class="flex space-x-4">
-                        <!-- Removed Score button -->
+                        <!-- New Submit button -->
+                        <button type="button" id="submitFormBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                            Submit
+                        </button>
                         <button type="button" id="print-email-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             PDF & Email
                         </button>
                         <button type="button" id="save-reset-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                            Save & Reset
+                            Reset
                         </button>
                     </div>
                 </div>
@@ -632,8 +636,9 @@
 
 
             // Form buttons (main form)
+            const submitFormBtn = document.getElementById('submitFormBtn'); // New Submit button
             const printEmailBtn = document.getElementById('print-email-btn');
-            const saveResetBtn = document.getElementById('save-reset-btn');
+            const saveResetBtn = document.getElementById('save-reset-btn'); // Now just a Reset button
             
             // Basic Info Fields (new IDs from the provided snippet)
             const contactIdInput = document.getElementById('contact-id');
@@ -692,8 +697,6 @@
             };
 
             // --- Calculate Score Function ---
-            // Moved this function definition to the top of the common script scope
-            // so it is defined before it's called anywhere.
             const calculateScore = () => {
                 console.log("calculateScore called.");
                 globalTotalPoints = 0; // Reset for recalculation
@@ -798,7 +801,6 @@
 
 
             // --- Initialize Form Scores Function ---
-            // Moved this function definition above where it's called initially
             function initializeFormScores() {
                 console.log("initializeFormScores called.");
                 globalTotalPoints = 0;
@@ -826,7 +828,7 @@
 
                 // Make PDF & Email and Save & Reset buttons visible by default
                 printEmailBtn.classList.remove('hidden');
-                saveResetBtn.classList.remove('hidden');
+                // saveResetBtn.classList.remove('hidden'); // This is now just a Reset button, always shown
                 console.log("Buttons should be visible.");
             }
 
@@ -868,15 +870,26 @@
                 const enteredUsername = usernameInput.value;
                 const enteredPassword = passwordInput.value;
 
-                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
-                    sessionStorage.setItem('loggedIn', 'true');
-                    loginPage.style.display = 'none'; // Hide login
-                    mainFormContent.style.display = 'block'; // Show the main form
-                    mainNav.style.display = 'flex'; // Show navigation
-                    initializeFormScores(); // Initialize form scores after login
-                } else {
-                    showLoginErrorMessage('Invalid Username or Password. Please try again.');
-                }
+                // --- Authenticate via Apps Script (New Logic) ---
+                const authUrl = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec'; // Your Apps Script URL
+                
+                fetch(authUrl + '?action=authenticate&username=' + encodeURIComponent(enteredUsername) + '&password=' + encodeURIComponent(enteredPassword))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'SUCCESS' && data.authenticated) {
+                            sessionStorage.setItem('loggedIn', 'true');
+                            loginPage.style.display = 'none'; // Hide login
+                            mainFormContent.style.display = 'block'; // Show the main form
+                            mainNav.style.display = 'flex'; // Show navigation
+                            initializeFormScores(); // Initialize form scores after login
+                        } else {
+                            showLoginErrorMessage('Invalid username or password.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Authentication Error:', error);
+                        showLoginErrorMessage('An error occurred during login. Please try again.');
+                    });
             });
 
             // Logout functionality
@@ -900,118 +913,132 @@
                 }
             });
 
-            // Handle form submission (for saving data to Google Sheet via Apps Script)
-            const assessmentForm = document.getElementById('assessment-form'); // Get the main form element
-            assessmentForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                console.log("Save & Reset button clicked - attempting form submission.");
-
-                // Basic client-side validation for required fields
-                const requiredInputs = assessmentForm.querySelectorAll('[required]:not(.hidden)');
-                let allRequiredFilled = true;
-                for (const input of requiredInputs) {
-                    if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
-                        allRequiredFilled = false;
-                        input.style.borderColor = 'red';
-                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        input.focus();
-                        alert('Please fill out all required fields.');
-                        return;
-                    } else {
-                        input.style.borderColor = '';
-                    }
-                }
-                
-                // Collect data for submission
-                const formDataForSubmission = {
-                    cerName: cerNameSelect.value,
-                    cerRoles: cerRoleSelect.value,
-                    reviewerName: reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value,
-                    evaluationDate: evaluationDateInput.value,
-                    contactID: contactIdInput.value,
-                    duration: durationInput.value,
-                    clientName: clientNameInput.value,
-                    autofailType: autofailTypeSelect.value,
-                    callDateTime: callDateTimeInput.value,
-                    overallScore: overallScoreDisplay.textContent, // e.g., "90%"
-                    complianceAccuracy: businessComplianceAccuracyDisplay.textContent, // e.g., "85%"
-                    totalPoints: globalTotalPoints, // Use the calculated total points (autofail adjusted)
-                    availablePoints: globalMaxPossiblePoints, // Total possible weightage
-                    finalScore: overallFinalPercentageDisplay.textContent, // The final percentage including autofail
-                    
-                    // Collect questions data for submission - no longer using 'questions' array
-                    // Data will be flattened directly into formDataForSubmission
-                };
-
-                // Populate question-specific ratings for the sheet based on predefined sections/questions
-                const questionHeaderMap = {
-                    "Did the CER provide proper branding and personalize the call?": "cxRating1",
-                    "Did the CER demonstrate confidence and business etiquette althroughout the call session?": "cxRating2",
-                    "Did the CER express a sincere acknowledgement/empathy statement when applicable?": "cxRating3",
-                    "Did the CER convey his/her thoughts in an understandable clear and concise manner?": "cxRating4",
-                    "Was the CER able to hold rapport?": "cxRating5",
-                    "Did the CER ask effective probing questions to ensure accurate diagnosis?": "psRating1",
-                    "Did the CER do proper research and check all related tools required?": "psRating2",
-                    "Did the CER show ownership and actively listen?": "psRating3",
-                    "Did the CER document all action items & follow-up? (Autofail)": "psRating4",
-                    "Was the CER able to sell to the customer?": "psRating5",
-                    "Capture precise details of the resolution": "psRating6",
-                    "Did the CER log call information correctly? (Data capture)": "caRating1",
-                    "Did the CER adhere to Company Policies & Procedures?(Autofail)": "caRating2",
-                    "Did the CER Comply with industry and legal requirements?": "caRating3",
-                    "Was the CER able to identify real opportunity for Upselling & Cross Selling?": "caRating4"
-                };
-
-                for (const formQuestionText in questionHeaderMap) {
-                    const ratingName = questionHeaderMap[formQuestionText]; // e.g., 'cxRating1'
-                    const selectElement = document.querySelector(`select[name="${ratingName}"]`);
-                    if (selectElement) {
-                        formDataForSubmission[formQuestionText] = selectElement.value; // Add the rating directly
-                    } else {
-                        formDataForSubmission[formQuestionText] = ''; // Ensure field exists even if element is missing
-                    }
-                }
-                
-                console.log("Collected Data for Submission (Flattened):", formDataForSubmission);
-
-                const GOOGLE_APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
-
-                try {
-                    saveResetBtn.textContent = 'Saving...';
-                    saveResetBtn.disabled = true;
-                    console.log("Sending fetch request with JSON body.");
-
-                    const response = await fetch(googleAppsScriptURL, {
-                        method: 'POST',
-                        mode: 'cors', // Ensure CORS is enabled on Apps Script
-                        headers: {
-                            'Content-Type': 'application/json', // Changed to application/json
-                        },
-                        body: JSON.stringify(formDataForSubmission) // Send JSON string directly
-                    });
-                    console.log("Fetch request sent. Waiting for response.");
-
-                    const responseData = await response.json();
-                    console.log("Response received from Apps Script:", responseData);
-                    if (responseData.status === 'SUCCESS') {
-                        alert('Form data saved successfully to Google Sheet! The form will now reset.');
-                        resetForm();
-                    } else {
-                        alert('Failed to save form data: ' + responseData.message + '. Please check console for details.');
-                        console.error('Apps Script Error:', responseData.message);
-                    }
-
-                } catch (error) {
-                    console.error('Error saving form data (network/fetch error):', error);
-                    alert('Failed to save form data. Please try again. Check console for network/script errors.');
-                } finally {
-                    saveResetBtn.textContent = 'Save & Reset';
-                    saveResetBtn.disabled = false;
-                    console.log("Save & Reset button re-enabled.");
-                }
+            // Handle Reset button click
+            saveResetBtn.addEventListener('click', function(event) {
+                event.preventDefault(); // Prevent default form submission for reset
+                console.log("Reset button clicked - resetting form.");
+                resetForm();
             });
 
-            // Reset Form Functionality
+            // Handle Submit button functionality (new button)
+            const submitFormBtn = document.getElementById('submitFormBtn'); 
+            if (submitFormBtn) {
+                submitFormBtn.addEventListener('click', async function(event) {
+                    event.preventDefault(); // Prevent default form submission
+                    console.log("Submit button clicked - attempting form submission.");
+
+                    // Basic client-side validation for required fields
+                    const requiredInputs = assessmentForm.querySelectorAll('[required]:not(.hidden)');
+                    let allRequiredFilled = true;
+                    for (const input of requiredInputs) {
+                        if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
+                            allRequiredFilled = false;
+                            input.style.borderColor = 'red';
+                            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            input.focus();
+                            alert('Please fill out all required fields.');
+                            return;
+                        } else {
+                            input.style.borderColor = '';
+                        }
+                    }
+                    
+                    // Collect data for submission
+                    const formDataForSubmission = {
+                        cerName: cerNameSelect.value,
+                        cerRoles: cerRoleSelect.value,
+                        reviewerName: reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value,
+                        evaluationDate: evaluationDateInput.value,
+                        contactID: contactIdInput.value,
+                        duration: durationInput.value,
+                        clientName: clientNameInput.value,
+                        autofailType: autofailTypeSelect.value,
+                        callDateTime: callDateTimeInput.value,
+                        overallScore: overallScoreDisplay.textContent, // e.g., "90%"
+                        complianceAccuracy: businessComplianceAccuracyDisplay.textContent, // e.g., "85%"
+                        totalPoints: globalTotalPoints, // Use the calculated total points (autofail adjusted)
+                        availablePoints: globalMaxPossiblePoints, // Total possible weightage
+                        finalScore: overallFinalPercentageDisplay.textContent, // The final percentage including autofail
+                    };
+
+                    // Populate question-specific ratings for the sheet based on predefined sections/questions
+                    const questionHeaderMap = {
+                        "Did the CER provide proper branding and personalize the call?": "cxRating1",
+                        "Did the CER demonstrate confidence and business etiquette althroughout the call session?": "cxRating2",
+                        "Did the CER express a sincere acknowledgement/empathy statement when applicable?": "cxRating3",
+                        "Did the CER convey his/her thoughts in an understandable clear and concise manner?": "cxRating4",
+                        "Was the CER able to hold rapport?": "cxRating5",
+                        "Did the CER ask effective probing questions to ensure accurate diagnosis?": "psRating1",
+                        "Did the CER do proper research and check all related tools required?": "psRating2",
+                        "Did the CER show ownership and actively listen?": "psRating3",
+                        "Did the CER document all action items & follow-up? (Autofail)": "psRating4",
+                        "Was the CER able to sell to the customer?": "psRating5",
+                        "Capture precise details of the resolution": "psRating6",
+                        "Did the CER log call information correctly? (Data capture)": "caRating1",
+                        "Did the CER adhere to Company Policies & Procedures?(Autofail)": "caRating2",
+                        "Did the CER Comply with industry and legal requirements?": "caRating3",
+                        "Was the CER able to identify real opportunity for Upselling & Cross Selling?": "caRating4"
+                    };
+
+                    for (const formQuestionText in questionHeaderMap) {
+                        const ratingName = questionHeaderMap[formQuestionText];
+                        const selectElement = document.querySelector(`select[name="${ratingName}"]`);
+                        if (selectElement) {
+                            formDataForSubmission[formQuestionText] = selectElement.value;
+                        } else {
+                            formDataForSubmission[formQuestionText] = '';
+                        }
+                    }
+                    
+                    console.log("Collected Data for Submission (Flattened):", formDataForSubmission);
+
+                    const GOOGLE_APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
+
+                    try {
+                        submitFormBtn.textContent = 'Submitting...';
+                        submitFormBtn.disabled = true;
+                        saveResetBtn.disabled = true; // Disable reset while submitting
+                        printEmailBtn.disabled = true; // Disable PDF while submitting
+                        
+                        console.log("Sending fetch request with JSON body.");
+
+                        const response = await fetch(googleAppsScriptURL, {
+                            method: 'POST',
+                            mode: 'cors',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formDataForSubmission)
+                        });
+                        console.log("Fetch request sent. Waiting for response.");
+
+                        const responseData = await response.json();
+                        console.log("Response received from Apps Script:", responseData);
+                        if (responseData.status === 'SUCCESS') {
+                            alert('Form data submitted successfully to Google Sheet! The form will now reset.');
+                            resetForm();
+                        } else {
+                            alert('Failed to submit form data: ' + responseData.message + '. Please check console for details.');
+                            console.error('Apps Script Error:', responseData.message);
+                        }
+
+                    } catch (error) {
+                        console.error('Error submitting form data (network/fetch error):', error);
+                        alert('Failed to submit form data. Please try again. Check console for network/script errors.');
+                    } finally {
+                        submitFormBtn.textContent = 'Submit'; // Restore button text
+                        submitFormBtn.disabled = false; // Re-enable button
+                        saveResetBtn.disabled = false;
+                        printEmailBtn.disabled = false;
+                        console.log("Submit button re-enabled.");
+                    }
+                });
+            } else {
+                 console.error("Submit button (id='submitFormBtn') not found in HTML. Saving won't work.");
+            }
+
+
+            // Reset Form Functionality (now only resets fields)
             function resetForm() {
                 console.log("Resetting form.");
                 // Reset main form fields by referencing their IDs
@@ -1034,12 +1061,10 @@
 
 
                 // Reset all question select elements to default 'None'
-                // Re-initialize all sections to trigger their default state and score recalculation
                 for (const sectionKey in sections) {
                     sections[sectionKey].forEach(item => {
                         if (item.selectElement) {
                             item.selectElement.value = ''; // Set to empty string for 'None' option
-                            // No need to dispatch change event here, calculateScore will be called once after loop
                         }
                         if (item.pointsElement) {
                             item.pointsElement.value = 0; // Reset points to 0 directly
@@ -1072,7 +1097,10 @@
 
                 // Temporarily hide elements for cleaner PDF.
                 // Store their original display styles to restore them later.
-                const elementsToHide = [mainNav, printEmailBtn, saveResetBtn];
+                const elementsToHide = [mainNav, saveResetBtn]; 
+                if (submitFormBtn) elementsToHide.push(submitFormBtn); // If submit button exists
+                if (printEmailBtn) elementsToHide.push(printEmailBtn); // Hide itself
+
                 const originalDisplays = [];
                 elementsToHide.forEach(el => {
                     if (el) {
@@ -1107,7 +1135,7 @@
                     while (heightLeft > -1) { // Adjusted condition: as long as there's content left to draw
                         position = heightLeft - imgHeight; // Calculate position for the next page segment
                         pdf.addPage();
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST'); // Use JPEG and FAST compression
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST'); // Use JPEG and JPEG compression
                         heightLeft -= pageHeight;
                     }
                     console.log("PDF images added.");
