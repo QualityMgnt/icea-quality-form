@@ -826,9 +826,10 @@
                 // Perform initial calculation
                 calculateScore();
 
-                // Make PDF & Email and Save & Reset buttons visible by default
+                // Make PDF & Email and Submit/Reset buttons visible by default
                 printEmailBtn.classList.remove('hidden');
-                // saveResetBtn.classList.remove('hidden'); // This is now just a Reset button, always shown
+                if (submitFormBtn) submitFormBtn.classList.remove('hidden'); // Show submit button
+                if (saveResetBtn) saveResetBtn.classList.remove('hidden'); // Show reset button
                 console.log("Buttons should be visible.");
             }
 
@@ -921,7 +922,7 @@
             });
 
             // Handle Submit button functionality (new button)
-            const submitFormBtn = document.getElementById('submitFormBtn'); 
+            const assessmentForm = document.getElementById('assessment-form'); // Get the main form element
             if (submitFormBtn) {
                 submitFormBtn.addEventListener('click', async function(event) {
                     event.preventDefault(); // Prevent default form submission
@@ -981,12 +982,12 @@
                     };
 
                     for (const formQuestionText in questionHeaderMap) {
-                        const ratingName = questionHeaderMap[formQuestionText];
+                        const ratingName = questionHeaderMap[formQuestionText]; // e.g., 'cxRating1'
                         const selectElement = document.querySelector(`select[name="${ratingName}"]`);
                         if (selectElement) {
-                            formDataForSubmission[formQuestionText] = selectElement.value;
+                            formDataForSubmission[formQuestionText] = selectElement.value; // Add the rating directly
                         } else {
-                            formDataForSubmission[formQuestionText] = '';
+                            formDataForSubmission[formQuestionText] = ''; // Ensure field exists even if element is missing
                         }
                     }
                     
@@ -1004,11 +1005,11 @@
 
                         const response = await fetch(googleAppsScriptURL, {
                             method: 'POST',
-                            mode: 'cors',
+                            mode: 'cors', // Ensure CORS is enabled on Apps Script
                             headers: {
-                                'Content-Type': 'application/json',
+                                'Content-Type': 'application/json', // Changed to application/json
                             },
-                            body: JSON.stringify(formDataForSubmission)
+                            body: JSON.stringify(formDataForSubmission) // Send JSON string directly
                         });
                         console.log("Fetch request sent. Waiting for response.");
 
