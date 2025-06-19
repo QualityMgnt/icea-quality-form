@@ -4,13 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Link to your custom CSS file (for reports page and shared nav/footer if any) -->
     <link rel="stylesheet" href="style.css">
 
+    <!-- jsPDF and html2canvas for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
 
@@ -85,6 +90,7 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
+    <!-- Navigation Menu (Always present if logged in) -->
     <nav class="main-nav" id="mainNav">
         <ul>
             <li><a href="index.html" class="active"><i class="fas fa-file-alt"></i> Audit Form</a></li>
@@ -94,6 +100,7 @@
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
 
+    <!-- Login Page (always positioned absolutely to overlay everything) -->
     <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
@@ -122,9 +129,12 @@
         </div>
     </div>
 
+    <!-- Main Form Content (Initially Hidden) -->
+    <!-- This entire div is the form-container with the new layout -->
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl" id="mainFormContent" style="display: none;">
         <div class="icealion-blue p-4 flex items-center justify-between">
             <div class="text-xl font-semibold">Quality Assessment Form - ICEALION GROUP Contact Centre</div>
+            <!-- Using a placeholder logo. Replace with your actual logo if needed -->
             <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
         </div>
 
@@ -229,7 +239,8 @@
         <form id="assessment-form">
             <div class="mt-4">
                 <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
-                    <i class="fas fa-user tile-icon"></i> CUSTOMER EXPERIENCE
+                    <i class="fas fa-user tile-icon"></i> <!-- Font Awesome icon for Customer Experience -->
+                    CUSTOMER EXPERIENCE
                 </div>
                 <div class="p-4">
                     <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -345,7 +356,8 @@
 
             <div class="mt-4">
                 <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
-                    <i class="fas fa-lightbulb tile-icon"></i> PROBLEM SOLVING SKILLS
+                    <i class="fas fa-lightbulb tile-icon"></i> <!-- Font Awesome icon for Problem Solving -->
+                    PROBLEM SOLVING SKILLS
                 </div>
                 <div class="p-4">
                     <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -480,7 +492,8 @@
 
             <div class="mt-4">
                 <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
-                    <i class="fas fa-check-circle tile-icon"></i> COMPLIANCE AND BUSINESS CRITICAL ACCURACY
+                    <i class="fas fa-check-circle tile-icon"></i> <!-- Font Awesome icon for Compliance -->
+                    COMPLIANCE AND BUSINESS CRITICAL ACCURACY
                 </div>
                 <div class="p-4">
                     <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -593,6 +606,7 @@
                 <div class="flex items-center justify-between w-full mt-4">
                     <img src="https://placehold.co/150x50/FFFFFF/1a73e8?text=ICEALION%0AGROUP" alt="ICEALION Group" class="h-12 rounded-md">
                     <div class="flex space-x-4">
+                        <!-- New Submit button -->
                         <button type="button" id="submitFormBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             Submit
                         </button>
@@ -926,55 +940,44 @@
                     // Collect data for submission
                     const formDataForSubmission = {
                         action: 'submitForm', // Explicitly add the action for doPost
-                        cerName: cerNameSelect.value,
-                        cerRoles: cerRoleSelect.value,
-                        reviewerName: reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value,
-                        evaluationDate: evaluationDateInput.value,
-                        contactID: contactIdInput.value,
-                        duration: durationInput.value,
-                        clientName: clientNameInput.value,
-                        autofailType: autofailTypeSelect.value,
-                        callDateTime: callDateTimeInput.value,
-                        overallScore: overallScoreDisplay.textContent, // e.g., "90%"
-                        complianceAccuracy: businessComplianceAccuracyDisplay.textContent, // e.g., "85%"
-                        totalPoints: globalTotalPoints, // Use the calculated total points (autofail adjusted)
-                        availablePoints: globalMaxPossiblePoints, // Total possible weightage
-                        finalScore: overallFinalPercentageDisplay.textContent, // The final percentage including autofail
+                        "CER Name": cerNameSelect.value, // Match Apps Script expected headers
+                        "Reviewer's Name:": reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value,
+                        "Contact ID:": contactIdInput.value,
+                        "Client Name": clientNameInput.value,
+                        "Call Date and Time:": callDateTimeInput.value,
+                        "CER Roles": cerRoleSelect.value,
+                        "Evaluation Date:": evaluationDateInput.value,
+                        "Duration:": durationInput.value,
+                        "Autofail Type:": autofailTypeSelect.value,
+                        
+                        // Populate question-specific ratings for the sheet based on predefined sections/questions
+                        "Did the CER provide proper branding and personalize the call?": document.querySelector('select[name="cxRating1"]').value,
+                        "Did the CER demonstrate confidence and business etiquette althroughout the call session?": document.querySelector('select[name="cxRating2"]').value,
+                        "Did the CER express a sincere acknowledgement/empathy statement when applicable?": document.querySelector('select[name="cxRating3"]').value,
+                        "Did the CER convey his/her thoughts in an understandable clear and concise manner?": document.querySelector('select[name="cxRating4"]').value,
+                        "Was the CER able to build rapport?": document.querySelector('select[name="cxRating5"]').value, // Changed from hold rapport to build rapport to match sheet
+                        "Did the CER ask effective probing questions to ensure accurate diagnosis?": document.querySelector('select[name="psRating1"]').value,
+                        "Was the CER's focus solely on the Customer?": document.querySelector('select[name="psRating2"]').value, // Maps psRating2 (Did the CER do proper research...) to "Was the CER's focus solely on the Customer?"
+                        "Did the CER demonstrate strong Product Knowledge?": document.querySelector('select[name="psRating3"]').value, // Maps psRating3 (Did the CER show ownership...) to "Did the CER demonstrate strong Product Knowledge?"
+                        "Did the CER document all action items & follow-up? (Autofail)": document.querySelector('select[name="psRating4"]').value,
+                        "Was the CER able to sell to the customer?": document.querySelector('select[name="psRating5"]').value,
+                        "Capture precise details of the resolution": document.querySelector('select[name="psRating6"]').value,
+                        "Did the CER log call information correctly? (Data capture)": document.querySelector('select[name="caRating1"]').value,
+                        "Did the CER adhere to Company Policies & Procedures?(Autofail)": document.querySelector('select[name="caRating2"]').value,
+                        "Did the CER Comply with industry and legal requirements?": document.querySelector('select[name="caRating3"]').value,
+                        "Was the CER able to identify and opportunity for Upselling & Cross-Selling?": document.querySelector('select[name="caRating4"]').value,
+                        
+                        "Business & Compliance Accuracy": businessComplianceAccuracyDisplay.textContent, // e.g., "85%"
+                        "Overall Score": overallScoreDisplay.textContent, // e.g., "90%"
+                        "Total Pts.": globalTotalPoints, 
+                        "Available Pts.": globalMaxPossiblePoints, 
+                        "Final Score": overallFinalPercentageDisplay.textContent, 
                     };
-
-                    // Populate question-specific ratings for the sheet based on predefined sections/questions
-                    const questionHeaderMap = {
-                        "Did the CER provide proper branding and personalize the call?": "cxRating1",
-                        "Did the CER demonstrate confidence and business etiquette althroughout the call session?": "cxRating2",
-                        "Did the CER express a sincere acknowledgement/empathy statement when applicable?": "cxRating3",
-                        "Did the CER convey his/her thoughts in an understandable clear and concise manner?": "cxRating4",
-                        "Was the CER able to hold rapport?": "cxRating5",
-                        "Did the CER ask effective probing questions to ensure accurate diagnosis?": "psRating1",
-                        "Did the CER do proper research and check all related tools required?": "psRating2",
-                        "Did the CER show ownership and actively listen?": "psRating3",
-                        "Did the CER document all action items & follow-up? (Autofail)": "psRating4",
-                        "Was the CER able to sell to the customer?": "psRating5",
-                        "Capture precise details of the resolution": "psRating6",
-                        "Did the CER log call information correctly? (Data capture)": "caRating1",
-                        "Did the CER adhere to Company Policies & Procedures?(Autofail)": "caRating2",
-                        "Did the CER Comply with industry and legal requirements?": "caRating3",
-                        "Was the CER able to identify real opportunity for Upselling & Cross Selling?": "caRating4"
-                    };
-
-                    for (const formQuestionText in questionHeaderMap) {
-                        const ratingName = questionHeaderMap[formQuestionText]; // e.g., 'cxRating1'
-                        const selectElement = document.querySelector(`select[name="${ratingName}"]`);
-                        if (selectElement) {
-                            formDataForSubmission[formQuestionText] = selectElement.value; // Add the rating directly
-                        } else {
-                            formDataForSubmission[formQuestionText] = ''; // Ensure field exists even if element is missing
-                        }
-                    }
                     
                     console.log("Collected Data for Submission (Flattened):", formDataForSubmission);
 
-                    // This is the correct Apps Script Web App URL
-                    const GOOGLE_APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
+                    // REPLACE THIS URL WITH THE ONE YOU COPIED FROM YOUR NEW APPS SCRIPT DEPLOYMENT
+                    const GOOGLE_APPS_SCRIPT_WEB_APP_URL = 'YOUR_NEW_DEPLOYED_APPS_SCRIPT_WEB_APP_URL'; 
 
                     try {
                         submitFormBtn.textContent = 'Submitting...';
@@ -1055,8 +1058,10 @@
                             item.pointsElement.style.backgroundColor = '#e9ecef'; // Default grey background
                             item.pointsElement.style.color = '#555'; // Default text color
                         }
-                        if (document.querySelector(`textarea[name="${item.name.replace('Rating', 'Remarks')}"]`)) {
-                            document.querySelector(`textarea[name="${item.name.replace('Rating', 'Remarks')}"]`).value = '';
+                        // Reset remarks textareas
+                        const remarksElement = document.querySelector(`textarea[name="${item.name.replace('Rating', 'Remarks')}"]`);
+                        if (remarksElement) {
+                            remarksElement.value = '';
                         }
                     });
                 }
