@@ -257,7 +257,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("Admin DOM loaded.");
+            console.log("Admin DOM loaded. Script execution started."); // Added log
             // **IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL**
             const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
 
@@ -330,7 +330,6 @@
                         console.log("Auth response data:", data);
                         if (data.status === 'SUCCESS' && data.authenticated) {
                             sessionStorage.setItem('loggedIn', 'true');
-                            // Now that login is handled here, reload to show admin content
                             window.location.reload(); 
                         } else {
                             showLoginErrorMessage('Invalid username or password.');
@@ -343,16 +342,19 @@
             });
 
             // Initial check for login status on admin.html load
+            console.log("Checking login status on admin.html load."); // Added log
             const isLoggedIn = sessionStorage.getItem('loggedIn');
             if (isLoggedIn === 'true') {
                 loginPage.style.display = 'none'; // Hide login page
                 adminContent.style.display = 'block'; // Show admin content
                 mainNav.style.display = 'flex'; // Show navigation
                 fetchAndRenderUsers(); // Load users on admin page load
+                console.log("Logged in: Displaying admin content."); // Added log
             } else {
                 loginPage.style.display = 'flex'; // Show login
                 adminContent.style.display = 'none'; // Hide admin content
                 mainNav.style.display = 'none'; // Hide navigation
+                console.log("Not logged in: Displaying login page."); // Added log
             }
 
             // Logout functionality
@@ -366,6 +368,7 @@
             let currentSelectedDropdownType = ''; // To store which dropdown is currently selected
 
             dropdownTypeSelect.addEventListener('change', async function() {
+                console.log("Dropdown type select change event triggered."); // Added log
                 currentSelectedDropdownType = this.value;
                 console.log(`Dropdown type selected: ${currentSelectedDropdownType}`);
                 currentDropdownItems.innerHTML = ''; // Clear previous list
@@ -379,7 +382,7 @@
             });
 
             async function fetchAndRenderDropdownOptions(type) {
-                console.log(`Fetching options for dropdown: ${type}`);
+                console.log(`Function fetchAndRenderDropdownOptions called for type: ${type}`); // Added log
                 currentDropdownItems.innerHTML = '<li>Loading...</li>';
                 try {
                     const response = await fetch(`${googleAppsScriptURL}?action=getDropdownOptions&type=${type}`);
@@ -417,6 +420,7 @@
             }
 
             addDropdownValueBtn.addEventListener('click', async function() {
+                console.log("Add dropdown value button clicked."); // Added log
                 const newValue = newDropdownValueInput.value.trim();
                 if (!currentSelectedDropdownType) {
                     showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
@@ -452,6 +456,7 @@
             });
 
             removeDropdownValueBtn.addEventListener('click', async function() {
+                console.log("Remove dropdown value button clicked."); // Added log
                 const selectedItems = Array.from(currentDropdownItems.children)
                                          .filter(li => li.classList.contains('bg-blue-200'))
                                          .map(li => li.textContent.trim());
@@ -494,6 +499,7 @@
 
             // --- User Management Logic ---
             createUserBtn.addEventListener('click', async function() {
+                console.log("Create user button clicked."); // Added log
                 const username = newUsernameInput.value.trim();
                 const password = newPasswordInput.value.trim();
                 const role = newUserRoleSelect.value;
@@ -530,7 +536,7 @@
             });
 
             async function fetchAndRenderUsers() {
-                console.log('Fetching all users for list.');
+                console.log('Fetching all users for list.'); // Added log
                 existingUsersList.innerHTML = '<li>Loading users...</li>';
                 try {
                     const response = await fetch(`${googleAppsScriptURL}?action=getUsers`);
@@ -576,7 +582,7 @@
             }
 
             async function removeUser(username) {
-                console.log(`Attempting to remove user: ${username}`);
+                console.log(`Attempting to remove user: ${username}`); // Added log
                 try {
                     const response = await fetch(googleAppsScriptURL, {
                         method: 'POST',
