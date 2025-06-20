@@ -54,7 +54,7 @@
         /* Navigation styles */
         .main-nav {
             width: 100%;
-            background-color: #1a73e8; /* icealion-blue */
+            background-color: #1a73e8;
             color: white;
             padding: 1rem 2rem;
             display: flex;
@@ -829,6 +829,8 @@
 
 
         // --- ALL FUNCTION DECLARATIONS (Hoisted to top-level scope) ---
+        // These functions are declared at the top-level scope of this script block
+        // to ensure they are available before any code tries to call them.
 
         // Message Box Functions
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
@@ -898,13 +900,13 @@
         let unsubscribeWebhooks = null;
 
         async function fetchRecordsAndWebhooks() {
-            // Get element references inside the function to ensure DOM is loaded
-            const recordsTableBody = document.getElementById('recordsTableBody'); // Make sure this is accessible
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); // Make sure this is accessible
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox'); // Make sure this is accessible
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); // Make sure this is accessible
-            const addWebhookBtn = document.getElementById('addWebhookBtn'); // Make sure this is accessible
-            const webhookList = document.getElementById('webhookList'); // Make sure this is accessible
+            // Get elements here, as they must be present when this function is called after DOMContentLoaded
+            const recordsTableBody = document.getElementById('recordsTableBody');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
+            const addWebhookBtn = document.getElementById('addWebhookBtn');
+            const webhookList = document.getElementById('webhookList');
 
 
             if (!window.db || !window.currentUserId) {
@@ -989,6 +991,12 @@
         }
 
         async function deleteSelectedRecords() {
+            // Access elements inside the function to ensure DOM is loaded
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); // Access here
+
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
                 return;
@@ -1006,11 +1014,6 @@
                 showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true);
                 return;
             }
-
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
 
             const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
 
@@ -1046,7 +1049,7 @@
             };
 
             messageBoxContent.innerHTML = '';
-            messageBoxContent.appendChild(confirmDeleteBtn);
+            messageBoxContent.appendChild(confirmBtn);
             messageBoxContent.appendChild(cancelBtn);
             
             messageBoxCloseBtn.onclick = () => {
@@ -1087,9 +1090,6 @@
                 await window.fsAddDoc(window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
                 newWebhookUrlInput.value = '';
                 showMessageBox("Success", "Webhook added successfully!", false, false, true);
-            } catch (e) {
-                console.error("Error adding webhook: ", e);
-                showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true);
             }
         }
 
@@ -1598,9 +1598,6 @@
 
 
             // --- UI Elements (Get references to DOM elements here) ---
-            // Accessing elements once here and reusing them in event listeners where possible
-            // Note: Functions called immediately on load (like initializeApp) need to get their elements locally if those elements
-            // are not defined here and passed. Functions defined below can closure over these.
             const loginForm = document.getElementById('loginForm');
             const loginMessage = document.getElementById('loginMessage');
             const usernameInput = document.getElementById('username');
