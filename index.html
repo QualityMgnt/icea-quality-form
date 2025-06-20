@@ -7,19 +7,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-
     <style>
-        /* Custom styles for body and utility classes not directly in Tailwind's default */
+        /* Base styles */
         body {
             font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f3f4f6; /* bg-gray-100 */
         }
-        /* Custom blue for ICEALION branding, as used in your login and form header */
+
+        /* ICEALION Branding Colors */
         .icealion-blue {
             background-color: #1a73e8;
             color: white;
@@ -27,71 +28,211 @@
         .icealion-orange-text {
             color: #f57c00;
         }
+
+        /* Error/Message styles */
         .error-message {
-            color: #dc2626; /* Red color for error messages */
-            font-size: 0.875rem; /* Equivalent to text-sm */
-            margin-top: 0.5rem; /* Equivalent to mt-2 */
+            color: #dc2626; /* red-700 */
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.5rem; /* mt-2 */
             text-align: center;
         }
 
-        /* Styles for section headers background */
+        /* Section Headers */
         .section-header-bg {
-            background-color: #1a73e8; /* A shade of blue for section headers */
+            background-color: #1a73e8; /* icealion-blue */
         }
-        /* Styles for numbered icons background colors */
+
+        /* Form Row Styling (zebra striping) */
+        .form-row-light { background-color: #f9fafb; /* gray-50 */ }
+        .form-row-dark { background-color: #edf2f7; /* gray-200 */ }
+
+        /* General input styling for consistency */
+        .form-grid-input {
+            padding: 8px; /* p-2 */
+        }
+
+        /* Navigation styles */
+        .main-nav {
+            width: 100%;
+            background-color: #1a73e8; /* icealion-blue */
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .main-nav ul {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .main-nav ul li {
+            margin-right: 1.5rem;
+        }
+        .main-nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            transition: background-color 0.3s ease;
+        }
+        .main-nav ul li a:hover,
+        .main-nav ul li a.active {
+            background-color: #0d47a1; /* A darker blue for hover/active */
+        }
+        .logout-button {
+            background-color: #f57c00; /* icealion-orange */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .logout-button:hover {
+            background-color: #e65100; /* darker orange */
+        }
+
+        /* Icon backgrounds for questions */
         .icon-bg-orange { background-color: #f57c00; }
         .icon-bg-blue { background-color: #2196f3; }
         .icon-bg-green { background-color: #4caf50; }
         .icon-bg-yellow { background-color: #ffc107; }
 
-        /* Row background colors for zebra striping effect */
-        .form-row-light { background-color: #f9fafb; }
-        .form-row-dark { background-color: #edf2f7; }
-
-        /* Specific adjustments for input padding in grid layout */
-        .form-grid-input {
-            padding: 8px; /* Standard padding for basic info inputs */
-        }
-
-        /* Adjustments for main content display, positioned relative to body flow */
-        body > .form-container,
-        body > .reports-container {
-            margin-top: 20px; /* Space from top */
-            margin-bottom: 20px; /* Space at bottom */
-            padding-left: 20px;
-            padding-right: 20px;
-            box-sizing: border-box; /* Ensure padding is included in element's total width */
-        }
-
-        /* Ensure main content containers are centered horizontally within the body flow */
-        body {
+        /* Specific styles for modal/message box */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
             display: flex;
-            flex-direction: column;
-            align-items: center; /* Center content horizontally */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a73e8; /* icealion-blue */
+        }
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .message-box button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .message-box button:hover {
+            background-color: #0d47a1;
         }
 
-        /* Progress bar (if applicable, though not directly used now, kept from snippet) */
-        .progress-bar-container {
-            background-color: #e0e0e0;
-            border-radius: 9999px;
-            overflow: hidden;
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1a73e8; /* icealion-blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
         }
-        .progress-bar {
-            background-color: #4CAF50;
-            height: 10px;
-            width: 24%; /* Example width, will be dynamic */
-            border-radius: 9999px;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
+
+        /* Database Table specific styles */
+        #databaseTableContainer table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        #databaseTableContainer th, #databaseTableContainer td {
+            border: 1px solid #e5e7eb; /* gray-300 */
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.875rem; /* text-sm */
+        }
+        #databaseTableContainer th {
+            background-color: #eff6ff; /* blue-50 */
+            font-weight: 600;
+            color: #1f2937; /* gray-800 */
+            position: sticky; /* Keep headers visible on scroll */
+            top: 0;
+            z-index: 10;
+        }
+        #databaseTableContainer tbody tr:nth-child(even) {
+            background-color: #f9fafb; /* gray-50 */
+        }
+        #databaseTableContainer tbody tr:hover {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        #databaseTableContainer td.actions {
+            white-space: nowrap; /* Prevent buttons from wrapping */
+        }
+        #databaseTableContainer .delete-record-btn {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        #databaseTableContainer .delete-record-btn:hover {
+            background-color: #dc2626; /* red-600 */
+        }
+        /* Style for webhook list */
+        #webhookList div {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f0f9ff; /* blue-50 */
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+        #webhookList div span {
+            font-size: 0.875rem;
+            color: #1e40af; /* blue-800 */
+        }
+
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <nav class="main-nav" id="mainNav">
-        <ul>
-            <li><a href="index.html" class="active"><i class="fas fa-file-alt"></i> Audit Form</a></li>
-            <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
-        </ul>
-        <button id="logoutBtn" class="logout-button">Logout</button>
-    </nav>
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="spinner hidden"></div>
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseBtn" class="hidden">OK</button>
+        </div>
+    </div>
 
     <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
@@ -121,7 +262,15 @@
         </div>
     </div>
 
-    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl" id="mainFormContent" style="display: none;">
+    <nav class="main-nav" id="mainNav" style="display: none;">
+        <ul>
+            <li><a href="#" id="auditFormTab" class="active"><i class="fas fa-file-alt"></i> Audit Form</a></li>
+            <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+            </ul>
+        <button id="logoutBtn" class="logout-button">Logout</button>
+    </nav>
+
+    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="auditFormContent" style="display: none;">
         <div class="icealion-blue p-4 flex items-center justify-between">
             <div class="text-xl font-semibold">Quality Assessment Form - ICEALION GROUP Contact Centre</div>
             <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
@@ -300,7 +449,7 @@
                         <button type="button" id="print-email-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             PDF & Email
                         </button>
-                        <button type="submit" id="submit-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        <button type="submit" id="submitFormToDBBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             Submit
                         </button>
                     </div>
@@ -309,23 +458,185 @@
         </form>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM fully loaded and parsed. Script starting.");
+    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
+        <div class="icealion-blue p-4 text-xl font-semibold text-center">
+            Database Records
+        </div>
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-gray-800">Submitted Records</h2>
+                <div>
+                    <button id="deleteSelectedRecordsBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-trash-alt mr-2"></i>Delete Selected
+                    </button>
+                </div>
+            </div>
+            
+            <div id="databaseTableContainer" class="overflow-x-auto max-h-[60vh]">
+                <table class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th class="w-12"><input type="checkbox" id="selectAllRecordsCheckbox"></th>
+                            <th class="w-24">Timestamp</th>
+                            <th>Contact ID</th>
+                            <th>Client Name</th>
+                            <th>CER Name</th>
+                            <th>Overall Score</th>
+                            <th class="w-24">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Webhook Management</h2>
+                <p class="text-sm text-gray-600 mb-4">
+                    Add webhook URLs below. When new records are created, data will be sent to these webhooks.
+                    **Note:** Sending data to external webhooks will depend on their server's CORS policy.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                    <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)"
+                           class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border form-grid-input">
+                    <button id="addWebhookBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        <i class="fas fa-plus mr-2"></i>Add Webhook
+                    </button>
+                </div>
+                <div id="webhookList" class="border border-gray-300 p-4 rounded-md bg-gray-50 min-h-[100px]">
+                    <p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
+
+        // --- Your Web App's Firebase Configuration ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+          authDomain: "icea-lion-qa.firebaseapp.com",
+          projectId: "icea-lion-qa",
+          storageBucket: "icea-lion-qa.firebasestorage.app",
+          messagingSenderId: "820082472004",
+          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+          measurementId: "G-1RJJTT3QET"
+        };
+
+        // Determine the 'appId' for Firestore collection paths.
+        // It uses the injected __app_id from a Canvas-like environment, otherwise falls back to firebaseConfig.appId.
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+
+        // The initialAuthToken is for specific hosting environments. For general GitHub Pages, it will be null.
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- GLOBAL Firebase Objects (accessible via window) ---
+        // Initialize Firebase App, Firestore, and Auth.
+        // These are made global so the main script can access them after the module loads.
+        window.firebaseApp = initializeApp(firebaseConfig);
+        window.db = getFirestore(window.firebaseApp);
+        window.auth = getAuth(window.firebaseApp);
+        // window.analytics = getAnalytics(window.firebaseApp); // Uncomment if you enabled Analytics and imported above
+
+        // Authentication state and user ID
+        window.currentUserId = null;
+        window.isAuthReady = false; // Flag to indicate if auth state is determined
+
+        // Listen for Firebase authentication state changes
+        onAuthStateChanged(window.auth, async (user) => {
+            if (user) {
+                window.currentUserId = user.uid;
+                console.log("Firebase Auth State Changed: User logged in:", user.uid);
+            } else {
+                console.log("Firebase Auth State Changed: No user logged in. Attempting sign-in.");
+                if (initialAuthToken) {
+                    try {
+                        await signInWithCustomToken(window.auth, initialAuthToken);
+                        window.currentUserId = window.auth.currentUser.uid;
+                        console.log("Signed in with custom token:", window.currentUserId);
+                    } catch (error) {
+                        console.error("Error signing in with custom token:", error);
+                        // Fallback to anonymous if custom token fails
+                        try {
+                            await signInAnonymously(window.auth);
+                            window.currentUserId = window.auth.currentUser.uid;
+                            console.log("Signed in anonymously:", window.currentUserId);
+                        } catch (anonError) {
+                            console.error("Error signing in anonymously (fallback):", anonError);
+                        }
+                    }
+                } else {
+                    // If no custom token, sign in anonymously
+                    try {
+                        await signInAnonymously(window.auth);
+                        window.currentUserId = window.auth.currentUser.uid;
+                        console.log("Signed in anonymously:", window.currentUserId);
+                    } catch (anonError) {
+                        console.error("Error signing in anonymously:", anonError);
+                    }
+                }
+                if (!window.currentUserId) {
+                    console.error("No user ID available after authentication attempts. Using random UUID as fallback.");
+                    window.currentUserId = crypto.randomUUID(); // Fallback for userId if all else fails
+                }
+            }
+            window.isAuthReady = true; // Mark auth as ready
+            // Dispatch a custom event to signal that Firebase Auth is ready
+            document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
+        });
+
+        // Firebase Collection Paths for this app, based on the determined appId
+        window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
+
+    </script>
+    <script>
+        // Main script block, will execute after the module script
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM fully loaded and parsed. Main script starting.");
+
+            // Get global Firebase objects from the module script (will be available via window.db, window.auth, etc.)
+            let db = null;
+            let auth = null;
+            let currentUserId = null;
+            let isAuthReady = false;
+
+            // Collection paths
+            let EVALUATION_RECORDS_COLLECTION_PATH = null;
+            let WEBHOOKS_COLLECTION_PATH = null;
+
+
+            // --- UI Elements ---
             // Login elements
             const loginPage = document.getElementById('loginPage');
             const loginForm = document.getElementById('loginForm');
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
             const loginMessage = document.getElementById('loginMessage');
-            const mainFormContent = document.getElementById('mainFormContent');
 
-            // Form buttons
+            // Navigation elements
+            const mainNav = document.getElementById('mainNav');
+            const auditFormTab = document.getElementById('auditFormTab');
+            const databaseTab = document.getElementById('databaseTab');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            // Main content containers
+            const auditFormContent = document.getElementById('auditFormContent');
+            const databaseContent = document.getElementById('databaseContent');
+
+            // Audit Form elements
+            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn'); // Changed ID from submitBtn
             const printEmailBtn = document.getElementById('print-email-btn');
-            const submitBtn = document.getElementById('submit-btn');
+            const assessmentForm = document.getElementById('assessment-form');
 
-            // Basic Info Fields
+            // Basic Info Fields (Audit Form)
             const contactIdInput = document.getElementById('contact-id');
             const clientNameInput = document.getElementById('client-name');
             const cerNameSelect = document.getElementById('cer-name');
@@ -337,36 +648,49 @@
             const evaluationDateInput = document.getElementById('review-date');
             const durationInput = document.getElementById('duration');
 
-            // Score displays
+            // Score displays (Audit Form)
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
 
-            // Navigation and Logout
-            const mainNav = document.getElementById('mainNav');
-            const logoutBtn = document.getElementById('logoutBtn');
-
-            // Dynamic question containers
+            // Dynamic question containers (Audit Form)
             const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
             const psQuestionsContainer = document.getElementById('psQuestionsContainer');
             const caQuestionsContainer = document.getElementById('caQuestionsContainer');
 
-            // --- Global Variables for Calculation ---
+            // Database Tab elements
+            const recordsTableBody = document.getElementById('recordsTableBody');
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+
+            // Webhook Management elements
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
+            const addWebhookBtn = document.getElementById('addWebhookBtn');
+            const webhookList = document.getElementById('webhookList');
+
+            // Message Box elements
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+            const messageBoxTitle = document.getElementById('messageBoxTitle');
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+
+            // --- Global Data Stores ---
+            let allRecords = []; // Stores the current records from Firestore
+            let allWebhooks = []; // Stores the current webhooks from Firestore
+
+            // --- Global Variables for Score Calculation (Audit Form) ---
             let globalTotalPoints = 0;
             let globalMaxPossiblePoints = 0;
             let globalBusinessComplianceAccuracyValue = 0;
 
-            // --- ALL Question Data by CER Role ---
+            // --- ALL Question Data by CER Role (Audit Form) ---
+            // This object holds all the dynamic questions and their properties for each CER Role.
+            // This is the same structure as provided in the previous turn.
             const allRolesQuestions = {
                 // Default questions if no role is selected or for a generic base
-                '': {
-                    'CUSTOMER EXPERIENCE': [
-                        // You can add default questions here if you want some to appear before a role is chosen
-                    ],
-                    'PROBLEM SOLVING SKILLS': [],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': []
-                },
+                '': { 'CUSTOMER EXPERIENCE': [], 'PROBLEM SOLVING SKILLS': [], 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [] },
                 'Outbound Sales': {
                     'CUSTOMER EXPERIENCE': [
                         { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6 },
@@ -566,7 +890,6 @@
                     ]
                 },
                 'Reviewed case handling': {
-                     // Placeholder for this role, add questions as needed
                     'CUSTOMER EXPERIENCE': [],
                     'PROBLEM SOLVING SKILLS': [],
                     'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': []
@@ -580,80 +903,431 @@
                 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
             };
 
-            // --- Function to Render Questions based on Selected Role ---
-            function renderQuestionsForRole(role) {
-                console.log("Rendering questions for role:", role);
 
-                // Clear all existing questions from containers
-                for (const key in questionContainers) {
-                    questionContainers[key].innerHTML = '';
+            // --- MESSAGE BOX FUNCTIONS (Replacement for alert/confirm) ---
+            function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+                messageBoxTitle.textContent = title;
+                messageBoxContent.textContent = message;
+                messageBoxOverlay.classList.remove('hidden');
+                messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+                messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
+
+                if (isError) {
+                    messageBoxTitle.style.color = '#dc2626'; // Red for error
+                } else {
+                    messageBoxTitle.style.color = '#1a73e8'; // Blue for info/success
                 }
 
-                const roleQuestions = allRolesQuestions[role];
+                messageBoxCloseBtn.onclick = () => {
+                    messageBoxOverlay.classList.add('hidden');
+                    if (onClose) onClose();
+                };
+            }
 
-                if (!roleQuestions) {
-                    console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
-                    calculateScore(); // Recalculate with empty fields
+            function hideMessageBox() {
+                messageBoxOverlay.classList.add('hidden');
+            }
+
+
+            // --- UI TAB SWITCHING LOGIC ---
+            function showTab(tabName) {
+                // Deactivate all tabs
+                auditFormTab.classList.remove('active');
+                databaseTab.classList.remove('active');
+
+                // Hide all content sections
+                auditFormContent.style.display = 'none';
+                databaseContent.style.display = 'none';
+
+                // Activate selected tab and show its content
+                if (tabName === 'auditForm') {
+                    auditFormTab.classList.add('active');
+                    auditFormContent.style.display = 'block';
+                } else if (tabName === 'database') {
+                    databaseTab.classList.add('active');
+                    databaseContent.style.display = 'block';
+                    // Trigger database table refresh when switching to it
+                    if (window.db && window.currentUserId) { // Ensure Firebase is initialized and auth is ready
+                        fetchRecordsAndWebhooks(); // Refresh data when entering the tab
+                    } else {
+                        showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
+                    }
+                }
+            }
+
+            // Event listeners for tab clicks
+            auditFormTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                showTab('auditForm');
+            });
+
+            databaseTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                showTab('database');
+            });
+
+
+            // --- FIRESTORE DATA HANDLING FUNCTIONS ---
+
+            // Function to fetch and display records
+            let unsubscribeRecords = null; // Store the unsubscribe function for real-time listener
+            let unsubscribeWebhooks = null; // Store unsubscribe for webhooks
+
+            async function fetchRecordsAndWebhooks() {
+                if (!window.db || !window.currentUserId) {
+                    console.warn("Firestore not initialized or user not authenticated yet. Cannot fetch data.");
                     return;
                 }
 
-                let questionNumber = 1; // Global question counter for display
+                // Unsubscribe previous listeners to prevent duplicates
+                if (unsubscribeRecords) unsubscribeRecords();
+                if (unsubscribeWebhooks) unsubscribeWebhooks();
+                
+                showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
-                for (const sectionTitle in roleQuestions) {
-                    const questions = roleQuestions[sectionTitle];
-                    const container = questionContainers[sectionTitle];
 
-                    if (!container) {
-                        console.error(`Container not found for section: ${sectionTitle}`);
-                        continue;
-                    }
-
-                    questions.forEach(q => {
-                        const rowDiv = document.createElement('div');
-                        rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
-
-                        // Determine icon color based on question number (cycle through orange, blue, green, yellow)
-                        let iconColorClass;
-                        const iconIndex = (questionNumber - 1) % 4; // 0, 1, 2, 3
-                        if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
-                        else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
-                        else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
-                        else iconColorClass = 'icon-bg-yellow';
-
-                        rowDiv.innerHTML = `
-                            <div class="col-span-6 flex items-center gap-2">
-                                <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
-                                ${q.desc}
-                            </div>
-                            <div class="col-span-2">
-                                <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''}>
-                                    <option value="" selected>None</option>
-                                    <option value="Yes">Yes</option>
-                                    <option value="No">No</option>
-                                </select>
-                            </div>
-                            <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
-                            <div class="col-span-1 text-center">
-                                <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
-                            </div>
-                            <div class="col-span-2">
-                                <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea"></textarea>
-                            </div>
-                        `;
-                        container.appendChild(rowDiv);
-
-                        // Attach event listener to the newly created select element
-                        const newSelect = rowDiv.querySelector('.rating-select');
-                        if (newSelect) {
-                            newSelect.addEventListener('change', calculateScore);
-                        }
-                        questionNumber++;
+                try {
+                    // Listen for records in real-time
+                    const recordsColRef = collection(window.db, EVALUATION_RECORDS_COLLECTION_PATH);
+                    unsubscribeRecords = onSnapshot(recordsColRef, (snapshot) => {
+                        allRecords = [];
+                        snapshot.forEach(doc => {
+                            allRecords.push({ id: doc.id, ...doc.data() });
+                        });
+                        console.log("Records updated:", allRecords.length, "records.");
+                        renderRecordsTable(allRecords);
+                        hideMessageBox();
+                    }, (error) => {
+                        console.error("Error listening to records:", error);
+                        showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
                     });
+
+                    // Listen for webhooks in real-time
+                    const webhooksColRef = collection(window.db, WEBHOOKS_COLLECTION_PATH);
+                    unsubscribeWebhooks = onSnapshot(webhooksColRef, (snapshot) => {
+                        allWebhooks = [];
+                        snapshot.forEach(doc => {
+                            allWebhooks.push({ id: doc.id, ...doc.data() });
+                        });
+                        console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
+                        renderWebhookList(allWebhooks);
+                        hideMessageBox();
+                    }, (error) => {
+                        console.error("Error listening to webhooks:", error);
+                        showMessageBox("Error Loading Webhooks", `Could not load webhooks: ${error.message}`, true, false, true);
+                    });
+
+                } catch (error) {
+                    console.error("Error setting up Firestore listeners:", error);
+                    showMessageBox("Initialization Error", `Failed to setup database listeners: ${error.message}`, true, false, true);
                 }
-                calculateScore(); // Recalculate scores after new questions are rendered
             }
 
-            // --- Calculate Score Function (updated to work with dynamic elements) ---
+            // Function to add a record to Firestore
+            async function addRecordToFirestore(recordData) {
+                if (!window.db || !window.currentUserId) {
+                    showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                    return false;
+                }
+                showMessageBox("Submitting", "Saving record to database...", false, true, false);
+                try {
+                    const docRef = await addDoc(collection(window.db, EVALUATION_RECORDS_COLLECTION_PATH), {
+                        ...recordData,
+                        submittedAt: new Date().toISOString() // Add a server timestamp
+                    });
+                    console.log("Record written with ID:", docRef.id);
+                    showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
+                        resetForm(); // Reset form on success
+                        sendDataToWebhooks(recordData); // Trigger webhooks after successful submission
+                    });
+                    return true;
+                } catch (e) {
+                    console.error("Error adding document: ", e);
+                    showMessageBox("Submission Failed", `Error saving data: ${e.message}`, true, false, true);
+                    return false;
+                }
+            }
+
+            // Function to delete selected records from Firestore
+            async function deleteSelectedRecords() {
+                if (!window.db || !window.currentUserId) {
+                    showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                    return;
+                }
+
+                const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+                const recordIdsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
+
+                if (recordIdsToDelete.length === 0) {
+                    showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true);
+                    return;
+                }
+
+                // Confirmation using custom message box
+                showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
+                
+                // Add custom confirm/cancel buttons to the message box
+                const confirmDeleteBtn = document.createElement('button');
+                confirmDeleteBtn.textContent = 'Delete';
+                confirmDeleteBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+                confirmDeleteBtn.onclick = async () => {
+                    hideMessageBox();
+                    showMessageBox("Deleting", "Deleting selected records...", false, true, false);
+                    try {
+                        const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, id)));
+                        await Promise.all(deletePromises);
+                        console.log("Selected records deleted successfully.");
+                        showMessageBox("Success", "Selected records deleted.", false, false, true);
+                        selectAllRecordsCheckbox.checked = false; // Uncheck select all
+                        updateDeleteButtonState(); // Update button state
+                    } catch (e) {
+                        console.error("Error deleting documents: ", e);
+                        showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
+                    }
+                };
+
+                const cancelDeleteBtn = document.createElement('button');
+                cancelDeleteBtn.textContent = 'Cancel';
+                cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+                cancelDeleteBtn.onclick = hideMessageBox;
+
+                // Temporarily store original content to restore later
+                const originalMessageBoxContent = messageBoxContent.innerHTML;
+                messageBoxContent.innerHTML = ''; // Clear existing content (e.g., "Are you sure?")
+                messageBoxContent.appendChild(confirmDeleteBtn);
+                messageBoxContent.appendChild(cancelDeleteBtn);
+                // Restore content when box is closed
+                messageBoxCloseBtn.onclick = () => {
+                    messageBoxOverlay.classList.add('hidden');
+                    messageBoxContent.innerHTML = originalMessageBoxContent;
+                };
+            }
+
+            // Function to add a webhook URL
+            async function addWebhook() {
+                if (!window.db || !window.currentUserId) {
+                    showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                    return;
+                }
+                const webhookUrl = newWebhookUrlInput.value.trim();
+                if (!webhookUrl) {
+                    showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
+                    return;
+                }
+                if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
+                     showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
+                     return;
+                }
+                if (allWebhooks.some(hook => hook.url === webhookUrl)) {
+                    showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
+                    newWebhookUrlInput.value = '';
+                    return;
+                }
+
+                showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
+                try {
+                    await addDoc(collection(window.db, WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
+                    newWebhookUrlInput.value = ''; // Clear input
+                    showMessageBox("Success", "Webhook added successfully!", false, false, true);
+                } catch (e) {
+                    console.error("Error adding webhook: ", e);
+                    showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true);
+                }
+            }
+
+            // Function to delete a specific webhook
+            async function deleteWebhook(webhookId) {
+                if (!window.db || !window.currentUserId) {
+                    showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                    return;
+                }
+                showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
+                try {
+                    await deleteDoc(doc(window.db, WEBHOOKS_COLLECTION_PATH, webhookId));
+                    showMessageBox("Success", "Webhook deleted successfully!", false, false, true);
+                } catch (e) {
+                    console.error("Error deleting webhook: ", e);
+                    showMessageBox("Failed to Delete Webhook", `Error: ${e.message}`, true, false, true);
+                }
+            }
+
+            // Function to send data to all configured webhooks
+            async function sendDataToWebhooks(recordData) {
+                if (allWebhooks.length === 0) {
+                    console.log("No webhooks configured. Skipping webhook dispatch.");
+                    return;
+                }
+                console.log(`Sending data to ${allWebhooks.length} webhook(s)...`);
+                const webhookPromises = allWebhooks.map(async (webhook) => {
+                    try {
+                        const response = await fetch(webhook.url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(recordData)
+                        });
+                        const result = await response.text(); // Use .text() for general webhook responses
+                        console.log(`Webhook to ${webhook.url} response:`, response.status, result);
+                        if (!response.ok) {
+                            console.error(`Webhook to ${webhook.url} failed: ${response.status} - ${result}`);
+                            // Optionally show a message box for failed webhooks if critical
+                        }
+                    } catch (error) {
+                        console.error(`Error sending to webhook ${webhook.url}:`, error);
+                    }
+                });
+                await Promise.allSettled(webhookPromises); // Use allSettled to await all without stopping on one failure
+                console.log("All webhook dispatches attempted.");
+            }
+
+
+            // --- DATABASE TABLE RENDERING ---
+            function renderRecordsTable(records) {
+                recordsTableBody.innerHTML = ''; // Clear existing rows
+                if (records.length === 0) {
+                    recordsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
+                        </tr>
+                    `;
+                    deleteSelectedRecordsBtn.disabled = true;
+                    selectAllRecordsCheckbox.checked = false;
+                    selectAllRecordsCheckbox.disabled = true;
+                    return;
+                }
+
+                selectAllRecordsCheckbox.disabled = false;
+
+                records.forEach(record => {
+                    const row = recordsTableBody.insertRow();
+                    row.className = 'border-b border-gray-200';
+                    row.insertCell().innerHTML = `<input type="checkbox" class="record-checkbox" data-record-id="${record.id}">`;
+                    row.insertCell().textContent = record.submittedAt ? new Date(record.submittedAt).toLocaleString() : 'N/A';
+                    row.insertCell().textContent = record['Contact ID'] || '';
+                    row.insertCell().textContent = record['Client Name'] || '';
+                    row.insertCell().textContent = record['CER Name'] || '';
+                    row.insertCell().textContent = record['Overall Score'] || '';
+                    row.insertCell().innerHTML = `
+                        <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
+                    `;
+                });
+
+                // Add event listeners for individual checkboxes and delete buttons
+                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', updateDeleteButtonState);
+                });
+                document.querySelectorAll('.delete-record-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const recordId = e.target.dataset.recordId;
+                        // Use custom message box for confirmation
+                        showMessageBox("Confirm Delete", "Are you sure you want to delete this record?", false, false, false);
+                        const confirmBtn = document.createElement('button');
+                        confirmBtn.textContent = 'Delete';
+                        confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+                        confirmBtn.onclick = async () => {
+                            hideMessageBox();
+                            showMessageBox("Deleting", "Deleting record...", false, true, false);
+                            try {
+                                await deleteDoc(doc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId));
+                                showMessageBox("Success", "Record deleted successfully.", false, false, true);
+                            } catch (error) {
+                                showMessageBox("Deletion Failed", `Error: ${error.message}`, true, false, true);
+                            }
+                        };
+                        const cancelBtn = document.createElement('button');
+                        cancelBtn.textContent = 'Cancel';
+                        cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+                        cancelBtn.onclick = hideMessageBox;
+
+                        const originalMessageBoxContent = messageBoxContent.innerHTML;
+                        messageBoxContent.innerHTML = '';
+                        messageBoxContent.appendChild(confirmBtn);
+                        messageBoxContent.appendChild(cancelBtn);
+                        messageBoxCloseBtn.onclick = () => { // Override close for this dialog
+                            messageBoxOverlay.classList.add('hidden');
+                            messageBoxContent.innerHTML = originalMessageBoxContent;
+                        };
+                    });
+                });
+
+                updateDeleteButtonState(); // Initial state update
+            }
+
+            // Update state of "Delete Selected" button based on checked checkboxes
+            function updateDeleteButtonState() {
+                const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
+                deleteSelectedRecordsBtn.disabled = checkedCount === 0;
+            }
+
+            // Handle "Select All" checkbox
+            selectAllRecordsCheckbox.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+                updateDeleteButtonState();
+            });
+
+            // "Delete Selected" button listener
+            deleteSelectedRecordsBtn.addEventListener('click', deleteSelectedRecords);
+
+
+            // --- WEBHOOK LIST RENDERING ---
+            function renderWebhookList(webhooks) {
+                webhookList.innerHTML = ''; // Clear existing list
+                if (webhooks.length === 0) {
+                    webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
+                    return;
+                }
+
+                webhooks.forEach(hook => {
+                    const webhookDiv = document.createElement('div');
+                    webhookDiv.innerHTML = `
+                        <span>${hook.url}</span>
+                        <button class="delete-webhook-btn bg-red-400 hover:bg-red-500 text-white p-1 rounded-md text-xs" data-webhook-id="${hook.id}">
+                            <i class="fas fa-times"></i> Delete
+                        </button>
+                    `;
+                    webhookList.appendChild(webhookDiv);
+                });
+
+                document.querySelectorAll('.delete-webhook-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const webhookId = e.target.closest('button').dataset.webhookId;
+                        // Custom confirm for webhook deletion
+                        showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, false);
+                        const confirmBtn = document.createElement('button');
+                        confirmBtn.textContent = 'Delete';
+                        confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+                        confirmBtn.onclick = async () => {
+                            hideMessageBox();
+                            showMessageBox("Deleting", "Deleting webhook...", false, true, false);
+                            await deleteWebhook(webhookId);
+                            hideMessageBox(); // Hide after delete completes
+                        };
+                        const cancelBtn = document.createElement('button');
+                        cancelBtn.textContent = 'Cancel';
+                        cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+                        cancelBtn.onclick = hideMessageBox;
+
+                        const originalMessageBoxContent = messageBoxContent.innerHTML;
+                        messageBoxContent.innerHTML = '';
+                        messageBoxContent.appendChild(confirmBtn);
+                        messageBoxContent.appendChild(cancelBtn);
+                        messageBoxCloseBtn.onclick = () => { // Override close for this dialog
+                            messageBoxOverlay.classList.add('hidden');
+                            messageBoxContent.innerHTML = originalMessageBoxContent;
+                        };
+                    });
+                });
+            }
+
+            // Add Webhook button listener
+            addWebhookBtn.addEventListener('click', addWebhook);
+
+
+            // --- AUDIT FORM CALCULATIONS (Unchanged from previous turns) ---
             const calculateScore = () => {
                 console.log("calculateScore called (dynamic).");
                 globalTotalPoints = 0;
@@ -663,17 +1337,16 @@
                 let complianceCurrentPoints = 0;
                 let complianceMaxPoints = 0;
 
-                // Find all rating selects currently in the DOM
                 const allRatingSelects = document.querySelectorAll('.rating-select');
 
                 allRatingSelects.forEach(selectElement => {
                     const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
-                    if (!rowDiv) return; // Should not happen
+                    if (!rowDiv) return;
 
                     const pointsElement = rowDiv.querySelector('.points-input');
                     const weightageDisplay = rowDiv.querySelector('.weightage-display');
                     const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
-                    const questionText = selectElement.name.replace(' (Rating)', ''); // Get the clean question text
+                    const questionText = selectElement.name.replace(' (Rating)', '');
 
                     if (!pointsElement || !weightageDisplay) {
                         console.warn(`Missing associated elements for select: ${selectElement.name}`);
@@ -684,7 +1357,6 @@
                     const weightage = parseFloat(weightageDisplay.dataset.weightage);
                     let currentPoints = 0;
 
-                    // Reset background color before applying new logic
                     pointsElement.style.backgroundColor = '#e9ecef';
                     pointsElement.style.color = '#555';
 
@@ -699,11 +1371,11 @@
                         if (isAutofailQuestion) {
                             pointsElement.style.backgroundColor = '#fca5a5';
                             pointsElement.style.color = '#dc2626';
-                            autofailTriggered = true; // Trigger autofail if any autofail question is 'No'
+                            autofailTriggered = true;
                         } else {
                             pointsElement.style.backgroundColor = '#e0e0e0';
                         }
-                    } else { // Handle 'None' or empty selection
+                    } else {
                         currentPoints = 0;
                         pointsElement.readOnly = true;
                         pointsElement.style.backgroundColor = '#e9ecef';
@@ -711,10 +1383,8 @@
 
                     pointsElement.value = currentPoints;
                     globalTotalPoints += currentPoints;
-                    globalMaxPossiblePoints += weightage; // Sum all possible weightages from active questions
+                    globalMaxPossiblePoints += weightage;
 
-                    // Check if this question belongs to 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY' for its specific score
-                    // This relies on the question text mapping (e.g., "Did the CER log ticket information correctly?")
                     const currentRole = cerRoleSelect.value;
                     if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
                         const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
@@ -722,7 +1392,7 @@
                             if (rating === 'Yes') {
                                 complianceCurrentPoints += weightage;
                             }
-                            if (rating === 'Yes' || rating === 'No') { // Only add to max if an answer was provided
+                            if (rating === 'Yes' || rating === 'No') {
                                  complianceMaxPoints += weightage;
                             }
                         }
@@ -755,9 +1425,8 @@
                 globalBusinessComplianceAccuracyValue = businessCompliancePct;
             };
 
-            // --- Initialize Form (on load or after login) ---
-            function initializeForm() {
-                console.log("Initializing form.");
+            // --- AUDIT FORM INITIALIZATION AND RESET ---
+            function initializeAuditForm() {
                 // Set default date to today
                 evaluationDateInput.valueAsDate = new Date();
                 // Set default call date and time to now
@@ -769,207 +1438,16 @@
                 cerRoleSelect.value = '';
                 renderQuestionsForRole(''); // Render an empty set of questions initially
                 calculateScore(); // Ensure scores are 0%
-
-                printEmailBtn.classList.remove('hidden');
-                submitBtn.classList.remove('hidden');
             }
 
-
-            // --- Login Logic ---
-            const CORRECT_USERNAME = 'Supervisor';
-            const CORRECT_PASSWORD = 'Supervisor';
-
-            const showLoginErrorMessage = (message) => {
-                loginMessage.textContent = message;
-                loginMessage.classList.remove('hidden');
-            };
-
-            const hideLoginErrorMessage = () => {
-                loginMessage.classList.add('hidden');
-                loginMessage.textContent = '';
-            };
-
-            // Check for login state on page load
-            const isLoggedIn = sessionStorage.getItem('loggedIn');
-
-            if (isLoggedIn === 'true') {
-                loginPage.style.display = 'none';
-                mainFormContent.style.display = 'block';
-                mainNav.style.display = 'flex';
-                initializeForm(); // Call initialize form on successful login or refresh if already logged in
-            } else {
-                loginPage.style.display = 'flex';
-                mainFormContent.style.display = 'none';
-                mainNav.style.display = 'none';
-            }
-
-            loginForm.addEventListener('submit', function(event) {
-                event.preventDefault();
-                hideLoginErrorMessage();
-
-                const enteredUsername = usernameInput.value;
-                const enteredPassword = passwordInput.value;
-
-                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
-                    sessionStorage.setItem('loggedIn', 'true');
-                    loginPage.style.display = 'none';
-                    mainFormContent.style.display = 'block';
-                    mainNav.style.display = 'flex';
-                    initializeForm(); // Call initialize form after successful login
-                } else {
-                    showLoginErrorMessage('Invalid Username or Password. Please try again.');
-                }
-            });
-
-            // Logout functionality
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    sessionStorage.removeItem('loggedIn');
-                    window.location.href = 'index.html';
-                });
-            }
-
-            // Toggle 'Other' reviewer name input
-            reviewerNameSelect.addEventListener('change', () => {
-                if (reviewerNameSelect.value === 'Other') {
-                    otherReviewerNameInput.classList.remove('hidden');
-                    otherReviewerNameInput.setAttribute('required', 'required');
-                } else {
-                    otherReviewerNameInput.classList.add('hidden');
-                    otherReviewerNameInput.value = '';
-                    otherReviewerNameInput.removeAttribute('required');
-                    otherReviewerNameInput.style.borderColor = '';
-                }
-            });
-
-            // --- Event Listener for CER Role Change ---
-            cerRoleSelect.addEventListener('change', (event) => {
-                const selectedRole = event.target.value;
-                renderQuestionsForRole(selectedRole);
-                resetFormFieldsButKeepRole(); // Reset answers, but keep selected role
-            });
-
-
-            // Handle form submission (for saving data to Google Sheet via Apps Script)
-            const assessmentForm = document.getElementById('assessment-form');
-            submitBtn.addEventListener('click', async (event) => {
-                event.preventDefault();
-                console.log("Submit button clicked - attempting form submission.");
-
-                // Basic client-side validation for required fields
-                const requiredInputs = assessmentForm.querySelectorAll('[required]:not(.hidden)');
-                let allRequiredFilled = true;
-                for (const input of requiredInputs) {
-                    if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
-                        allRequiredFilled = false;
-                        input.style.borderColor = 'red';
-                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        input.focus();
-                        alert('Please fill out all required fields.');
-                        return;
-                    } else {
-                        input.style.borderColor = '';
-                    }
-                }
-
-                // Dynamically collect all relevant form data based on current DOM
-                const formDataForSubmission = {};
-
-                // Collect basic info fields by their 'name' attribute (note: names are now full descriptions)
-                const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
-                basicInfoInputs.forEach(input => {
-                    if (input.name) {
-                        if (input.type === 'datetime-local' || input.type === 'date') {
-                            formDataForSubmission[input.name] = input.value;
-                        } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
-                            // Skip hidden 'other reviewer' field if not active
-                            return;
-                        }
-                        else {
-                            formDataForSubmission[input.name] = input.value.trim();
-                        }
-                    }
-                });
-
-
-                // Collect Overall Scores
-                formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
-                formDataForSubmission['Business & Compliance Accuracy'] = businessComplianceAccuracyDisplay.textContent;
-                formDataForSubmission['Total Pts.'] = globalTotalPoints;
-                formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
-                formDataForSubmission['Final Score'] = overallFinalPercentageDisplay.textContent;
-
-                // Loop through all dynamically created question elements
-                const dynamicSelects = document.querySelectorAll('.rating-select');
-                dynamicSelects.forEach(selectElement => {
-                    const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
-                    if (rowDiv) {
-                        const pointsElement = rowDiv.querySelector('.points-input');
-                        const remarksElement = rowDiv.querySelector('.remarks-textarea');
-
-                        // Use the 'name' attributes which are set to the full question text + (Rating/Points/Remarks)
-                        formDataForSubmission[selectElement.name] = selectElement.value;
-                        if (pointsElement) {
-                            formDataForSubmission[pointsElement.name] = pointsElement.value;
-                        }
-                        if (remarksElement) {
-                            formDataForSubmission[remarksElement.name] = remarksElement.value.trim();
-                        }
-                    }
-                });
-
-
-                console.log("Collected Data for Submission:", formDataForSubmission);
-
-                // **IMPORTANT**: This is your provided Google Apps Script Web App URL
-                const GOOGLE_APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyUMQFf8kGWss0uTZSzjc4gka87kElaGyAksa-YNZyvH02r623UfnOOgSe2T9XFiClIQQ/exec';
-
-                try {
-                    submitBtn.textContent = 'Submitting...';
-                    submitBtn.disabled = true;
-                    console.log("Sending fetch request with JSON body.");
-
-                    const response = await fetch(GOOGLE_APPS_SCRIPT_WEB_APP_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(formDataForSubmission)
-                    });
-                    console.log("Fetch request sent. Waiting for response.");
-
-                    const responseData = await response.json();
-                    console.log("Response received from Apps Script:", responseData);
-                    if (responseData.status === 'SUCCESS') {
-                        alert('Form data submitted successfully to Google Sheet! The form will now reset.');
-                        resetForm(); // Reset all form fields, including CER role
-                    } else {
-                        alert('Failed to submit form data: ' + responseData.message + '. Please check console for details.');
-                        console.error('Apps Script Error:', responseData.message);
-                    }
-
-                } catch (error) {
-                    console.error('Error submitting form data (network/fetch error):', error);
-                    alert('Failed to submit form data. Please try again. Check console for network/script errors.');
-                } finally {
-                    submitBtn.textContent = 'Submit';
-                    submitBtn.disabled = false;
-                    console.log("Submit button re-enabled.");
-                }
-            });
-
-            // Reset Form Functionality - Clears all fields including CER role
             function resetForm() {
                 console.log("Full form reset.");
 
-                // Reset basic info fields
                 contactIdInput.value = '';
                 clientNameInput.value = '';
                 cerNameSelect.value = '';
-                cerRoleSelect.value = ''; // Reset CER Role to empty
+                cerRoleSelect.value = '';
 
-                // Reset date/time to current values
                 const now = new Date();
                 now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
                 callDateTimeInput.value = now.toISOString().slice(0,16);
@@ -978,26 +1456,22 @@
                 durationInput.value = '';
                 autofailTypeSelect.value = '';
 
-                // Reset reviewer name and hide 'Other' input
                 reviewerNameSelect.value = '';
                 otherReviewerNameInput.classList.add('hidden');
                 otherReviewerNameInput.value = '';
                 otherReviewerNameInput.removeAttribute('required');
                 otherReviewerNameInput.style.borderColor = '';
 
-                // Re-render questions for the empty/default role, which effectively clears them
-                renderQuestionsForRole('');
+                renderQuestionsForRole(''); // Re-render questions for the empty/default role
             }
 
-            // New function to reset only question-related fields, keeping CER role selection
             function resetFormFieldsButKeepRole() {
                 console.log("Resetting question fields only.");
 
-                // Reset all dynamically created question select, points, and remarks elements
                 const dynamicSelects = document.querySelectorAll('.rating-select');
                 dynamicSelects.forEach(selectElement => {
-                    selectElement.value = ''; // Set to empty string for 'None' option
-                    selectElement.style.borderColor = ''; // Clear red border if any
+                    selectElement.value = '';
+                    selectElement.style.borderColor = '';
 
                     const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
                     if (rowDiv) {
@@ -1015,12 +1489,257 @@
                         }
                     }
                 });
-                calculateScore(); // Recalculate scores after resetting
+                calculateScore();
             }
 
-            // Initial form setup when the page loads (or after login)
-            // The initial state of questions is handled by initializeForm calling renderQuestionsForRole('')
+            // --- MAIN APPLICATION INITIALIZATION ---
+            function initializeApp() {
+                console.log("Initializing main application.");
+                // Check login state and show appropriate content
+                const isLoggedIn = sessionStorage.getItem('loggedIn');
+
+                if (isLoggedIn === 'true') {
+                    loginPage.style.display = 'none';
+                    mainNav.style.display = 'flex'; // Show nav bar
+                    showTab('auditForm'); // Show audit form by default
+                    initializeAuditForm(); // Initialize audit form fields
+                    // Firebase listeners are set up via 'firebaseAuthReady' event below
+                } else {
+                    loginPage.style.display = 'flex';
+                    mainNav.style.display = 'none';
+                    auditFormContent.style.display = 'none';
+                    databaseContent.style.display = 'none';
+                }
+            }
+
+
+            // --- EVENT LISTENERS (Initial Setup) ---
+            loginForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                loginMessage.classList.add('hidden'); // Hide any previous error
+
+                const enteredUsername = usernameInput.value;
+                const enteredPassword = passwordInput.value;
+
+                const CORRECT_USERNAME = 'Supervisor';
+                const CORRECT_PASSWORD = 'Supervisor';
+
+                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
+                    sessionStorage.setItem('loggedIn', 'true');
+                    initializeApp(); // Re-initialize app to show main content
+                } else {
+                    loginMessage.textContent = 'Invalid Username or Password. Please try again.';
+                    loginMessage.classList.remove('hidden');
+                }
+            });
+
+            logoutBtn.addEventListener('click', function() {
+                sessionStorage.removeItem('loggedIn');
+                // Unsubscribe Firestore listeners on logout to prevent memory leaks
+                if (unsubscribeRecords) unsubscribeRecords();
+                if (unsubscribeWebhooks) unsubscribeWebhooks();
+                window.location.reload(); // Reload to show login page
+            });
+
+            reviewerNameSelect.addEventListener('change', () => {
+                if (reviewerNameSelect.value === 'Other') {
+                    otherReviewerNameInput.classList.remove('hidden');
+                    otherReviewerNameInput.setAttribute('required', 'required');
+                } else {
+                    otherReviewerNameInput.classList.add('hidden');
+                    otherReviewerNameInput.value = '';
+                    otherReviewerNameInput.removeAttribute('required');
+                    otherReviewerNameInput.style.borderColor = '';
+                }
+            });
+
+            cerRoleSelect.addEventListener('change', (event) => {
+                const selectedRole = event.target.value;
+                renderQuestionsForRole(selectedRole);
+                resetFormFieldsButKeepRole();
+            });
+
+            submitFormToDBBtn.addEventListener('click', async (event) => { // Now submits to DB
+                event.preventDefault();
+                console.log("Submit to Database button clicked.");
+
+                const requiredInputs = assessmentForm.querySelectorAll('[required]:not(.hidden)');
+                let allRequiredFilled = true;
+                for (const input of requiredInputs) {
+                    if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
+                        allRequiredFilled = false;
+                        input.style.borderColor = 'red';
+                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        input.focus();
+                        showMessageBox("Validation Error", "Please fill out all required fields.", true, false, true);
+                        return;
+                    } else {
+                        input.style.borderColor = '';
+                    }
+                }
+
+                // Dynamically collect all relevant form data based on current DOM
+                const formDataForSubmission = {};
+                const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
+                basicInfoInputs.forEach(input => {
+                    if (input.name) {
+                        if (input.type === 'datetime-local' || input.type === 'date') {
+                            formDataForSubmission[input.name] = input.value;
+                        } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
+                            return;
+                        } else {
+                            formDataForSubmission[input.name] = input.value.trim();
+                        }
+                    }
+                });
+
+                formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
+                formDataForSubmission['Business & Compliance Accuracy'] = businessComplianceAccuracyDisplay.textContent;
+                formDataForSubmission['Total Pts.'] = globalTotalPoints;
+                formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
+                formDataForSubmission['Final Score'] = overallFinalPercentageDisplay.textContent;
+
+                const dynamicSelects = document.querySelectorAll('.rating-select');
+                dynamicSelects.forEach(selectElement => {
+                    const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                    if (rowDiv) {
+                        const pointsElement = rowDiv.querySelector('.points-input');
+                        const remarksElement = rowDiv.querySelector('.remarks-textarea');
+                        formDataForSubmission[selectElement.name] = selectElement.value;
+                        if (pointsElement) {
+                            formDataForSubmission[pointsElement.name] = pointsElement.value;
+                        }
+                        if (remarksElement) {
+                            formDataForSubmission[remarksElement.name] = remarksElement.value.trim();
+                        }
+                    }
+                });
+                console.log("Collected Data for Submission:", formDataForSubmission);
+
+                // Submit to Firestore
+                await addRecordToFirestore(formDataForSubmission);
+            });
+
+
+            // PDF & Email Button functionality (Unchanged)
+            printEmailBtn.addEventListener('click', async () => {
+                console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
+
+                const element = document.getElementById('auditFormContent'); // Ensure this captures the whole form
+                if (!element) {
+                    console.error('Error: Form container not found for PDF generation.');
+                    showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
+                    return;
+                }
+
+                // Temporarily hide elements that shouldn't be in the PDF
+                const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
+                const originalDisplays = [];
+                elementsToHide.forEach(el => {
+                    if (el) {
+                        originalDisplays.push({ el: el, display: el.style.display });
+                        el.style.display = 'none';
+                    }
+                });
+                console.log("Elements hidden for PDF capture.");
+
+                try {
+                    const canvas = await html2canvas(element, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false
+                    });
+                    console.log("html2canvas capture complete.");
+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                    const imgWidth = 210;
+                    const pageHeight = 297;
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    console.log("jsPDF initialized.");
+
+                    let position = 0;
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                    heightLeft -= pageHeight;
+
+                    while (heightLeft > -1) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                        heightLeft -= pageHeight;
+                    }
+                    console.log("PDF images added.");
+
+                    const contactIdForPdf = contactIdInput.value || 'UnknownContact';
+                    const cerNameForPdf = cerNameSelect.value || 'UnknownCER';
+                    const reviewDateForPdf = evaluationDateInput.value || 'UnknownDate';
+                    pdf.save(`QA_Form_${contactIdForPdf}_${cerNameForPdf}_${reviewDateForPdf}.pdf`);
+                    console.log("PDF saved.");
+
+                    const cerNameVal = cerNameSelect.value;
+                    const evaluationDateVal = evaluationDateInput.value;
+                    const overallScoreVal = overallFinalPercentageDisplay.textContent;
+                    const contactIdVal = contactIdInput.value;
+                    const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
+
+                    const subject = `Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'} - CER: ${cerNameVal || 'N/A'} - Date: ${evaluationDateVal || 'N/A'}.\n\nOverall Score: ${overallScoreVal || 'N/A'}`;
+                    const body = `Dear Team,\n\nPlease find the attached Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'},\nCER: ${cerNameVal || 'N/A'},\nEvaluated on: ${evaluationDateVal || 'N/A'}.\n\nThe overall score is: ${overallScoreVal || 'N/A'}.\n\nRegards,\n${reviewerNameVal || 'Reviewer'}`;
+
+                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}`;
+                    window.location.href = mailtoLink;
+                    showMessageBox("PDF Generated", "PDF generated and downloaded. Please attach the PDF manually to your email client.", false, false, true);
+
+                } catch (error) {
+                    console.error("Critical Error during PDF generation or mailto attempt:", error);
+                    showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
+                } finally {
+                    originalDisplays.forEach(({ el, display }) => {
+                        if (el) el.style.display = display;
+                    });
+                    console.log("Elements restored.");
+                }
+            });
+
+
+            // --- INITIALIZATION ON PAGE LOAD ---
+            // Listen for the custom event fired when Firebase auth is ready
+            document.addEventListener('firebaseAuthReady', () => {
+                db = window.db; // Re-assign global db and auth objects once they are truly ready
+                auth = window.auth;
+                currentUserId = window.currentUserId;
+                isAuthReady = window.isAuthReady;
+                
+                console.log("Firebase Auth is ready. Current User ID:", currentUserId);
+                // Now that auth is ready, proceed with app initialization
+                initializeApp();
+
+                // If already logged in, fetch initial records
+                if (sessionStorage.getItem('loggedIn') === 'true') {
+                   fetchRecordsAndWebhooks();
+                }
+            });
+
+            // Ensure the app initializes even if firebaseAuthReady fires before DOMContentLoaded
+            // This is a fallback to ensure initialization happens if the event fires very quickly
+            if (window.isAuthReady) {
+                db = window.db;
+                auth = window.auth;
+                currentUserId = window.currentUserId;
+                isAuthReady = window.isAuthReady;
+                console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
+                initializeApp();
+                if (sessionStorage.getItem('loggedIn') === 'true') {
+                   fetchRecordsAndWebhooks();
+                }
+            } else {
+                console.log("Waiting for firebaseAuthReady event...");
+            }
         });
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </body>
 </html>
