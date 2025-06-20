@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -993,11 +993,11 @@
         }
 
         async function deleteSelectedRecords() {
-            // Access elements inside the function to ensure DOM is loaded
+            // Get elements for the custom message box
             const messageBoxContent = document.getElementById('messageBoxContent');
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); // Access here
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
 
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1044,7 +1044,7 @@
 
             const cancelDeleteBtn = document.createElement('button');
             cancelDeleteBtn.textContent = 'Cancel';
-            cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+            cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
             cancelBtn.onclick = () => {
                  hideMessageBox();
                  messageBoxContent.innerHTML = originalMessageBoxContentHTML;
@@ -1302,7 +1302,7 @@
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
-            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
+            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display'); // Corrected ID
 
             let globalTotalPoints = 0;
             let globalMaxPossiblePoints = 0;
@@ -1386,7 +1386,7 @@
 
             overallScoreDisplay.textContent = `${overallPercentage}%`;
             totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
-            overallFinalPercentagePercentageDisplay.textContent = `${overallPercentage}%`; // Corrected ID
+            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`; // Corrected ID
 
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
@@ -1464,7 +1464,7 @@
                     if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
                     else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
-                    else iconColorClass = 'icon-bg-yellow';
+                    else iconColorClass = 'icon-bg-yellow'; // Corrected else to assign a class
 
                     rowDiv.innerHTML = `
                         <div class="col-span-6 flex items-center gap-2">
@@ -1708,7 +1708,6 @@
 
                 const overallScoreDisplay = document.getElementById('overall-score-display');
                 const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
-                const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
                 const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
 
 
@@ -1807,7 +1806,7 @@
 
                     const cerNameVal = cerNameSelect.value;
                     const evaluationDateVal = evaluationDateInput.value;
-                    const overallScoreVal = document.getElementById('overall-final-percentage-display').textContent;
+                    const overallScoreVal = overallFinalPercentageDisplay.textContent; // Use corrected ID
                     const contactIdVal = contactIdInput.value;
                     const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
 
@@ -1848,14 +1847,13 @@
 
                 // If already logged in, fetch initial records
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks(); // Calls the top-level fetchRecordsAndWebhooks
+                   fetchRecordsAndWebhooks(); // Call initially once logged in
                 }
             });
 
             // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
-            if (document.readyState === 'complete' && window.isAuthReady !== null) { // Check if isAuthReady has been set at all
-                // Get the global references just like in the event listener
-                let db = window.db;
+            if (document.readyState === 'complete' && window.isAuthReady !== null) { 
+                let db = window.db; // Get global references
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
