@@ -531,7 +531,7 @@
         };
 
         // Determine the 'appId' for Firestore collection paths.
-        // It uses the injected __app_id from a Canvas-like environment, otherwise falls back to firebaseConfig.appId.
+        // Use the injected __app_id from Canvas environment if available, otherwise use the appId from your firebaseConfig.
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
         // The initialAuthToken is for specific hosting environments. For general GitHub Pages, it will be null.
@@ -544,6 +544,16 @@
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
         // window.analytics = getAnalytics(window.firebaseApp); // Uncomment if you enabled Analytics and imported above
+
+        // --- Expose Firestore functions globally for the main script block ---
+        // This resolves "collection is not defined" and similar errors by making them available in the global scope.
+        window.fsCollection = collection;
+        window.fsOnSnapshot = onSnapshot;
+        window.fsAddDoc = addDoc;
+        window.fsDeleteDoc = deleteDoc;
+        window.fsDoc = doc;
+        window.fsQuery = query; // Expose query even if not directly used by name in current methods
+        window.fsWhere = where; // Expose where even if not directly used by name in current methods
 
         // Authentication state and user ID
         window.currentUserId = null;
@@ -602,15 +612,27 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
-            // Get global Firebase objects from the module script (will be available via window.db, window.auth, etc.)
-            let db = null;
-            let auth = null;
-            let currentUserId = null;
-            let isAuthReady = false;
+            // --- Get Firebase objects and functions from window ---
+            // These variables will now correctly receive the Firebase instances and functions
+            // once they are initialized and exposed by the module script.
+            let db = window.db;
+            let auth = window.auth;
+            let currentUserId = window.currentUserId;
+            let isAuthReady = window.isAuthReady;
+
+            // Import exposed Firestore functions into this script's local scope for convenience
+            const collection = window.fsCollection;
+            const onSnapshot = window.fsOnSnapshot;
+            const addDoc = window.fsAddDoc;
+            const deleteDoc = window.fsDeleteDoc;
+            const doc = window.fsDoc;
+            const query = window.fsQuery; // If needed directly by name
+            const where = window.fsWhere; // If needed directly by name
+
 
             // Collection paths
-            let EVALUATION_RECORDS_COLLECTION_PATH = null;
-            let WEBHOOKS_COLLECTION_PATH = null;
+            let EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
+            let WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
 
             // --- UI Elements ---
@@ -988,10 +1010,10 @@
 
                 try {
                     // Listen for records in real-time
-                    const recordsColRef = collection(window.db, EVALUATION_RECORDS_COLLECTION_PATH);
-                    unsubscribeRecords = onSnapshot(recordsColRef, (snapshot) => {
+                    const recordsColRef = fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH); // Use fsCollection
+                    unsubscribeRecords = fsOnSnapshot(recordsColRef, (snapshot) => { // Use fsOnSnapshot
                         allRecords = [];
-                        snapshot.forEach(doc => {
+                        snapshot.forEach(doc => { // Use fsDoc
                             allRecords.push({ id: doc.id, ...doc.data() });
                         });
                         console.log("Records updated:", allRecords.length, "records.");
@@ -1003,10 +1025,10 @@
                     });
 
                     // Listen for webhooks in real-time
-                    const webhooksColRef = collection(window.db, WEBHOOKS_COLLECTION_PATH);
-                    unsubscribeWebhooks = onSnapshot(webhooksColRef, (snapshot) => {
+                    const webhooksColRef = fsCollection(window.db, WEBHOOKS_COLLECTION_PATH); // Use fsCollection
+                    unsubscribeWebhooks = fsOnSnapshot(webhooksColRef, (snapshot) => { // Use fsOnSnapshot
                         allWebhooks = [];
-                        snapshot.forEach(doc => {
+                        snapshot.forEach(doc => { // Use fsDoc
                             allWebhooks.push({ id: doc.id, ...doc.data() });
                         });
                         console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
@@ -1031,7 +1053,7 @@
                 }
                 showMessageBox("Submitting", "Saving record to database...", false, true, false);
                 try {
-                    const docRef = await addDoc(collection(window.db, EVALUATION_RECORDS_COLLECTION_PATH), {
+                    const docRef = await fsAddDoc(fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH), { // Use fsAddDoc, fsCollection
                         ...recordData,
                         submittedAt: new Date().toISOString() // Add a server timestamp
                     });
@@ -1074,7 +1096,7 @@
                     hideMessageBox();
                     showMessageBox("Deleting", "Deleting selected records...", false, true, false);
                     try {
-                        const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, id)));
+                        const deletePromises = recordIdsToDelete.map(id => fsDeleteDoc(fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, id))); // Use fsDeleteDoc, fsDoc
                         await Promise.all(deletePromises);
                         console.log("Selected records deleted successfully.");
                         showMessageBox("Success", "Selected records deleted.", false, false, true);
@@ -1126,7 +1148,7 @@
 
                 showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
                 try {
-                    await addDoc(collection(window.db, WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
+                    await fsAddDoc(fsCollection(window.db, WEBHOOKS_COLLECTION_PATH), { url: webhookUrl }); // Use fsAddDoc, fsCollection
                     newWebhookUrlInput.value = ''; // Clear input
                     showMessageBox("Success", "Webhook added successfully!", false, false, true);
                 } catch (e) {
@@ -1143,7 +1165,7 @@
                 }
                 showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
                 try {
-                    await deleteDoc(doc(window.db, WEBHOOKS_COLLECTION_PATH, webhookId));
+                    await fsDeleteDoc(fsDoc(window.db, WEBHOOKS_COLLECTION_PATH, webhookId)); // Use fsDeleteDoc, fsDoc
                     showMessageBox("Success", "Webhook deleted successfully!", false, false, true);
                 } catch (e) {
                     console.error("Error deleting webhook: ", e);
@@ -1229,7 +1251,7 @@
                             hideMessageBox();
                             showMessageBox("Deleting", "Deleting record...", false, true, false);
                             try {
-                                await deleteDoc(doc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId));
+                                await fsDeleteDoc(fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId)); // Use fsDeleteDoc, fsDoc
                                 showMessageBox("Success", "Record deleted successfully.", false, false, true);
                             } catch (error) {
                                 showMessageBox("Deletion Failed", `Error: ${error.message}`, true, false, true);
@@ -1707,10 +1729,15 @@
             // --- INITIALIZATION ON PAGE LOAD ---
             // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
-                db = window.db; // Re-assign global db and auth objects once they are truly ready
+                // Ensure the global db and auth objects are correctly referenced after Firebase is ready
+                db = window.db; 
                 auth = window.auth;
                 currentUserId = window.currentUserId;
-                isAuthReady = window.isAuthReady;
+                isAuthReady = window.isAuthReady; // This flag will now be true
+
+                // Update collection path variables, which depend on window.appId being set by module script
+                EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
+                WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
                 
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
                 // Now that auth is ready, proceed with app initialization
@@ -1722,20 +1749,23 @@
                 }
             });
 
-            // Ensure the app initializes even if firebaseAuthReady fires before DOMContentLoaded
-            // This is a fallback to ensure initialization happens if the event fires very quickly
-            if (window.isAuthReady) {
+            // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
+            if (document.readyState === 'complete' && window.isAuthReady) {
                 db = window.db;
                 auth = window.auth;
                 currentUserId = window.currentUserId;
                 isAuthReady = window.isAuthReady;
+
+                EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
+                WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
+
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
                 initializeApp();
                 if (sessionStorage.getItem('loggedIn') === 'true') {
                    fetchRecordsAndWebhooks();
                 }
             } else {
-                console.log("Waiting for firebaseAuthReady event...");
+                console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
             }
         });
     </script>
