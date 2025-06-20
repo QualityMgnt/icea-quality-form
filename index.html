@@ -615,10 +615,10 @@
             // --- Get Firebase objects and functions from window ---
             // These variables will now correctly receive the Firebase instances and functions
             // once they are initialized and exposed by the module script.
-            let db = window.db;
-            let auth = window.auth;
-            let currentUserId = window.currentUserId;
-            let isAuthReady = window.isAuthReady;
+            let db = null;
+            let auth = null;
+            let currentUserId = null;
+            let isAuthReady = null; // Changed to null to indicate initial unknown state
 
             // Import exposed Firestore functions into this script's local scope for convenience
             const collection = window.fsCollection;
@@ -631,8 +631,8 @@
 
 
             // Collection paths
-            let EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-            let WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
+            let EVALUATION_RECORDS_COLLECTION_PATH = null;
+            let WEBHOOKS_COLLECTION_PATH = null;
 
 
             // --- UI Elements ---
@@ -1010,8 +1010,8 @@
 
                 try {
                     // Listen for records in real-time
-                    const recordsColRef = fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH); // Use fsCollection
-                    unsubscribeRecords = fsOnSnapshot(recordsColRef, (snapshot) => { // Use fsOnSnapshot
+                    const recordsColRef = collection(window.db, EVALUATION_RECORDS_COLLECTION_PATH); // Use fsCollection
+                    unsubscribeRecords = onSnapshot(recordsColRef, (snapshot) => { // Use fsOnSnapshot
                         allRecords = [];
                         snapshot.forEach(doc => { // Use fsDoc
                             allRecords.push({ id: doc.id, ...doc.data() });
@@ -1025,8 +1025,8 @@
                     });
 
                     // Listen for webhooks in real-time
-                    const webhooksColRef = fsCollection(window.db, WEBHOOKS_COLLECTION_PATH); // Use fsCollection
-                    unsubscribeWebhooks = fsOnSnapshot(webhooksColRef, (snapshot) => { // Use fsOnSnapshot
+                    const webhooksColRef = collection(window.db, WEBHOOKS_COLLECTION_PATH); // Use fsCollection
+                    unsubscribeWebhooks = onSnapshot(webhooksColRef, (snapshot) => { // Use fsOnSnapshot
                         allWebhooks = [];
                         snapshot.forEach(doc => { // Use fsDoc
                             allWebhooks.push({ id: doc.id, ...doc.data() });
@@ -1053,7 +1053,7 @@
                 }
                 showMessageBox("Submitting", "Saving record to database...", false, true, false);
                 try {
-                    const docRef = await fsAddDoc(fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH), { // Use fsAddDoc, fsCollection
+                    const docRef = await addDoc(collection(window.db, EVALUATION_RECORDS_COLLECTION_PATH), { // Use fsAddDoc, fsCollection
                         ...recordData,
                         submittedAt: new Date().toISOString() // Add a server timestamp
                     });
@@ -1096,7 +1096,7 @@
                     hideMessageBox();
                     showMessageBox("Deleting", "Deleting selected records...", false, true, false);
                     try {
-                        const deletePromises = recordIdsToDelete.map(id => fsDeleteDoc(fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, id))); // Use fsDeleteDoc, fsDoc
+                        const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, id))); // Use fsDeleteDoc, fsDoc
                         await Promise.all(deletePromises);
                         console.log("Selected records deleted successfully.");
                         showMessageBox("Success", "Selected records deleted.", false, false, true);
@@ -1148,7 +1148,7 @@
 
                 showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
                 try {
-                    await fsAddDoc(fsCollection(window.db, WEBHOOKS_COLLECTION_PATH), { url: webhookUrl }); // Use fsAddDoc, fsCollection
+                    await addDoc(collection(window.db, WEBHOOKS_COLLECTION_PATH), { url: webhookUrl }); // Use fsAddDoc, fsCollection
                     newWebhookUrlInput.value = ''; // Clear input
                     showMessageBox("Success", "Webhook added successfully!", false, false, true);
                 } catch (e) {
@@ -1165,7 +1165,7 @@
                 }
                 showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
                 try {
-                    await fsDeleteDoc(fsDoc(window.db, WEBHOOKS_COLLECTION_PATH, webhookId)); // Use fsDeleteDoc, fsDoc
+                    await deleteDoc(doc(window.db, WEBHOOKS_COLLECTION_PATH, webhookId)); // Use fsDeleteDoc, fsDoc
                     showMessageBox("Success", "Webhook deleted successfully!", false, false, true);
                 } catch (e) {
                     console.error("Error deleting webhook: ", e);
@@ -1251,7 +1251,7 @@
                             hideMessageBox();
                             showMessageBox("Deleting", "Deleting record...", false, true, false);
                             try {
-                                await fsDeleteDoc(fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId)); // Use fsDeleteDoc, fsDoc
+                                await deleteDoc(doc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId)); // Use fsDeleteDoc, fsDoc
                                 showMessageBox("Success", "Record deleted successfully.", false, false, true);
                             } catch (error) {
                                 showMessageBox("Deletion Failed", `Error: ${error.message}`, true, false, true);
@@ -1750,7 +1750,8 @@
             });
 
             // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
-            if (document.readyState === 'complete' && window.isAuthReady) {
+            // This ensures initializeApp runs even if auth is ready very quickly
+            if (document.readyState === 'complete' && window.isAuthReady !== null) { // Check if isAuthReady has been set at all
                 db = window.db;
                 auth = window.auth;
                 currentUserId = window.currentUserId;
