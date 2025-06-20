@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -871,6 +871,8 @@
             const auditFormContent = document.getElementById('auditFormContent');
             const databaseContent = document.getElementById('databaseContent');
 
+            console.log("showTab called with:", tabName); // Diagnostic log
+
             // Deactivate all tabs
             auditFormTab.classList.remove('active');
             databaseTab.classList.remove('active');
@@ -1093,7 +1095,7 @@
                 await window.fsAddDoc(window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
                 newWebhookUrlInput.value = '';
                 showMessageBox("Success", "Webhook added successfully!", false, false, true);
-            } catch (e) { // *** CATCH BLOCK ADDED HERE ***
+            } catch (e) {
                 console.error("Error adding webhook: ", e);
                 showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true);
             }
@@ -1384,7 +1386,7 @@
 
             overallScoreDisplay.textContent = `${overallPercentage}%`;
             totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
-            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`;
+            overallFinalPercentagePercentageDisplay.textContent = `${overallPercentage}%`; // Corrected ID
 
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
@@ -1832,10 +1834,10 @@
             // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
                 // Ensure the global db and auth objects are correctly referenced after Firebase is ready
-                let db = window.db; // Re-declare as let inside this scope for clarity
+                let db = window.db; 
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
-                let isAuthReady = window.isAuthReady; // This flag will now be true
+                let isAuthReady = window.isAuthReady; 
 
                 // Update collection path variables, which depend on window.appId being set by module script
                 const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
@@ -1852,7 +1854,8 @@
 
             // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
             if (document.readyState === 'complete' && window.isAuthReady !== null) { // Check if isAuthReady has been set at all
-                let db = window.db; // Re-declare as let inside this scope for clarity
+                // Get the global references just like in the event listener
+                let db = window.db;
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
