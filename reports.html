@@ -4,49 +4,189 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reports - ICEA LION GROUP</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="style.css">
-    <!-- Font Awesome for icons -->
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
+        /* Base styles */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            box-sizing: border-box;
-            padding: 0;
+            background-color: #f3f4f6; /* bg-gray-100 */
         }
 
-        /* Adjustments for reports container relative to body flow */
-        body > .reports-container {
-            margin-top: 20px;
-            margin-bottom: 20px;
-            padding-left: 20px;
-            padding-right: 20px;
+        /* ICEALION Branding Colors */
+        .icealion-blue {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .icealion-orange-text {
+            color: #f57c00;
+        }
+
+        /* Error/Message styles (copied from index.html) */
+        .error-message {
+            color: #dc2626; /* red-700 */
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.5rem; /* mt-2 */
+            text-align: center;
+        }
+
+        /* Navigation styles (copied from index.html) */
+        .main-nav {
+            width: 100%;
+            background-color: #1a73e8;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .main-nav ul {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .main-nav ul li {
+            margin-right: 1.5rem;
+        }
+        .main-nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            transition: background-color 0.3s ease;
+        }
+        .main-nav ul li a:hover,
+        .main-nav ul li a.active {
+            background-color: #0d47a1; /* A darker blue for hover/active */
+        }
+        .logout-button {
+            background-color: #f57c00; /* icealion-orange */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .logout-button:hover {
+            background-color: #e65100; /* darker orange */
+        }
+
+        /* Report specific styles */
+        .report-section {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+        .report-section h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1f2937; /* gray-800 */
+        }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .report-table th, .report-table td {
+            border: 1px solid #e5e7eb; /* gray-300 */
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .report-table th {
+            background-color: #eff6ff; /* blue-50 */
+            font-weight: 600;
+            color: #1f2937; /* gray-800 */
+        }
+        .report-table tbody tr:nth-child(even) {
+            background-color: #f9fafb; /* gray-50 */
+        }
+        .report-table tbody tr:hover {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        /* Loading Spinner for reports */
+        .report-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1a73e8;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+        }
+        /* Message Box styles (copied from index.html) */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a73e8; /* icealion-blue */
+        }
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .message-box button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .message-box button:hover {
+            background-color: #0d47a1;
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <!-- Navigation Menu (Always present if logged in) -->
-    <nav class="main-nav" id="mainNav">
-        <ul>
-            <li><a href="index.html"><i class="fas fa-file-alt"></i> Audit Form</a></li>
-            <li><a href="reports.html" class="active"><i class="fas fa-chart-bar"></i> Reports</a></li>
-        </ul>
-        <button id="logoutBtn" class="logout-button">Logout</button>
-    </nav>
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="report-spinner hidden"></div>
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseBtn" class="hidden">OK</button>
+        </div>
+    </div>
 
-    <!-- Login Page (re-used from index.html, needs identical styling for consistency) -->
-    <!-- This will be hidden/shown by JS based on login status -->
-    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage" style="display: none;">
+    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
                 <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
@@ -55,17 +195,17 @@
             <form id="loginForm" class="p-8 space-y-6">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="username" name="username" 
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" 
+                    <input type="text" id="username" name="username"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
                            required placeholder="Enter your username">
                 </div>
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" name="password" 
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" 
+                    <input type="password" id="password" name="password"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
                            required placeholder="Enter your password">
                 </div>
-                <button type="submit" 
+                <button type="submit"
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                     Login
                 </button>
@@ -74,318 +214,433 @@
         </div>
     </div>
 
+    <nav class="main-nav" id="mainNav" style="display: none;">
+        <ul>
+            <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Audit Form</a></li>
+            <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+            <li><a href="reports.html" id="reportsTab" class="active"><i class="fas fa-chart-bar"></i> Reports</a></li>
+        </ul>
+        <button id="logoutBtn" class="logout-button">Logout</button>
+    </nav>
 
-    <div class="reports-container" id="reportsContent" style="display: none;">
-        <h1>Audit Reports</h1>
-
-        <div class="filter-section">
-            <label for="reportMonth">Select Month:</label>
-            <select id="reportMonth">
-                <option value="1">January</option>
-                <option value="2">February</option>
-                <option value="3">March</option>
-                <option value="4">April</option>
-                <option value="5">May</option>
-                <option value="6">June</option>
-                <option value="7">July</option>
-                <option value="8">August</option>
-                <option value="9">September</option>
-                <option value="10">October</option>
-                <option value="11">November</option>
-                <option value="12">December</option>
-            </select>
-            <label for="reportYear">Select Year:</label>
-            <select id="reportYear"></select> <!-- Populated by JS -->
-            <button class="btn btn-primary" id="generateReportsBtn">Generate Reports</button>
+    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="reportsContent" style="display: none;">
+        <div class="icealion-blue p-4 text-xl font-semibold text-center">
+            Agent Performance Reports
         </div>
+        <div class="p-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Report Filters</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label for="reportMonth" class="block text-sm font-medium text-gray-700">Month</label>
+                    <select id="reportMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                        <option value="">Select Month</option>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="reportYear" class="block text-sm font-medium text-gray-700">Year</label>
+                    <input type="number" id="reportYear" min="2020" max="2100" value="2025"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                </div>
+                <div class="flex items-end">
+                    <button id="generateReportBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        <i class="fas fa-chart-line mr-2"></i>Generate Report
+                    </button>
+                </div>
+            </div>
 
-        <div class="report-section">
-            <h2>Number of Audits Done per Agent</h2>
-            <div class="table-scroll-wrapper">
-                <table id="auditsPerAgentTable" class="report-table">
+            <div id="auditsPerAgentReport" class="report-section">
+                <h3>Audits Per Agent</h3>
+                <div class="report-loading-spinner report-spinner hidden"></div>
+                <p id="auditsPerAgentMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                <table class="report-table hidden">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
-                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
-                            <th>Total</th>
+                            <th>Agent Name</th>
+                            <th>Number of Audits</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <!-- Data will be populated here by JavaScript -->
+                    <tbody id="auditsPerAgentTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="autofailsReport" class="report-section">
+                <h3>Autofails Overview</h3>
+                <div class="report-loading-spinner report-spinner hidden"></div>
+                <p id="autofailsMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                <table class="report-table hidden">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody id="autofailsTableBody">
+                        <tr><td>Total Audits:</td><td id="totalAuditsCount">0</td></tr>
+                        <tr><td>Total Autofails:</td><td id="totalAutofailsCount">0</td></tr>
+                        <tr><td>Autofail Percentage:</td><td id="autofailPercentage">0%</td></tr>
                     </tbody>
                 </table>
             </div>
-            <div id="auditsPerAgentLoading" class="loading-message">Loading...</div>
-            <div id="auditsPerAgentNoData" class="no-data-message">No data available for this month.</div>
-        </div>
-
-        <div class="report-section">
-            <h2>Number of Autofails</h2>
-            <div class="table-scroll-wrapper">
-                <table id="autofailsTable" class="report-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
-                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be populated here by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-            <div id="autofailsLoading" class="loading-message">Loading...</div>
-            <div id="autofailsNoData" class="no-data-message">No data available for this month.</div>
-        </div>
-
-        <div class="report-section">
-            <h2>Number of Audits Per Queue</h2>
-            <div class="table-scroll-wrapper">
-                <table id="auditsPerQueueTable" class="report-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
-                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be populated here by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-            <div id="auditsPerQueueLoading" class="loading-message">Loading...</div>
-            <div id="auditsPerQueueNoData" class="no-data-message">No data available for this month.</div>
-        </div>
-
-        <div class="report-section">
-            <h2>Number of Autofails Per Individual</h2>
-            <div class="table-scroll-wrapper">
-                <table id="autofailsPerIndividualTable" class="report-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>January</th><th>February</th><th>March</th><th>April</th><th>May</th><th>June</th>
-                            <th>July</th><th>August</th><th>September</th><th>October</th><th>November</th><th>December</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be populated here by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-            <div id="autofailsPerIndividualLoading" class="loading-message">Loading...</div>
-            <div id="autofailsPerIndividualNoData" class="no-data-message">No data available for this month.</div>
         </div>
     </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        // --- Your Web App's Firebase Configuration ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+          authDomain: "icea-lion-qa.firebaseapp.com",
+          projectId: "icea-lion-qa",
+          storageBucket: "icea-lion-qa.firebasestorage.app",
+          messagingSenderId: "820082472004",
+          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+          measurementId: "G-1RJJTT3QET"
+        };
+
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        window.firebaseApp = initializeApp(firebaseConfig);
+        window.db = getFirestore(window.firebaseApp);
+        window.auth = getAuth(window.firebaseApp);
+        
+        window.fsCollection = collection;
+        window.fsGetDocs = getDocs; // Needed for fetching documents for reports
+        window.fsQuery = query;
+        window.fsWhere = where;
+
+        window.currentUserId = null;
+        window.isAuthReady = false;
+
+        onAuthStateChanged(window.auth, async (user) => {
+            if (user) {
+                window.currentUserId = user.uid;
+                console.log("Firebase Auth State Changed: User logged in:", user.uid);
+            } else {
+                console.log("Firebase Auth State Changed: No user logged in. Attempting sign-in.");
+                if (initialAuthToken) {
+                    try {
+                        await signInWithCustomToken(window.auth, initialAuthToken);
+                        window.currentUserId = window.auth.currentUser.uid;
+                        console.log("Signed in with custom token:", window.currentUserId);
+                    } catch (error) {
+                        console.error("Error signing in with custom token:", error);
+                        try {
+                            await signInAnonymously(window.auth);
+                            window.currentUserId = window.auth.currentUser.uid;
+                            console.log("Signed in anonymously:", window.currentUserId);
+                        } catch (anonError) {
+                            console.error("Error signing in anonymously (fallback):", anonError);
+                        }
+                    }
+                } else {
+                    try {
+                        await signInAnonymously(window.auth);
+                        window.currentUserId = window.auth.currentUser.uid;
+                        console.log("Signed in anonymously:", window.currentUserId);
+                    } catch (anonError) {
+                        console.error("Error signing in anonymously:", anonError);
+                    }
+                }
+                if (!window.currentUserId) {
+                    console.error("No user ID available after authentication attempts. Using random UUID as fallback.");
+                    window.currentUserId = crypto.randomUUID();
+                }
+            }
+            window.isAuthReady = true;
+            document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
+        });
+
+        window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+
+    </script>
     <script>
+        // --- GLOBAL DATA STORES ---
+        let allReportRecords = []; // Stores records fetched for current report
+        let reportMonth = new Date().getMonth() + 1; // Default to current month
+        let reportYear = new Date().getFullYear(); // Default to current year
+
+        // --- UI ELEMENTS ---
+        const loginPage = document.getElementById('loginPage');
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginMessage = document.getElementById('loginMessage');
+
+        const mainNav = document.getElementById('mainNav');
+        const reportsTab = document.getElementById('reportsTab'); // This page's tab
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        const reportsContent = document.getElementById('reportsContent');
+
+        const reportMonthSelect = document.getElementById('reportMonth');
+        const reportYearInput = document.getElementById('reportYear');
+        const generateReportBtn = document.getElementById('generateReportBtn');
+
+        const auditsPerAgentReportDiv = document.getElementById('auditsPerAgentReport');
+        const auditsPerAgentMessage = document.getElementById('auditsPerAgentMessage');
+        const auditsPerAgentSpinner = auditsPerAgentReportDiv.querySelector('.report-spinner');
+        const auditsPerAgentTable = auditsPerAgentReportDiv.querySelector('.report-table');
+        const auditsPerAgentTableBody = document.getElementById('auditsPerAgentTableBody');
+
+        const autofailsReportDiv = document.getElementById('autofailsReport');
+        const autofailsMessage = document.getElementById('autofailsMessage');
+        const autofailsSpinner = autofailsReportDiv.querySelector('.report-spinner');
+        const autofailsTable = autofailsReportDiv.querySelector('.report-table');
+        const totalAuditsCount = document.getElementById('totalAuditsCount');
+        const totalAutofailsCount = document.getElementById('totalAutofailsCount');
+        const autofailPercentage = document.getElementById('autofailPercentage');
+
+        // Message Box elements
+        const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+        const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+        const messageBoxTitle = document.getElementById('messageBoxTitle');
+        const messageBoxContent = document.getElementById('messageBoxContent');
+        const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+
+
+        // --- MESSAGE BOX FUNCTIONS (copied from index.html) ---
+        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            messageBoxTitle.textContent = title;
+            messageBoxContent.textContent = message;
+            messageBoxOverlay.classList.remove('hidden');
+            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
+
+            if (isError) {
+                messageBoxTitle.style.color = '#dc2626';
+            } else {
+                messageBoxTitle.style.color = '#1a73e8';
+            }
+
+            messageBoxCloseBtn.onclick = () => {
+                messageBoxOverlay.classList.add('hidden');
+                if (onClose) onClose();
+            };
+        }
+
+        function hideMessageBox() {
+            messageBoxOverlay.classList.add('hidden');
+        }
+
+        // --- REPORT GENERATION FUNCTIONS ---
+
+        async function generateReport() {
+            if (!window.db || !window.currentUserId) {
+                showMessageBox("Authentication Required", "Please log in to generate reports.", true, false, true);
+                return;
+            }
+            if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
+                showMessageBox("Configuration Error", "Database path not set up. Check Firebase configuration.", true, false, true);
+                return;
+            }
+
+            const selectedMonth = parseInt(reportMonthSelect.value);
+            const selectedYear = parseInt(reportYearInput.value);
+
+            if (isNaN(selectedMonth) || isNaN(selectedYear) || selectedMonth < 1 || selectedMonth > 12) {
+                showMessageBox("Invalid Date", "Please select a valid month and year.", true, false, true);
+                return;
+            }
+
+            // Show loading indicators
+            auditsPerAgentMessage.classList.add('hidden');
+            auditsPerAgentTable.classList.add('hidden');
+            autofailsMessage.classList.add('hidden');
+            autofailsTable.classList.add('hidden');
+            auditsPerAgentSpinner.classList.remove('hidden');
+            autofailsSpinner.classList.remove('hidden');
+
+
+            showMessageBox("Generating Report", `Fetching data for ${reportMonthSelect.options[reportMonthSelect.selectedIndex].text}, ${selectedYear}...`, false, true, false);
+
+            try {
+                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+                
+                // Firestore queries for month/year range
+                // submittedAt is ISO string: "YYYY-MM-DDTHH:mm:ss.sssZ"
+                const startDate = new Date(selectedYear, selectedMonth - 1, 1); // Month is 0-indexed
+                const endDate = new Date(selectedYear, selectedMonth, 0); // Last day of the month
+
+                const q = window.fsQuery(recordsColRef, 
+                    window.fsWhere('submittedAt', '>=', startDate.toISOString()),
+                    window.fsWhere('submittedAt', '<=', endDate.toISOString())
+                );
+                
+                const querySnapshot = await window.fsGetDocs(q);
+                allReportRecords = [];
+                querySnapshot.forEach(doc => {
+                    allReportRecords.push(doc.data());
+                });
+
+                console.log(`Fetched ${allReportRecords.length} records for report.`);
+
+                renderAuditsPerAgentReport(allReportRecords);
+                renderAutofailsReport(allReportRecords);
+
+                hideMessageBox(); // Hide message box on success
+
+            } catch (error) {
+                console.error("Error generating report:", error);
+                showMessageBox("Report Error", `Failed to generate report: ${error.message}`, true, false, true);
+            } finally {
+                auditsPerAgentSpinner.classList.add('hidden');
+                autofailsSpinner.classList.add('hidden');
+            }
+        }
+
+        function renderAuditsPerAgentReport(records) {
+            auditsPerAgentTableBody.innerHTML = '';
+            const agentCounts = {};
+
+            records.forEach(record => {
+                const cerName = record['CER Name'] || 'N/A';
+                agentCounts[cerName] = (agentCounts[cerName] || 0) + 1;
+            });
+
+            if (Object.keys(agentCounts).length === 0) {
+                auditsPerAgentMessage.textContent = "No audits found for selected period.";
+                auditsPerAgentMessage.classList.remove('hidden');
+                auditsPerAgentTable.classList.add('hidden');
+                return;
+            }
+
+            for (const agent in agentCounts) {
+                const row = auditsPerAgentTableBody.insertRow();
+                row.insertCell().textContent = agent;
+                row.insertCell().textContent = agentCounts[agent];
+            }
+            auditsPerAgentMessage.classList.add('hidden');
+            auditsPerAgentTable.classList.remove('hidden');
+        }
+
+        function renderAutofailsReport(records) {
+            let totalAudits = records.length;
+            let totalAutofails = 0;
+
+            records.forEach(record => {
+                // Check if Overall Score is 0% (as per the business logic for autofail)
+                // Or if any of the designated autofail questions were marked 'No'
+                if (record['Final Score'] === '0%') {
+                    totalAutofails++;
+                } else if (
+                    record['Did the CER document all action items & follow-up? (Autofail)'] === 'No' ||
+                    record['Did the CER log call information correctly? (Data capture)'] === 'No' ||
+                    record['Did the CER adhere to Company Policies & Procedures?(Autofail)'] === 'No' ||
+                    // You might need to add other autofail question names if applicable for different roles
+                    record['Was the CER able to position all possible options to the customer?(FCR)'] === 'No' // Example autofail for some roles
+                ) {
+                    // This is a fallback if Final Score logic is different or overall score wasn't calculated as 0% for some reason.
+                    // It's safer to rely on Final Score == 0% for definitive autofail count if that's the primary rule.
+                    // If you have specific autofail types in data.autofailType that always mean 0%, you can check that too.
+                    // For now, let's strictly rely on Final Score === '0%' for simplicity as that's the established rule.
+                    // if overall score logic is based on autofail, Final Score being 0% should be sufficient.
+                }
+            });
+
+            // Adjust totalAutofails count to be based on the established overall score logic from form
+            // If the record was marked with an Autofail type, it implies 0% overall, but let's confirm the 'Final Score' is '0%'.
+            let actualAutofailsBasedOnFinalScore = records.filter(record => record['Final Score'] === '0%').length;
+            totalAutofails = actualAutofailsBasedOnFinalScore;
+
+
+            let autofailPct = totalAudits > 0 ? ((actualAutofailsBasedOnFinalScore / totalAudits) * 100).toFixed(0) : 0;
+
+            totalAuditsCount.textContent = totalAudits;
+            totalAutofailsCount.textContent = totalAutofails;
+            autofailPercentage.textContent = `${autofailPct}%`;
+
+            autofailsMessage.classList.add('hidden');
+            autofailsTable.classList.remove('hidden');
+        }
+
+        // --- INITIALIZATION ---
+        function initializeReportsPage() {
+            // Set default month/year for filters
+            reportMonthSelect.value = reportMonth;
+            reportYearInput.value = reportYear;
+
+            // Show reports content (it's hidden by default via CSS)
+            reportsContent.style.display = 'block';
+
+            // Show initial messages
+            auditsPerAgentMessage.classList.remove('hidden');
+            auditsPerAgentTable.classList.add('hidden');
+            autofailsMessage.classList.remove('hidden');
+            autofailsTable.classList.add('hidden');
+        }
+
+        // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', function() {
-            // **IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL**
-            const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec'; // This is from index.html
-
-            // Login elements
-            const loginPage = document.getElementById('loginPage');
-            const loginForm = document.getElementById('loginForm');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const loginMessage = document.getElementById('loginMessage');
-
-            // Reports Page Content
-            const reportsContent = document.getElementById('reportsContent');
-            const mainNav = document.getElementById('mainNav'); // Get the main navigation
-            const logoutBtn = document.getElementById('logoutBtn'); // Get the logout button
-
-
-            const reportMonthSelect = document.getElementById('reportMonth');
-            const reportYearSelect = document.getElementById('reportYear');
-            const generateReportsBtn = document.getElementById('generateReportsBtn');
-
-            const auditsPerAgentTableBody = document.querySelector('#auditsPerAgentTable tbody');
-            const autofailsTableBody = document.querySelector('#autofailsTable tbody');
-            const auditsPerQueueTableBody = document.querySelector('#auditsPerQueueTable tbody');
-            const autofailsPerIndividualTableBody = document.querySelector('#autofailsPerIndividualTable tbody');
-
-            const loadingMessages = document.querySelectorAll('.loading-message');
-            const noDataMessages = document.querySelectorAll('.no-data-message');
-
-            const months = [
-                'January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'
-            ];
-
-            // --- Login Logic ---
-            const CORRECT_USERNAME = 'Supervisor';
-            const CORRECT_PASSWORD = 'Supervisor';
-
-            const showLoginErrorMessage = (message) => {
-                loginMessage.textContent = message;
-                loginMessage.classList.remove('hidden');
-            };
-
-            const hideLoginErrorMessage = () => {
-                loginMessage.classList.add('hidden');
-                loginMessage.textContent = '';
-            };
-
-            // Initial login state check for reports.html
+            // Authenticate (re-used from index.html logic)
             const isLoggedIn = sessionStorage.getItem('loggedIn');
             if (isLoggedIn === 'true') {
-                loginPage.style.display = 'none'; // Hide login if already logged in
-                reportsContent.style.display = 'block'; // Show reports content
-                mainNav.style.display = 'flex'; // Show navigation
-                populateYears(); // Populate years dropdown
-                setDefaultMonth(); // Set default month
-                fetchAndRenderReports(); // Fetch reports on load
+                loginPage.style.display = 'none';
+                mainNav.style.display = 'flex';
+                initializeReportsPage(); // Initialize reports-specific UI
+                // Firebase auth state will be confirmed by firebaseAuthReady event
             } else {
-                loginPage.style.display = 'flex'; // Show login
-                reportsContent.style.display = 'none'; // Hide reports content
-                mainNav.style.display = 'none'; // Hide navigation
+                loginPage.style.display = 'flex';
+                mainNav.style.display = 'none';
+                reportsContent.style.display = 'none'; // Keep reports hidden until logged in
             }
 
             loginForm.addEventListener('submit', function(event) {
                 event.preventDefault();
-                hideLoginErrorMessage();
+                loginMessage.classList.add('hidden');
 
-                const enteredUsername = usernameInput.value;
-                const enteredPassword = passwordInput.value;
+                const CORRECT_USERNAME = 'Supervisor';
+                const CORRECT_PASSWORD = 'Supervisor';
 
-                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
+                if (usernameInput.value === CORRECT_USERNAME && passwordInput.value === CORRECT_PASSWORD) {
                     sessionStorage.setItem('loggedIn', 'true');
-                    window.location.reload(); // Reload page to apply new login state
+                    loginPage.style.display = 'none';
+                    mainNav.style.display = 'flex';
+                    initializeReportsPage(); // Initialize reports-specific UI after login
+                    // Firebase auth state will be confirmed by firebaseAuthReady event
                 } else {
-                    showLoginErrorMessage('Invalid Username or Password. Please try again.');
+                    loginMessage.textContent = 'Invalid Username or Password. Please try again.';
+                    loginMessage.classList.remove('hidden');
                 }
             });
 
-            // Logout functionality
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function() {
-                    sessionStorage.removeItem('loggedIn');
-                    window.location.href = 'index.html'; // Redirect to login
-                });
-            }
+            logoutBtn.addEventListener('click', function() {
+                sessionStorage.removeItem('loggedIn');
+                window.location.href = 'index.html'; // Redirect to index/login
+            });
 
+            generateReportBtn.addEventListener('click', generateReport);
 
-            // Populate year dropdown
-            function populateYears() {
-                const currentYear = new Date().getFullYear();
-                for (let i = currentYear - 5; i <= currentYear + 1; i++) { // Current year +/- a few years
-                    const option = document.createElement('option');
-                    option.value = i;
-                    option.textContent = i;
-                    reportYearSelect.appendChild(option);
-                }
-                reportYearSelect.value = currentYear; // Default to current year
-            }
-
-            // Set current month as default
-            function setDefaultMonth() {
-                reportMonthSelect.value = new Date().getMonth() + 1; // Month is 0-indexed
-            }
-
-            function showLoading() {
-                loadingMessages.forEach(msg => msg.style.display = 'block');
-                noDataMessages.forEach(msg => msg.style.display = 'none');
-                auditsPerAgentTableBody.innerHTML = '';
-                autofailsTableBody.innerHTML = '';
-                auditsPerQueueTableBody.innerHTML = '';
-                autofailsPerIndividualTableBody.innerHTML = '';
-            }
-
-            function hideLoading() {
-                loadingMessages.forEach(msg => msg.style.display = 'none');
-            }
-
-            function showNoData(tableIdPrefix) {
-                document.getElementById(tableIdPrefix + 'NoData').style.display = 'block';
-            }
-
-            // Function to fetch and render reports
-            async function fetchAndRenderReports() {
-                showLoading();
-
-                const selectedMonth = reportMonthSelect.value;
-                const selectedYear = reportYearSelect.value;
-
-                try {
-                    const response = await fetch(`${googleAppsScriptURL}?month=${selectedMonth}&year=${selectedYear}&action=getReports`, {
-                        method: 'GET',
-                        mode: 'cors'
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    hideLoading();
-
-                    if (data.status === 'SUCCESS' && data.reports) {
-                        renderTable(auditsPerAgentTableBody, data.reports.auditsPerAgent, 'auditsPerAgent');
-                        renderTable(autofailsTableBody, data.reports.autofails, 'autofails');
-                        renderTable(auditsPerQueueTableBody, data.reports.auditsPerQueue, 'auditsPerQueue');
-                        renderTable(autofailsPerIndividualTableBody, data.reports.autofailsPerIndividual, 'autofailsPerIndividual');
-                    } else {
-                        console.error('Error fetching reports:', data.message || 'Unknown error');
-                        noDataMessages.forEach(msg => msg.style.display = 'block');
-                    }
-
-                } catch (error) {
-                    console.error('Network or script error:', error);
-                    hideLoading();
-                    noDataMessages.forEach(msg => msg.style.display = 'block');
-                }
-            }
-
-            // Generic function to render report tables
-            function renderTable(tableBody, reportData, tableIdPrefix) {
-                tableBody.innerHTML = ''; // Clear previous data
-
-                if (Object.keys(reportData).length === 0) {
-                    showNoData(tableIdPrefix + 'Table');
-                    return;
-                }
-
-                // Get sorted keys (names) for consistent ordering
-                const sortedNames = Object.keys(reportData).sort();
-
-                sortedNames.forEach(name => {
-                    const rowData = reportData[name];
-                    const tr = document.createElement('tr');
-                    tr.classList.add('hover:bg-gray-100'); // Add hover effect
-                    
-                    const tdName = document.createElement('td');
-                    tdName.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'font-medium', 'text-gray-900', 'text-left'); // Align name to left
-                    tdName.textContent = name;
-                    tr.appendChild(tdName);
-
-                    let total = 0;
-                    for (let i = 1; i <= 12; i++) {
-                        const monthKey = months[i - 1]; // Get month name
-                        const count = rowData[monthKey] || 0;
-                        const tdCount = document.createElement('td');
-                        tdCount.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-gray-700', 'text-center'); // Center counts
-                        tdCount.textContent = count;
-                        tr.appendChild(tdCount);
-                        total += count;
-                    }
-
-                    const tdTotal = document.createElement('td');
-                    tdTotal.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'font-bold', 'text-gray-900', 'text-center'); // Center total and make bold
-                    tdTotal.textContent = total;
-                    tr.appendChild(tdTotal);
-                    tableBody.appendChild(tr);
-                });
-            }
-
-            generateReportsBtn.addEventListener('click', fetchAndRenderReports);
+            // Set current month and year as defaults
+            const now = new Date();
+            reportMonthSelect.value = now.getMonth() + 1; // getMonth() is 0-indexed
+            reportYearInput.value = now.getFullYear();
         });
+
+        // Listen for Firebase Auth readiness
+        document.addEventListener('firebaseAuthReady', () => {
+            // When auth is ready, if logged in, generate initial report
+            if (sessionStorage.getItem('loggedIn') === 'true') {
+                generateReport(); // Generate report automatically after auth if already logged in
+            }
+        });
+
     </script>
 </body>
 </html>
