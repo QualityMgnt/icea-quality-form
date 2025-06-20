@@ -608,947 +608,844 @@
 
     </script>
     <script>
-        // Main script block, will execute after the module script
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM fully loaded and parsed. Main script starting.");
+        // --- ALL FUNCTION DECLARATIONS ---
+        // These functions are declared at the top-level scope of this script block
+        // to ensure they are available before any code tries to call them.
 
-            // --- Get Firebase objects and functions from window ---
-            // These variables will now correctly receive the Firebase instances and functions
-            // once they are initialized and exposed by the module script.
-            let db = null;
-            let auth = null;
-            let currentUserId = null;
-            let isAuthReady = null; // Changed to null to indicate initial unknown state
-
-            // Import exposed Firestore functions into this script's local scope for convenience
-            const collection = window.fsCollection;
-            const onSnapshot = window.fsOnSnapshot;
-            const addDoc = window.fsAddDoc;
-            const deleteDoc = window.fsDeleteDoc;
-            const doc = window.fsDoc;
-            const query = window.fsQuery; // If needed directly by name
-            const where = window.fsWhere; // If needed directly by name
-
-
-            // Collection paths
-            let EVALUATION_RECORDS_COLLECTION_PATH = null;
-            let WEBHOOKS_COLLECTION_PATH = null;
-
-
-            // --- UI Elements ---
-            // Login elements
-            const loginPage = document.getElementById('loginPage');
-            const loginForm = document.getElementById('loginForm');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const loginMessage = document.getElementById('loginMessage');
-
-            // Navigation elements
-            const mainNav = document.getElementById('mainNav');
-            const auditFormTab = document.getElementById('auditFormTab');
-            const databaseTab = document.getElementById('databaseTab');
-            const logoutBtn = document.getElementById('logoutBtn');
-
-            // Main content containers
-            const auditFormContent = document.getElementById('auditFormContent');
-            const databaseContent = document.getElementById('databaseContent');
-
-            // Audit Form elements
-            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn'); // Changed ID from submitBtn
-            const printEmailBtn = document.getElementById('print-email-btn');
-            const assessmentForm = document.getElementById('assessment-form');
-
-            // Basic Info Fields (Audit Form)
-            const contactIdInput = document.getElementById('contact-id');
-            const clientNameInput = document.getElementById('client-name');
-            const cerNameSelect = document.getElementById('cer-name');
-            const cerRoleSelect = document.getElementById('cer-role');
-            const callDateTimeInput = document.getElementById('call-date-time');
-            const reviewerNameSelect = document.getElementById('reviewer-name');
-            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
-            const autofailTypeSelect = document.getElementById('autofail-type');
-            const evaluationDateInput = document.getElementById('review-date');
-            const durationInput = document.getElementById('duration');
-
-            // Score displays (Audit Form)
-            const overallScoreDisplay = document.getElementById('overall-score-display');
-            const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
-            const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
-            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
-
-            // Dynamic question containers (Audit Form)
-            const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
-            const psQuestionsContainer = document.getElementById('psQuestionsContainer');
-            const caQuestionsContainer = document.getElementById('caQuestionsContainer');
-
-            // Database Tab elements
-            const recordsTableBody = document.getElementById('recordsTableBody');
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-
-            // Webhook Management elements
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const addWebhookBtn = document.getElementById('addWebhookBtn');
-            const webhookList = document.getElementById('webhookList');
-
-            // Message Box elements
+        // Message Box Functions
+        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            // Get elements inside the function to ensure DOM is loaded
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
             const messageBoxTitle = document.getElementById('messageBoxTitle');
             const messageBoxContent = document.getElementById('messageBoxContent');
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
 
-            // --- Global Data Stores ---
-            let allRecords = []; // Stores the current records from Firestore
-            let allWebhooks = []; // Stores the current webhooks from Firestore
+            messageBoxTitle.textContent = title;
+            messageBoxContent.textContent = message;
+            messageBoxOverlay.classList.remove('hidden');
+            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
 
-            // --- Global Variables for Score Calculation (Audit Form) ---
-            let globalTotalPoints = 0;
-            let globalMaxPossiblePoints = 0;
-            let globalBusinessComplianceAccuracyValue = 0;
+            if (isError) {
+                messageBoxTitle.style.color = '#dc2626'; // Red for error
+            } else {
+                messageBoxTitle.style.color = '#1a73e8'; // Blue for info/success
+            }
 
-            // --- ALL Question Data by CER Role (Audit Form) ---
-            // This object holds all the dynamic questions and their properties for each CER Role.
-            // This is the same structure as provided in the previous turn.
-            const allRolesQuestions = {
-                // Default questions if no role is selected or for a generic base
-                '': { 'CUSTOMER EXPERIENCE': [], 'PROBLEM SOLVING SKILLS': [], 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [] },
-                'Outbound Sales': {
-                    'CUSTOMER EXPERIENCE': [
-                        { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6 },
-                        { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 8 },
-                        { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 6 },
-                        { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 8 },
-                        { desc: 'Was the CER able to build rapport?', weightage: 8 }
-                    ],
-                    'PROBLEM SOLVING SKILLS': [
-                        { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 6 },
-                        { desc: "Was the CER's focus solely on the Customer?", weightage: 7 },
-                        { desc: 'Did the CER demonstrate strong Product Knowledge?', weightage: 10 },
-                        { desc: 'Did the CER document all action items & follow-up? (Autofail)', weightage: 6, autofail: true },
-                        { desc: 'Was the CER able to sell to the customer?', weightage: 10 }
-                    ],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                        { desc: 'Did the CER log call information correctly? (Data capture)', weightage: 10, autofail: true },
-                        { desc: 'Did the CER adhere to Company Policies & Procedures?(Autofail)', weightage: 5, autofail: true },
-                        { desc: 'Did the CER Comply with industry and legal requirements?', weightage: 5 },
-                        { desc: 'Was the CER able to identify and opportunity for Upselling & Cross-Selling?', weightage: 5 }
-                    ]
-                },
-                'Social Media': {
-                    'CUSTOMER EXPERIENCE': [
-                        { desc: 'Did the CER provide proper branding and personalize the Interaction?', weightage: 5 },
-                        { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the interaction session?', weightage: 6 },
-                        { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
-                        { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 7 },
-                        { desc: 'Did the CER keep the customer informed?(TAT, dead air)', weightage: 5 }
-                    ],
-                    'PROBLEM SOLVING SKILLS': [
-                        { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9 },
-                        { desc: 'Did the CER do proper research and check all related tools required?(Due diligence)', weightage: 7 },
-                        { desc: 'Did the CER show ownership and respond within the set turnaround time? (10 mins)', weightage: 6 },
-                        { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true },
-                        { desc: 'Did the CER avoid risk behavior? (interaction avoidance/ZTP)', weightage: 8 }
-                    ],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                        { desc: 'Did the CER log ticket information correctly?(Data capture)', weightage: 6, autofail: true },
-                        { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true },
-                        { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 10 },
-                        { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
-                    ]
-                },
-                'Live Chat': {
-                    'CUSTOMER EXPERIENCE': [
-                        { desc: 'Did the CER provide proper branding and personalize the conversation?', weightage: 5 },
-                        { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the conversation session?', weightage: 7 },
-                        { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
-                        { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6 },
-                        { desc: 'Did the CER keep the customer informed?(Dead Air-Average Response Time 1 min, TAT, )', weightage: 5 }
-                    ],
-                    'PROBLEM SOLVING SKILLS': [
-                        { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9 },
-                        { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7 },
-                        { desc: 'Did the CER show ownership and respond within the set turnaround time? (10 Secs)', weightage: 6 },
-                        { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true },
-                        { desc: 'Did the CER avoid risk behavior? (conversation avoidance/ZTP)', weightage: 8 }
-                    ],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                        { desc: 'Did the CER log ticket information correctly?(Data Capture)', weightage: 6, autofail: true },
-                        { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true },
-                        { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 9 },
-                        { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
-                    ]
-                },
-                'Inbound': {
-                    'CUSTOMER EXPERIENCE': [
-                        { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6 },
-                        { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 6 },
-                        { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 8 },
-                        { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 4 },
-                        { desc: 'Did the CER keep the caller informed?(Dead air/Hold/TAT)', weightage: 6 }
-                    ],
-                    'PROBLEM SOLVING SKILLS': [
-                        { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 6 },
-                        { desc: 'Did the CER do proper research and check all related tools required? (fact finding)', weightage: 7 },
-                        { desc: 'Did the CER show ownership and actively listen?', weightage: 9 },
-                        { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 10, autofail: true },
-                        { desc: 'Did the CER avoid risk behavior? (Call avoidance/ZTP)', weightage: 7 }
-                    ],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                        { desc: 'Did the CER log call information correctly?(Data capture)', weightage: 10, autofail: true },
-                        { desc: 'Did the CER properly authenticate the caller?(KYC)', weightage: 6, autofail: true },
-                        { desc: 'Did the CER provide complete and accurate information? (Customer education)', weightage: 9 },
-                        { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
-                    ]
-                },
-                'Email': {
-                    'CUSTOMER EXPERIENCE': [
-                        { desc: 'Did the CER provide proper branding and personalize the email?', weightage: 5 },
-                        { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the interaction?', weightage: 7 },
-                        { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
-                        { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6 },
-                        { desc: 'Did the CER keep the customer informed?', weightage: 5 }
-                    ],
-                    'PROBLEM SOLVING SKILLS': [
-                        { desc: 'Did the CER call to ask effective probing questions to ensure accurate diagnosis?', weightage: 9 },
-                        { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7 },
-                        { desc: 'Did the CER show ownership and respond within the set turnaround time?(8 hours)', weightage: 6 },
-                        { desc: 'Was the CER able to position all possible options to the customer?', weightage: 13, autofail: true },
-                        { desc: 'Did the CER avoid risk behavior? (Call avoidance/ZTP)', weightage: 8 }
-                    ],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                        { desc: 'Did the CER log ticket information correctly?', weightage: 6, autofail: true },
-                        { desc: 'Did the CER properly authenticate the writer?', weightage: 8, autofail: true },
-                        { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 9 },
-                        { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
-                    ]
-                },
-                'Digital troubleshooting': {
-                    'CUSTOMER EXPERIENCE': [
-                        { desc: 'Did the Agent provide proper branding and personalize the call?', weightage: 6 },
-                        { desc: 'Did the Agent demonstrate confidence and business etiquette althroughout the call session?', weightage: 6 },
-                        { desc: 'Did the Agent express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
-                        { desc: 'Did the Agent convey his/her thoughts in an understandable clear and concise manner?', weightage: 7 },
-                        { desc: 'Did the Agent keep the caller informed?', weightage: 5 }
-                    ],
-                    'PROBLEM SOLVING SKILLS': [
-                        { desc: 'Did the Agent ask effective probing questions to ensure accurate diagnosis?', weightage: 5.5 },
-                        { desc: 'Did the Agent do proper research and check all related tools required?', weightage: 11 },
-                        { desc: 'Did the Agent show ownership and actively listen?', weightage: 6 },
-                        { desc: 'Was the Agent able to position all possible options to the customer?', weightage: 10.5, autofail: true },
-                        { desc: 'Did the agent avoid risk behavior? (Call avoidance/ZTP)', weightage: 7 }
-                    ],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                        { desc: 'Did the Agent log call information correctly?', weightage: 7, autofail: true },
-                        { desc: 'Did the Agent properly authenticate the caller?', weightage: 8, autofail: true },
-                        { desc: 'Did the Agent provide complete and accurate information?', weightage: 9 },
-                        { desc: 'Did the Agent identify an opportunity to upsell/cross sell a product?', weightage: 5 }
-                    ]
-                },
-                'SMS': {
-                    'CUSTOMER EXPERIENCE': [
-                        { desc: 'Did the CER provide proper branding and personalize the conversation?', weightage: 5 },
-                        { desc: 'Did the CER demonstrate confidence and business etiquette all throughout the conversation session?', weightage: 7 },
-                        { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
-                        { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6 },
-                        { desc: 'Did the CER keep the customer informed?(Dead air, TAT)', weightage: 5 }
-                    ],
-                    'PROBLEM SOLVING SKILLS': [
-                        { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9 },
-                        { desc: 'Did the CER do proper research and check all related tools required?(fact finding)', weightage: 7 },
-                        { desc: 'Did the CER show ownership and respond within the set turnaround time?(5 mins)', weightage: 6 },
-                        { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true },
-                        { desc: 'Did the CER avoid risk behavior? (conversation avoidance/ZTP)', weightage: 8 }
-                    ],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                        { desc: 'Did the CER log ticket information correctly?(Data capture)', weightage: 6, autofail: true },
-                        { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true },
-                        { desc: 'Did the CER provide complete and accurate information? (Customer education)', weightage: 9 },
-                        { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
-                    ]
-                },
-                'NPS outbound': {
-                    'CUSTOMER EXPERIENCE': [
-                        { desc: 'Did the Agent provide proper branding and personalize the call?', weightage: 6 },
-                        { desc: 'Did the Agent demonstrate confidence and business etiquette althroughout the call session?', weightage: 6 },
-                        { desc: 'Did the Agent express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
-                        { desc: 'Did the Agent convey his/her thoughts in an understandable clear and concise manner?', weightage: 7 },
-                        { desc: 'Did the Agent keep the caller informed?', weightage: 5 }
-                    ],
-                    'PROBLEM SOLVING SKILLS': [
-                        { desc: 'Did the Agent ask effective probing questions to ensure accurate diagnosis?', weightage: 8 },
-                        { desc: 'Did the Agent do proper research and check all related tools required?', weightage: 7 },
-                        { desc: 'Did the Agent show ownership and actively listen?', weightage: 6 },
-                        { desc: 'Was the Agent able to position all possible options to the customer? Create a ticket where necessary', weightage: 11, autofail: true },
-                        { desc: 'Did the agent avoid risk behavior? (Call avoidance/ZTP)', weightage: 7 }
-                    ],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                        { desc: 'Did the Agent log call information correctly?', weightage: 7, autofail: true },
-                        { desc: 'Did the Agent confirm the feedback from the customer and put it vebatim on the survey form?', weightage: 10, autofail: true },
-                        { desc: 'Did the Agent provide complete and accurate information?', weightage: 9 },
-                        { desc: 'Did the Agent identify an opportunity to upsell/cross sell a product?', weightage: 5 }
-                    ]
-                },
-                'Onboarding outbound': {
-                    'CUSTOMER EXPERIENCE': [
-                        { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6 },
-                        { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 7 },
-                        { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 6 },
-                        { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6 },
-                        { desc: 'Was the CER able to build rapport?', weightage: 8 }
-                    ],
-                    'PROBLEM SOLVING SKILLS': [
-                        { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 5 },
-                        { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7 },
-                        { desc: 'Did the CER demonstrate strong Product and Process Knowledge?', weightage: 10 },
-                        { desc: 'Was the CER able to meet the call objective? (FCR)', weightage: 10, autofail: true },
-                        { desc: 'Did the CER document all action items & follow-up?', weightage: 8 }
-                    ],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                        { desc: 'Did the CER log call information correctly?', weightage: 10, autofail: true },
-                        { desc: 'Did the CER adhere to Company Policies & Procedures?', weightage: 5, autofail: true },
-                        { desc: 'Did the CER Comply with industry and legal requirements?', weightage: 5 },
-                        { desc: 'Was the CER able to identify and opportunity for Upselling & Cross-Selling?', weightage: 7 }
-                    ]
-                },
-                'Reviewed case handling': {
-                    'CUSTOMER EXPERIENCE': [],
-                    'PROBLEM SOLVING SKILLS': [],
-                    'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': []
+            messageBoxCloseBtn.onclick = () => {
+                messageBoxOverlay.classList.add('hidden');
+                if (onClose) onClose();
+            };
+        }
+
+        function hideMessageBox() {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            messageBoxOverlay.classList.add('hidden');
+        }
+
+        // UI Tab Switching Logic
+        function showTab(tabName) {
+            const auditFormTab = document.getElementById('auditFormTab');
+            const databaseTab = document.getElementById('databaseTab');
+            const auditFormContent = document.getElementById('auditFormContent');
+            const databaseContent = document.getElementById('databaseContent');
+
+            // Deactivate all tabs
+            auditFormTab.classList.remove('active');
+            databaseTab.classList.remove('active');
+
+            // Hide all content sections
+            auditFormContent.style.display = 'none';
+            databaseContent.style.display = 'none';
+
+            // Activate selected tab and show its content
+            if (tabName === 'auditForm') {
+                auditFormTab.classList.add('active');
+                auditFormContent.style.display = 'block';
+            } else if (tabName === 'database') {
+                databaseTab.classList.add('active');
+                databaseContent.style.display = 'block';
+                // Trigger database table refresh when switching to it
+                if (window.db && window.currentUserId) { // Ensure Firebase is initialized and auth is ready
+                    fetchRecordsAndWebhooks(); // Refresh data when entering the tab
+                } else {
+                    showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
+                }
+            }
+        }
+
+        // Firestore Data Handling Functions
+        let unsubscribeRecords = null; // Store the unsubscribe function for real-time listener
+        let unsubscribeWebhooks = null; // Store unsubscribe for webhooks
+
+        async function fetchRecordsAndWebhooks() {
+            if (!window.db || !window.currentUserId) {
+                console.warn("Firestore not initialized or user not authenticated yet. Cannot fetch data.");
+                return;
+            }
+
+            if (!window.EVALUATION_RECORDS_COLLECTION_PATH || !window.WEBHOOKS_COLLECTION_PATH) {
+                 console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
+                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
+                 return;
+            }
+
+
+            // Unsubscribe previous listeners to prevent duplicates
+            if (unsubscribeRecords) unsubscribeRecords();
+            if (unsubscribeWebhooks) unsubscribeWebhooks();
+            
+            showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
+
+            try {
+                // Listen for records in real-time
+                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH); 
+                unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => { 
+                    allRecords = [];
+                    snapshot.forEach(doc => { 
+                        allRecords.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log("Records updated:", allRecords.length, "records.");
+                    renderRecordsTable(allRecords);
+                    hideMessageBox();
+                }, (error) => {
+                    console.error("Error listening to records:", error);
+                    showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
+                });
+
+                // Listen for webhooks in real-time
+                const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH); 
+                unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => { 
+                    allWebhooks = [];
+                    snapshot.forEach(doc => { 
+                        allWebhooks.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
+                    renderWebhookList(allWebhooks);
+                    hideMessageBox();
+                }, (error) => {
+                    console.error("Error listening to webhooks:", error);
+                    showMessageBox("Error Loading Webhooks", `Could not load webhooks: ${error.message}`, true, false, true);
+                });
+
+            } catch (error) {
+                console.error("Error setting up Firestore listeners:", error);
+                showMessageBox("Initialization Error", `Failed to setup database listeners: ${error.message}`, true, false, true);
+            }
+        }
+
+        async function addRecordToFirestore(recordData) {
+            if (!window.db || !window.currentUserId) {
+                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                return false;
+            }
+            if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
+                 console.error("Firestore collection path for records is not defined.");
+                 showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
+                 return false;
+            }
+
+            showMessageBox("Submitting", "Saving record to database...", false, true, false);
+            try {
+                const docRef = await window.fsAddDoc(window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH), { 
+                    ...recordData,
+                    submittedAt: new Date().toISOString() // Add a server timestamp
+                });
+                console.log("Record written with ID:", docRef.id);
+                showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
+                    resetForm(); // Reset form on success
+                    sendDataToWebhooks(recordData); // Trigger webhooks after successful submission
+                });
+                return true;
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessageBox("Submission Failed", `Error saving data: ${e.message}`, true, false, true);
+                return false;
+            }
+        }
+
+        async function deleteSelectedRecords() {
+            if (!window.db || !window.currentUserId) {
+                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                return;
+            }
+            if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
+                 console.error("Firestore collection path for records is not defined for deletion.");
+                 showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
+                 return;
+            }
+
+            const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+            const recordIdsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
+
+            if (recordIdsToDelete.length === 0) {
+                showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true);
+                return;
+            }
+
+            // Get elements for the custom message box
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+
+            // Store original content of messageBoxContent to restore later
+            const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
+
+            showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
+            
+            const confirmDeleteBtn = document.createElement('button');
+            confirmDeleteBtn.textContent = 'Delete';
+            confirmDeleteBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+            confirmDeleteBtn.onclick = async () => {
+                hideMessageBox();
+                showMessageBox("Deleting", "Deleting selected records...", false, true, false);
+                try {
+                    const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, id)));
+                    await Promise.all(deletePromises);
+                    console.log("Selected records deleted successfully.");
+                    showMessageBox("Success", "Selected records deleted.", false, false, true);
+                    document.getElementById('selectAllRecordsCheckbox').checked = false; // Uncheck select all
+                    updateDeleteButtonState(); // Update button state
+                } catch (e) {
+                    console.error("Error deleting documents: ", e);
+                    showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
+                } finally {
+                     // Ensure original content is restored after confirmation attempt
+                     messageBoxContent.innerHTML = originalMessageBoxContentHTML;
                 }
             };
 
-            // Mapping of section titles to their container elements
-            const questionContainers = {
+            const cancelDeleteBtn = document.createElement('button');
+            cancelDeleteBtn.textContent = 'Cancel';
+            cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+            cancelDeleteBtn.onclick = () => {
+                hideMessageBox();
+                // Ensure original content is restored if canceled
+                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+            };
+
+            // Clear previous content and append new buttons
+            messageBoxContent.innerHTML = '';
+            messageBoxContent.appendChild(confirmDeleteBtn);
+            messageBoxContent.appendChild(cancelDeleteBtn);
+            
+            // Re-assign messageBoxCloseBtn onclick to ensure cleanup
+            messageBoxCloseBtn.onclick = () => {
+                hideMessageBox();
+                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+            };
+        }
+
+        async function addWebhook() {
+            if (!window.db || !window.currentUserId) {
+                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                return;
+            }
+            if (!window.WEBHOOKS_COLLECTION_PATH) {
+                 console.error("Firestore collection path for webhooks is not defined.");
+                 showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
+                 return;
+            }
+
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); // Get input element inside function
+            const webhookUrl = newWebhookUrlInput.value.trim();
+            if (!webhookUrl) {
+                showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
+                return;
+            }
+            if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
+                 showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
+                 return;
+            }
+            if (allWebhooks.some(hook => hook.url === webhookUrl)) {
+                showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
+                newWebhookUrlInput.value = '';
+                return;
+            }
+
+            showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
+            try {
+                await window.fsAddDoc(window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
+                newWebhookUrlInput.value = ''; // Clear input
+                showMessageBox("Success", "Webhook added successfully!", false, false, true);
+            } catch (e) {
+                console.error("Error adding webhook: ", e);
+                showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true);
+            }
+        }
+
+        async function deleteWebhook(webhookId) {
+            if (!window.db || !window.currentUserId) {
+                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                return;
+            }
+            if (!window.WEBHOOKS_COLLECTION_PATH) {
+                 console.error("Firestore collection path for webhooks is not defined for deletion.");
+                 showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
+                 return;
+            }
+            showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
+            try {
+                await window.fsDeleteDoc(window.fsDoc(window.db, window.WEBHOOKS_COLLECTION_PATH, webhookId));
+                showMessageBox("Success", "Webhook deleted successfully!", false, false, true);
+            } catch (e) {
+                console.error("Error deleting webhook: ", e);
+                showMessageBox("Failed to Delete Webhook", `Error: ${e.message}`, true, false, true);
+            }
+        }
+
+        async function sendDataToWebhooks(recordData) {
+            if (allWebhooks.length === 0) {
+                console.log("No webhooks configured. Skipping webhook dispatch.");
+                return;
+            }
+            console.log(`Sending data to ${allWebhooks.length} webhook(s)...`);
+            const webhookPromises = allWebhooks.map(async (webhook) => {
+                try {
+                    const response = await fetch(webhook.url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(recordData)
+                    });
+                    const result = await response.text();
+                    console.log(`Webhook to ${webhook.url} response:`, response.status, result);
+                    if (!response.ok) {
+                        console.error(`Webhook to ${webhook.url} failed: ${response.status} - ${result}`);
+                    }
+                } catch (error) {
+                    console.error(`Error sending to webhook ${webhook.url}:`, error);
+                }
+            });
+            await Promise.allSettled(webhookPromises);
+            console.log("All webhook dispatches attempted.");
+        }
+
+        // Database Table Rendering
+        function renderRecordsTable(records) {
+            const recordsTableBody = document.getElementById('recordsTableBody');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
+
+            recordsTableBody.innerHTML = '';
+            if (records.length === 0) {
+                recordsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
+                    </tr>
+                `;
+                deleteSelectedRecordsBtn.disabled = true;
+                selectAllRecordsCheckbox.checked = false;
+                selectAllRecordsCheckbox.disabled = true;
+                return;
+            }
+
+            selectAllRecordsCheckbox.disabled = false;
+
+            records.forEach(record => {
+                const row = recordsTableBody.insertRow();
+                row.className = 'border-b border-gray-200';
+                row.insertCell().innerHTML = `<input type="checkbox" class="record-checkbox" data-record-id="${record.id}">`;
+                row.insertCell().textContent = record.submittedAt ? new Date(record.submittedAt).toLocaleString() : 'N/A';
+                row.insertCell().textContent = record['Contact ID'] || '';
+                row.insertCell().textContent = record['Client Name'] || '';
+                row.insertCell().textContent = record['CER Name'] || '';
+                row.insertCell().textContent = record['Overall Score'] || '';
+                row.insertCell().innerHTML = `
+                    <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
+                `;
+            });
+
+            document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updateDeleteButtonState);
+            });
+            document.querySelectorAll('.delete-record-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const recordId = e.target.dataset.recordId;
+                    const messageBoxContent = document.getElementById('messageBoxContent');
+                    const originalMessageBoxContentHTML = messageBoxContent.innerHTML; // Store original content
+
+                    showMessageBox("Confirm Delete", "Are you sure you want to delete this record?", false, false, false);
+                    const confirmBtn = document.createElement('button');
+                    confirmBtn.textContent = 'Delete';
+                    confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+                    confirmBtn.onclick = async () => {
+                        hideMessageBox();
+                        showMessageBox("Deleting", "Deleting record...", false, true, false);
+                        try {
+                            await window.fsDeleteDoc(window.fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId));
+                            showMessageBox("Success", "Record deleted successfully.", false, false, true);
+                        } catch (error) {
+                            showMessageBox("Deletion Failed", `Error: ${error.message}`, true, false, true);
+                        } finally {
+                            // Always restore original content regardless of success/fail
+                            messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+                        }
+                    };
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+                    cancelBtn.onclick = () => {
+                         hideMessageBox();
+                         messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
+                    };
+
+                    messageBoxContent.innerHTML = ''; // Clear existing content
+                    messageBoxContent.appendChild(confirmBtn);
+                    messageBoxContent.appendChild(cancelBtn);
+
+                    // Ensure messageBoxCloseBtn also restores original content
+                    const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+                    messageBoxCloseBtn.onclick = () => {
+                        hideMessageBox();
+                        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+                    };
+                });
+            });
+
+            updateDeleteButtonState();
+        }
+
+        function updateDeleteButtonState() {
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
+            deleteSelectedRecordsBtn.disabled = checkedCount === 0;
+        }
+
+        function renderWebhookList(webhooks) {
+            const webhookList = document.getElementById('webhookList');
+            webhookList.innerHTML = '';
+            if (webhooks.length === 0) {
+                webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
+                return;
+            }
+
+            webhooks.forEach(hook => {
+                const webhookDiv = document.createElement('div');
+                webhookDiv.innerHTML = `
+                    <span>${hook.url}</span>
+                    <button class="delete-webhook-btn bg-red-400 hover:bg-red-500 text-white p-1 rounded-md text-xs" data-webhook-id="${hook.id}">
+                        <i class="fas fa-times"></i> Delete
+                    </button>
+                `;
+                webhookList.appendChild(webhookDiv);
+            });
+
+            document.querySelectorAll('.delete-webhook-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const webhookId = e.target.closest('button').dataset.webhookId;
+                    const messageBoxContent = document.getElementById('messageBoxContent');
+                    const originalMessageBoxContentHTML = messageBoxContent.innerHTML; // Store original content
+
+                    showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, false);
+                    const confirmBtn = document.createElement('button');
+                    confirmBtn.textContent = 'Delete';
+                    confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+                    confirmBtn.onclick = async () => {
+                        hideMessageBox();
+                        showMessageBox("Deleting", "Deleting webhook...", false, true, false);
+                        await deleteWebhook(webhookId);
+                        hideMessageBox();
+                    };
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+                    cancelBtn.onclick = () => {
+                        hideMessageBox();
+                        messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
+                    };
+
+                    messageBoxContent.innerHTML = '';
+                    messageBoxContent.appendChild(confirmBtn);
+                    messageBoxContent.appendChild(cancelBtn);
+
+                    const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+                    messageBoxCloseBtn.onclick = () => {
+                        hideMessageBox();
+                        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+                    };
+                });
+            });
+        }
+
+        // Audit Form Calculations
+        const calculateScore = () => {
+            const cerRoleSelect = document.getElementById('cer-role'); // Get element inside function scope
+            const overallScoreDisplay = document.getElementById('overall-score-display');
+            const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
+            const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
+            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
+
+            let globalTotalPoints = 0;
+            let globalMaxPossiblePoints = 0;
+            let autofailTriggered = false;
+
+            let complianceCurrentPoints = 0;
+            let complianceMaxPoints = 0;
+
+            const allRatingSelects = document.querySelectorAll('.rating-select');
+
+            allRatingSelects.forEach(selectElement => {
+                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                if (!rowDiv) return;
+
+                const pointsElement = rowDiv.querySelector('.points-input');
+                const weightageDisplay = rowDiv.querySelector('.weightage-display');
+                const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
+                const questionText = selectElement.name.replace(' (Rating)', '');
+
+                if (!pointsElement || !weightageDisplay) {
+                    console.warn(`Missing associated elements for select: ${selectElement.name}`);
+                    return;
+                }
+
+                const rating = selectElement.value;
+                const weightage = parseFloat(weightageDisplay.dataset.weightage);
+                let currentPoints = 0;
+
+                pointsElement.style.backgroundColor = '#e9ecef';
+                pointsElement.style.color = '#555';
+
+                if (rating === 'Yes') {
+                    currentPoints = weightage;
+                    pointsElement.readOnly = false;
+                    pointsElement.style.backgroundColor = '#fff';
+                } else if (rating === 'No') {
+                    currentPoints = 0;
+                    pointsElement.readOnly = true;
+
+                    if (isAutofailQuestion) {
+                        pointsElement.style.backgroundColor = '#fca5a5';
+                        pointsElement.style.color = '#dc2626';
+                        autofailTriggered = true;
+                    } else {
+                        pointsElement.style.backgroundColor = '#e0e0e0';
+                    }
+                } else {
+                    currentPoints = 0;
+                    pointsElement.readOnly = true;
+                    pointsElement.style.backgroundColor = '#e9ecef';
+                }
+
+                pointsElement.value = currentPoints;
+                globalTotalPoints += currentPoints;
+                globalMaxPossiblePoints += weightage;
+
+                const currentRole = cerRoleSelect.value;
+                if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
+                    const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
+                    if (complianceQuestions.includes(questionText)) {
+                        if (rating === 'Yes') {
+                            complianceCurrentPoints += weightage;
+                        }
+                        if (rating === 'Yes' || rating === 'No') {
+                             complianceMaxPoints += weightage;
+                        }
+                    }
+                }
+            });
+
+            let overallPercentage = 0;
+            if (autofailTriggered) {
+                overallPercentage = 0;
+            } else {
+                if (globalMaxPossiblePoints > 0) {
+                    overallPercentage = ((globalTotalPoints / globalMaxPossiblePoints) * 100).toFixed(0);
+                } else {
+                    overallPercentage = 0;
+                }
+            }
+
+            overallScoreDisplay.textContent = `${overallPercentage}%`;
+            totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
+            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`;
+
+            let businessCompliancePct = 0;
+            if (complianceMaxPoints > 0) {
+                businessCompliancePct = ((complianceCurrentPoints / complianceMaxPoints) * 100).toFixed(0);
+            } else {
+                businessCompliancePct = 0;
+            }
+            businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
+
+            // globalBusinessComplianceAccuracyValue is already updated within calculateScore
+        };
+
+        // Audit Form Initialization and Reset
+        function initializeAuditForm() {
+            const evaluationDateInput = document.getElementById('review-date');
+            const callDateTimeInput = document.getElementById('call-date-time');
+            const cerRoleSelect = document.getElementById('cer-role');
+
+            evaluationDateInput.valueAsDate = new Date();
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            callDateTimeInput.value = now.toISOString().slice(0,16);
+
+            cerRoleSelect.value = '';
+            renderQuestionsForRole('');
+            calculateScore();
+        }
+
+        // Dynamic Question Rendering (moved to top-level)
+        function renderQuestionsForRole(role) {
+            const cerRoleSelect = document.getElementById('cer-role'); // Access element here
+            const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
+            const psQuestionsContainer = document.getElementById('psQuestionsContainer');
+            const caQuestionsContainer = document.getElementById('caQuestionsContainer');
+            
+            const questionContainers = { // Re-define locally or access global elements
                 'CUSTOMER EXPERIENCE': cxQuestionsContainer,
                 'PROBLEM SOLVING SKILLS': psQuestionsContainer,
                 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
             };
 
+            console.log("Rendering questions for role:", role);
 
-            // --- MESSAGE BOX FUNCTIONS (Replacement for alert/confirm) ---
-            function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-                messageBoxTitle.textContent = title;
-                messageBoxContent.textContent = message;
-                messageBoxOverlay.classList.remove('hidden');
-                messageBoxSpinner.classList.toggle('hidden', !showSpinner);
-                messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
-
-                if (isError) {
-                    messageBoxTitle.style.color = '#dc2626'; // Red for error
-                } else {
-                    messageBoxTitle.style.color = '#1a73e8'; // Blue for info/success
-                }
-
-                messageBoxCloseBtn.onclick = () => {
-                    messageBoxOverlay.classList.add('hidden');
-                    if (onClose) onClose();
-                };
-            }
-
-            function hideMessageBox() {
-                messageBoxOverlay.classList.add('hidden');
-            }
-
-
-            // --- UI TAB SWITCHING LOGIC ---
-            function showTab(tabName) {
-                // Deactivate all tabs
-                auditFormTab.classList.remove('active');
-                databaseTab.classList.remove('active');
-
-                // Hide all content sections
-                auditFormContent.style.display = 'none';
-                databaseContent.style.display = 'none';
-
-                // Activate selected tab and show its content
-                if (tabName === 'auditForm') {
-                    auditFormTab.classList.add('active');
-                    auditFormContent.style.display = 'block';
-                } else if (tabName === 'database') {
-                    databaseTab.classList.add('active');
-                    databaseContent.style.display = 'block';
-                    // Trigger database table refresh when switching to it
-                    if (window.db && window.currentUserId) { // Ensure Firebase is initialized and auth is ready
-                        fetchRecordsAndWebhooks(); // Refresh data when entering the tab
-                    } else {
-                        showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
-                    }
+            for (const key in questionContainers) {
+                if (questionContainers[key]) { // Defensive check
+                    questionContainers[key].innerHTML = '';
                 }
             }
 
-            // Event listeners for tab clicks
-            auditFormTab.addEventListener('click', (e) => {
-                e.preventDefault();
-                showTab('auditForm');
-            });
+            const roleQuestions = allRolesQuestions[role];
 
-            databaseTab.addEventListener('click', (e) => {
-                e.preventDefault();
-                showTab('database');
-            });
-
-
-            // --- FIRESTORE DATA HANDLING FUNCTIONS ---
-
-            // Function to fetch and display records
-            let unsubscribeRecords = null; // Store the unsubscribe function for real-time listener
-            let unsubscribeWebhooks = null; // Store unsubscribe for webhooks
-
-            async function fetchRecordsAndWebhooks() {
-                if (!window.db || !window.currentUserId) {
-                    console.warn("Firestore not initialized or user not authenticated yet. Cannot fetch data.");
-                    return;
-                }
-
-                // Unsubscribe previous listeners to prevent duplicates
-                if (unsubscribeRecords) unsubscribeRecords();
-                if (unsubscribeWebhooks) unsubscribeWebhooks();
-                
-                showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
-
-
-                try {
-                    // Listen for records in real-time
-                    const recordsColRef = collection(window.db, EVALUATION_RECORDS_COLLECTION_PATH); // Use fsCollection
-                    unsubscribeRecords = onSnapshot(recordsColRef, (snapshot) => { // Use fsOnSnapshot
-                        allRecords = [];
-                        snapshot.forEach(doc => { // Use fsDoc
-                            allRecords.push({ id: doc.id, ...doc.data() });
-                        });
-                        console.log("Records updated:", allRecords.length, "records.");
-                        renderRecordsTable(allRecords);
-                        hideMessageBox();
-                    }, (error) => {
-                        console.error("Error listening to records:", error);
-                        showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
-                    });
-
-                    // Listen for webhooks in real-time
-                    const webhooksColRef = collection(window.db, WEBHOOKS_COLLECTION_PATH); // Use fsCollection
-                    unsubscribeWebhooks = onSnapshot(webhooksColRef, (snapshot) => { // Use fsOnSnapshot
-                        allWebhooks = [];
-                        snapshot.forEach(doc => { // Use fsDoc
-                            allWebhooks.push({ id: doc.id, ...doc.data() });
-                        });
-                        console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
-                        renderWebhookList(allWebhooks);
-                        hideMessageBox();
-                    }, (error) => {
-                        console.error("Error listening to webhooks:", error);
-                        showMessageBox("Error Loading Webhooks", `Could not load webhooks: ${error.message}`, true, false, true);
-                    });
-
-                } catch (error) {
-                    console.error("Error setting up Firestore listeners:", error);
-                    showMessageBox("Initialization Error", `Failed to setup database listeners: ${error.message}`, true, false, true);
-                }
+            if (!roleQuestions) {
+                console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
+                calculateScore();
+                return;
             }
 
-            // Function to add a record to Firestore
-            async function addRecordToFirestore(recordData) {
-                if (!window.db || !window.currentUserId) {
-                    showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                    return false;
-                }
-                showMessageBox("Submitting", "Saving record to database...", false, true, false);
-                try {
-                    const docRef = await addDoc(collection(window.db, EVALUATION_RECORDS_COLLECTION_PATH), { // Use fsAddDoc, fsCollection
-                        ...recordData,
-                        submittedAt: new Date().toISOString() // Add a server timestamp
-                    });
-                    console.log("Record written with ID:", docRef.id);
-                    showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
-                        resetForm(); // Reset form on success
-                        sendDataToWebhooks(recordData); // Trigger webhooks after successful submission
-                    });
-                    return true;
-                } catch (e) {
-                    console.error("Error adding document: ", e);
-                    showMessageBox("Submission Failed", `Error saving data: ${e.message}`, true, false, true);
-                    return false;
-                }
-            }
+            let questionNumber = 1;
 
-            // Function to delete selected records from Firestore
-            async function deleteSelectedRecords() {
-                if (!window.db || !window.currentUserId) {
-                    showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                    return;
+            for (const sectionTitle in roleQuestions) {
+                const questions = roleQuestions[sectionTitle];
+                const container = questionContainers[sectionTitle];
+
+                if (!container) {
+                    console.error(`Container not found for section: ${sectionTitle}`);
+                    continue;
                 }
 
-                const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-                const recordIdsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
+                questions.forEach(q => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
 
-                if (recordIdsToDelete.length === 0) {
-                    showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true);
-                    return;
-                }
+                    let iconColorClass;
+                    const iconIndex = (questionNumber - 1) % 4;
+                    if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
+                    else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
+                    else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
+                    else iconColorClass = 'icon-bg-yellow';
 
-                // Confirmation using custom message box
-                showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
-                
-                // Add custom confirm/cancel buttons to the message box
-                const confirmDeleteBtn = document.createElement('button');
-                confirmDeleteBtn.textContent = 'Delete';
-                confirmDeleteBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-                confirmDeleteBtn.onclick = async () => {
-                    hideMessageBox();
-                    showMessageBox("Deleting", "Deleting selected records...", false, true, false);
-                    try {
-                        const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, id))); // Use fsDeleteDoc, fsDoc
-                        await Promise.all(deletePromises);
-                        console.log("Selected records deleted successfully.");
-                        showMessageBox("Success", "Selected records deleted.", false, false, true);
-                        selectAllRecordsCheckbox.checked = false; // Uncheck select all
-                        updateDeleteButtonState(); // Update button state
-                    } catch (e) {
-                        console.error("Error deleting documents: ", e);
-                        showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
-                    }
-                };
-
-                const cancelDeleteBtn = document.createElement('button');
-                cancelDeleteBtn.textContent = 'Cancel';
-                cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-                cancelDeleteBtn.onclick = hideMessageBox;
-
-                // Temporarily store original content to restore later
-                const originalMessageBoxContent = messageBoxContent.innerHTML;
-                messageBoxContent.innerHTML = ''; // Clear existing content (e.g., "Are you sure?")
-                messageBoxContent.appendChild(confirmDeleteBtn);
-                messageBoxContent.appendChild(cancelDeleteBtn);
-                // Restore content when box is closed
-                messageBoxCloseBtn.onclick = () => {
-                    messageBoxOverlay.classList.add('hidden');
-                    messageBoxContent.innerHTML = originalMessageBoxContent;
-                };
-            }
-
-            // Function to add a webhook URL
-            async function addWebhook() {
-                if (!window.db || !window.currentUserId) {
-                    showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                    return;
-                }
-                const webhookUrl = newWebhookUrlInput.value.trim();
-                if (!webhookUrl) {
-                    showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
-                    return;
-                }
-                if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
-                     showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
-                     return;
-                }
-                if (allWebhooks.some(hook => hook.url === webhookUrl)) {
-                    showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
-                    newWebhookUrlInput.value = '';
-                    return;
-                }
-
-                showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
-                try {
-                    await addDoc(collection(window.db, WEBHOOKS_COLLECTION_PATH), { url: webhookUrl }); // Use fsAddDoc, fsCollection
-                    newWebhookUrlInput.value = ''; // Clear input
-                    showMessageBox("Success", "Webhook added successfully!", false, false, true);
-                } catch (e) {
-                    console.error("Error adding webhook: ", e);
-                    showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true);
-                }
-            }
-
-            // Function to delete a specific webhook
-            async function deleteWebhook(webhookId) {
-                if (!window.db || !window.currentUserId) {
-                    showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                    return;
-                }
-                showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
-                try {
-                    await deleteDoc(doc(window.db, WEBHOOKS_COLLECTION_PATH, webhookId)); // Use fsDeleteDoc, fsDoc
-                    showMessageBox("Success", "Webhook deleted successfully!", false, false, true);
-                } catch (e) {
-                    console.error("Error deleting webhook: ", e);
-                    showMessageBox("Failed to Delete Webhook", `Error: ${e.message}`, true, false, true);
-                }
-            }
-
-            // Function to send data to all configured webhooks
-            async function sendDataToWebhooks(recordData) {
-                if (allWebhooks.length === 0) {
-                    console.log("No webhooks configured. Skipping webhook dispatch.");
-                    return;
-                }
-                console.log(`Sending data to ${allWebhooks.length} webhook(s)...`);
-                const webhookPromises = allWebhooks.map(async (webhook) => {
-                    try {
-                        const response = await fetch(webhook.url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(recordData)
-                        });
-                        const result = await response.text(); // Use .text() for general webhook responses
-                        console.log(`Webhook to ${webhook.url} response:`, response.status, result);
-                        if (!response.ok) {
-                            console.error(`Webhook to ${webhook.url} failed: ${response.status} - ${result}`);
-                            // Optionally show a message box for failed webhooks if critical
-                        }
-                    } catch (error) {
-                        console.error(`Error sending to webhook ${webhook.url}:`, error);
-                    }
-                });
-                await Promise.allSettled(webhookPromises); // Use allSettled to await all without stopping on one failure
-                console.log("All webhook dispatches attempted.");
-            }
-
-
-            // --- DATABASE TABLE RENDERING ---
-            function renderRecordsTable(records) {
-                recordsTableBody.innerHTML = ''; // Clear existing rows
-                if (records.length === 0) {
-                    recordsTableBody.innerHTML = `
-                        <tr>
-                            <td colspan="7" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
-                        </tr>
+                    rowDiv.innerHTML = `
+                        <div class="col-span-6 flex items-center gap-2">
+                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
+                            ${q.desc}
+                        </div>
+                        <div class="col-span-2">
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''}>
+                                <option value="" selected>None</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                            </select>
+                        </div>
+                        <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
+                        <div class="col-span-1 text-center">
+                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
+                        </div>
+                        <div class="col-span-2">
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
+                        </div>
                     `;
-                    deleteSelectedRecordsBtn.disabled = true;
-                    selectAllRecordsCheckbox.checked = false;
-                    selectAllRecordsCheckbox.disabled = true;
-                    return;
-                }
+                    container.appendChild(rowDiv);
 
-                selectAllRecordsCheckbox.disabled = false;
-
-                records.forEach(record => {
-                    const row = recordsTableBody.insertRow();
-                    row.className = 'border-b border-gray-200';
-                    row.insertCell().innerHTML = `<input type="checkbox" class="record-checkbox" data-record-id="${record.id}">`;
-                    row.insertCell().textContent = record.submittedAt ? new Date(record.submittedAt).toLocaleString() : 'N/A';
-                    row.insertCell().textContent = record['Contact ID'] || '';
-                    row.insertCell().textContent = record['Client Name'] || '';
-                    row.insertCell().textContent = record['CER Name'] || '';
-                    row.insertCell().textContent = record['Overall Score'] || '';
-                    row.insertCell().innerHTML = `
-                        <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
-                    `;
-                });
-
-                // Add event listeners for individual checkboxes and delete buttons
-                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-                    checkbox.addEventListener('change', updateDeleteButtonState);
-                });
-                document.querySelectorAll('.delete-record-btn').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const recordId = e.target.dataset.recordId;
-                        // Use custom message box for confirmation
-                        showMessageBox("Confirm Delete", "Are you sure you want to delete this record?", false, false, false);
-                        const confirmBtn = document.createElement('button');
-                        confirmBtn.textContent = 'Delete';
-                        confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-                        confirmBtn.onclick = async () => {
-                            hideMessageBox();
-                            showMessageBox("Deleting", "Deleting record...", false, true, false);
-                            try {
-                                await deleteDoc(doc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId)); // Use fsDeleteDoc, fsDoc
-                                showMessageBox("Success", "Record deleted successfully.", false, false, true);
-                            } catch (error) {
-                                showMessageBox("Deletion Failed", `Error: ${error.message}`, true, false, true);
-                            }
-                        };
-                        const cancelBtn = document.createElement('button');
-                        cancelBtn.textContent = 'Cancel';
-                        cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-                        cancelBtn.onclick = hideMessageBox;
-
-                        const originalMessageBoxContent = messageBoxContent.innerHTML;
-                        messageBoxContent.innerHTML = '';
-                        messageBoxContent.appendChild(confirmBtn);
-                        messageBoxContent.appendChild(cancelBtn);
-                        messageBoxCloseBtn.onclick = () => { // Override close for this dialog
-                            messageBoxOverlay.classList.add('hidden');
-                            messageBoxContent.innerHTML = originalMessageBoxContent;
-                        };
-                    });
-                });
-
-                updateDeleteButtonState(); // Initial state update
-            }
-
-            // Update state of "Delete Selected" button based on checked checkboxes
-            function updateDeleteButtonState() {
-                const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
-                deleteSelectedRecordsBtn.disabled = checkedCount === 0;
-            }
-
-            // Handle "Select All" checkbox
-            selectAllRecordsCheckbox.addEventListener('change', (e) => {
-                const isChecked = e.target.checked;
-                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-                    checkbox.checked = isChecked;
-                });
-                updateDeleteButtonState();
-            });
-
-            // "Delete Selected" button listener
-            deleteSelectedRecordsBtn.addEventListener('click', deleteSelectedRecords);
-
-
-            // --- WEBHOOK LIST RENDERING ---
-            function renderWebhookList(webhooks) {
-                webhookList.innerHTML = ''; // Clear existing list
-                if (webhooks.length === 0) {
-                    webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
-                    return;
-                }
-
-                webhooks.forEach(hook => {
-                    const webhookDiv = document.createElement('div');
-                    webhookDiv.innerHTML = `
-                        <span>${hook.url}</span>
-                        <button class="delete-webhook-btn bg-red-400 hover:bg-red-500 text-white p-1 rounded-md text-xs" data-webhook-id="${hook.id}">
-                            <i class="fas fa-times"></i> Delete
-                        </button>
-                    `;
-                    webhookList.appendChild(webhookDiv);
-                });
-
-                document.querySelectorAll('.delete-webhook-btn').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const webhookId = e.target.closest('button').dataset.webhookId;
-                        // Custom confirm for webhook deletion
-                        showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, false);
-                        const confirmBtn = document.createElement('button');
-                        confirmBtn.textContent = 'Delete';
-                        confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-                        confirmBtn.onclick = async () => {
-                            hideMessageBox();
-                            showMessageBox("Deleting", "Deleting webhook...", false, true, false);
-                            await deleteWebhook(webhookId);
-                            hideMessageBox(); // Hide after delete completes
-                        };
-                        const cancelBtn = document.createElement('button');
-                        cancelBtn.textContent = 'Cancel';
-                        cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-                        cancelBtn.onclick = hideMessageBox;
-
-                        const originalMessageBoxContent = messageBoxContent.innerHTML;
-                        messageBoxContent.innerHTML = '';
-                        messageBoxContent.appendChild(confirmBtn);
-                        messageBoxContent.appendChild(cancelBtn);
-                        messageBoxCloseBtn.onclick = () => { // Override close for this dialog
-                            messageBoxOverlay.classList.add('hidden');
-                            messageBoxContent.innerHTML = originalMessageBoxContent;
-                        };
-                    });
+                    const newSelect = rowDiv.querySelector('.rating-select');
+                    if (newSelect) {
+                        newSelect.addEventListener('change', calculateScore);
+                    }
+                    questionNumber++;
                 });
             }
+            calculateScore();
+        }
 
-            // Add Webhook button listener
-            addWebhookBtn.addEventListener('click', addWebhook);
+        function resetForm() {
+            const contactIdInput = document.getElementById('contact-id');
+            const clientNameInput = document.getElementById('client-name');
+            const cerNameSelect = document.getElementById('cer-name');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const callDateTimeInput = document.getElementById('call-date-time');
+            const evaluationDateInput = document.getElementById('review-date');
+            const durationInput = document.getElementById('duration');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
 
+            console.log("Full form reset.");
 
-            // --- AUDIT FORM CALCULATIONS (Unchanged from previous turns) ---
-            const calculateScore = () => {
-                console.log("calculateScore called (dynamic).");
-                globalTotalPoints = 0;
-                globalMaxPossiblePoints = 0;
-                let autofailTriggered = false;
+            contactIdInput.value = '';
+            clientNameInput.value = '';
+            cerNameSelect.value = '';
+            cerRoleSelect.value = '';
 
-                let complianceCurrentPoints = 0;
-                let complianceMaxPoints = 0;
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            callDateTimeInput.value = now.toISOString().slice(0,16);
+            evaluationDateInput.valueAsDate = new Date();
 
-                const allRatingSelects = document.querySelectorAll('.rating-select');
+            durationInput.value = '';
+            autofailTypeSelect.value = '';
 
-                allRatingSelects.forEach(selectElement => {
-                    const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
-                    if (!rowDiv) return;
+            reviewerNameSelect.value = '';
+            otherReviewerNameInput.classList.add('hidden');
+            otherReviewerNameInput.value = '';
+            otherReviewerNameInput.removeAttribute('required');
+            otherReviewerNameInput.style.borderColor = '';
 
+            renderQuestionsForRole('');
+        }
+
+        function resetFormFieldsButKeepRole() {
+            const cerRoleSelect = document.getElementById('cer-role'); // Get element inside function scope
+
+            console.log("Resetting question fields only.");
+
+            const dynamicSelects = document.querySelectorAll('.rating-select');
+            dynamicSelects.forEach(selectElement => {
+                selectElement.value = '';
+                selectElement.style.borderColor = '';
+
+                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                if (rowDiv) {
                     const pointsElement = rowDiv.querySelector('.points-input');
-                    const weightageDisplay = rowDiv.querySelector('.weightage-display');
-                    const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
-                    const questionText = selectElement.name.replace(' (Rating)', '');
+                    const remarksElement = rowDiv.querySelector('.remarks-textarea');
 
-                    if (!pointsElement || !weightageDisplay) {
-                        console.warn(`Missing associated elements for select: ${selectElement.name}`);
-                        return;
-                    }
-
-                    const rating = selectElement.value;
-                    const weightage = parseFloat(weightageDisplay.dataset.weightage);
-                    let currentPoints = 0;
-
-                    pointsElement.style.backgroundColor = '#e9ecef';
-                    pointsElement.style.color = '#555';
-
-                    if (rating === 'Yes') {
-                        currentPoints = weightage;
-                        pointsElement.readOnly = false;
-                        pointsElement.style.backgroundColor = '#fff';
-                    } else if (rating === 'No') {
-                        currentPoints = 0;
-                        pointsElement.readOnly = true;
-
-                        if (isAutofailQuestion) {
-                            pointsElement.style.backgroundColor = '#fca5a5';
-                            pointsElement.style.color = '#dc2626';
-                            autofailTriggered = true;
-                        } else {
-                            pointsElement.style.backgroundColor = '#e0e0e0';
-                        }
-                    } else {
-                        currentPoints = 0;
+                    if (pointsElement) {
+                        pointsElement.value = 0;
                         pointsElement.readOnly = true;
                         pointsElement.style.backgroundColor = '#e9ecef';
+                        pointsElement.style.color = '#555';
                     }
-
-                    pointsElement.value = currentPoints;
-                    globalTotalPoints += currentPoints;
-                    globalMaxPossiblePoints += weightage;
-
-                    const currentRole = cerRoleSelect.value;
-                    if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
-                        const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
-                        if (complianceQuestions.includes(questionText)) {
-                            if (rating === 'Yes') {
-                                complianceCurrentPoints += weightage;
-                            }
-                            if (rating === 'Yes' || rating === 'No') {
-                                 complianceMaxPoints += weightage;
-                            }
-                        }
-                    }
-                });
-
-                let overallPercentage = 0;
-                if (autofailTriggered) {
-                    overallPercentage = 0;
-                } else {
-                    if (globalMaxPossiblePoints > 0) {
-                        overallPercentage = ((globalTotalPoints / globalMaxPossiblePoints) * 100).toFixed(0);
-                    } else {
-                        overallPercentage = 0;
+                    if (remarksElement) {
+                        remarksElement.value = '';
                     }
                 }
+            });
+            calculateScore();
+        }
 
-                overallScoreDisplay.textContent = `${overallPercentage}%`;
-                totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
-                overallFinalPercentageDisplay.textContent = `${overallPercentage}%`;
+        // Main Application Initialization Function
+        function initializeApp() {
+            const loginPage = document.getElementById('loginPage');
+            const mainNav = document.getElementById('mainNav');
+            const auditFormContent = document.getElementById('auditFormContent');
+            const databaseContent = document.getElementById('databaseContent');
 
-                let businessCompliancePct = 0;
-                if (complianceMaxPoints > 0) {
-                    businessCompliancePct = ((complianceCurrentPoints / complianceMaxPoints) * 100).toFixed(0);
-                } else {
-                    businessCompliancePct = 0;
-                }
-                businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
+            console.log("Initializing main application.");
+            const isLoggedIn = sessionStorage.getItem('loggedIn');
 
-                globalBusinessComplianceAccuracyValue = businessCompliancePct;
-            };
-
-            // --- AUDIT FORM INITIALIZATION AND RESET ---
-            function initializeAuditForm() {
-                // Set default date to today
-                evaluationDateInput.valueAsDate = new Date();
-                // Set default call date and time to now
-                const now = new Date();
-                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                callDateTimeInput.value = now.toISOString().slice(0,16);
-
-                // Set initial CER Role to empty to show no questions initially
-                cerRoleSelect.value = '';
-                renderQuestionsForRole(''); // Render an empty set of questions initially
-                calculateScore(); // Ensure scores are 0%
+            if (isLoggedIn === 'true') {
+                loginPage.style.display = 'none';
+                mainNav.style.display = 'flex';
+                showTab('auditForm'); // Show audit form by default
+                initializeAuditForm();
+            } else {
+                loginPage.style.display = 'flex';
+                mainNav.style.display = 'none';
+                auditFormContent.style.display = 'none';
+                databaseContent.style.display = 'none';
             }
-
-            function resetForm() {
-                console.log("Full form reset.");
-
-                contactIdInput.value = '';
-                clientNameInput.value = '';
-                cerNameSelect.value = '';
-                cerRoleSelect.value = '';
-
-                const now = new Date();
-                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                callDateTimeInput.value = now.toISOString().slice(0,16);
-                evaluationDateInput.valueAsDate = new Date();
-
-                durationInput.value = '';
-                autofailTypeSelect.value = '';
-
-                reviewerNameSelect.value = '';
-                otherReviewerNameInput.classList.add('hidden');
-                otherReviewerNameInput.value = '';
-                otherReviewerNameInput.removeAttribute('required');
-                otherReviewerNameInput.style.borderColor = '';
-
-                renderQuestionsForRole(''); // Re-render questions for the empty/default role
-            }
-
-            function resetFormFieldsButKeepRole() {
-                console.log("Resetting question fields only.");
-
-                const dynamicSelects = document.querySelectorAll('.rating-select');
-                dynamicSelects.forEach(selectElement => {
-                    selectElement.value = '';
-                    selectElement.style.borderColor = '';
-
-                    const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
-                    if (rowDiv) {
-                        const pointsElement = rowDiv.querySelector('.points-input');
-                        const remarksElement = rowDiv.querySelector('.remarks-textarea');
-
-                        if (pointsElement) {
-                            pointsElement.value = 0;
-                            pointsElement.readOnly = true;
-                            pointsElement.style.backgroundColor = '#e9ecef';
-                            pointsElement.style.color = '#555';
-                        }
-                        if (remarksElement) {
-                            remarksElement.value = '';
-                        }
-                    }
-                });
-                calculateScore();
-            }
-
-            // --- MAIN APPLICATION INITIALIZATION ---
-            function initializeApp() {
-                console.log("Initializing main application.");
-                // Check login state and show appropriate content
-                const isLoggedIn = sessionStorage.getItem('loggedIn');
-
-                if (isLoggedIn === 'true') {
-                    loginPage.style.display = 'none';
-                    mainNav.style.display = 'flex'; // Show nav bar
-                    showTab('auditForm'); // Show audit form by default
-                    initializeAuditForm(); // Initialize audit form fields
-                    // Firebase listeners are set up via 'firebaseAuthReady' event below
-                } else {
-                    loginPage.style.display = 'flex';
-                    mainNav.style.display = 'none';
-                    auditFormContent.style.display = 'none';
-                    databaseContent.style.display = 'none';
-                }
-            }
+        }
 
 
-            // --- EVENT LISTENERS (Initial Setup) ---
+        // --- GLOBAL DATA STORES (needs to be outside functions to maintain state) ---
+        let allRecords = [];
+        let allWebhooks = [];
+
+        // --- GLOBAL SCORE VARIABLES ---
+        let globalTotalPoints = 0;
+        let globalMaxPossiblePoints = 0;
+        let globalBusinessComplianceAccuracyValue = 0;
+
+        // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
+        const allRolesQuestions = {
+            '': { 'CUSTOMER EXPERIENCE': [], 'PROBLEM SOLVING SKILLS': [], 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [] },
+            'Outbound Sales': { /* ... questions ... */ },
+            'Social Media': { /* ... questions ... */ },
+            'Live Chat': { /* ... questions ... */ },
+            'Inbound': { /* ... questions ... */ },
+            'Email': { /* ... questions ... */ },
+            'Digital troubleshooting': { /* ... questions ... */ },
+            'SMS': { /* ... questions ... */ },
+            'NPS outbound': { /* ... questions ... */ },
+            'Onboarding outbound': { /* ... questions ... */ },
+            'Reviewed case handling': { /* ... questions ... */ }
+        };
+        // Paste the full content of allRolesQuestions object here, as it's too long for this comment.
+        // It should start from '{ "CUSTOMER EXPERIENCE": [...]', 'PROBLEM SOLVING SKILLS": [...]', ...
+        // It's already in your current HTML. I'm just indicating its place here.
+
+        // Mapping of section titles to their container elements (can be defined here)
+        // Note: These will need to be obtained inside functions that use them (like renderQuestionsForRole)
+        // or passed as parameters if they are obtained once in DOMContentLoaded.
+        // For simplicity, it's safer to get them inside the functions that use them (as I've adjusted above).
+
+        // --- DOMContentLoaded Listener (attaches event handlers, makes initial calls) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM fully loaded and parsed. Main script starting.");
+
+            // --- Get Firebase objects and functions from window ---
+            // These variables will now correctly receive the Firebase instances and functions
+            // once they are initialized and exposed by the module script.
+            let db = window.db;
+            let auth = window.auth;
+            let currentUserId = window.currentUserId;
+            let isAuthReady = window.isAuthReady; // isAuthReady will be accurate here
+
+
+            // Collection paths (These need to be obtained from window)
+            const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
+            const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
+
+
+            // --- UI Elements (Get references to DOM elements here) ---
+            const loginForm = document.getElementById('loginForm');
+            const loginMessage = document.getElementById('loginMessage');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+
+            const auditFormTab = document.getElementById('auditFormTab');
+            const databaseTab = document.getElementById('databaseTab');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
+            const printEmailBtn = document.getElementById('print-email-btn');
+            const assessmentForm = document.getElementById('assessment-form');
+
+            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+            const cerRoleSelect = document.getElementById('cer-role');
+
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
+            const addWebhookBtn = document.getElementById('addWebhookBtn');
+
+            // --- EVENT LISTENERS (Attach to DOM elements) ---
             loginForm.addEventListener('submit', function(event) {
                 event.preventDefault();
-                loginMessage.classList.add('hidden'); // Hide any previous error
-
-                const enteredUsername = usernameInput.value;
-                const enteredPassword = passwordInput.value;
+                loginMessage.classList.add('hidden');
 
                 const CORRECT_USERNAME = 'Supervisor';
                 const CORRECT_PASSWORD = 'Supervisor';
 
-                if (enteredUsername === CORRECT_USERNAME && enteredPassword === CORRECT_PASSWORD) {
+                if (usernameInput.value === CORRECT_USERNAME && passwordInput.value === CORRECT_PASSWORD) {
                     sessionStorage.setItem('loggedIn', 'true');
-                    initializeApp(); // Re-initialize app to show main content
+                    initializeApp(); // Calls the top-level initializeApp
                 } else {
                     loginMessage.textContent = 'Invalid Username or Password. Please try again.';
                     loginMessage.classList.remove('hidden');
@@ -1557,10 +1454,9 @@
 
             logoutBtn.addEventListener('click', function() {
                 sessionStorage.removeItem('loggedIn');
-                // Unsubscribe Firestore listeners on logout to prevent memory leaks
                 if (unsubscribeRecords) unsubscribeRecords();
                 if (unsubscribeWebhooks) unsubscribeWebhooks();
-                window.location.reload(); // Reload to show login page
+                window.location.reload();
             });
 
             reviewerNameSelect.addEventListener('change', () => {
@@ -1577,11 +1473,11 @@
 
             cerRoleSelect.addEventListener('change', (event) => {
                 const selectedRole = event.target.value;
-                renderQuestionsForRole(selectedRole);
-                resetFormFieldsButKeepRole();
+                renderQuestionsForRole(selectedRole); // Calls the top-level renderQuestionsForRole
+                resetFormFieldsButKeepRole(); // Calls the top-level resetFormFieldsButKeepRole
             });
 
-            submitFormToDBBtn.addEventListener('click', async (event) => { // Now submits to DB
+            submitFormToDBBtn.addEventListener('click', async (event) => {
                 event.preventDefault();
                 console.log("Submit to Database button clicked.");
 
@@ -1600,7 +1496,6 @@
                     }
                 }
 
-                // Dynamically collect all relevant form data based on current DOM
                 const formDataForSubmission = {};
                 const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
                 basicInfoInputs.forEach(input => {
@@ -1614,6 +1509,12 @@
                         }
                     }
                 });
+
+                const overallScoreDisplay = document.getElementById('overall-score-display');
+                const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
+                const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
+                const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
+
 
                 formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
                 formDataForSubmission['Business & Compliance Accuracy'] = businessComplianceAccuracyDisplay.textContent;
@@ -1638,23 +1539,30 @@
                 });
                 console.log("Collected Data for Submission:", formDataForSubmission);
 
-                // Submit to Firestore
-                await addRecordToFirestore(formDataForSubmission);
+                await addRecordToFirestore(formDataForSubmission); // Calls top-level addRecordToFirestore
             });
 
 
-            // PDF & Email Button functionality (Unchanged)
             printEmailBtn.addEventListener('click', async () => {
                 console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
 
-                const element = document.getElementById('auditFormContent'); // Ensure this captures the whole form
+                const element = document.getElementById('auditFormContent');
                 if (!element) {
                     console.error('Error: Form container not found for PDF generation.');
                     showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
                     return;
                 }
 
-                // Temporarily hide elements that shouldn't be in the PDF
+                const mainNav = document.getElementById('mainNav');
+                const printEmailBtn = document.getElementById('print-email-btn');
+                const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
+                const contactIdInput = document.getElementById('contact-id');
+                const cerNameSelect = document.getElementById('cer-name');
+                const evaluationDateInput = document.getElementById('review-date');
+                const reviewerNameSelect = document.getElementById('reviewer-name');
+                const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+
+
                 const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
                 const originalDisplays = [];
                 elementsToHide.forEach(el => {
@@ -1703,7 +1611,7 @@
 
                     const cerNameVal = cerNameSelect.value;
                     const evaluationDateVal = evaluationDateInput.value;
-                    const overallScoreVal = overallFinalPercentageDisplay.textContent;
+                    const overallScoreVal = document.getElementById('overall-final-percentage-display').textContent;
                     const contactIdVal = contactIdInput.value;
                     const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
 
@@ -1726,7 +1634,7 @@
             });
 
 
-            // --- INITIALIZATION ON PAGE LOAD ---
+            // Initial trigger for app setup after DOM is ready
             // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
                 // Ensure the global db and auth objects are correctly referenced after Firebase is ready
@@ -1740,18 +1648,17 @@
                 WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
                 
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
-                // Now that auth is ready, proceed with app initialization
-                initializeApp();
+                initializeApp(); // Calls the top-level initializeApp
 
                 // If already logged in, fetch initial records
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks();
+                   fetchRecordsAndWebhooks(); // Calls the top-level fetchRecordsAndWebhooks
                 }
             });
 
             // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
-            // This ensures initializeApp runs even if auth is ready very quickly
-            if (document.readyState === 'complete' && window.isAuthReady !== null) { // Check if isAuthReady has been set at all
+            if (document.readyState === 'complete' && window.isAuthReady !== null) {
+                // Get the global references just like in the event listener
                 db = window.db;
                 auth = window.auth;
                 currentUserId = window.currentUserId;
@@ -1761,12 +1668,31 @@
                 WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
-                initializeApp();
+                initializeApp(); // Calls the top-level initializeApp
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks();
+                   fetchRecordsAndWebhooks(); // Calls the top-level fetchRecordsAndWebhooks
                 }
             } else {
                 console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
+            }
+
+            // Database Tab specific event listeners (must be attached after DOM elements exist)
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
+            const addWebhookBtn = document.getElementById('addWebhookBtn'); // Get the button element
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); // Get the input element
+
+            if (selectAllRecordsCheckbox) {
+                selectAllRecordsCheckbox.addEventListener('change', (e) => {
+                    const isChecked = e.target.checked;
+                    document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                        checkbox.checked = isChecked;
+                    });
+                    updateDeleteButtonState(); // Calls top-level updateDeleteButtonState
+                });
+            }
+
+            if (addWebhookBtn) { // Ensure button exists before attaching listener
+                addWebhookBtn.addEventListener('click', addWebhook); // Calls top-level addWebhook
             }
         });
     </script>
