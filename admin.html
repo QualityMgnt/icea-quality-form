@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // **IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL**
-    // This URL should be consistent across all your HTML files.
+    // --- Constants ---
+    // IMPORTANT: This URL should be the deployed URL of your Google Apps Script Web App.
+    // Ensure the Apps Script is deployed as a Web App accessible by "Anyone, even anonymous".
+    // For production, consider using a more secure authentication mechanism and dedicated backend.
     const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
 
     // --- DOM Element References ---
@@ -10,37 +12,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
     const loginMessage = document.getElementById('loginMessage');
 
-    const reportsContent = document.getElementById('reportsContent');
+    const adminContent = document.getElementById('adminContent');
     const mainNav = document.getElementById('mainNav');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    const reportMonthSelect = document.getElementById('reportMonth');
-    const reportYearSelect = document.getElementById('reportYear');
-    const generateReportsBtn = document.getElementById('generateReportsBtn');
+    const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
+    const dropdownValueInputGroup = document.getElementById('dropdownValueInputGroup');
+    const currentDropdownItemsList = document.getElementById('currentDropdownItems'); // Renamed for clarity
+    const newDropdownValueInput = document.getElementById('newDropdownValue');
+    const addDropdownValueBtn = document.getElementById('addDropdownValueBtn');
+    const removeDropdownValueBtn = document.getElementById('removeDropdownValueBtn');
+    const dropdownMessage = document.getElementById('dropdownMessage');
 
-    const auditsPerAgentTableBody = document.querySelector('#auditsPerAgentTable tbody');
-    const autofailsTableBody = document.querySelector('#autofailsTable tbody');
-    const auditsPerQueueTableBody = document.querySelector('#auditsPerQueueTable tbody');
-    const autofailsPerIndividualTableBody = document.querySelector('#autofailsPerIndividualTable tbody');
+    const newUsernameInput = document.getElementById('newUsername');
+    const newPasswordInput = document.getElementById('newPassword');
+    const newUserRoleSelect = document.getElementById('newUserRole');
+    const createUserBtn = document.getElementById('createUserBtn');
+    const userMessage = document.getElementById('userMessage');
+    const existingUsersList = document.getElementById('existingUsersList');
 
-    const loadingMessages = document.querySelectorAll('.loading-message');
-    const noDataMessages = document.querySelectorAll('.no-data-message'); // All no-data messages
-
-    const months = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-    ];
+    // --- State Variables ---
+    let currentSelectedDropdownType = '';
 
     // --- Utility Functions ---
 
     /**
-     * Displays a login-related error message.
-     * @param {string} message - The message to display.
+     * Displays a message to the user, fading out after a delay.
+     * @param {HTMLElement} element - The DOM element to display the message in.
+     * @param {string} message - The message text.
+     * @param {'success' | 'error'} type - The type of message for styling.
+     * @param {number} [duration=5000] - Duration in milliseconds before hiding.
      */
-    const showLoginErrorMessage = (message) => {
-        loginMessage.textContent = message;
-        loginMessage.classList.remove('hidden');
-        // You might want to add a timeout here too, or a close button
+    const showMessage = (element, message, type, duration = 5000) => {
+        element.textContent = message;
+        element.classList.remove('hidden', 'success', 'error');
+        element.classList.add(type);
+        setTimeout(() => {
+            element.classList.add('hidden');
+        }, duration);
     };
 
     /**
@@ -52,208 +61,329 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     /**
-     * Populates the year dropdown with a range of years.
+     * Fetches and renders dropdown options for the given type.
+     * @param {string} type - The type of dropdown ('cerNames', 'cerRoles', etc.).
      */
-    function populateYears() {
-        const currentYear = new Date().getFullYear();
-        // Show years from 5 years ago to 1 year in the future
-        for (let i = currentYear - 5; i <= currentYear + 1; i++) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = i;
-            reportYearSelect.appendChild(option);
-        }
-        reportYearSelect.value = currentYear; // Default to current year
-    }
-
-    /**
-     * Sets the default selected month in the dropdown to the current month.
-     */
-    function setDefaultMonth() {
-        reportMonthSelect.value = new Date().getMonth() + 1; // Month is 0-indexed
-    }
-
-    /**
-     * Shows all loading messages and clears table bodies.
-     */
-    function showLoadingIndicators() {
-        loadingMessages.forEach(msg => msg.style.display = 'block');
-        noDataMessages.forEach(msg => msg.style.display = 'none'); // Hide all no-data messages
-        auditsPerAgentTableBody.innerHTML = '';
-        autofailsTableBody.innerHTML = '';
-        auditsPerQueueTableBody.innerHTML = '';
-        autofailsPerIndividualTableBody.innerHTML = '';
-    }
-
-    /**
-     * Hides all loading messages.
-     */
-    function hideLoadingIndicators() {
-        loadingMessages.forEach(msg => msg.style.display = 'none');
-    }
-
-    /**
-     * Shows the "no data" message for a specific report section.
-     * @param {string} sectionIdPrefix - The ID prefix of the report section (e.g., 'auditsPerAgent').
-     */
-    function showNoDataMessage(sectionIdPrefix) {
-        document.getElementById(sectionIdPrefix + 'NoData').style.display = 'block';
-    }
-
-    /**
-     * Renders data into a given table body.
-     * @param {HTMLTableSectionElement} tableBody - The tbody element to populate.
-     * @param {Object} reportData - The data object for the table.
-     * @param {string} sectionIdPrefix - The ID prefix for the report section's no-data message.
-     */
-    function renderTable(tableBody, reportData, sectionIdPrefix) {
-        tableBody.innerHTML = ''; // Clear previous data
-
-        if (!reportData || Object.keys(reportData).length === 0) {
-            showNoDataMessage(sectionIdPrefix);
-            return;
-        }
-
-        const sortedNames = Object.keys(reportData).sort();
-
-        sortedNames.forEach(name => {
-            const rowData = reportData[name];
-            const tr = document.createElement('tr');
-            tr.classList.add('hover:bg-gray-100', 'border-b', 'border-gray-200'); // Add hover and border
-
-            const tdName = document.createElement('td');
-            tdName.classList.add('px-6', 'py-3', 'whitespace-nowrap', 'font-medium', 'text-gray-900', 'text-left');
-            tdName.textContent = name;
-            tr.appendChild(tdName);
-
-            let total = 0;
-            for (let i = 1; i <= 12; i++) {
-                const monthName = months[i - 1]; // Get month name (e.g., 'January')
-                const count = rowData[monthName] || 0;
-                const tdCount = document.createElement('td');
-                tdCount.classList.add('px-6', 'py-3', 'whitespace-nowrap', 'text-gray-700', 'text-center');
-                tdCount.textContent = count;
-                tr.appendChild(tdCount);
-                total += count;
-            }
-
-            const tdTotal = document.createElement('td');
-            tdTotal.classList.add('px-6', 'py-3', 'whitespace-nowrap', 'font-bold', 'text-gray-900', 'text-center');
-            tdTotal.textContent = total;
-            tr.appendChild(tdTotal);
-            tableBody.appendChild(tr);
-        });
-    }
-
-    /**
-     * Fetches and renders all reports for the selected month and year.
-     */
-    async function fetchAndRenderReports() {
-        showLoadingIndicators();
-
-        const selectedMonth = reportMonthSelect.value;
-        const selectedYear = reportYearSelect.value;
-
+    async function fetchAndRenderDropdownOptions(type) {
+        currentDropdownItemsList.innerHTML = '<li>Loading...</li>';
         try {
-            const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getReports&month=${selectedMonth}&year=${selectedYear}`, {
-                method: 'GET',
-                mode: 'cors'
-            });
-
-            if (!response.ok) {
-                // If the response itself is not OK, log the status and throw
-                console.error(`HTTP Error: ${response.status} - ${response.statusText}`);
-                throw new Error(`Failed to fetch reports. Server responded with status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            hideLoadingIndicators(); // Hide loading regardless of success/fail, before showing no data/tables
-
-            if (data.status === 'SUCCESS' && data.reports) {
-                renderTable(auditsPerAgentTableBody, data.reports.auditsPerAgent, 'auditsPerAgent');
-                renderTable(autofailsTableBody, data.reports.autofails, 'autofails');
-                renderTable(auditsPerQueueTableBody, data.reports.auditsPerQueue, 'auditsPerQueue');
-                renderTable(autofailsPerIndividualTableBody, data.reports.autofailsPerIndividual, 'autofailsPerIndividual');
-            } else {
-                console.error('Error fetching reports data:', data.message || 'Unknown error');
-                // Show "no data" for all sections if the overall fetch was successful but no reports data
-                noDataMessages.forEach(msg => msg.style.display = 'block');
-            }
-        } catch (error) {
-            console.error('Network or Apps Script execution error:', error);
-            hideLoadingIndicators();
-            // Show "no data" for all sections if there was a network/script error
-            noDataMessages.forEach(msg => msg.style.display = 'block');
-            showLoginErrorMessage(`Error loading reports: ${error.message}. Please try again.`); // Re-using login message area for general errors
-        }
-    }
-
-    // --- Authentication Logic (copied from other pages, ideally centralized) ---
-    // This section should ideally be in a shared `login.js` file and included on all pages.
-
-    loginForm.addEventListener('submit', async function(event) {
-        event.preventDefault();
-        hideLoginErrorMessage();
-
-        const enteredUsername = usernameInput.value;
-        const enteredPassword = passwordInput.value;
-
-        try {
-            const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=authenticate&username=${encodeURIComponent(enteredUsername)}&password=${encodeURIComponent(enteredPassword)}`);
-
+            const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getDropdownOptions&type=${type}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-
             const data = await response.json();
 
-            if (data.status === 'SUCCESS' && data.authenticated) {
-                sessionStorage.setItem('loggedIn', 'true');
-                // If you had roles, you'd store them here too:
-                // sessionStorage.setItem('userRole', data.role);
-                // Instead of reload, directly transition UI and fetch data:
-                loginPage.style.display = 'none';
-                reportsContent.style.display = 'block';
-                mainNav.style.display = 'flex';
-                populateYears();
-                setDefaultMonth();
-                await fetchAndRenderReports(); // Fetch reports immediately after login
+            currentDropdownItemsList.innerHTML = ''; // Clear previous list
+
+            if (data.status === 'SUCCESS' && Array.isArray(data.options)) {
+                if (data.options.length === 0) {
+                    currentDropdownItemsList.innerHTML = '<li>No items found.</li>';
+                } else {
+                    data.options.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        li.classList.add('cursor-pointer', 'hover:bg-blue-100'); // Add hover effect
+                        li.addEventListener('click', () => {
+                            li.classList.toggle('bg-blue-200'); // Highlight/unhighlight
+                        });
+                        currentDropdownItemsList.appendChild(li);
+                    });
+                }
             } else {
-                showLoginErrorMessage('Invalid username or password.');
+                showMessage(dropdownMessage, `Error fetching options: ${data.message || 'Unknown error'}`, 'error');
+                currentDropdownItemsList.innerHTML = '<li>Failed to load items.</li>';
             }
         } catch (error) {
-            console.error('Authentication Error:', error);
-            showLoginErrorMessage('An error occurred during login. Please try again. Check console for details.');
+            console.error('Fetch dropdown options error:', error);
+            showMessage(dropdownMessage, 'Network error fetching options. Check console for details.', 'error');
+            currentDropdownItemsList.innerHTML = '<li>Network error.</li>';
         }
-    });
-
-    // Logout functionality (consistent across all pages)
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function() {
-            sessionStorage.removeItem('loggedIn');
-            sessionStorage.removeItem('userRole'); // Clear role too if you implement it
-            window.location.href = 'index.html'; // Redirect to login page
-        });
     }
 
-    // --- Initial Load ---
-    // Check login status and initialize UI based on it.
-    if (sessionStorage.getItem('loggedIn') === 'true') {
+    /**
+     * Fetches and renders the list of existing users.
+     */
+    async function fetchAndRenderUsers() {
+        existingUsersList.innerHTML = '<li>Loading users...</li>';
+        try {
+            const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=getUsers`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            existingUsersList.innerHTML = ''; // Clear previous list
+
+            if (data.status === 'SUCCESS' && Array.isArray(data.users)) {
+                if (data.users.length === 0) {
+                    existingUsersList.innerHTML = '<li>No users found.</li>';
+                } else {
+                    data.users.forEach(user => {
+                        const li = document.createElement('li');
+                        li.classList.add('flex', 'items-center', 'justify-between', 'gap-2'); // Tailwind flex classes
+                        li.innerHTML = `
+                            <span>${user.Username} (${user.Role})</span>
+                            <button class="admin-btn admin-btn-danger text-sm px-2 py-1">Remove</button>
+                        `;
+                        const removeBtn = li.querySelector('button');
+                        removeBtn.addEventListener('click', async () => {
+                            if (confirm(`Are you sure you want to remove user "${user.Username}"?`)) {
+                                removeBtn.textContent = 'Removing...';
+                                removeBtn.disabled = true;
+                                await removeUser(user.Username);
+                            }
+                        });
+                        existingUsersList.appendChild(li);
+                    });
+                }
+            } else {
+                showMessage(userMessage, `Error fetching users: ${data.message || 'Unknown error'}`, 'error');
+                existingUsersList.innerHTML = '<li>Failed to load users.</li>';
+            }
+        } catch (error) {
+            console.error('Fetch users error:', error);
+            showMessage(userMessage, 'Network error fetching users. Check console for details.', 'error');
+            existingUsersList.innerHTML = '<li>Network error.</li>';
+        }
+    }
+
+    /**
+     * Removes a user via the Apps Script.
+     * @param {string} username - The username to remove.
+     */
+    async function removeUser(username) {
+        try {
+            const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'removeUser', username: username })
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            if (data.status === 'SUCCESS') {
+                showMessage(userMessage, 'User removed successfully!', 'success');
+                await fetchAndRenderUsers(); // Re-fetch and render the updated list
+            } else {
+                showMessage(userMessage, `Failed to remove user: ${data.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('Remove user error:', error);
+            showMessage(userMessage, 'Network error removing user. Check console for details.', 'error');
+        }
+    }
+
+    // --- Authentication Flow ---
+
+    /**
+     * Initializes the admin panel after successful login.
+     */
+    const initializeAdminPanel = () => {
         loginPage.style.display = 'none';
-        reportsContent.style.display = 'block';
+        adminContent.style.display = 'block';
         mainNav.style.display = 'flex';
-        populateYears();
-        setDefaultMonth();
-        fetchAndRenderReports(); // Fetch reports on initial load if logged in
+        fetchAndRenderUsers(); // Load users on admin page load
+        // Trigger change event to load default dropdown if any is pre-selected or first option
+        if (dropdownTypeSelect.value) {
+            fetchAndRenderDropdownOptions(dropdownTypeSelect.value);
+            dropdownValueInputGroup.style.display = 'block';
+        } else {
+             // If no default value, hide the input group initially
+            dropdownValueInputGroup.style.display = 'none';
+        }
+    };
+
+    // Check for login status on admin.html load
+    const isLoggedIn = sessionStorage.getItem('loggedIn');
+    if (isLoggedIn === 'true') {
+        initializeAdminPanel();
     } else {
         loginPage.style.display = 'flex';
-        reportsContent.style.display = 'none';
+        adminContent.style.display = 'none';
         mainNav.style.display = 'none';
     }
 
     // --- Event Listeners ---
-    generateReportsBtn.addEventListener('click', fetchAndRenderReports);
-    // Optional: Add event listeners to month/year selects to auto-generate reports on change
-    // reportMonthSelect.addEventListener('change', fetchAndRenderReports);
-    // reportYearSelect.addEventListener('change', fetchAndRenderReports);
+
+    // Login Form Submission
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            hideLoginErrorMessage();
+
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+
+            try {
+                const response = await fetch(`${GOOGLE_APPS_SCRIPT_URL}?action=authenticate&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data.status === 'SUCCESS' && data.authenticated) {
+                    sessionStorage.setItem('loggedIn', 'true');
+                    initializeAdminPanel(); // Directly initialize UI instead of reloading
+                } else {
+                    showMessage(loginMessage, 'Invalid username or password.', 'error');
+                }
+            } catch (error) {
+                console.error('Authentication Error:', error);
+                showMessage(loginMessage, 'An error occurred during login. Please try again. Check console for details.', 'error');
+            }
+        });
+    }
+
+    // Logout functionality
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            sessionStorage.removeItem('loggedIn');
+            // Redirect to index.html to ensure consistent login state management
+            window.location.href = 'index.html';
+        });
+    }
+
+    // Dropdown type selection change
+    if (dropdownTypeSelect) {
+        dropdownTypeSelect.addEventListener('change', function() {
+            currentSelectedDropdownType = this.value;
+            currentDropdownItemsList.innerHTML = ''; // Clear previous list
+            dropdownValueInputGroup.style.display = 'none';
+            dropdownMessage.classList.add('hidden');
+
+            if (currentSelectedDropdownType) {
+                fetchAndRenderDropdownOptions(currentSelectedDropdownType);
+                dropdownValueInputGroup.style.display = 'block';
+            }
+        });
+    }
+
+    // Add Dropdown Value button
+    if (addDropdownValueBtn) {
+        addDropdownValueBtn.addEventListener('click', async function() {
+            const newValue = newDropdownValueInput.value.trim();
+            if (!currentSelectedDropdownType) {
+                showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                return;
+            }
+            if (!newValue) {
+                showMessage(dropdownMessage, 'Value cannot be empty.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'addDropdownOption', type: currentSelectedDropdownType, value: newValue })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.status === 'SUCCESS') {
+                    showMessage(dropdownMessage, 'Value added successfully!', 'success');
+                    newDropdownValueInput.value = '';
+                    await fetchAndRenderDropdownOptions(currentSelectedDropdownType);
+                } else {
+                    showMessage(dropdownMessage, `Failed to add value: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Add dropdown value error:', error);
+                showMessage(dropdownMessage, 'Network error adding value. Check console for details.', 'error');
+            }
+        });
+    }
+
+    // Remove Dropdown Value button
+    if (removeDropdownValueBtn) {
+        removeDropdownValueBtn.addEventListener('click', async function() {
+            const selectedItems = Array.from(currentDropdownItemsList.children)
+                .filter(li => li.classList.contains('bg-blue-200'))
+                .map(li => li.textContent.trim());
+
+            if (!currentSelectedDropdownType) {
+                showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                return;
+            }
+            if (selectedItems.length === 0) {
+                showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to remove these ${selectedItems.length} item(s)?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'removeDropdownOption', type: currentSelectedDropdownType, values: selectedItems })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.status === 'SUCCESS') {
+                    showMessage(dropdownMessage, 'Value(s) removed successfully!', 'success');
+                    await fetchAndRenderDropdownOptions(currentSelectedDropdownType);
+                } else {
+                    showMessage(dropdownMessage, `Failed to remove value(s): ${data.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Remove dropdown value error:', error);
+                showMessage(dropdownMessage, 'Network error removing value(s). Check console for details.', 'error');
+            }
+        });
+    }
+
+    // Create User button
+    if (createUserBtn) {
+        createUserBtn.addEventListener('click', async function() {
+            const username = newUsernameInput.value.trim();
+            const password = newPasswordInput.value.trim();
+            const role = newUserRoleSelect.value;
+
+            if (!username || !password) {
+                showMessage(userMessage, 'Username and password cannot be empty.', 'error');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to create user "${username}" with role "${role}"?`)) {
+                return;
+            }
+
+            createUserBtn.textContent = 'Creating...';
+            createUserBtn.disabled = true;
+
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'createUser', username: username, password: password, role: role })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.status === 'SUCCESS') {
+                    showMessage(userMessage, 'User created successfully!', 'success');
+                    newUsernameInput.value = '';
+                    newPasswordInput.value = '';
+                    newUserRoleSelect.value = 'User'; // Reset to default
+                    await fetchAndRenderUsers();
+                } else {
+                    showMessage(userMessage, `Failed to create user: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Create user error:', error);
+                showMessage(userMessage, 'Network error creating user. Check console for details.', 'error');
+            } finally {
+                createUserBtn.textContent = 'Create User';
+                createUserBtn.disabled = false;
+            }
+        });
+    }
 });
