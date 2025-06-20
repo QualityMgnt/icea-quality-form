@@ -444,7 +444,7 @@
                     </tbody>
                 </table>
                 <div class="flex items-center justify-between w-full mt-4">
-                    <img src="https://placehold.co/150x50/FFFFFF/1a73e8?text=ICEALION%0AGROUP" alt="ICEALION Group" class="h-12 rounded-md">
+                    <img src="https://placehold.co/150x50/FFFFFF/1a73e8?text=ICEALION%0AGROUP" alt="ICEALION Logo" class="h-12 rounded-md">
                     <div class="flex space-x-4">
                         <button type="button" id="print-email-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             PDF & Email
@@ -820,9 +820,8 @@
             cancelDeleteBtn.textContent = 'Cancel';
             cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
             cancelDeleteBtn.onclick = () => {
-                hideMessageBox();
-                // Ensure original content is restored if canceled
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+                 hideMessageBox();
+                 messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
             };
 
             // Clear previous content and append new buttons
@@ -831,6 +830,7 @@
             messageBoxContent.appendChild(cancelDeleteBtn);
             
             // Re-assign messageBoxCloseBtn onclick to ensure cleanup
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
             messageBoxCloseBtn.onclick = () => {
                 hideMessageBox();
                 messageBoxContent.innerHTML = originalMessageBoxContentHTML;
@@ -1047,7 +1047,7 @@
                         hideMessageBox();
                         showMessageBox("Deleting", "Deleting webhook...", false, true, false);
                         await deleteWebhook(webhookId);
-                        hideMessageBox();
+                        hideMessageBox(); // Hide after delete completes
                     };
                     const cancelBtn = document.createElement('button');
                     cancelBtn.textContent = 'Cancel';
@@ -1062,7 +1062,7 @@
                     messageBoxContent.appendChild(cancelBtn);
 
                     const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-                    messageBoxCloseBtn.onclick = () => {
+                    messageBoxCloseBtn.onclick = () => { // Override close for this dialog
                         hideMessageBox();
                         messageBoxContent.innerHTML = originalMessageBoxContentHTML;
                     };
@@ -1373,25 +1373,211 @@
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
         const allRolesQuestions = {
             '': { 'CUSTOMER EXPERIENCE': [], 'PROBLEM SOLVING SKILLS': [], 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [] },
-            'Outbound Sales': { /* ... questions ... */ },
-            'Social Media': { /* ... questions ... */ },
-            'Live Chat': { /* ... questions ... */ },
-            'Inbound': { /* ... questions ... */ },
-            'Email': { /* ... questions ... */ },
-            'Digital troubleshooting': { /* ... questions ... */ },
-            'SMS': { /* ... questions ... */ },
-            'NPS outbound': { /* ... questions ... */ },
-            'Onboarding outbound': { /* ... questions ... */ },
-            'Reviewed case handling': { /* ... questions ... */ }
+            'Outbound Sales': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6 },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 8 },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 6 },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 8 },
+                    { desc: 'Was the CER able to build rapport?', weightage: 8 }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 6 },
+                    { desc: "Was the CER's focus solely on the Customer?", weightage: 7 },
+                    { desc: 'Did the CER demonstrate strong Product Knowledge?', weightage: 10 },
+                    { desc: 'Did the CER document all action items & follow-up? (Autofail)', weightage: 6, autofail: true },
+                    { desc: 'Was the CER able to sell to the customer?', weightage: 10 }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log call information correctly? (Data capture)', weightage: 10, autofail: true },
+                    { desc: 'Did the CER adhere to Company Policies & Procedures?(Autofail)', weightage: 5, autofail: true },
+                    { desc: 'Did the CER Comply with industry and legal requirements?', weightage: 5 },
+                    { desc: 'Was the CER able to identify and opportunity for Upselling & Cross-Selling?', weightage: 5 }
+                ]
+            },
+            'Social Media': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the Interaction?', weightage: 5 },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the interaction session?', weightage: 6 },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 7 },
+                    { desc: 'Did the CER keep the customer informed?(TAT, dead air)', weightage: 5 }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9 },
+                    { desc: 'Did the CER do proper research and check all related tools required?(Due diligence)', weightage: 7 },
+                    { desc: 'Did the CER show ownership and respond within the set turnaround time? (10 mins)', weightage: 6 },
+                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true },
+                    { desc: 'Did the CER avoid risk behavior? (interaction avoidance/ZTP)', weightage: 8 }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log ticket information correctly?(Data capture)', weightage: 6, autofail: true },
+                    { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true },
+                    { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 10 },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
+                ]
+            },
+            'Live Chat': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the conversation?', weightage: 5 },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the conversation session?', weightage: 7 },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6 },
+                    { desc: 'Did the CER keep the customer informed?(Dead Air-Average Response Time 1 min, TAT, )', weightage: 5 }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9 },
+                    { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7 },
+                    { desc: 'Did the CER show ownership and respond within the set turnaround time? (10 Secs)', weightage: 6 },
+                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true },
+                    { desc: 'Did the CER avoid risk behavior? (conversation avoidance/ZTP)', weightage: 8 }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log ticket information correctly?(Data Capture)', weightage: 6, autofail: true },
+                    { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true },
+                    { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 9 },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
+                ]
+            },
+            'Inbound': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6 },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 6 },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 8 },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 4 },
+                    { desc: 'Did the CER keep the caller informed?(Dead air/Hold/TAT)', weightage: 6 }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 6 },
+                    { desc: 'Did the CER do proper research and check all related tools required? (fact finding)', weightage: 7 },
+                    { desc: 'Did the CER show ownership and actively listen?', weightage: 9 },
+                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 10, autofail: true },
+                    { desc: 'Did the CER avoid risk behavior? (Call avoidance/ZTP)', weightage: 7 }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log call information correctly?(Data capture)', weightage: 10, autofail: true },
+                    { desc: 'Did the CER properly authenticate the caller?(KYC)', weightage: 6, autofail: true },
+                    { desc: 'Did the CER provide complete and accurate information? (Customer education)', weightage: 9 },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
+                ]
+            },
+            'Email': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the email?', weightage: 5 },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the interaction?', weightage: 7 },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6 },
+                    { desc: 'Did the CER keep the customer informed?', weightage: 5 }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER call to ask effective probing questions to ensure accurate diagnosis?', weightage: 9 },
+                    { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7 },
+                    { desc: 'Did the CER show ownership and respond within the set turnaround time?(8 hours)', weightage: 6 },
+                    { desc: 'Was the CER able to position all possible options to the customer?', weightage: 13, autofail: true },
+                    { desc: 'Did the CER avoid risk behavior? (Call avoidance/ZTP)', weightage: 8 }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log ticket information correctly?', weightage: 6, autofail: true },
+                    { desc: 'Did the CER properly authenticate the writer?', weightage: 8, autofail: true },
+                    { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 9 },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
+                ]
+            },
+            'Digital troubleshooting': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the Agent provide proper branding and personalize the call?', weightage: 6 },
+                    { desc: 'Did the Agent demonstrate confidence and business etiquette althroughout the call session?', weightage: 6 },
+                    { desc: 'Did the Agent express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
+                    { desc: 'Did the Agent convey his/her thoughts in an understandable clear and concise manner?', weightage: 7 },
+                    { desc: 'Did the Agent keep the caller informed?', weightage: 5 }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the Agent ask effective probing questions to ensure accurate diagnosis?', weightage: 5.5 },
+                    { desc: 'Did the Agent do proper research and check all related tools required?', weightage: 11 },
+                    { desc: 'Did the Agent show ownership and actively listen?', weightage: 6 },
+                    { desc: 'Was the Agent able to position all possible options to the customer?', weightage: 10.5, autofail: true },
+                    { desc: 'Did the agent avoid risk behavior? (Call avoidance/ZTP)', weightage: 7 }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the Agent log call information correctly?', weightage: 7, autofail: true },
+                    { desc: 'Did the Agent properly authenticate the caller?', weightage: 8, autofail: true },
+                    { desc: 'Did the Agent provide complete and accurate information?', weightage: 9 },
+                    { desc: 'Did the Agent identify an opportunity to upsell/cross sell a product?', weightage: 5 }
+                ]
+            },
+            'SMS': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the conversation?', weightage: 5 },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette all throughout the conversation session?', weightage: 7 },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6 },
+                    { desc: 'Did the CER keep the customer informed?(Dead air, TAT)', weightage: 5 }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9 },
+                    { desc: 'Did the CER do proper research and check all related tools required?(fact finding)', weightage: 7 },
+                    { desc: 'Did the CER show ownership and respond within the set turnaround time?(5 mins)', weightage: 6 },
+                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true },
+                    { desc: 'Did the CER avoid risk behavior? (conversation avoidance/ZTP)', weightage: 8 }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log ticket information correctly?(Data capture)', weightage: 6, autofail: true },
+                    { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true },
+                    { desc: 'Did the CER provide complete and accurate information? (Customer education)', weightage: 9 },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5 }
+                ]
+            },
+            'NPS outbound': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the Agent provide proper branding and personalize the call?', weightage: 6 },
+                    { desc: 'Did the Agent demonstrate confidence and business etiquette althroughout the call session?', weightage: 6 },
+                    { desc: 'Did the Agent express a sincere acknowledgement/empathy statement when applicable?', weightage: 7 },
+                    { desc: 'Did the Agent convey his/her thoughts in an understandable clear and concise manner?', weightage: 7 },
+                    { desc: 'Did the Agent keep the caller informed?', weightage: 5 }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the Agent ask effective probing questions to ensure accurate diagnosis?', weightage: 8 },
+                    { desc: 'Did the Agent do proper research and check all related tools required?', weightage: 7 },
+                    { desc: 'Did the Agent show ownership and actively listen?', weightage: 6 },
+                    { desc: 'Was the Agent able to position all possible options to the customer? Create a ticket where necessary', weightage: 11, autofail: true },
+                    { desc: 'Did the agent avoid risk behavior? (Call avoidance/ZTP)', weightage: 7 }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the Agent log call information correctly?', weightage: 7, autofail: true },
+                    { desc: 'Did the Agent confirm the feedback from the customer and put it vebatim on the survey form?', weightage: 10, autofail: true },
+                    { desc: 'Did the Agent provide complete and accurate information?', weightage: 9 },
+                    { desc: 'Did the Agent identify an opportunity to upsell/cross sell a product?', weightage: 5 }
+                ]
+            },
+            'Onboarding outbound': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6 },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 7 },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 6 },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6 },
+                    { desc: 'Was the CER able to build rapport?', weightage: 8 }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 5 },
+                    { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7 },
+                    { desc: 'Did the CER demonstrate strong Product and Process Knowledge?', weightage: 10 },
+                    { desc: 'Was the CER able to meet the call objective? (FCR)', weightage: 10, autofail: true },
+                    { desc: 'Did the CER document all action items & follow-up?', weightage: 8 }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log call information correctly?', weightage: 10, autofail: true },
+                    { desc: 'Did the CER adhere to Company Policies & Procedures?', weightage: 5, autofail: true },
+                    { desc: 'Did the CER Comply with industry and legal requirements?', weightage: 5 },
+                    { desc: 'Was the CER able to identify and opportunity for Upselling & Cross-Selling?', weightage: 7 }
+                ]
+            },
+            'Reviewed case handling': {
+                'CUSTOMER EXPERIENCE': [],
+                'PROBLEM SOLVING SKILLS': [],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': []
+            }
         };
-        // Paste the full content of allRolesQuestions object here, as it's too long for this comment.
-        // It should start from '{ "CUSTOMER EXPERIENCE": [...]', 'PROBLEM SOLVING SKILLS": [...]', ...
-        // It's already in your current HTML. I'm just indicating its place here.
 
-        // Mapping of section titles to their container elements (can be defined here)
-        // Note: These will need to be obtained inside functions that use them (like renderQuestionsForRole)
-        // or passed as parameters if they are obtained once in DOMContentLoaded.
-        // For simplicity, it's safer to get them inside the functions that use them (as I've adjusted above).
 
         // --- DOMContentLoaded Listener (attaches event handlers, makes initial calls) ---
         document.addEventListener('DOMContentLoaded', function() {
@@ -1400,10 +1586,10 @@
             // --- Get Firebase objects and functions from window ---
             // These variables will now correctly receive the Firebase instances and functions
             // once they are initialized and exposed by the module script.
-            let db = window.db;
+            let db = window.db; 
             let auth = window.auth;
             let currentUserId = window.currentUserId;
-            let isAuthReady = window.isAuthReady; // isAuthReady will be accurate here
+            let isAuthReady = window.isAuthReady; 
 
 
             // Collection paths (These need to be obtained from window)
@@ -1454,9 +1640,10 @@
 
             logoutBtn.addEventListener('click', function() {
                 sessionStorage.removeItem('loggedIn');
+                // Unsubscribe Firestore listeners on logout to prevent memory leaks
                 if (unsubscribeRecords) unsubscribeRecords();
                 if (unsubscribeWebhooks) unsubscribeWebhooks();
-                window.location.reload();
+                window.location.reload(); // Reload to show login page
             });
 
             reviewerNameSelect.addEventListener('change', () => {
@@ -1477,7 +1664,7 @@
                 resetFormFieldsButKeepRole(); // Calls the top-level resetFormFieldsButKeepRole
             });
 
-            submitFormToDBBtn.addEventListener('click', async (event) => {
+            submitFormToDBBtn.addEventListener('click', async (event) => { // Now submits to DB
                 event.preventDefault();
                 console.log("Submit to Database button clicked.");
 
@@ -1496,6 +1683,7 @@
                     }
                 }
 
+                // Dynamically collect all relevant form data based on current DOM
                 const formDataForSubmission = {};
                 const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
                 basicInfoInputs.forEach(input => {
@@ -1657,7 +1845,7 @@
             });
 
             // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
-            if (document.readyState === 'complete' && window.isAuthReady !== null) {
+            if (document.readyState === 'complete' && window.isAuthReady !== null) { // Check if isAuthReady has been set at all
                 // Get the global references just like in the event listener
                 db = window.db;
                 auth = window.auth;
@@ -1674,25 +1862,6 @@
                 }
             } else {
                 console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
-            }
-
-            // Database Tab specific event listeners (must be attached after DOM elements exist)
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-            const addWebhookBtn = document.getElementById('addWebhookBtn'); // Get the button element
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); // Get the input element
-
-            if (selectAllRecordsCheckbox) {
-                selectAllRecordsCheckbox.addEventListener('change', (e) => {
-                    const isChecked = e.target.checked;
-                    document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-                        checkbox.checked = isChecked;
-                    });
-                    updateDeleteButtonState(); // Calls top-level updateDeleteButtonState
-                });
-            }
-
-            if (addWebhookBtn) { // Ensure button exists before attaching listener
-                addWebhookBtn.addEventListener('click', addWebhook); // Calls top-level addWebhook
             }
         });
     </script>
