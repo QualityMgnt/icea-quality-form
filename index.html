@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -39,8 +39,14 @@
 
         /* Section Headers */
         .section-header-bg {
-            background-color: #1a73e8; /* icealion-blue */
+            background-color: #1a73e8;
+            color: white;
         }
+        /* Icon backgrounds for questions */
+        .icon-bg-orange { background-color: #f57c00; }
+        .icon-bg-blue { background-color: #2196f3; }
+        .icon-bg-green { background-color: #4caf50; }
+        .icon-bg-yellow { background-color: #ffc107; }
 
         /* Form Row Styling (zebra striping) */
         .form-row-light { background-color: #f9fafb; /* gray-50 */ }
@@ -96,12 +102,6 @@
         .logout-button:hover {
             background-color: #e65100; /* darker orange */
         }
-
-        /* Icon backgrounds for questions */
-        .icon-bg-orange { background-color: #f57c00; }
-        .icon-bg-blue { background-color: #2196f3; }
-        .icon-bg-green { background-color: #4caf50; }
-        .icon-bg-yellow { background-color: #ffc107; }
 
         /* Specific styles for modal/message box */
         .message-box-overlay {
@@ -444,7 +444,7 @@
                     </tbody>
                 </table>
                 <div class="flex items-center justify-between w-full mt-4">
-                    <img src="https://placehold.co/150x50/FFFFFF/1a73e8?text=ICEALION%0AGROUP" alt="ICEALION Logo" class="h-12 rounded-md">
+                    <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION%0AGROUP" alt="ICEALION Group" class="h-12 rounded-md">
                     <div class="flex space-x-4">
                         <button type="button" id="print-email-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             PDF & Email
@@ -901,7 +901,7 @@
 
         async function fetchRecordsAndWebhooks() {
             // Get elements here, as they must be present when this function is called after DOMContentLoaded
-            const recordsTableBody = document.getElementById('recordsTableBody');
+            const recordsTableBody = document.getElementById('recordsTableBody'); 
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
@@ -1043,7 +1043,7 @@
             const cancelDeleteBtn = document.createElement('button');
             cancelDeleteBtn.textContent = 'Cancel';
             cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-            cancelDeleteBtn.onclick = () => {
+            cancelBtn.onclick = () => {
                  hideMessageBox();
                  messageBoxContent.innerHTML = originalMessageBoxContentHTML;
             };
@@ -1059,6 +1059,10 @@
         }
 
         async function addWebhook() {
+            // Access elements here to ensure DOM is loaded
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
+            const webhookList = document.getElementById('webhookList'); // Used by renderWebhookList which this function might trigger
+
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
                 return;
@@ -1069,7 +1073,6 @@
                  return;
             }
             
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
             const webhookUrl = newWebhookUrlInput.value.trim();
             if (!webhookUrl) {
                 showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
@@ -1090,6 +1093,9 @@
                 await window.fsAddDoc(window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
                 newWebhookUrlInput.value = '';
                 showMessageBox("Success", "Webhook added successfully!", false, false, true);
+            } catch (e) { // *** CATCH BLOCK ADDED HERE ***
+                console.error("Error adding webhook: ", e);
+                showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true);
             }
         }
 
@@ -1826,14 +1832,14 @@
             // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
                 // Ensure the global db and auth objects are correctly referenced after Firebase is ready
-                db = window.db; 
-                auth = window.auth;
-                currentUserId = window.currentUserId;
-                isAuthReady = window.isAuthReady; // This flag will now be true
+                let db = window.db; // Re-declare as let inside this scope for clarity
+                let auth = window.auth;
+                let currentUserId = window.currentUserId;
+                let isAuthReady = window.isAuthReady; // This flag will now be true
 
                 // Update collection path variables, which depend on window.appId being set by module script
-                EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-                WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
+                const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
+                const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
                 
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
                 initializeApp(); // Calls the top-level initializeApp
@@ -1846,14 +1852,13 @@
 
             // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
             if (document.readyState === 'complete' && window.isAuthReady !== null) { // Check if isAuthReady has been set at all
-                // Get the global references just like in the event listener
-                db = window.db;
-                auth = window.auth;
-                currentUserId = window.currentUserId;
-                isAuthReady = window.isAuthReady;
+                let db = window.db; // Re-declare as let inside this scope for clarity
+                let auth = window.auth;
+                let currentUserId = window.currentUserId;
+                let isAuthReady = window.isAuthReady;
 
-                EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-                WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
+                const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
+                const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
                 initializeApp(); // Calls the top-level initializeApp
