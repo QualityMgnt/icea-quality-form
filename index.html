@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -832,6 +832,7 @@
 
         // Message Box Functions
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            // Get elements inside the function to ensure DOM is loaded
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
             const messageBoxTitle = document.getElementById('messageBoxTitle');
@@ -884,8 +885,8 @@
                 databaseTab.classList.add('active');
                 databaseContent.style.display = 'block';
                 // Trigger database table refresh when switching to it
-                if (window.db && window.currentUserId) {
-                    fetchRecordsAndWebhooks();
+                if (window.db && window.currentUserId) { // Ensure Firebase is initialized and auth is ready
+                    fetchRecordsAndWebhooks(); // Refresh data when entering the tab
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
@@ -897,12 +898,14 @@
         let unsubscribeWebhooks = null;
 
         async function fetchRecordsAndWebhooks() {
-            // Get element references inside the function
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
-            const messageBoxTitle = document.getElementById('messageBoxTitle');
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+            // Get element references inside the function to ensure DOM is loaded
+            const recordsTableBody = document.getElementById('recordsTableBody'); // Make sure this is accessible
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); // Make sure this is accessible
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox'); // Make sure this is accessible
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); // Make sure this is accessible
+            const addWebhookBtn = document.getElementById('addWebhookBtn'); // Make sure this is accessible
+            const webhookList = document.getElementById('webhookList'); // Make sure this is accessible
+
 
             if (!window.db || !window.currentUserId) {
                 console.warn("Firestore not initialized or user not authenticated yet. Cannot fetch data.");
@@ -1007,7 +1010,7 @@
             const messageBoxContent = document.getElementById('messageBoxContent');
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); // Access here
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
 
             const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
 
@@ -1020,7 +1023,7 @@
                 hideMessageBox();
                 showMessageBox("Deleting", "Deleting selected records...", false, true, false);
                 try {
-                    const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, id)));
+                    const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, id)));
                     await Promise.all(deletePromises);
                     console.log("Selected records deleted successfully.");
                     showMessageBox("Success", "Selected records deleted.", false, false, true);
@@ -1044,7 +1047,7 @@
 
             messageBoxContent.innerHTML = '';
             messageBoxContent.appendChild(confirmDeleteBtn);
-            messageBoxContent.appendChild(cancelDeleteBtn);
+            messageBoxContent.appendChild(cancelBtn);
             
             messageBoxCloseBtn.onclick = () => {
                 hideMessageBox();
@@ -1595,6 +1598,9 @@
 
 
             // --- UI Elements (Get references to DOM elements here) ---
+            // Accessing elements once here and reusing them in event listeners where possible
+            // Note: Functions called immediately on load (like initializeApp) need to get their elements locally if those elements
+            // are not defined here and passed. Functions defined below can closure over these.
             const loginForm = document.getElementById('loginForm');
             const loginMessage = document.getElementById('loginMessage');
             const usernameInput = document.getElementById('username');
@@ -1731,7 +1737,7 @@
             printEmailBtn.addEventListener('click', async () => {
                 console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
 
-                const auditFormContent = document.getElementById('auditFormContent'); // Ensure this captures the whole form
+                const auditFormContent = document.getElementById('auditFormContent');
                 if (!auditFormContent) {
                     console.error('Error: Form container not found for PDF generation.');
                     showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
