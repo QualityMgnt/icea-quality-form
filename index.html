@@ -1249,9 +1249,23 @@
             const contactIdInput = document.getElementById('contact-id');
             const evaluationDateInput = document.getElementById('review-date');
 
-            if (!cerNameSelect.value.trim() || !contactIdInput.value.trim() || !evaluationDateInput.value) {
-                showMessageBox("Validation Error", "Please fill in CER Name, Contact ID, and Evaluation Date before generating PDF.", true, false, true);
-                return; // Stop execution if validation fails
+            // Collect all required inputs, excluding the dynamic question fields
+            const requiredTopInputs = document.querySelectorAll(
+                '#contact-id[required], #client-name[required], #cer-name[required], #cer-role[required], #call-date-time[required], #reviewer-name[required], #review-date[required]'
+            );
+            
+            let allRequiredTopFieldsFilled = true;
+            for (const input of requiredTopInputs) {
+                if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
+                    allRequiredTopFieldsFilled = false;
+                    input.style.borderColor = 'red';
+                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    input.focus();
+                    showMessageBox("Validation Error", `Please fill out the required field: ${input.labels ? input.labels[0].textContent : input.name}.`, true, false, true);
+                    return; // Stop execution if any top-level required field is empty
+                } else {
+                    input.style.borderColor = ''; // Reset border if valid
+                }
             }
 
             if (!auditFormContent) {
@@ -1414,7 +1428,7 @@
             const logoutBtn = document.getElementById('logoutBtn');
 
             const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-            const pdfEmailBtn = document.getElementById('print-email-btn'); 
+            const pdfEmailBtn = document.getElementById('print-email-btn'); // Corrected to match HTML ID
             const assessmentForm = document.getElementById('assessment-form');
 
             const reviewerNameSelect = document.getElementById('reviewer-name');
