@@ -318,16 +318,7 @@
                 <label for="cer-role" class="block text-sm font-medium text-gray-700">CER Role</label>
                 <select id="cer-role" name="CER Role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
                     <option value="">Select Role</option>
-                    <option value="Outbound Sales">Outbound Sales</option>
-                    <option value="Onboarding outbound">Onboarding outbound</option>
-                    <option value="Social Media">Social Media</option>
-                    <option value="Live Chat">Live Chat</option>
-                    <option value="Inbound">Inbound</option>
-                    <option value="Email">Email</option>
-                    <option value="Digital troubleshooting">Digital troubleshooting</option>
-                    <option value="SMS">SMS</option>
-                    <option value="NPS outbound">NPS outbound</option>
-                    <option value="Reviewed case handling">Reviewed case handling</option>
+                    <!-- Roles will be populated dynamically from Firestore -->
                 </select>
             </div>
             <div>
@@ -392,7 +383,8 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="cxQuestionsContainer">
-                        </div>
+                        <!-- Dynamic questions will be rendered here -->
+                    </div>
                 </div>
             </div>
 
@@ -409,7 +401,8 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="psQuestionsContainer">
-                        </div>
+                        <!-- Dynamic questions will be rendered here -->
+                    </div>
                 </div>
             </div>
 
@@ -426,7 +419,8 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="caQuestionsContainer">
-                        </div>
+                        <!-- Dynamic questions will be rendered here -->
+                    </div>
                 </div>
             </div>
 
@@ -559,7 +553,6 @@
         window.fsWhere = where;
         window.fsGetDoc = getDoc; // Expose getDoc for single document retrieval
 
-        // Authentication state and user ID
         window.currentUserId = null;
         window.isAuthReady = false; // Flag to indicate if auth state is determined
 
@@ -624,6 +617,7 @@
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
         let globalBusinessComplianceAccuracyValue = 0; 
+
 
         // --- ALL FUNCTION DECLARATIONS (Hoisted to top-level scope) ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
@@ -1183,7 +1177,7 @@
             const evaluationDateInput = document.getElementById('review-date');
             const callDateTimeInput = document.getElementById('call-date-time');
             const cerRoleSelect = document.getElementById('cer-role');
-            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn'); // Get the button here
+            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn'); 
 
             evaluationDateInput.valueAsDate = new Date();
             const now = new Date();
@@ -1194,8 +1188,7 @@
             renderQuestionsForRole(''); 
             calculateScore(); 
 
-            // Hide submit button initially
-            submitFormToDBBtn.style.display = 'none';
+            submitFormToDBBtn.style.display = 'none'; // Hide submit button initially
         }
 
         async function fetchFormConfigurations() {
@@ -1212,7 +1205,7 @@
                 const docSnap = await window.fsGetDoc(configDocRef);
                 if (docSnap.exists()) {
                     allRolesQuestionsFirebase = docSnap.data();
-                    console.log("Form configurations loaded from Firestore:", allRolesQuestionsFirebase);
+                    console.log("Form configurations loaded from Firestore:", allRolesQuestionsFirebase); // LOG
                     populateCerRoleSelect(allRolesQuestionsFirebase); 
                 } else {
                     console.log("Form configurations document does not exist in Firestore. Please configure roles in Admin Panel.");
@@ -1257,6 +1250,7 @@
             };
 
             console.log("Rendering questions for role:", role);
+            console.log("Questions for selected role in Firebase:", allRolesQuestionsFirebase[role]); // LOG
 
             for (const key in questionContainers) {
                 if (questionContainers[key]) { 
@@ -1282,6 +1276,12 @@
                     console.error(`Container not found for section: ${sectionTitle}`);
                     continue;
                 }
+
+                if (!Array.isArray(questions)) { // IMPORTANT: Ensure 'questions' is an array
+                    console.error(`Expected an array for section "${sectionTitle}" but got:`, questions);
+                    continue; // Skip this section if not an array
+                }
+
 
                 questions.forEach(q => {
                     const rowDiv = document.createElement('div');
@@ -1337,7 +1337,7 @@
             const autofailTypeSelect = document.getElementById('autofail-type');
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
-            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn'); // Get button here
+            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn'); 
 
             console.log("Full form reset.");
 
@@ -1362,8 +1362,7 @@
 
             renderQuestionsForRole(''); 
 
-            // Hide submit button on form reset
-            submitFormToDBBtn.style.display = 'none';
+            submitFormToDBBtn.style.display = 'none'; // Hide submit button on form reset
         }
 
         function resetFormFieldsButKeepRole() {
@@ -1393,7 +1392,7 @@
             calculateScore(); 
         }
 
-        async function generatePdfAndOpenEmailClient() { // Renamed function
+        async function generatePdfAndOpenEmailClient() { 
             console.log('PDF & Email button clicked - Attempting PDF generation and Email client open...');
 
             const auditFormContent = document.getElementById('auditFormContent');
@@ -1403,10 +1402,9 @@
                 return;
             }
 
-            // Elements to hide for PDF generation
             const mainNav = document.getElementById('mainNav');
-            const pdfEmailBtn = document.getElementById('pdfEmailBtn'); // The button that was just clicked
-            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn'); // Will be shown after this process
+            const pdfEmailBtn = document.getElementById('pdfEmailBtn'); 
+            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn'); 
             const loginPage = document.getElementById('loginPage'); 
             const databaseContent = document.getElementById('databaseContent'); 
 
@@ -1430,8 +1428,7 @@
             });
             console.log("Textareas adjusted for PDF capture.");
 
-            await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for layout changes
-
+            await new Promise(resolve => setTimeout(resolve, 50)); 
 
             try {
                 showMessageBox("Generating PDF", "Please wait while the PDF is generated and your email client is opened...", false, true, false);
@@ -1465,7 +1462,6 @@
                 }
                 console.log("PDF images added.");
 
-                // Get form data for PDF filename and email subject/body
                 const contactIdInput = document.getElementById('contact-id');
                 const cerNameSelect = document.getElementById('cer-name');
                 const evaluationDateInput = document.getElementById('review-date');
@@ -1480,34 +1476,29 @@
                 const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
                 
                 const pdfFileName = `QA_Form_${contactIdVal}_${cerNameVal}_${evaluationDateVal}.pdf`;
-                pdf.save(pdfFileName); // Download the PDF
+                pdf.save(pdfFileName); 
                 console.log("PDF saved.");
 
-                // Prepare and open mailto link
                 const subject = `Quality Assessment Form for Contact ID: ${contactIdVal} - CER: ${cerNameVal} - Date: ${evaluationDateVal}. Overall Score: ${overallScoreVal}`;
                 const body = `Dear Team,\n\nPlease find the attached Quality Assessment Form for Contact ID: ${contactIdVal},\nCER: ${cerNameVal},\nEvaluated on: ${evaluationDateVal}.\n\nThe overall score is: ${overallScoreVal}.\n\nRegards,\n${reviewerNameVal || 'Reviewer'}`;
                 
-                // You can add a default 'to' email if desired, e.g., 'to=quality@icealion.com'
                 const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                 window.location.href = mailtoLink;
 
-                hideMessageBox(); // Hide loading spinner after mailto is initiated
+                hideMessageBox(); 
                 showMessageBox("PDF Downloaded & Email Opened", "The PDF has been downloaded. Your default email client has been opened. Please manually attach the downloaded PDF.", false, false, true);
                 
-                // Show the Submit button after this operation
-                submitFormToDBBtn.style.display = 'inline-block'; // Or 'block', depending on layout
+                submitFormToDBBtn.style.display = 'inline-block'; 
 
             } catch (error) {
                 console.error("Critical Error during PDF generation or mailto attempt:", error);
                 showMessageBox("Operation Failed", `Failed to complete operation: ${error.message}`, true, false, true);
             } finally {
-                // Restore original display styles
                 elementsToHide.forEach(({ el, display }) => {
                     if (el) el.style.display = display;
                 });
                 console.log("Elements restored.");
 
-                // Restore textarea heights
                 originalHeights.forEach(({el, height}) => {
                     el.style.height = height;
                 });
@@ -1530,7 +1521,7 @@
                 loginPage.style.display = 'none';
                 mainNav.style.display = 'flex';
                 showTab('auditForm'); 
-                initializeAuditForm(); // This will set up the form and hide the submit button
+                initializeAuditForm(); 
             } else {
                 loginPage.style.display = 'flex';
                 mainNav.style.display = 'none';
@@ -1562,7 +1553,7 @@
             const logoutBtn = document.getElementById('logoutBtn');
 
             const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-            const pdfEmailBtn = document.getElementById('pdfEmailBtn'); // Get the main PDF & Email button
+            const pdfEmailBtn = document.getElementById('pdfEmailBtn'); 
             const assessmentForm = document.getElementById('assessment-form');
 
             const reviewerNameSelect = document.getElementById('reviewer-name');
@@ -1574,6 +1565,7 @@
 
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
             const addWebhookBtn = document.getElementById('addWebhookBtn');
+
 
             // --- EVENT LISTENERS (Attach to DOM elements) ---
             loginForm.addEventListener('submit', function(event) {
@@ -1702,8 +1694,7 @@
                 await addRecordToFirestore(formDataForSubmission); 
             });
 
-            // NEW: Event listener for "PDF & Email" button
-            pdfEmailBtn.addEventListener('click', generatePdfAndOpenEmailClient); // Calls the single function
+            pdfEmailBtn.addEventListener('click', generatePdfAndOpenEmailClient); 
 
 
             // Handle "Select All" checkbox for database records
