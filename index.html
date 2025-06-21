@@ -6,6 +6,7 @@
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@400;700&display=swap" rel="stylesheet"> 
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -18,7 +19,7 @@
             align-items: center;
             min-height: 100vh;
             background-color: #f3f4f6; /* bg-gray-100 */
-            font-size: 14px; /* Default body font size slightly larger than 12 for readability */
+            font-size: 12px; /* Base body font size set to 12px */
         }
 
         /* ICEALION Branding Colors */
@@ -33,8 +34,8 @@
         /* Error/Message styles */
         .error-message {
             color: #dc2626; /* red-700 */
-            font-size: 0.875rem; /* text-sm, kept relative */
-            margin-top: 0.5rem; /* mt-2 */
+            font-size: 11px; /* Slightly smaller for error messages */
+            margin-top: 0.4rem; /* mt-2 */
             text-align: center;
         }
 
@@ -42,6 +43,7 @@
         .section-header-bg {
             background-color: #1a73e8;
             color: white;
+            font-size: 13px; /* Slightly larger than base for headers */
         }
         /* Icon backgrounds for questions */
         .icon-bg-orange { background-color: #f57c00; }
@@ -55,7 +57,7 @@
 
         /* General input styling for consistency */
         .form-grid-input {
-            padding: 8px; /* p-2 */
+            padding: 6px; /* Reduced padding */
             font-size: 12px; /* Explicitly set for these inputs */
         }
 
@@ -75,13 +77,13 @@
         /* Adjust font sizes for specific elements to maintain hierarchy */
         /* You might need to fine-tune these based on how Garamond renders */
         label {
-            font-size: 12px; /* Smaller labels */
+            font-size: 12px; /* Labels are now base size */
         }
         .text-xl { /* Form title */
-            font-size: 1.1rem; /* Adjusted from 1.25rem for smaller overall feel */
+            font-size: 16px; /* Adjusted from 1.1rem for smaller overall feel */
         }
         .text-2xl { /* Login H1 */
-            font-size: 1.5rem; /* Adjusted slightly */
+            font-size: 20px; /* Adjusted slightly */
         }
         .text-sm { /* Small text elements like descriptive paragraphs */
             font-size: 11px; /* Slightly smaller than 12px for supporting text */
@@ -90,7 +92,7 @@
             font-size: 10px; /* Adjusted as needed */
         }
         .text-xl.font-bold { /* Score display */
-            font-size: 1.2rem; /* Adjusted for impact */
+            font-size: 18px; /* Adjusted for impact */
         }
         
         /* Navigation styles */
@@ -328,7 +330,7 @@
             </div>
             <div>
                 <label for="client-name" class="block text-sm font-medium text-gray-700">Client Name</label>
-                <input type="text" id="client-name" name="Client Name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" placeholder="e.g., John Doe" required>
+                <input type="text" id="client-name" name="Client Name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
             </div>
             <div>
                 <label for="cer-name" class="block text-sm font-medium text-gray-700">CER Name</label>
@@ -1008,7 +1010,7 @@
 
             overallScoreDisplay.textContent = `${overallPercentage}%`;
             totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
-            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`; 
+            overallFinalPercentagePercentageDisplay.textContent = `${overallPercentage}%`; // Corrected ID usage
 
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
@@ -1250,44 +1252,39 @@
             const contactIdInput = document.getElementById('contact-id');
             const evaluationDateInput = document.getElementById('review-date');
 
-            // Collect all required inputs, excluding the dynamic question fields
-            const requiredTopInputs = document.querySelectorAll(
-                '#contact-id[required], #client-name[required], #cer-name[required], #cer-role[required], #call-date-time[required], #reviewer-name[required], #review-date[required]'
-            );
+            // Collect all required inputs, including the "other-reviewer-name" if applicable
+            const requiredInputs = document.querySelectorAll('#assessment-form [required]:not(.hidden)');
             
-            let allRequiredTopFieldsFilled = true;
-            for (const input of requiredTopInputs) {
+            for (const input of requiredInputs) {
                 // Special handling for 'Other' reviewer name if selected
                 if (input.id === 'reviewer-name' && input.value === 'Other') {
                     const otherReviewerName = document.getElementById('other-reviewer-name');
-                    if (otherReviewerName.classList.contains('hidden') || otherReviewerName.value.trim() === '') {
-                        allRequiredTopFieldsFilled = false;
+                    if (otherReviewerName.value.trim() === '') { // Check its actual value, not just its hidden status
                         otherReviewerName.style.borderColor = 'red';
                         otherReviewerName.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         otherReviewerName.focus();
                         showMessageBox("Validation Error", "Please enter the reviewer's name in the 'Other' field.", true, false, true);
-                        return;
+                        return; // Stop execution
                     } else {
                         otherReviewerName.style.borderColor = '';
                     }
                 }
                 // General validation for other required fields
                 else if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
-                    allRequiredTopFieldsFilled = false;
                     input.style.borderColor = 'red';
                     input.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     input.focus();
                     showMessageBox("Validation Error", `Please fill out the required field: ${input.labels ? input.labels[0].textContent : input.name}.`, true, false, true);
-                    return; // Stop execution if any top-level required field is empty
+                    return; // Stop execution
                 } else {
                     input.style.borderColor = ''; // Reset border if valid
                 }
             }
 
-            // Check if there are any questions displayed at all before generating PDF
-            const totalQuestionsDisplayed = document.querySelectorAll('.rating-select').length;
-            if (totalQuestionsDisplayed === 0) {
-                 showMessageBox("Validation Error", "No questions loaded for the selected CER Role. Please select a role with questions or configure them in the Admin Panel.", true, false, true);
+            // Check if any dynamic questions are loaded. If not, the role likely has no questions.
+            const totalQuestionsDisplayed = document.querySelectorAll('#cxQuestionsContainer .rating-select, #psQuestionsContainer .rating-select, #caQuestionsContainer .rating-select').length;
+            if (totalQuestionsDisplayed === 0 && cerRoleSelect.value !== '') { // Only warn if a role is selected but no questions exist
+                 showMessageBox("Validation Error", `No questions loaded for the selected CER Role "${cerRoleSelect.value}". Please ensure questions are configured for this role in the Admin Panel.`, true, false, true);
                  return;
             }
 
@@ -1358,6 +1355,7 @@
                 console.log("PDF images added.");
 
                 // Get form data for PDF filename and email subject/body
+                // cerNameSelect and contactIdInput are already defined above the validation
                 const cerNameVal = cerNameSelect.value.trim(); // Get current CER Name value
                 const contactIdVal = contactIdInput.value.trim(); // Get current Contact ID value
                 const evaluationDateVal = evaluationDateInput.value; // Date format 'YYYY-MM-DD'
@@ -1365,7 +1363,7 @@
                 const reviewerNameVal = document.getElementById('reviewer-name').value === 'Other' ? document.getElementById('other-reviewer-name').value : document.getElementById('reviewer-name').value;
                 
                 // Construct PDF filename using CER Name, Contact ID, and Date
-                // Example: QA_Form_JohnDoe_Contact123_20250621.pdf
+                // Example: QA_Form_AnnNyokabi_Contact123_20250621.pdf
                 // Replace spaces and special characters with underscores for cleaner filenames
                 const cleanCerName = cerNameVal.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_'); 
                 const cleanContactId = contactIdVal.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
@@ -1518,9 +1516,9 @@
                 resetFormFieldsButKeepRole(); 
             });
 
-            // Re-attach change listener for dynamically created rating selects
-            // This is handled inside renderQuestionsForRole now, so this might be redundant if no static selects exist.
-            // Keeping it for robustness if other selects are added outside the dynamic rendering.
+            // Ensure dynamic selects always trigger calculateScore
+            // This loop is for elements that might exist statically on load.
+            // renderQuestionsForRole handles dynamic ones.
             document.querySelectorAll('.rating-select').forEach(select => {
                 select.addEventListener('change', calculateScore);
             });
@@ -1536,13 +1534,13 @@
                     // Special handling for 'Other' reviewer name if selected
                     if (input.id === 'reviewer-name' && input.value === 'Other') {
                         const otherReviewerName = document.getElementById('other-reviewer-name');
-                        if (otherReviewerName.classList.contains('hidden') || otherReviewerName.value.trim() === '') {
+                        if (otherReviewerName.value.trim() === '') { // Check its actual value, not just its hidden status
                             allRequiredFilled = false;
                             otherReviewerName.style.borderColor = 'red';
                             otherReviewerName.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             otherReviewerName.focus();
                             showMessageBox("Validation Error", "Please enter the reviewer's name in the 'Other' field.", true, false, true);
-                            return;
+                            return; // Stop execution
                         } else {
                             otherReviewerName.style.borderColor = '';
                         }
@@ -1561,15 +1559,29 @@
                 }
 
                 const formDataForSubmission = {};
-                const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select, .p-6.grid.grid-cols-2 input, .p-6.grid.grid-cols-2 select, .p-6.grid.grid-cols-3 input, .p-6.grid.grid-cols-3 select');
-                basicInfoInputs.forEach(input => {
-                    if (input.name) {
-                        if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
-                            return;
-                        }
-                        formDataForSubmission[input.name] = input.value.trim();
-                    }
-                });
+                // Re-fetch elements directly inside the event listener for current values
+                const contactIdInput = document.getElementById('contact-id');
+                const clientNameInput = document.getElementById('client-name');
+                const cerNameSelect = document.getElementById('cer-name');
+                const cerRoleSelect = document.getElementById('cer-role');
+                const callDateTimeInput = document.getElementById('call-date-time');
+                const reviewerNameSelect = document.getElementById('reviewer-name');
+                const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+                const autofailTypeSelect = document.getElementById('autofail-type');
+                const evaluationDateInput = document.getElementById('review-date');
+                const durationInput = document.getElementById('duration');
+
+
+                formDataForSubmission['Contact ID'] = contactIdInput.value.trim();
+                formDataForSubmission['Client Name'] = clientNameInput.value.trim();
+                formDataForSubmission['CER Name'] = cerNameSelect.value.trim();
+                formDataForSubmission['CER Role'] = cerRoleSelect.value.trim();
+                formDataForSubmission['Call Date and Time'] = callDateTimeInput.value;
+                formDataForSubmission['Reviewer\'s Name'] = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value.trim() : reviewerNameSelect.value;
+                formDataForSubmission['Auto Fail Type'] = autofailTypeSelect.value.trim();
+                formDataForSubmission['Evaluation Date'] = evaluationDateInput.value;
+                formDataForSubmission['Call Duration'] = durationInput.value.trim();
+
 
                 const overallScoreDisplay = document.getElementById('overall-score-display');
                 const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
