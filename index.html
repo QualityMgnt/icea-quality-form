@@ -6,6 +6,7 @@
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
@@ -1256,7 +1257,22 @@
             
             let allRequiredTopFieldsFilled = true;
             for (const input of requiredTopInputs) {
-                if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
+                // Special handling for 'Other' reviewer name if selected
+                if (input.id === 'reviewer-name' && input.value === 'Other') {
+                    const otherReviewerName = document.getElementById('other-reviewer-name');
+                    if (otherReviewerName.classList.contains('hidden') || otherReviewerName.value.trim() === '') {
+                        allRequiredTopFieldsFilled = false;
+                        otherReviewerName.style.borderColor = 'red';
+                        otherReviewerName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        otherReviewerName.focus();
+                        showMessageBox("Validation Error", "Please enter the reviewer's name in the 'Other' field.", true, false, true);
+                        return;
+                    } else {
+                        otherReviewerName.style.borderColor = '';
+                    }
+                }
+                // General validation for other required fields
+                else if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
                     allRequiredTopFieldsFilled = false;
                     input.style.borderColor = 'red';
                     input.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1267,6 +1283,14 @@
                     input.style.borderColor = ''; // Reset border if valid
                 }
             }
+
+            // Check if there are any questions displayed at all before generating PDF
+            const totalQuestionsDisplayed = document.querySelectorAll('.rating-select').length;
+            if (totalQuestionsDisplayed === 0) {
+                 showMessageBox("Validation Error", "No questions loaded for the selected CER Role. Please select a role with questions or configure them in the Admin Panel.", true, false, true);
+                 return;
+            }
+
 
             if (!auditFormContent) {
                 console.error('Error: Form container not found for PDF generation.');
@@ -1428,7 +1452,7 @@
             const logoutBtn = document.getElementById('logoutBtn');
 
             const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-            const pdfEmailBtn = document.getElementById('print-email-btn'); // Corrected to match HTML ID
+            const pdfEmailBtn = document.getElementById('print-email-btn'); // Correctly linked to HTML ID
             const assessmentForm = document.getElementById('assessment-form');
 
             const reviewerNameSelect = document.getElementById('reviewer-name');
@@ -1494,6 +1518,9 @@
                 resetFormFieldsButKeepRole(); 
             });
 
+            // Re-attach change listener for dynamically created rating selects
+            // This is handled inside renderQuestionsForRole now, so this might be redundant if no static selects exist.
+            // Keeping it for robustness if other selects are added outside the dynamic rendering.
             document.querySelectorAll('.rating-select').forEach(select => {
                 select.addEventListener('change', calculateScore);
             });
@@ -1506,20 +1533,28 @@
                 const requiredInputs = assessmentForm.querySelectorAll('[required]:not(.hidden)');
                 let allRequiredFilled = true;
                 for (const input of requiredInputs) {
-                    if (input.tagName === 'SELECT' && input.value === '') {
+                    // Special handling for 'Other' reviewer name if selected
+                    if (input.id === 'reviewer-name' && input.value === 'Other') {
+                        const otherReviewerName = document.getElementById('other-reviewer-name');
+                        if (otherReviewerName.classList.contains('hidden') || otherReviewerName.value.trim() === '') {
+                            allRequiredFilled = false;
+                            otherReviewerName.style.borderColor = 'red';
+                            otherReviewerName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            otherReviewerName.focus();
+                            showMessageBox("Validation Error", "Please enter the reviewer's name in the 'Other' field.", true, false, true);
+                            return;
+                        } else {
+                            otherReviewerName.style.borderColor = '';
+                        }
+                    }
+                    // General validation for other required fields
+                    else if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
                         allRequiredFilled = false;
                         input.style.borderColor = 'red';
                         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         input.focus();
-                        showMessageBox("Validation Error", "Please fill out all required fields.", true, false, true);
-                        return;
-                    } else if (input.value.trim() === '') {
-                        allRequiredFilled = false;
-                        input.style.borderColor = 'red';
-                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        input.focus();
-                        showMessageBox("Validation Error", "Please fill out all required fields.", true, false, true);
-                        return;
+                        showMessageBox("Validation Error", `Please fill out the required field: ${input.labels ? input.labels[0].textContent : input.name}.`, true, false, true);
+                        return; 
                     } else {
                         input.style.borderColor = ''; 
                     }
