@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
@@ -263,7 +262,7 @@
     </div>
 
     <nav class="main-nav" id="mainNav" style="display: none;">
-      
+       
 <ul>
             <li><a href="#" id="auditFormTab" class="active"><i class="fas fa-file-alt"></i> Audit Form</a></li>
             <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
@@ -271,7 +270,7 @@
             <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li> </ul>
 
 
-        
+       
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
 
@@ -476,7 +475,7 @@
                     </button>
                 </div>
             </div>
-            
+           
             <div id="databaseTableContainer" class="overflow-x-auto max-h-[60vh]">
                 <table class="min-w-full">
                     <thead>
@@ -620,7 +619,7 @@
         // --- GLOBAL SCORE VARIABLES (Used by calculateScore) ---
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
-        let globalBusinessComplianceAccuracyValue = 0;
+        let globalBusinessComplianceAccuracyValue = 0; // This variable is declared but not used for calculation in the provided code snippet for this specific score, but it's okay to keep if it's meant for future use.
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
         // This object holds all the dynamic questions and their properties for each CER Role.
@@ -858,10 +857,14 @@
                 messageBoxTitle.style.color = '#1a73e8'; // Blue for info/success
             }
 
-            messageBoxCloseBtn.onclick = () => {
-                messageBoxOverlay.classList.add('hidden');
-                if (onClose) onClose();
-            };
+            // Clear previous click handlers
+            messageBoxCloseBtn.onclick = null;
+            if (showCloseButton) {
+                messageBoxCloseBtn.onclick = () => {
+                    messageBoxOverlay.classList.add('hidden');
+                    if (onClose) onClose();
+                };
+            }
         }
 
         function hideMessageBox() {
@@ -911,9 +914,9 @@
             const recordsTableBody = document.getElementById('recordsTableBody'); 
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const addWebhookBtn = document.getElementById('addWebhookBtn');
-            const webhookList = document.getElementById('webhookList');
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); // Not directly used here, but for context
+            const addWebhookBtn = document.getElementById('addWebhookBtn'); // Not directly used here, but for context
+            const webhookList = document.getElementById('webhookList'); // Used by renderWebhookList which this function might trigger
 
 
             if (!window.db || !window.currentUserId) {
@@ -922,14 +925,14 @@
             }
 
             if (!window.EVALUATION_RECORDS_COLLECTION_PATH || !window.WEBHOOKS_COLLECTION_PATH) {
-                 console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
-                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
-                 return;
+                   console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
+                   showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
+                   return;
             }
-            
+           
             if (unsubscribeRecords) unsubscribeRecords();
             if (unsubscribeWebhooks) unsubscribeWebhooks();
-            
+           
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
             try {
@@ -941,7 +944,7 @@
                     });
                     console.log("Records updated:", allRecords.length, "records.");
                     renderRecordsTable(allRecords);
-                    hideMessageBox();
+                    hideMessageBox(); // Hide after records render
                 }, (error) => {
                     console.error("Error listening to records:", error);
                     showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
@@ -955,7 +958,7 @@
                     });
                     console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
                     renderWebhookList(allWebhooks);
-                    hideMessageBox();
+                    hideMessageBox(); // Hide after webhooks render
                 }, (error) => {
                     console.error("Error listening to webhooks:", error);
                     showMessageBox("Error Loading Webhooks", `Could not load webhooks: ${error.message}`, true, false, true);
@@ -973,9 +976,9 @@
                 return false;
             }
             if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
-                 console.error("Firestore collection path for records is not defined.");
-                 showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
-                 return false;
+                   console.error("Firestore collection path for records is not defined.");
+                   showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
+                   return false;
             }
 
             showMessageBox("Submitting", "Saving record to database...", false, true, false);
@@ -1002,16 +1005,16 @@
             const messageBoxContent = document.getElementById('messageBoxContent');
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); // For updating its state
 
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
                 return;
             }
             if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
-                 console.error("Firestore collection path for records is not defined for deletion.");
-                 showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
-                 return;
+                   console.error("Firestore collection path for records is not defined for deletion.");
+                   showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
+                   return;
             }
 
             const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
@@ -1022,46 +1025,48 @@
                 return;
             }
 
+            // Store original content of messageBoxContent to restore later
             const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
 
             showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
-            
-            const confirmDeleteBtn = document.createElement('button');
-            confirmDeleteBtn.textContent = 'Delete';
-            confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+           
+            const confirmBtn = document.createElement('button'); // Changed from confirmDeleteBtn to confirmBtn
+            confirmBtn.textContent = 'Delete';
+            confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2'; // Added mr-2 for spacing
             confirmBtn.onclick = async () => {
                 hideMessageBox();
                 showMessageBox("Deleting", "Deleting selected records...", false, true, false);
                 try {
-                    const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, id)));
+                    const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, id))); // Corrected path
                     await Promise.all(deletePromises);
                     console.log("Selected records deleted successfully.");
                     showMessageBox("Success", "Selected records deleted.", false, false, true);
                     document.getElementById('selectAllRecordsCheckbox').checked = false;
-                    updateDeleteButtonState();
+                    updateDeleteButtonState(); // Update button state after deletion
                 } catch (e) {
                     console.error("Error deleting documents: ", e);
                     showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
                 } finally {
-                     messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+                     messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore original content
                 }
             };
 
-            const cancelDeleteBtn = document.createElement('button');
+            const cancelBtn = document.createElement('button'); // Changed from cancelDeleteBtn to cancelBtn
             cancelBtn.textContent = 'Cancel';
             cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
             cancelBtn.onclick = () => {
                  hideMessageBox();
-                 messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+                 messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
             };
 
-            messageBoxContent.innerHTML = '';
+            messageBoxContent.innerHTML = ''; // Clear existing content
             messageBoxContent.appendChild(confirmBtn);
             messageBoxContent.appendChild(cancelBtn);
-            
+           
+            // Override messageBoxCloseBtn behavior for this specific dialog
             messageBoxCloseBtn.onclick = () => {
                 hideMessageBox();
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+                messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if closed via 'X' button
             };
         }
 
@@ -1075,19 +1080,19 @@
                 return;
             }
             if (!window.WEBHOOKS_COLLECTION_PATH) {
-                 console.error("Firestore collection path for webhooks is not defined.");
-                 showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
-                 return;
+                   console.error("Firestore collection path for webhooks is not defined.");
+                   showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
+                   return;
             }
-            
+           
             const webhookUrl = newWebhookUrlInput.value.trim();
             if (!webhookUrl) {
                 showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
                 return;
             }
             if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
-                 showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
-                 return;
+                   showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
+                   return;
             }
             if (allWebhooks.some(hook => hook.url === webhookUrl)) {
                 showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
@@ -1112,9 +1117,9 @@
                 return;
             }
             if (!window.WEBHOOKS_COLLECTION_PATH) {
-                 console.error("Firestore collection path for webhooks is not defined for deletion.");
-                 showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
-                 return;
+                   console.error("Firestore collection path for webhooks is not defined for deletion.");
+                   showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
+                   return;
             }
             showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
             try {
@@ -1160,7 +1165,7 @@
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
 
-            recordsTableBody.innerHTML = '';
+            recordsTableBody.innerHTML = ''; // Clear existing rows
             if (records.length === 0) {
                 recordsTableBody.innerHTML = `
                     <tr>
@@ -1189,6 +1194,7 @@
                 `;
             });
 
+            // Re-attach event listeners for newly rendered checkboxes and buttons
             document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', updateDeleteButtonState);
             });
@@ -1206,21 +1212,20 @@
                         hideMessageBox();
                         showMessageBox("Deleting", "Deleting record...", false, true, false);
                         try {
-                            await window.fsDeleteDoc(window.fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId));
+                            await window.fsDeleteDoc(window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, recordId)); // Corrected path
                             showMessageBox("Success", "Record deleted successfully.", false, false, true);
                         } catch (error) {
                             showMessageBox("Deletion Failed", `Error: ${error.message}`, true, false, true);
                         } finally {
-                            // Always restore original content regardless of success/fail
-                            messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+                            messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Always restore original content regardless of success/fail
                         }
                     };
                     const cancelBtn = document.createElement('button');
                     cancelBtn.textContent = 'Cancel';
                     cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
                     cancelBtn.onclick = () => {
-                         hideMessageBox();
-                         messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
+                           hideMessageBox();
+                           messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
                     };
 
                     messageBoxContent.innerHTML = ''; // Clear existing content
@@ -1247,7 +1252,7 @@
 
         function renderWebhookList(webhooks) {
             const webhookList = document.getElementById('webhookList');
-            webhookList.innerHTML = '';
+            webhookList.innerHTML = ''; // Clear existing list
             if (webhooks.length === 0) {
                 webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
                 return;
@@ -1264,6 +1269,7 @@
                 webhookList.appendChild(webhookDiv);
             });
 
+            // Re-attach event listeners for newly rendered delete buttons
             document.querySelectorAll('.delete-webhook-btn').forEach(button => {
                 button.addEventListener('click', (e) => {
                     const webhookId = e.target.closest('button').dataset.webhookId;
@@ -1284,8 +1290,8 @@
                     cancelBtn.textContent = 'Cancel';
                     cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
                     cancelBtn.onclick = () => {
-                        hideMessageBox();
-                        messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
+                           hideMessageBox();
+                           messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
                     };
 
                     messageBoxContent.innerHTML = '';
@@ -1309,8 +1315,8 @@
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display'); // Corrected ID
 
-            let globalTotalPoints = 0;
-            let globalMaxPossiblePoints = 0;
+            let currentTotalPoints = 0; // Changed from globalTotalPoints to avoid confusion with actual global one. Reset for each calculation.
+            let currentMaxPossiblePoints = 0; // Changed from globalMaxPossiblePoints. Reset for each calculation.
             let autofailTriggered = false;
 
             let complianceCurrentPoints = 0;
@@ -1334,17 +1340,17 @@
 
                 const rating = selectElement.value;
                 const weightage = parseFloat(weightageDisplay.dataset.weightage);
-                let currentPoints = 0;
+                let questionPoints = 0; // Points for this specific question
 
                 pointsElement.style.backgroundColor = '#e9ecef';
                 pointsElement.style.color = '#555';
 
                 if (rating === 'Yes') {
-                    currentPoints = weightage;
-                    pointsElement.readOnly = false;
+                    questionPoints = weightage;
+                    pointsElement.readOnly = false; // Allow editing if needed, though current logic overrides
                     pointsElement.style.backgroundColor = '#fff';
                 } else if (rating === 'No') {
-                    currentPoints = 0;
+                    questionPoints = 0;
                     pointsElement.readOnly = true;
 
                     if (isAutofailQuestion) {
@@ -1354,16 +1360,17 @@
                     } else {
                         pointsElement.style.backgroundColor = '#e0e0e0';
                     }
-                } else {
-                    currentPoints = 0;
+                } else { // 'None' or empty
+                    questionPoints = 0;
                     pointsElement.readOnly = true;
                     pointsElement.style.backgroundColor = '#e9ecef';
                 }
 
-                pointsElement.value = currentPoints;
-                globalTotalPoints += currentPoints;
-                globalMaxPossiblePoints += weightage;
+                pointsElement.value = questionPoints;
+                currentTotalPoints += questionPoints; // Add to current total for this calculation cycle
+                currentMaxPossiblePoints += weightage; // Add to max possible for this calculation cycle
 
+                // Compliance & Business Critical Accuracy calculation
                 const currentRole = cerRoleSelect.value;
                 if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
                     const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
@@ -1371,12 +1378,16 @@
                         if (rating === 'Yes') {
                             complianceCurrentPoints += weightage;
                         }
-                        if (rating === 'Yes' || rating === 'No') {
+                        if (rating === 'Yes' || rating === 'No') { // Only count if rated
                              complianceMaxPoints += weightage;
                         }
                     }
                 }
             });
+
+            // Update global variables after current calculation is complete
+            globalTotalPoints = currentTotalPoints;
+            globalMaxPossiblePoints = currentMaxPossiblePoints;
 
             let overallPercentage = 0;
             if (autofailTriggered) {
@@ -1402,6 +1413,8 @@
             businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
 
             // globalBusinessComplianceAccuracyValue is already updated within calculateScore
+            // You might want to update a global `globalBusinessComplianceAccuracyValue` here if you need its precise value outside.
+            // For now, it's computed and displayed directly.
         };
 
         // Audit Form Initialization and Reset
@@ -1415,18 +1428,17 @@
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             callDateTimeInput.value = now.toISOString().slice(0,16);
 
-            cerRoleSelect.value = '';
-            renderQuestionsForRole('');
-            calculateScore();
+            cerRoleSelect.value = ''; // Reset CER Role on initial load or form reset
+            renderQuestionsForRole(''); // Render for empty role initially
+            calculateScore(); // Calculate score for empty form
         }
 
         // Dynamic Question Rendering (moved to top-level)
         function renderQuestionsForRole(role) {
-            const cerRoleSelect = document.getElementById('cer-role'); // Access element here
             const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
             const psQuestionsContainer = document.getElementById('psQuestionsContainer');
             const caQuestionsContainer = document.getElementById('caQuestionsContainer');
-            
+           
             const questionContainers = { // Re-define locally or access global elements
                 'CUSTOMER EXPERIENCE': cxQuestionsContainer,
                 'PROBLEM SOLVING SKILLS': psQuestionsContainer,
@@ -1435,6 +1447,7 @@
 
             console.log("Rendering questions for role:", role);
 
+            // Clear all containers first
             for (const key in questionContainers) {
                 if (questionContainers[key]) { // Defensive check
                     questionContainers[key].innerHTML = '';
@@ -1445,7 +1458,7 @@
 
             if (!roleQuestions) {
                 console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
-                calculateScore();
+                calculateScore(); // Re-calculate score as questions might have been cleared
                 return;
             }
 
@@ -1469,7 +1482,7 @@
                     if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
                     else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
-                    else iconColorClass = 'icon-bg-yellow'; // Corrected else to assign a class
+                    else iconColorClass = 'icon-bg-yellow'; // Ensure a class is always assigned
 
                     rowDiv.innerHTML = `
                         <div class="col-span-6 flex items-center gap-2">
@@ -1488,7 +1501,7 @@
                             <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
                         </div>
                         <div class="col-span-2">
-                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border"></textarea>
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea"></textarea>
                         </div>
                     `;
                     container.appendChild(rowDiv);
@@ -1500,7 +1513,7 @@
                     questionNumber++;
                 });
             }
-            calculateScore();
+            calculateScore(); // Calculate score after rendering new questions
         }
 
         function resetForm() {
@@ -1520,7 +1533,7 @@
             contactIdInput.value = '';
             clientNameInput.value = '';
             cerNameSelect.value = '';
-            cerRoleSelect.value = '';
+            cerRoleSelect.value = ''; // This will trigger renderQuestionsForRole('')
 
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -1536,23 +1549,26 @@
             otherReviewerNameInput.removeAttribute('required');
             otherReviewerNameInput.style.borderColor = '';
 
+            // This call to renderQuestionsForRole will handle clearing and re-rendering for the empty role
             renderQuestionsForRole('');
+            // calculateScore() is called at the end of renderQuestionsForRole
         }
 
         function resetFormFieldsButKeepRole() {
-            const cerRoleSelect = document.getElementById('cer-role'); // Get element inside function scope
+            // No need to get cerRoleSelect here, it's just used to determine the questions already rendered.
 
             console.log("Resetting question fields only.");
 
+            // Reset dynamic question ratings, points, and remarks
             const dynamicSelects = document.querySelectorAll('.rating-select');
             dynamicSelects.forEach(selectElement => {
-                selectElement.value = '';
-                selectElement.style.borderColor = '';
+                selectElement.value = ''; // Reset rating to 'None'
+                selectElement.style.borderColor = ''; // Clear validation border
 
                 const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
                 if (rowDiv) {
                     const pointsElement = rowDiv.querySelector('.points-input');
-                    const remarksElement = rowDiv.querySelector('.remarks-textarea');
+                    const remarksElement = rowDiv.querySelector('.remarks-textarea'); // Corrected class name
 
                     if (pointsElement) {
                         pointsElement.value = 0;
@@ -1565,7 +1581,7 @@
                     }
                 }
             });
-            calculateScore();
+            calculateScore(); // Re-calculate score after resetting question fields
         }
 
         // Main Application Initialization Function
@@ -1582,7 +1598,7 @@
                 loginPage.style.display = 'none';
                 mainNav.style.display = 'flex';
                 showTab('auditForm'); // Show audit form by default
-                initializeAuditForm();
+                initializeAuditForm(); // Initialize form (set dates, render initial questions)
             } else {
                 loginPage.style.display = 'flex';
                 mainNav.style.display = 'none';
@@ -1659,6 +1675,16 @@
                 window.location.reload(); // Reload to show login page
             });
 
+            auditFormTab.addEventListener('click', function(event) {
+                event.preventDefault();
+                showTab('auditForm');
+            });
+
+            databaseTab.addEventListener('click', function(event) {
+                event.preventDefault();
+                showTab('database');
+            });
+
             reviewerNameSelect.addEventListener('change', () => {
                 if (reviewerNameSelect.value === 'Other') {
                     otherReviewerNameInput.classList.remove('hidden');
@@ -1677,6 +1703,15 @@
                 resetFormFieldsButKeepRole(); // Calls the top-level resetFormFieldsButKeepRole
             });
 
+            // Listen for changes on any rating select element
+            // Initial binding for existing elements (if any) and for future dynamic elements via delegation or re-binding
+            // This is handled in `renderQuestionsForRole` now.
+            // But we should ensure the score is calculated initially if the form is already present
+            document.querySelectorAll('.rating-select').forEach(select => {
+                select.addEventListener('change', calculateScore);
+            });
+
+
             submitFormToDBBtn.addEventListener('click', async (event) => { // Now submits to DB
                 event.preventDefault();
                 console.log("Submit to Database button clicked.");
@@ -1684,7 +1719,15 @@
                 const requiredInputs = assessmentForm.querySelectorAll('[required]:not(.hidden)');
                 let allRequiredFilled = true;
                 for (const input of requiredInputs) {
-                    if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
+                    // Specific check for 'None' value in selects if they are required
+                    if (input.tagName === 'SELECT' && input.value === '') {
+                        allRequiredFilled = false;
+                        input.style.borderColor = 'red';
+                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        input.focus();
+                        showMessageBox("Validation Error", "Please fill out all required fields.", true, false, true);
+                        return;
+                    } else if (input.value.trim() === '') {
                         allRequiredFilled = false;
                         input.style.borderColor = 'red';
                         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1692,51 +1735,54 @@
                         showMessageBox("Validation Error", "Please fill out all required fields.", true, false, true);
                         return;
                     } else {
-                        input.style.borderColor = '';
+                        input.style.borderColor = ''; // Reset border if valid
                     }
                 }
 
                 // Dynamically collect all relevant form data based on current DOM
                 const formDataForSubmission = {};
-                const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
+                // Collect basic info from the top grid
+                const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select, .p-6.grid.grid-cols-2 input, .p-6.grid.grid-cols-2 select, .p-6.grid.grid-cols-3 input, .p-6.grid.grid-cols-3 select');
                 basicInfoInputs.forEach(input => {
                     if (input.name) {
-                        if (input.type === 'datetime-local' || input.type === 'date') {
-                            formDataForSubmission[input.name] = input.value;
-                        } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
+                        // Skip hidden 'other-reviewer-name' if 'Other' is not selected
+                        if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
                             return;
-                        } else {
-                            formDataForSubmission[input.name] = input.value.trim();
                         }
+                        formDataForSubmission[input.name] = input.value.trim();
                     }
                 });
 
+                // Get calculated scores
                 const overallScoreDisplay = document.getElementById('overall-score-display');
                 const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
-                const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
+                const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display'); // Corrected ID
 
 
                 formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
                 formDataForSubmission['Business & Compliance Accuracy'] = businessComplianceAccuracyDisplay.textContent;
-                formDataForSubmission['Total Pts.'] = globalTotalPoints;
-                formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
+                formDataForSubmission['Total Pts.'] = globalTotalPoints; // Use global state
+                formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints; // Use global state
                 formDataForSubmission['Final Score'] = overallFinalPercentageDisplay.textContent;
 
-                const dynamicSelects = document.querySelectorAll('.rating-select');
-                dynamicSelects.forEach(selectElement => {
-                    const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
-                    if (rowDiv) {
-                        const pointsElement = rowDiv.querySelector('.points-input');
-                        const remarksElement = rowDiv.querySelector('.remarks-textarea');
-                        formDataForSubmission[selectElement.name] = selectElement.value;
-                        if (pointsElement) {
-                            formDataForSubmission[pointsElement.name] = pointsElement.value;
-                        }
-                        if (remarksElement) {
-                            formDataForSubmission[remarksElement.name] = remarksElement.value.trim();
-                        }
+                // Collect dynamic question data
+                const dynamicRows = document.querySelectorAll('#cxQuestionsContainer > div, #psQuestionsContainer > div, #caQuestionsContainer > div');
+                dynamicRows.forEach(rowDiv => {
+                    const ratingSelect = rowDiv.querySelector('.rating-select');
+                    const pointsInput = rowDiv.querySelector('.points-input');
+                    const remarksTextarea = rowDiv.querySelector('.remarks-textarea');
+
+                    if (ratingSelect && ratingSelect.name) {
+                        formDataForSubmission[ratingSelect.name] = ratingSelect.value;
+                    }
+                    if (pointsInput && pointsInput.name) {
+                        formDataForSubmission[pointsInput.name] = pointsInput.value;
+                    }
+                    if (remarksTextarea && remarksTextarea.name) {
+                        formDataForSubmission[remarksTextarea.name] = remarksTextarea.value.trim();
                     }
                 });
+
                 console.log("Collected Data for Submission:", formDataForSubmission);
 
                 await addRecordToFirestore(formDataForSubmission); // Calls top-level addRecordToFirestore
@@ -1753,55 +1799,77 @@
                     return;
                 }
 
+                // Elements to hide for PDF generation
                 const mainNav = document.getElementById('mainNav');
                 const printEmailBtn = document.getElementById('print-email-btn');
                 const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-                const contactIdInput = document.getElementById('contact-id');
-                const cerNameSelect = document.getElementById('cer-name');
-                const evaluationDateInput = document.getElementById('review-date');
-                const reviewerNameSelect = document.getElementById('reviewer-name');
-                const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+                const loginPage = document.getElementById('loginPage'); // Ensure login page is hidden
+                const databaseContent = document.getElementById('databaseContent'); // Ensure database content is hidden
 
+                const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn, loginPage, databaseContent];
+                const originalDisplays = []; // Store original display styles to restore later
 
-                const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
-                const originalDisplays = [];
                 elementsToHide.forEach(el => {
                     if (el) {
                         originalDisplays.push({ el: el, display: el.style.display });
-                        el.style.display = 'none';
+                        el.style.display = 'none'; // Hide element
                     }
                 });
                 console.log("Elements hidden for PDF capture.");
 
+                // Temporarily expand textareas for better PDF rendering
+                const textareas = document.querySelectorAll('textarea');
+                const originalHeights = [];
+                textareas.forEach(textarea => {
+                    originalHeights.push({el: textarea, height: textarea.style.height});
+                    textarea.style.height = 'auto'; // Reset to auto
+                    textarea.style.height = (textarea.scrollHeight) + 'px'; // Set to scroll height
+                });
+                console.log("Textareas adjusted for PDF capture.");
+
+                // Wait a moment for layout to settle after textarea adjustments
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+
                 try {
                     const canvas = await html2canvas(auditFormContent, {
-                        scale: 2,
+                        scale: 2, // Higher scale for better quality
                         useCORS: true,
                         logging: false
                     });
                     console.log("html2canvas capture complete.");
 
-                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
-                    const imgWidth = 210;
-                    const pageHeight = 297;
-                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    const imgData = canvas.toDataURL('image/jpeg', 0.8); // Convert canvas to JPEG image data
+                    const imgWidth = 210; // A4 width in mm
+                    const pageHeight = 297; // A4 height in mm
+                    const imgHeight = canvas.height * imgWidth / canvas.width; // Calculate image height to maintain aspect ratio
                     let heightLeft = imgHeight;
 
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const { jsPDF } = window.jspdf; // Get jsPDF from the global window object
+                    const pdf = new jsPDF('p', 'mm', 'a4'); // Create new PDF document
                     console.log("jsPDF initialized.");
 
-                    let position = 0;
+                    let position = 0; // Initial Y position for the image
                     pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                    heightLeft -= pageHeight;
+                    heightLeft -= pageHeight; // Subtract one page height
 
+                    // Add more pages if content exceeds one page
                     while (heightLeft > -1) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
+                        position = heightLeft - imgHeight; // Calculate new position for the image on the new page
+                        pdf.addPage(); // Add a new page
                         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
                         heightLeft -= pageHeight;
                     }
                     console.log("PDF images added.");
+
+                    // Get form data for PDF filename and email subject/body
+                    const contactIdInput = document.getElementById('contact-id');
+                    const cerNameSelect = document.getElementById('cer-name');
+                    const evaluationDateInput = document.getElementById('review-date');
+                    const reviewerNameSelect = document.getElementById('reviewer-name');
+                    const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+                    const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
+
 
                     const contactIdForPdf = contactIdInput.value || 'UnknownContact';
                     const cerNameForPdf = cerNameSelect.value || 'UnknownCER';
@@ -1809,16 +1877,17 @@
                     pdf.save(`QA_Form_${contactIdForPdf}_${cerNameForPdf}_${reviewDateForPdf}.pdf`);
                     console.log("PDF saved.");
 
+                    // Prepare mailto link
                     const cerNameVal = cerNameSelect.value;
                     const evaluationDateVal = evaluationDateInput.value;
                     const overallScoreVal = overallFinalPercentageDisplay.textContent; // Use corrected ID
                     const contactIdVal = contactIdInput.value;
                     const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
 
-                    const subject = `Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'} - CER: ${cerNameVal || 'N/A'} - Date: ${evaluationDateVal || 'N/A'}.\n\nOverall Score: ${overallScoreVal || 'N/A'}`;
+                    const subject = `Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'} - CER: ${cerNameVal || 'N/A'} - Date: ${evaluationDateVal || 'N/A'}`;
                     const body = `Dear Team,\n\nPlease find the attached Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'},\nCER: ${cerNameVal || 'N/A'},\nEvaluated on: ${evaluationDateVal || 'N/A'}.\n\nThe overall score is: ${overallScoreVal || 'N/A'}.\n\nRegards,\n${reviewerNameVal || 'Reviewer'}`;
 
-                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}`;
+                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                     window.location.href = mailtoLink;
                     showMessageBox("PDF Generated", "PDF generated and downloaded. Please attach the PDF manually to your email client.", false, false, true);
 
@@ -1826,27 +1895,48 @@
                     console.error("Critical Error during PDF generation or mailto attempt:", error);
                     showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
                 } finally {
-                    originalDisplays.forEach(({ el, display }) => {
+                    // Restore original display styles
+                    elementsToHide.forEach(({ el, display }) => {
                         if (el) el.style.display = display;
                     });
                     console.log("Elements restored.");
+
+                    // Restore textarea heights
+                    originalHeights.forEach(({el, height}) => {
+                        el.style.height = height;
+                    });
+                    console.log("Textarea heights restored.");
                 }
             });
+
+            // Handle "Select All" checkbox for database records
+            selectAllRecordsCheckbox.addEventListener('change', function() {
+                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                    checkbox.checked = selectAllRecordsCheckbox.checked;
+                });
+                updateDeleteButtonState();
+            });
+
+            // Handle "Delete Selected Records" button click
+            deleteSelectedRecordsBtn.addEventListener('click', deleteSelectedRecords);
+
+            // Handle "Add Webhook" button click
+            addWebhookBtn.addEventListener('click', addWebhook);
 
 
             // Initial trigger for app setup after DOM is ready
             // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
                 // Ensure the global db and auth objects are correctly referenced after Firebase is ready
-                let db = window.db; 
-                let auth = window.auth;
-                let currentUserId = window.currentUserId;
-                let isAuthReady = window.isAuthReady; 
+                db = window.db; 
+                auth = window.auth;
+                currentUserId = window.currentUserId;
+                isAuthReady = window.isAuthReady; 
 
                 // Update collection path variables, which depend on window.appId being set by module script
-                const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-                const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                
+                window.EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
+                window.WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
+               
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
                 initializeApp(); // Calls the top-level initializeApp
 
@@ -1857,14 +1947,15 @@
             });
 
             // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
-            if (document.readyState === 'complete' && window.isAuthReady !== null) { 
-                let db = window.db; // Get global references
-                let auth = window.auth;
-                let currentUserId = window.currentUserId;
-                let isAuthReady = window.isAuthReady;
+            // This ensures `initializeApp` is called if auth was ready even before this DOMContentLoaded listener fired.
+            if (document.readyState === 'complete' && window.isAuthReady) { 
+                db = window.db; // Get global references
+                auth = window.auth;
+                currentUserId = window.currentUserId;
+                isAuthReady = window.isAuthReady;
 
-                const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-                const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
+                window.EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
+                window.WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
                 initializeApp(); // Calls the top-level initializeApp
