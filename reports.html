@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reports - ICEA LION GROUP</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
@@ -177,6 +180,7 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
+    <!-- Message Box / Modal (initially hidden) -->
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
         <div class="message-box">
             <div id="messageBoxSpinner" class="report-spinner hidden"></div>
@@ -186,6 +190,7 @@
         </div>
     </div>
 
+    <!-- Login Page (re-used for this page) -->
     <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
@@ -214,6 +219,7 @@
         </div>
     </div>
 
+    <!-- Navigation Menu (Always present if logged in) -->
     <nav class="main-nav" id="mainNav" style="display: none;">
         <ul>
             <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Audit Form</a></li>
@@ -223,6 +229,7 @@
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
 
+    <!-- Main Content Area for Reports -->
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="reportsContent" style="display: none;">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
             Agent Performance Reports
@@ -272,7 +279,8 @@
                         </tr>
                     </thead>
                     <tbody id="auditsPerAgentTableBody">
-                        </tbody>
+                        <!-- Agent audit data will be here -->
+                    </tbody>
                 </table>
             </div>
 
@@ -288,7 +296,8 @@
                         </tr>
                     </thead>
                     <tbody id="autofailsPerRoleTableBody">
-                        </tbody>
+                        <!-- Autofail per role data will be here -->
+                    </tbody>
                 </table>
             </div>
 
@@ -304,7 +313,8 @@
                         </tr>
                     </thead>
                     <tbody id="qualityScorePerRoleTableBody">
-                        </tbody>
+                        <!-- Quality Score per role data will be here -->
+                    </tbody>
                 </table>
             </div>
 
@@ -320,7 +330,8 @@
                         </tr>
                     </thead>
                     <tbody id="autofailsPerCERNameTableBody">
-                        </tbody>
+                        <!-- Autofail per CER Name data will be here -->
+                    </tbody>
                 </table>
             </div>
 
@@ -336,7 +347,8 @@
                         </tr>
                     </thead>
                     <tbody id="auditsPerCERNameTableBody">
-                        </tbody>
+                        <!-- Audits per CER Name data will be here -->
+                    </tbody>
                 </table>
             </div>
 
@@ -352,7 +364,8 @@
                         </tr>
                     </thead>
                     <tbody id="averageQAScoreTableBody">
-                        </tbody>
+                        <!-- Average QA Score data will be here -->
+                    </tbody>
                 </table>
             </div>
 
@@ -368,7 +381,8 @@
                         </tr>
                     </thead>
                     <tbody id="autofailsPerAreaTableBody">
-                        </tbody>
+                        <!-- Autofail per area data will be here -->
+                    </tbody>
                 </table>
             </div>
 
@@ -394,10 +408,11 @@
         </div>
     </div>
 
+    <!-- Firebase SDKs (Load these at the end of body for performance) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         // Note: 'addDoc', 'deleteDoc' not strictly needed here as reports are read-only
 
         // --- Your Web App's Firebase Configuration ---
@@ -880,11 +895,9 @@
             // Show reports content (it's hidden by default via CSS)
             reportsContent.style.display = 'block';
 
-            // Show initial messages
-            auditsPerAgentMessage.classList.remove('hidden');
-            auditsPerAgentTable.classList.add('hidden');
-            autofailsOverviewMessage.classList.remove('hidden'); // Ensure message for overview is visible
-            autofailsOverviewTable.classList.add('hidden'); // Ensure table for overview is hidden
+            // Show initial messages for all report sections
+            autofailsOverviewMessage.classList.remove('hidden'); 
+            autofailsOverviewTable.classList.add('hidden');
             autofailsPerRoleMessage.classList.remove('hidden');
             autofailsPerRoleTable.classList.add('hidden');
             qualityScorePerRoleMessage.classList.remove('hidden');
@@ -897,6 +910,8 @@
             averageQAScoreTable.classList.add('hidden');
             autofailsPerAreaMessage.classList.remove('hidden');
             autofailsPerAreaTable.classList.add('hidden');
+            auditsPerAgentMessage.classList.remove('hidden');
+            auditsPerAgentTable.classList.add('hidden'); // Ensure agent table is also initially hidden
         }
 
         // --- EVENT LISTENERS ---
