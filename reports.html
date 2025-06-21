@@ -276,10 +276,106 @@
                 </table>
             </div>
 
-            <div id="autofailsReport" class="report-section">
-                <h3>Autofails Overview</h3>
+            <div id="autofailsPerRoleReport" class="report-section">
+                <h3>Number of Autofails Per CER Role</h3>
                 <div class="report-loading-spinner report-spinner hidden"></div>
-                <p id="autofailsMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                <p id="autofailsPerRoleMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                <table class="report-table hidden">
+                    <thead>
+                        <tr>
+                            <th>CER Role</th>
+                            <th>Autofail Count</th>
+                        </tr>
+                    </thead>
+                    <tbody id="autofailsPerRoleTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="qualityScorePerRoleReport" class="report-section">
+                <h3>Average Quality Score Per CER Role</h3>
+                <div class="report-loading-spinner report-spinner hidden"></div>
+                <p id="qualityScorePerRoleMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                <table class="report-table hidden">
+                    <thead>
+                        <tr>
+                            <th>CER Role</th>
+                            <th>Average Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="qualityScorePerRoleTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="autofailsPerCERNameReport" class="report-section">
+                <h3>Number of Autofails Per CER Name</h3>
+                <div class="report-loading-spinner report-spinner hidden"></div>
+                <p id="autofailsPerCERNameMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                <table class="report-table hidden">
+                    <thead>
+                        <tr>
+                            <th>CER Name</th>
+                            <th>Autofail Count</th>
+                        </tr>
+                    </thead>
+                    <tbody id="autofailsPerCERNameTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="auditsPerCERNameReport" class="report-section">
+                <h3>Number of Audits Per CER Name</h3>
+                <div class="report-loading-spinner report-spinner hidden"></div>
+                <p id="auditsPerCERNameMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                <table class="report-table hidden">
+                    <thead>
+                        <tr>
+                            <th>CER Name</th>
+                            <th>Number of Audits</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditsPerCERNameTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="averageQAScoreReport" class="report-section">
+                <h3>Average QA Score Per CER Name</h3>
+                <div class="report-loading-spinner report-spinner hidden"></div>
+                <p id="averageQAScoreMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                <table class="report-table hidden">
+                    <thead>
+                        <tr>
+                            <th>CER Name</th>
+                            <th>Average Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="averageQAScoreTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="autofailsPerAreaReport" class="report-section">
+                <h3>Number of Autofails Per Autofail Area</h3>
+                <div class="report-loading-spinner report-spinner hidden"></div>
+                <p id="autofailsPerAreaMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                <table class="report-table hidden">
+                    <thead>
+                        <tr>
+                            <th>Autofail Area</th>
+                            <th>Autofail Count</th>
+                        </tr>
+                    </thead>
+                    <tbody id="autofailsPerAreaTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="autofailsOverviewReport" class="report-section">
+                <h3>Autofails Overview (Total for Period)</h3>
+                <div class="report-loading-spinner report-spinner hidden"></div>
+                <p id="autofailsOverviewMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
                 <table class="report-table hidden">
                     <thead>
                         <tr>
@@ -287,20 +383,22 @@
                             <th>Count</th>
                         </tr>
                     </thead>
-                    <tbody id="autofailsTableBody">
+                    <tbody id="autofailsOverviewTableBody">
                         <tr><td>Total Audits:</td><td id="totalAuditsCount">0</td></tr>
                         <tr><td>Total Autofails:</td><td id="totalAutofailsCount">0</td></tr>
                         <tr><td>Autofail Percentage:</td><td id="autofailPercentage">0%</td></tr>
                     </tbody>
                 </table>
             </div>
+
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        // Note: 'addDoc', 'deleteDoc' not strictly needed here as reports are read-only
 
         // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
@@ -320,8 +418,9 @@
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
         
+        // Expose necessary Firestore functions for the report logic
         window.fsCollection = collection;
-        window.fsGetDocs = getDocs; // Needed for fetching documents for reports
+        window.fsGetDocs = getDocs; 
         window.fsQuery = query;
         window.fsWhere = where;
 
@@ -399,10 +498,46 @@
         const auditsPerAgentTable = auditsPerAgentReportDiv.querySelector('.report-table');
         const auditsPerAgentTableBody = document.getElementById('auditsPerAgentTableBody');
 
-        const autofailsReportDiv = document.getElementById('autofailsReport');
-        const autofailsMessage = document.getElementById('autofailsMessage');
-        const autofailsSpinner = autofailsReportDiv.querySelector('.report-spinner');
-        const autofailsTable = autofailsReportDiv.querySelector('.report-table');
+        const autofailsPerRoleReportDiv = document.getElementById('autofailsPerRoleReport');
+        const autofailsPerRoleMessage = document.getElementById('autofailsPerRoleMessage');
+        const autofailsPerRoleSpinner = autofailsPerRoleReportDiv.querySelector('.report-spinner');
+        const autofailsPerRoleTable = autofailsPerRoleReportDiv.querySelector('.report-table');
+        const autofailsPerRoleTableBody = document.getElementById('autofailsPerRoleTableBody');
+
+        const qualityScorePerRoleReportDiv = document.getElementById('qualityScorePerRoleReport');
+        const qualityScorePerRoleMessage = document.getElementById('qualityScorePerRoleMessage');
+        const qualityScorePerRoleSpinner = qualityScorePerRoleReportDiv.querySelector('.report-spinner');
+        const qualityScorePerRoleTable = qualityScorePerRoleReportDiv.querySelector('.report-table');
+        const qualityScorePerRoleTableBody = document.getElementById('qualityScorePerRoleTableBody');
+
+        const autofailsPerCERNameReportDiv = document.getElementById('autofailsPerCERNameReport');
+        const autofailsPerCERNameMessage = document.getElementById('autofailsPerCERNameMessage');
+        const autofailsPerCERNameSpinner = autofailsPerCERNameReportDiv.querySelector('.report-spinner');
+        const autofailsPerCERNameTable = autofailsPerCERNameReportDiv.querySelector('.report-table');
+        const autofailsPerCERNameTableBody = document.getElementById('autofailsPerCERNameTableBody');
+
+        const auditsPerCERNameReportDiv = document.getElementById('auditsPerCERNameReport');
+        const auditsPerCERNameMessage = document.getElementById('auditsPerCERNameMessage');
+        const auditsPerCERNameSpinner = auditsPerCERNameReportDiv.querySelector('.report-spinner');
+        const auditsPerCERNameTable = auditsPerCERNameReportDiv.querySelector('.report-table');
+        const auditsPerCERNameTableBody = document.getElementById('auditsPerCERNameTableBody');
+
+        const averageQAScoreReportDiv = document.getElementById('averageQAScoreReport');
+        const averageQAScoreMessage = document.getElementById('averageQAScoreMessage');
+        const averageQAScoreSpinner = averageQAScoreReportDiv.querySelector('.report-spinner');
+        const averageQAScoreTable = averageQAScoreReportDiv.querySelector('.report-table');
+        const averageQAScoreTableBody = document.getElementById('averageQAScoreTableBody');
+
+        const autofailsPerAreaReportDiv = document.getElementById('autofailsPerAreaReport');
+        const autofailsPerAreaMessage = document.getElementById('autofailsPerAreaMessage');
+        const autofailsPerAreaSpinner = autofailsPerAreaReportDiv.querySelector('.report-spinner');
+        const autofailsPerAreaTable = autofailsPerAreaReportDiv.querySelector('.report-table');
+        const autofailsPerAreaTableBody = document.getElementById('autofailsPerAreaTableBody');
+
+        const autofailsOverviewReportDiv = document.getElementById('autofailsOverviewReport');
+        const autofailsOverviewMessage = document.getElementById('autofailsOverviewMessage');
+        const autofailsOverviewSpinner = autofailsOverviewReportDiv.querySelector('.report-spinner');
+        const autofailsOverviewTable = autofailsOverviewReportDiv.querySelector('.report-table');
         const totalAuditsCount = document.getElementById('totalAuditsCount');
         const totalAutofailsCount = document.getElementById('totalAutofailsCount');
         const autofailPercentage = document.getElementById('autofailPercentage');
@@ -459,14 +594,16 @@
                 return;
             }
 
-            // Show loading indicators
-            auditsPerAgentMessage.classList.add('hidden');
-            auditsPerAgentTable.classList.add('hidden');
-            autofailsMessage.classList.add('hidden');
-            autofailsTable.classList.add('hidden');
-            auditsPerAgentSpinner.classList.remove('hidden');
-            autofailsSpinner.classList.remove('hidden');
-
+            // Show loading indicators for all report sections
+            [auditsPerAgentMessage, auditsPerAgentTable, autofailsMessage, autofailsTable,
+             autofailsPerRoleMessage, autofailsPerRoleTable, qualityScorePerRoleMessage, qualityScorePerRoleTable,
+             autofailsPerCERNameMessage, autofailsPerCERNameTable, auditsPerCERNameMessage, auditsPerCERNameTable,
+             averageQAScoreMessage, averageQAScoreTable, autofailsPerAreaMessage, autofailsPerAreaTable,
+             autofailsOverviewMessage, autofailsOverviewTable].forEach(el => el.classList.add('hidden'));
+            
+            [auditsPerAgentSpinner, autofailsSpinner, autofailsPerRoleSpinner, qualityScorePerRoleSpinner,
+             autofailsPerCERNameSpinner, auditsPerCERNameSpinner, averageQAScoreSpinner, autofailsPerAreaSpinner,
+             autofailsOverviewSpinner].forEach(el => el.classList.remove('hidden'));
 
             showMessageBox("Generating Report", `Fetching data for ${reportMonthSelect.options[reportMonthSelect.selectedIndex].text}, ${selectedYear}...`, false, true, false);
 
@@ -491,8 +628,16 @@
 
                 console.log(`Fetched ${allReportRecords.length} records for report.`);
 
+                // Render all reports
                 renderAuditsPerAgentReport(allReportRecords);
-                renderAutofailsReport(allReportRecords);
+                renderAutofailsOverviewReport(allReportRecords); // Renamed existing one
+                renderAutofailsPerRoleReport(allReportRecords);
+                renderQualityScorePerRoleReport(allReportRecords);
+                renderAutofailsPerCERNameReport(allReportRecords);
+                renderAuditsPerCERNameReport(allReportRecords);
+                renderAverageQAScoreReport(allReportRecords);
+                renderAutofailsPerAreaReport(allReportRecords);
+
 
                 hideMessageBox(); // Hide message box on success
 
@@ -500,9 +645,17 @@
                 console.error("Error generating report:", error);
                 showMessageBox("Report Error", `Failed to generate report: ${error.message}`, true, false, true);
             } finally {
-                auditsPerAgentSpinner.classList.add('hidden');
-                autofailsSpinner.classList.add('hidden');
+                // Hide all spinners
+                [auditsPerAgentSpinner, autofailsSpinner, autofailsPerRoleSpinner, qualityScorePerRoleSpinner,
+                 autofailsPerCERNameSpinner, auditsPerCERNameSpinner, averageQAScoreSpinner, autofailsPerAreaSpinner,
+                 autofailsOverviewSpinner].forEach(el => el.classList.add('hidden'));
             }
+        }
+
+        // Helper to safely parse score percentage
+        function parseScore(scoreString) {
+            const match = scoreString.match(/(\d+)%/);
+            return match ? parseFloat(match[1]) : 0;
         }
 
         function renderAuditsPerAgentReport(records) {
@@ -530,45 +683,193 @@
             auditsPerAgentTable.classList.remove('hidden');
         }
 
-        function renderAutofailsReport(records) {
+        function renderAutofailsOverviewReport(records) {
             let totalAudits = records.length;
-            let totalAutofails = 0;
+            let totalAutofails = records.filter(record => record['Final Score'] === '0%').length;
+            let autofailPct = totalAudits > 0 ? ((totalAutofails / totalAudits) * 100).toFixed(0) : 0;
+
+            document.getElementById('totalAuditsCount').textContent = totalAudits;
+            document.getElementById('totalAutofailsCount').textContent = totalAutofails;
+            document.getElementById('autofailPercentage').textContent = `${autofailPct}%`;
+
+            autofailsOverviewMessage.classList.add('hidden');
+            autofailsOverviewTable.classList.remove('hidden');
+        }
+
+        function renderAutofailsPerRoleReport(records) {
+            autofailsPerRoleTableBody.innerHTML = '';
+            const roleAutofailCounts = {};
 
             records.forEach(record => {
-                // Check if Overall Score is 0% (as per the business logic for autofail)
-                // Or if any of the designated autofail questions were marked 'No'
+                const cerRole = record['CER Role'] || 'N/A';
                 if (record['Final Score'] === '0%') {
-                    totalAutofails++;
-                } else if (
-                    record['Did the CER document all action items & follow-up? (Autofail)'] === 'No' ||
-                    record['Did the CER log call information correctly? (Data capture)'] === 'No' ||
-                    record['Did the CER adhere to Company Policies & Procedures?(Autofail)'] === 'No' ||
-                    // You might need to add other autofail question names if applicable for different roles
-                    record['Was the CER able to position all possible options to the customer?(FCR)'] === 'No' // Example autofail for some roles
-                ) {
-                    // This is a fallback if Final Score logic is different or overall score wasn't calculated as 0% for some reason.
-                    // It's safer to rely on Final Score == 0% for definitive autofail count if that's the primary rule.
-                    // If you have specific autofail types in data.autofailType that always mean 0%, you can check that too.
-                    // For now, let's strictly rely on Final Score === '0%' for simplicity as that's the established rule.
-                    // if overall score logic is based on autofail, Final Score being 0% should be sufficient.
+                    roleAutofailCounts[cerRole] = (roleAutofailCounts[cerRole] || 0) + 1;
                 }
             });
 
-            // Adjust totalAutofails count to be based on the established overall score logic from form
-            // If the record was marked with an Autofail type, it implies 0% overall, but let's confirm the 'Final Score' is '0%'.
-            let actualAutofailsBasedOnFinalScore = records.filter(record => record['Final Score'] === '0%').length;
-            totalAutofails = actualAutofailsBasedOnFinalScore;
+            if (Object.keys(roleAutofailCounts).length === 0) {
+                autofailsPerRoleMessage.textContent = "No autofails found per CER role for selected period.";
+                autofailsPerRoleMessage.classList.remove('hidden');
+                autofailsPerRoleTable.classList.add('hidden');
+                return;
+            }
 
-
-            let autofailPct = totalAudits > 0 ? ((actualAutofailsBasedOnFinalScore / totalAudits) * 100).toFixed(0) : 0;
-
-            totalAuditsCount.textContent = totalAudits;
-            totalAutofailsCount.textContent = totalAutofails;
-            autofailPercentage.textContent = `${autofailPct}%`;
-
-            autofailsMessage.classList.add('hidden');
-            autofailsTable.classList.remove('hidden');
+            for (const role in roleAutofailCounts) {
+                const row = autofailsPerRoleTableBody.insertRow();
+                row.insertCell().textContent = role;
+                row.insertCell().textContent = roleAutofailCounts[role];
+            }
+            autofailsPerRoleMessage.classList.add('hidden');
+            autofailsPerRoleTable.classList.remove('hidden');
         }
+
+        function renderQualityScorePerRoleReport(records) {
+            qualityScorePerRoleTableBody.innerHTML = '';
+            const roleScores = {}; // { 'Role': { sum: 0, count: 0 } }
+
+            records.forEach(record => {
+                const cerRole = record['CER Role'] || 'N/A';
+                const score = parseScore(record['Overall Score']); // Parse "94%" to 94
+
+                if (!isNaN(score)) {
+                    if (!roleScores[cerRole]) {
+                        roleScores[cerRole] = { sum: 0, count: 0 };
+                    }
+                    roleScores[cerRole].sum += score;
+                    roleScores[cerRole].count++;
+                }
+            });
+
+            if (Object.keys(roleScores).length === 0) {
+                qualityScorePerRoleMessage.textContent = "No scores found per CER role for selected period.";
+                qualityScorePerRoleMessage.classList.remove('hidden');
+                qualityScorePerRoleTable.classList.add('hidden');
+                return;
+            }
+
+            for (const role in roleScores) {
+                const avg = roleScores[role].count > 0 ? (roleScores[role].sum / roleScores[role].count).toFixed(0) : 0;
+                const row = qualityScorePerRoleTableBody.insertRow();
+                row.insertCell().textContent = role;
+                row.insertCell().textContent = `${avg}%`;
+            }
+            qualityScorePerRoleMessage.classList.add('hidden');
+            qualityScorePerRoleTable.classList.remove('hidden');
+        }
+
+        function renderAutofailsPerCERNameReport(records) {
+            autofailsPerCERNameTableBody.innerHTML = '';
+            const cerNameAutofailCounts = {};
+
+            records.forEach(record => {
+                const cerName = record['CER Name'] || 'N/A';
+                if (record['Final Score'] === '0%') {
+                    cerNameAutofailCounts[cerName] = (cerNameAutofailCounts[cerName] || 0) + 1;
+                }
+            });
+
+            if (Object.keys(cerNameAutofailCounts).length === 0) {
+                autofailsPerCERNameMessage.textContent = "No autofails found per CER name for selected period.";
+                autofailsPerCERNameMessage.classList.remove('hidden');
+                autofailsPerCERNameTable.classList.add('hidden');
+                return;
+            }
+
+            for (const name in cerNameAutofailCounts) {
+                const row = autofailsPerCERNameTableBody.insertRow();
+                row.insertCell().textContent = name;
+                row.insertCell().textContent = cerNameAutofailCounts[name];
+            }
+            autofailsPerCERNameMessage.classList.add('hidden');
+            autofailsPerCERNameTable.classList.remove('hidden');
+        }
+
+        function renderAuditsPerCERNameReport(records) {
+            auditsPerCERNameTableBody.innerHTML = '';
+            const cerNameAuditCounts = {};
+
+            records.forEach(record => {
+                const cerName = record['CER Name'] || 'N/A';
+                cerNameAuditCounts[cerName] = (cerNameAuditCounts[cerName] || 0) + 1;
+            });
+
+            if (Object.keys(cerNameAuditCounts).length === 0) {
+                auditsPerCERNameMessage.textContent = "No audits found per CER name for selected period.";
+                auditsPerCERNameMessage.classList.remove('hidden');
+                auditsPerCERNameTable.classList.add('hidden');
+                return;
+            }
+
+            for (const name in cerNameAuditCounts) {
+                const row = auditsPerCERNameTableBody.insertRow();
+                row.insertCell().textContent = name;
+                row.insertCell().textContent = cerNameAuditCounts[name];
+            }
+            auditsPerCERNameMessage.classList.add('hidden');
+            auditsPerCERNameTable.classList.remove('hidden');
+        }
+
+        function renderAverageQAScoreReport(records) {
+            averageQAScoreTableBody.innerHTML = '';
+            const cerNameScores = {}; // { 'Name': { sum: 0, count: 0 } }
+
+            records.forEach(record => {
+                const cerName = record['CER Name'] || 'N/A';
+                const score = parseScore(record['Overall Score']);
+
+                if (!isNaN(score)) {
+                    if (!cerNameScores[cerName]) {
+                        cerNameScores[cerName] = { sum: 0, count: 0 };
+                    }
+                    cerNameScores[cerName].sum += score;
+                    cerNameScores[cerName].count++;
+                }
+            });
+
+            if (Object.keys(cerNameScores).length === 0) {
+                averageQAScoreMessage.textContent = "No scores found per CER name for selected period.";
+                averageQAScoreMessage.classList.remove('hidden');
+                averageQAScoreTable.classList.add('hidden');
+                return;
+            }
+
+            for (const name in cerNameScores) {
+                const avg = cerNameScores[name].count > 0 ? (cerNameScores[name].sum / cerNameScores[name].count).toFixed(0) : 0;
+                const row = averageQAScoreTableBody.insertRow();
+                row.insertCell().textContent = name;
+                row.insertCell().textContent = `${avg}%`;
+            }
+            averageQAScoreMessage.classList.add('hidden');
+            averageQAScoreTable.classList.remove('hidden');
+        }
+
+        function renderAutofailsPerAreaReport(records) {
+            autofailsPerAreaTableBody.innerHTML = '';
+            const autofailAreaCounts = {};
+
+            records.forEach(record => {
+                const autofailType = record['Auto Fail Type'] || 'N/A'; // Assuming 'Auto Fail Type' holds the area
+                if (record['Final Score'] === '0%') { // Only count if it's an actual autofail
+                    autofailAreaCounts[autofailType] = (autofailAreaCounts[autofailType] || 0) + 1;
+                }
+            });
+
+            if (Object.keys(autofailAreaCounts).length === 0) {
+                autofailsPerAreaMessage.textContent = "No autofails found per area for selected period.";
+                autofailsPerAreaMessage.classList.remove('hidden');
+                autofailsPerAreaTable.classList.add('hidden');
+                return;
+            }
+
+            for (const area in autofailAreaCounts) {
+                const row = autofailsPerAreaTableBody.insertRow();
+                row.insertCell().textContent = area;
+                row.insertCell().textContent = autofailAreaCounts[area];
+            }
+            autofailsPerAreaMessage.classList.add('hidden');
+            autofailsPerAreaTable.classList.remove('hidden');
+        }
+
 
         // --- INITIALIZATION ---
         function initializeReportsPage() {
@@ -582,8 +883,20 @@
             // Show initial messages
             auditsPerAgentMessage.classList.remove('hidden');
             auditsPerAgentTable.classList.add('hidden');
-            autofailsMessage.classList.remove('hidden');
-            autofailsTable.classList.add('hidden');
+            autofailsOverviewMessage.classList.remove('hidden'); // Ensure message for overview is visible
+            autofailsOverviewTable.classList.add('hidden'); // Ensure table for overview is hidden
+            autofailsPerRoleMessage.classList.remove('hidden');
+            autofailsPerRoleTable.classList.add('hidden');
+            qualityScorePerRoleMessage.classList.remove('hidden');
+            qualityScorePerRoleTable.classList.add('hidden');
+            autofailsPerCERNameMessage.classList.remove('hidden');
+            autofailsPerCERNameTable.classList.add('hidden');
+            auditsPerCERNameMessage.classList.remove('hidden');
+            auditsPerCERNameTable.classList.add('hidden');
+            averageQAScoreMessage.classList.remove('hidden');
+            averageQAScoreTable.classList.add('hidden');
+            autofailsPerAreaMessage.classList.remove('hidden');
+            autofailsPerAreaTable.classList.add('hidden');
         }
 
         // --- EVENT LISTENERS ---
