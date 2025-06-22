@@ -418,32 +418,6 @@
             </div>
         </form>
 
-        <!-- NEW SECTION FOR LAST 3 EVALUATIONS - MOVED BEFORE SCORES -->
-        <div class="p-6">
-            <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
-                <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
-            </div>
-            <div id="lastEvaluationsContainer" class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-200 rounded-md">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Name</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Overall Score</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Role</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Contact ID</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lastEvaluationsTableBody">
-                        <tr>
-                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <!-- END NEW SECTION -->
-
         <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
             <div class="text-sm font-medium text-gray-600">Scores:</div>
             <div class="flex justify-around w-full gap-2">
@@ -487,6 +461,32 @@
                     </div>
                 </div>
             </div>
+
+        <!-- NEW SECTION FOR LAST 3 EVALUATIONS - MOVED TO END -->
+        <div class="p-6">
+            <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
+                <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
+            </div>
+            <div id="lastEvaluationsContainer" class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-md">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Name</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Overall Score</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Role</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Contact ID</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lastEvaluationsTableBody">
+                        <tr>
+                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- END NEW SECTION -->
     </div>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
@@ -625,6 +625,7 @@
         });
 
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
 
     </script>
     <script>
@@ -1718,7 +1719,7 @@
             const loginPage = document.getElementById('loginPage');
             const mainNav = document.getElementById('mainNav');
             const auditFormContent = document.getElementById('auditFormContent');
-            const databaseContent = document.getElementById('databaseContent');
+            const databaseContent = document.getElementById('databaseContent'); // Get reference to database content
 
             console.log("Initializing main application.");
             const isLoggedIn = sessionStorage.getItem('loggedIn');
@@ -1732,7 +1733,7 @@
                 loginPage.style.display = 'flex';
                 mainNav.style.display = 'none';
                 auditFormContent.style.display = 'none';
-                databaseContent.style.display = 'none';
+                databaseContent.style.display = 'none'; // Ensure database content is hidden on login page
             }
         }
 
@@ -1742,8 +1743,6 @@
             console.log("DOM fully loaded and parsed. Main script starting.");
 
             // --- Get Firebase objects and functions from window ---
-            // These variables will now correctly receive the Firebase instances and functions
-            // once they are initialized and exposed by the module script.
             let db = window.db; 
             let auth = window.auth;
             let currentUserId = window.currentUserId;
@@ -1779,7 +1778,7 @@
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
 
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const addWebhookBtn = document.getElementById('addWebhook'); // Changed to addWebhookBtn
+            const addWebhookBtn = document.getElementById('addWebhookBtn'); // Corrected ID to addWebhookBtn
 
 
             // --- EVENT LISTENERS (Attach to DOM elements) ---
@@ -1806,6 +1805,18 @@
                 if (unsubscribeWebhooks) unsubscribeWebhooks();
                 window.location.reload(); // Reload to show login page
             });
+
+            // Added click listeners for navigation tabs
+            auditFormTab.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent default link behavior
+                showTab('auditForm');
+            });
+
+            databaseTab.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent default link behavior
+                showTab('database');
+            });
+
 
             reviewerNameSelect.addEventListener('change', () => {
                 if (reviewerNameSelect.value === 'Other') {
