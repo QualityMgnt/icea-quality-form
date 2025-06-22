@@ -365,20 +365,6 @@
             </div>
         </div>
 
-        <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
-            <div class="text-sm font-medium text-gray-600">Scores:</div>
-            <div class="flex justify-around w-full gap-2">
-                <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
-                    <div class="text-xs font-medium text-gray-600 mb-1">Overall Score</div>
-                    <div class="text-xl font-bold text-blue-600" id="overall-score-display">0%</div>
-                </div>
-                <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
-                    <div class="text-xs font-medium text-gray-600 mb-1">Business & Compliance Accuracy</div>
-                    <div class="text-xl font-bold text-blue-600" id="business-compliance-accuracy">0%</div>
-                </div>
-            </div>
-        </div>
-
         <form id="assessment-form">
             <div class="mt-4">
                 <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
@@ -430,8 +416,23 @@
                         </div>
                 </div>
             </div>
+        </form>
 
-            <div class="p-6 flex flex-col items-end">
+        <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
+            <div class="text-sm font-medium text-gray-600">Scores:</div>
+            <div class="flex justify-around w-full gap-2">
+                <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
+                    <div class="text-xs font-medium text-gray-600 mb-1">Overall Score</div>
+                    <div class="text-xl font-bold text-blue-600" id="overall-score-display">0%</div>
+                </div>
+                <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
+                    <div class="text-xs font-medium text-gray-600 mb-1">Business & Compliance Accuracy</div>
+                    <div class="text-xl font-bold text-blue-600" id="business-compliance-accuracy">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 flex flex-col items-end">
                 <table class="score-summary-table w-full md:w-1/2 lg:w-1/3 text-right text-sm border-collapse border border-blue-500">
                     <tbody>
                         <tr class="border-b border-blue-500">
@@ -460,7 +461,32 @@
                     </div>
                 </div>
             </div>
-        </form>
+
+        <!-- NEW SECTION FOR LAST 3 EVALUATIONS - MOVED TO END -->
+        <div class="p-6">
+            <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
+                <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
+            </div>
+            <div id="lastEvaluationsContainer" class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-md">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Name</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Overall Score</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Role</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Contact ID</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lastEvaluationsTableBody">
+                        <tr>
+                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- END NEW SECTION -->
     </div>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
@@ -521,7 +547,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        // Import orderBy and limit for querying
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         // import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
 
         // --- Your Web App's Firebase Configuration ---
@@ -557,8 +584,11 @@
         window.fsAddDoc = addDoc;
         window.fsDeleteDoc = deleteDoc;
         window.fsDoc = doc;
-        window.fsQuery = query; // Expose query even if not directly used by name in current methods
-        window.fsWhere = where; // Expose where even if not directly used by name in current methods
+        window.fsQuery = query; // Expose query
+        window.fsWhere = where; // Expose where
+        window.fsOrderBy = orderBy; // Expose orderBy
+        window.fsLimit = limit;   // Expose limit
+        window.getDocs = getDocs; // Expose getDocs for one-time fetches
 
         // Authentication state and user ID
         window.currentUserId = null;
@@ -1409,15 +1439,19 @@
             const evaluationDateInput = document.getElementById('review-date');
             const callDateTimeInput = document.getElementById('call-date-time');
             const cerRoleSelect = document.getElementById('cer-role');
+            const cerNameSelect = document.getElementById('cer-name'); // Get CER Name select
 
             evaluationDateInput.valueAsDate = new Date();
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             callDateTimeInput.value = now.toISOString().slice(0,16);
 
+            cerNameSelect.value = ''; // Reset CER Name
             cerRoleSelect.value = '';
             renderQuestionsForRole('');
             calculateScore();
+            // Clear last evaluations table on form initialization
+            document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
         }
 
         // Dynamic Question Rendering (moved to top-level)
@@ -1515,14 +1549,14 @@
             const evaluationDateInput = document.getElementById('review-date');
             const durationInput = document.getElementById('duration');
             const autofailTypeSelect = document.getElementById('autofail-type');
-            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const reviewerNameSelect = document = document.getElementById('reviewer-name');
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
 
             console.log("Full form reset.");
 
             contactIdInput.value = '';
             clientNameInput.value = '';
-            cerNameSelect.value = '';
+            cerNameSelect.value = ''; // Reset CER Name select
             cerRoleSelect.value = '';
 
             const now = new Date();
@@ -1546,6 +1580,8 @@
             });
 
             renderQuestionsForRole('');
+            // Clear last evaluations table on form reset
+            document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
         }
 
         function resetFormFieldsButKeepRole() {
@@ -1583,40 +1619,112 @@
             const allInputsAndSelects = form.querySelectorAll('input, select, textarea');
             let allFieldsValid = true;
 
-            for (const field of allInputsAndSelects) {
-                // Skip hidden fields (like 'other-reviewer-name' when 'Other' is not selected)
-                if (field.classList.contains('hidden') && field.id === 'other-reviewer-name') {
-                    field.style.borderColor = ''; // Ensure no lingering red border
-                    continue;
-                }
-
-                // Check basic info fields marked as required
-                if (field.hasAttribute('required') && field.value.trim() === '') {
-                    field.style.borderColor = 'red';
+            // Validate top-level form fields
+            const topLevelInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
+            for (const input of topLevelInputs) {
+                if (input.hasAttribute('required') && input.value.trim() === '') {
+                    input.style.borderColor = 'red';
                     allFieldsValid = false;
-                } else if (field.hasAttribute('required')) {
-                    field.style.borderColor = '';
+                } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
+                    // This field is required only when 'Other' is selected for reviewer
+                    input.style.borderColor = ''; // Ensure no lingering red border
+                } else {
+                    input.style.borderColor = '';
                 }
+            }
 
-                // Check dynamically generated rating selects, they are all mandatory except "autofail"
-                if (field.classList.contains('rating-select') && !field.hasAttribute('data-autofail-question')) {
-                    if (field.value === '') {
-                        field.style.borderColor = 'red';
+
+            // Validate dynamically generated rating selects
+            const dynamicRatingSelects = document.querySelectorAll('.rating-select');
+            for (const selectElement of dynamicRatingSelects) {
+                // If it's a rating select and NOT an autofail question, it's mandatory
+                if (!selectElement.hasAttribute('data-autofail-question')) {
+                    if (selectElement.value === '') {
+                        selectElement.style.borderColor = 'red';
                         allFieldsValid = false;
                     } else {
-                        field.style.borderColor = '';
+                        selectElement.style.borderColor = '';
                     }
+                } else {
+                    selectElement.style.borderColor = ''; // Autofail type fields are optional
                 }
-                // Autofail type field should not be mandatory
-                if (field.id === 'autofail-type') {
-                    field.style.borderColor = ''; // Ensure no red border if empty
-                }
-                // Remarks fields should not be mandatory
-                if (field.classList.contains('remarks-textarea')) {
-                    field.style.borderColor = ''; // Ensure no red border if empty
+            }
+
+            // Remarks fields are always optional
+            const remarksTextareas = document.querySelectorAll('.remarks-textarea');
+            remarksTextareas.forEach(textarea => {
+                textarea.style.borderColor = '';
+            });
+
+            if (!allFieldsValid) {
+                // Find the first invalid field and scroll to it
+                const firstInvalidField = document.querySelector('input[required][value=""], select[required][value=""], .rating-select[value=""][style*="border-color: red"]');
+                if (firstInvalidField) {
+                    firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalidField.focus();
                 }
             }
             return allFieldsValid;
+        }
+
+
+        // NEW FUNCTION: Fetch Last 3 Evaluations for a CER
+        async function fetchLastThreeEvaluations(cerName) {
+            const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
+            if (!window.db || !window.EVALUATION_RECORDS_COLLECTION_PATH) {
+                console.error("Firestore not initialized or collection path not defined.");
+                lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Database not ready.</td></tr>';
+                return;
+            }
+
+            lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading last evaluations...</td></tr>';
+
+            try {
+                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+                const q = window.fsQuery(
+                    recordsColRef,
+                    window.fsWhere('CER Name', '==', cerName),
+                    window.fsOrderBy('submittedAt', 'desc'), // Assuming 'submittedAt' is your timestamp field
+                    window.fsLimit(3)
+                );
+                const querySnapshot = await window.getDocs(q); // Use getDocs for a one-time fetch
+
+                const evaluations = [];
+                if (querySnapshot.empty) {
+                    lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
+                } else {
+                    querySnapshot.forEach(doc => {
+                        evaluations.push(doc.data());
+                    });
+                    renderLastThreeEvaluationsTable(evaluations);
+                }
+            } catch (error) {
+                console.error("Error fetching last 3 evaluations:", error);
+                lastEvaluationsTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error loading evaluations: ${error.message}</td></tr>`;
+            }
+        }
+
+        // NEW FUNCTION: Render Last 3 Evaluations Table
+        function renderLastThreeEvaluationsTable(evaluations) {
+            const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
+            lastEvaluationsTableBody.innerHTML = ''; // Clear previous content
+
+            if (evaluations.length === 0) {
+                lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
+                return;
+            }
+
+            evaluations.forEach(evaluation => {
+                const row = lastEvaluationsTableBody.insertRow();
+                row.className = 'border-b border-gray-200';
+                row.innerHTML = `
+                    <td class="py-2 px-4">${evaluation['CER Name'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation['Overall Score'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation['CER Role'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation['Contact ID'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation.submittedAt ? new Date(evaluation.submittedAt).toLocaleDateString() : 'N/A'}</td>
+                `;
+            });
         }
 
 
@@ -1679,12 +1787,15 @@
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
             const cerRoleSelect = document.getElementById('cer-role');
+            const cerNameSelect = document.getElementById('cer-name'); // Get CER Name select element
+
 
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
 
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const addWebhookBtn = document.getElementById('addWebhookBtn');
+            const addWebhookBtn = document.getElementById('addWebhook'); // Changed to addWebhookBtn
+
 
             // --- EVENT LISTENERS (Attach to DOM elements) ---
             loginForm.addEventListener('submit', function(event) {
@@ -1728,6 +1839,17 @@
                 renderQuestionsForRole(selectedRole); // Calls the top-level renderQuestionsForRole
                 resetFormFieldsButKeepRole(); // Calls the top-level resetFormFieldsButKeepRole
             });
+
+            // NEW EVENT LISTENER: Listen for changes on CER Name select
+            cerNameSelect.addEventListener('change', (event) => {
+                const selectedCerName = event.target.value;
+                if (selectedCerName) {
+                    fetchLastThreeEvaluations(selectedCerName);
+                } else {
+                    document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
+                }
+            });
+
 
             submitFormToDBBtn.addEventListener('click', async (event) => { // Now submits to DB
                 event.preventDefault();
