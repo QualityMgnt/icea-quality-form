@@ -418,6 +418,32 @@
             </div>
         </form>
 
+        <!-- NEW SECTION FOR LAST 3 EVALUATIONS - MOVED BEFORE SCORES -->
+        <div class="p-6">
+            <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
+                <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
+            </div>
+            <div id="lastEvaluationsContainer" class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-md">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Name</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Overall Score</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Role</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Contact ID</th>
+                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lastEvaluationsTableBody">
+                        <tr>
+                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- END NEW SECTION -->
+
         <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
             <div class="text-sm font-medium text-gray-600">Scores:</div>
             <div class="flex justify-around w-full gap-2">
@@ -461,32 +487,6 @@
                     </div>
                 </div>
             </div>
-
-        <!-- NEW SECTION FOR LAST 3 EVALUATIONS - MOVED TO END -->
-        <div class="p-6">
-            <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
-                <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
-            </div>
-            <div id="lastEvaluationsContainer" class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-200 rounded-md">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Name</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Overall Score</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Role</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Contact ID</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lastEvaluationsTableBody">
-                        <tr>
-                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <!-- END NEW SECTION -->
     </div>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
@@ -562,23 +562,14 @@
           measurementId: "G-1RJJTT3QET"
         };
 
-        // Determine the 'appId' for Firestore collection paths.
-        // Use the injected __app_id from Canvas environment if available, otherwise use the appId from your firebaseConfig.
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-
-        // The initialAuthToken is for specific hosting environments. For general GitHub Pages, it will be null.
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // --- GLOBAL Firebase Objects (accessible via window) ---
-        // Initialize Firebase App, Firestore, and Auth.
-        // These are made global so the main script can access them after the module loads.
         window.firebaseApp = initializeApp(firebaseConfig);
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
-        // window.analytics = getAnalytics(window.firebaseApp); // Uncomment if you enabled Analytics and imported above
-
-        // --- Expose Firestore functions globally for the main script block ---
-        // This resolves "collection is not defined" and similar errors by making them available in the global scope.
+        
+        // Expose necessary Firestore functions for the report logic
         window.fsCollection = collection;
         window.fsOnSnapshot = onSnapshot;
         window.fsAddDoc = addDoc;
@@ -592,9 +583,8 @@
 
         // Authentication state and user ID
         window.currentUserId = null;
-        window.isAuthReady = false; // Flag to indicate if auth state is determined
+        window.isAuthReady = false;
 
-        // Listen for Firebase authentication state changes
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
                 window.currentUserId = user.uid;
@@ -608,7 +598,6 @@
                         console.log("Signed in with custom token:", window.currentUserId);
                     } catch (error) {
                         console.error("Error signing in with custom token:", error);
-                        // Fallback to anonymous if custom token fails
                         try {
                             await signInAnonymously(window.auth);
                             window.currentUserId = window.auth.currentUser.uid;
@@ -618,7 +607,6 @@
                         }
                     }
                 } else {
-                    // If no custom token, sign in anonymously
                     try {
                         await signInAnonymously(window.auth);
                         window.currentUserId = window.auth.currentUser.uid;
@@ -629,17 +617,14 @@
                 }
                 if (!window.currentUserId) {
                     console.error("No user ID available after authentication attempts. Using random UUID as fallback.");
-                    window.currentUserId = crypto.randomUUID(); // Fallback for userId if all else fails
+                    window.currentUserId = crypto.randomUUID();
                 }
             }
-            window.isAuthReady = true; // Mark auth as ready
-            // Dispatch a custom event to signal that Firebase Auth is ready
+            window.isAuthReady = true;
             document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
         });
 
-        // Firebase Collection Paths for this app, based on the determined appId
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
 
     </script>
     <script>
@@ -1549,7 +1534,7 @@
             const evaluationDateInput = document.getElementById('review-date');
             const durationInput = document.getElementById('duration');
             const autofailTypeSelect = document.getElementById('autofail-type');
-            const reviewerNameSelect = document = document.getElementById('reviewer-name');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
 
             console.log("Full form reset.");
