@@ -547,7 +547,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        // Import orderBy and limit for querying
+        // Import all necessary Firestore functions
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         // import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
 
@@ -569,19 +569,18 @@
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
         
-        // Expose necessary Firestore functions for the report logic
+        // Expose ALL necessary Firestore functions globally
         window.fsCollection = collection;
         window.fsOnSnapshot = onSnapshot;
         window.fsAddDoc = addDoc;
         window.fsDeleteDoc = deleteDoc;
         window.fsDoc = doc;
-        window.fsQuery = query; // Expose query
-        window.fsWhere = where; // Expose where
-        window.fsOrderBy = orderBy; // Expose orderBy
-        window.fsLimit = limit;   // Expose limit
-        window.getDocs = getDocs; // Expose getDocs for one-time fetches
+        window.fsQuery = query;
+        window.fsWhere = where;
+        window.fsOrderBy = orderBy;
+        window.fsLimit = limit;
+        window.getDocs = getDocs; // Ensure getDocs is exposed for queries that aren't snapshots
 
-        // Authentication state and user ID
         window.currentUserId = null;
         window.isAuthReady = false;
 
@@ -624,14 +623,18 @@
             document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
         });
 
+        // Define collection paths here, where appId is definitively available
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
-
+        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`; // Also define webhooks path
+        
     </script>
     <script>
-        // --- GLOBAL DATA STORES (needs to be outside functions to maintain state) ---
-        let allRecords = [];
-        let allWebhooks = [];
+        // --- GLOBAL DATA STORES ---
+        let allRecords = []; // Records fetched from Firestore for display
+        let allWebhooks = []; // Webhooks fetched from Firestore for display
+
+        let unsubscribeRecords = null; // Unsubscribe function for real-time records listener
+        let unsubscribeWebhooks = null; // Unsubscribe function for real-time webhooks listener
 
         // --- GLOBAL SCORE VARIABLES (Used by calculateScore) ---
         let globalTotalPoints = 0;
@@ -849,11 +852,7 @@
         };
 
 
-        // --- ALL FUNCTION DECLARATIONS (Hoisted to top-level scope) ---
-        // These functions are declared at the top-level scope of this script block
-        // to ensure they are available before any code tries to call them.
-
-        // Message Box Functions
+        // --- Message Box Functions ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             // Get elements inside the function to ensure DOM is loaded
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
@@ -918,12 +917,16 @@
             }
         }
 
-        // Firestore Data Handling Functions
-        let unsubscribeRecords = null; // These remain at top-level outside any function scope
-        let unsubscribeWebhooks = null;
+        // --- DATABASE SERVICE FUNCTIONS (Merged from database.js) ---
 
+        /**
+        * Fetches records and webhooks from Firestore in real-time.
+        * It uses global window.db, window.currentUserId, and collection paths.
+        * It also calls globally available UI functions like showMessageBox, hideMessageBox,
+        * and rendering functions that are expected to be available in the main script.
+        */
         async function fetchRecordsAndWebhooks() {
-            // Get elements here, as they must be present when this function is called after DOMContentLoaded
+            // Get elements inside the function to ensure DOM is loaded and current
             const recordsTableBody = document.getElementById('recordsTableBody'); 
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
@@ -931,33 +934,34 @@
             const addWebhookBtn = document.getElementById('addWebhookBtn');
             const webhookList = document.getElementById('webhookList');
 
-
             if (!window.db || !window.currentUserId) {
-                console.warn("Firestore not initialized or user not authenticated yet. Cannot fetch data.");
+                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
                 return;
             }
 
+            // IMPORTANT: Access the global collection paths
             if (!window.EVALUATION_RECORDS_COLLECTION_PATH || !window.WEBHOOKS_COLLECTION_PATH) {
                 console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
                 return;
             }
             
-            if (unsubscribeRecords) unsubscribeRecords();
-            if (unsubscribeWebhooks) unsubscribeWebhooks();
+            // Unsubscribe previous listeners to prevent duplicates if function called multiple times
+            if (unsubscribeRecords) unsubscribeRecords(); 
+            if (unsubscribeWebhooks) unsubscribeWebhooks(); 
             
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
             try {
                 const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH); 
                 unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => { 
-                    allRecords = [];
+                    allRecords = []; // Use global allRecords
                     snapshot.forEach(doc => { 
                         allRecords.push({ id: doc.id, ...doc.data() });
                     });
                     console.log("Records updated:", allRecords.length, "records.");
-                    renderRecordsTable(allRecords);
-                    hideMessageBox();
+                    renderRecordsTable(allRecords); // Call internal rendering function
+                    hideMessageBox(); // Access global hide message box
                 }, (error) => {
                     console.error("Error listening to records:", error);
                     showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
@@ -965,13 +969,13 @@
 
                 const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH); 
                 unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => { 
-                    allWebhooks = [];
+                    allWebhooks = []; // Use global allWebhooks
                     snapshot.forEach(doc => { 
                         allWebhooks.push({ id: doc.id, ...doc.data() });
                     });
                     console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
-                    renderWebhookList(allWebhooks);
-                    hideMessageBox();
+                    renderWebhookList(allWebhooks); // Call internal rendering function
+                    hideMessageBox(); // Access global hide message box
                 }, (error) => {
                     console.error("Error listening to webhooks:", error);
                     showMessageBox("Error Loading Webhooks", `Could not load webhooks: ${error.message}`, true, false, true);
@@ -983,6 +987,9 @@
             }
         }
 
+        /**
+        * Adds a new evaluation record to Firestore.
+        */
         async function addRecordToFirestore(recordData) {
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1002,8 +1009,8 @@
                 });
                 console.log("Record written with ID:", docRef.id);
                 showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
-                    resetForm(); // Reset form on success
-                    sendDataToWebhooks(recordData); // Trigger webhooks after successful submission
+                    resetForm(); // Call global reset form
+                    sendDataToWebhooks(recordData); // Call internal webhook sender
                 });
                 return true;
             } catch (e) {
@@ -1013,12 +1020,14 @@
             }
         }
 
+        /**
+        * Deletes selected records from Firestore.
+        */
         async function deleteSelectedRecords() {
-            // Access elements inside the function to ensure DOM is loaded
+            // Get elements inside the function to ensure DOM is loaded and current
             const messageBoxContent = document.getElementById('messageBoxContent');
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); // Access here
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox'); // Access here
 
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1042,49 +1051,54 @@
 
             showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
             
-            const confirmBtn = document.createElement('button'); // Renamed to confirmBtn
-            confirmBtn.textContent = 'Delete';
-            confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-            confirmBtn.onclick = async () => {
+            const confirmDeleteBtn = document.createElement('button');
+            confirmDeleteBtn.textContent = 'Delete';
+            confirmDeleteBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+            confirmDeleteBtn.onclick = async () => {
                 hideMessageBox();
                 showMessageBox("Deleting", "Deleting selected records...", false, true, false);
                 try {
-                    const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, id)));
+                    // Use window.fsDoc and window.fsDeleteDoc
+                    const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, id)));
                     await Promise.all(deletePromises);
                     console.log("Selected records deleted successfully.");
                     showMessageBox("Success", "Selected records deleted.", false, false, true);
-                    document.getElementById('selectAllRecordsCheckbox').checked = false;
-                    updateDeleteButtonState();
+                    selectAllRecordsCheckbox.checked = false; // Uncheck select all
+                    updateDeleteButtonState(); // Call internal state update
                 } catch (e) {
                     console.error("Error deleting documents: ", e);
                     showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
                 } finally {
-                     messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+                    messageBoxContent.innerHTML = originalMessageBoxContentHTML;
                 }
             };
 
-            const cancelBtn = document.createElement('button'); // Renamed to cancelBtn
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-            cancelBtn.onclick = () => {
-                 hideMessageBox();
-                 messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+            const cancelDeleteBtn = document.createElement('button');
+            cancelDeleteBtn.textContent = 'Cancel';
+            cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+            cancelDeleteBtn.onclick = () => {
+                hideMessageBox();
+                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
             };
 
             messageBoxContent.innerHTML = '';
-            messageBoxContent.appendChild(confirmBtn);
-            messageBoxContent.appendChild(cancelBtn);
+            messageBoxContent.appendChild(confirmDeleteBtn);
+            messageBoxContent.appendChild(cancelDeleteBtn);
             
+            // Re-assign messageBoxCloseBtn onclick to ensure cleanup
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
             messageBoxCloseBtn.onclick = () => {
                 hideMessageBox();
                 messageBoxContent.innerHTML = originalMessageBoxContentHTML;
             };
         }
 
+        /**
+        * Adds a new webhook URL to Firestore.
+        */
         async function addWebhook() {
-            // Access elements here to ensure DOM is loaded
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const webhookList = document.getElementById('webhookList'); // Used by renderWebhookList which this function might trigger
+            // Get elements inside the function to ensure DOM is loaded and current
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); // Access here
 
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1102,10 +1116,10 @@
                 return;
             }
             if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
-                 showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
-                 return;
+                showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
+                return;
             }
-            if (allWebhooks.some(hook => hook.url === webhookUrl)) {
+            if (allWebhooks.some(hook => hook.url === webhookUrl)) { // Uses global allWebhooks
                 showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
                 newWebhookUrlInput.value = '';
                 return;
@@ -1122,6 +1136,9 @@
             }
         }
 
+        /**
+        * Deletes a specific webhook from Firestore.
+        */
         async function deleteWebhook(webhookId) {
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1142,6 +1159,9 @@
             }
         }
 
+        /**
+        * Sends record data to all configured webhooks.
+        */
         async function sendDataToWebhooks(recordData) {
             if (allWebhooks.length === 0) {
                 console.log("No webhooks configured. Skipping webhook dispatch.");
@@ -1170,7 +1190,11 @@
             console.log("All webhook dispatches attempted.");
         }
 
-        // Database Table Rendering
+        // --- INTERNAL RENDERING & UI STATE FUNCTIONS (Used by database.js content) ---
+
+        /**
+        * Renders the evaluation records table.
+        */
         function renderRecordsTable(records) {
             const recordsTableBody = document.getElementById('recordsTableBody');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
@@ -1222,12 +1246,12 @@
                         hideMessageBox();
                         showMessageBox("Deleting", "Deleting record...", false, true, false);
                         try {
-                            await window.fsDeleteDoc(window.fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId));
+                            // Use window.fsDoc and window.fsDeleteDoc
+                            await window.fsDeleteDoc(window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, recordId));
                             showMessageBox("Success", "Record deleted successfully.", false, false, true);
                         } catch (error) {
                             showMessageBox("Deletion Failed", `Error: ${error.message}`, true, false, true);
                         } finally {
-                            // Always restore original content regardless of success/fail
                             messageBoxContent.innerHTML = originalMessageBoxContentHTML;
                         }
                     };
@@ -1235,15 +1259,14 @@
                     cancelBtn.textContent = 'Cancel';
                     cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
                     cancelBtn.onclick = () => {
-                            hideMessageBox();
-                            messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
+                        hideMessageBox();
+                        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
                     };
 
-                    messageBoxContent.innerHTML = ''; // Clear existing content
+                    messageBoxContent.innerHTML = '';
                     messageBoxContent.appendChild(confirmBtn);
                     messageBoxContent.appendChild(cancelBtn);
 
-                    // Ensure messageBoxCloseBtn also restores original content
                     const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
                     messageBoxCloseBtn.onclick = () => {
                         hideMessageBox();
@@ -1255,12 +1278,18 @@
             updateDeleteButtonState();
         }
 
+        /**
+        * Updates the state of the "Delete Selected" button.
+        */
         function updateDeleteButtonState() {
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
             deleteSelectedRecordsBtn.disabled = checkedCount === 0;
         }
 
+        /**
+        * Renders the list of configured webhooks.
+        */
         function renderWebhookList(webhooks) {
             const webhookList = document.getElementById('webhookList');
             webhookList.innerHTML = '';
@@ -1284,7 +1313,7 @@
                 button.addEventListener('click', (e) => {
                     const webhookId = e.target.closest('button').dataset.webhookId;
                     const messageBoxContent = document.getElementById('messageBoxContent');
-                    const originalMessageBoxContentHTML = messageBoxContent.innerHTML; // Store original content
+                    const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
 
                     showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, false);
                     const confirmBtn = document.createElement('button');
@@ -1293,15 +1322,15 @@
                     confirmBtn.onclick = async () => {
                         hideMessageBox();
                         showMessageBox("Deleting", "Deleting webhook...", false, true, false);
-                        await deleteWebhook(webhookId);
-                        hideMessageBox(); // Hide after delete completes
+                        await deleteWebhook(webhookId); // Call internal deleteWebhook
+                        hideMessageBox();
                     };
                     const cancelBtn = document.createElement('button');
                     cancelBtn.textContent = 'Cancel';
                     cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
                     cancelBtn.onclick = () => {
-                            hideMessageBox();
-                            messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore if canceled
+                        hideMessageBox();
+                        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
                     };
 
                     messageBoxContent.innerHTML = '';
@@ -1309,13 +1338,14 @@
                     messageBoxContent.appendChild(cancelBtn);
 
                     const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-                    messageBoxCloseBtn.onclick = () => { // Override close for this dialog
+                    messageBoxCloseBtn.onclick = () => {
                         hideMessageBox();
                         messageBoxContent.innerHTML = originalMessageBoxContentHTML;
                     };
                 });
             });
         }
+
 
         // Audit Form Calculations
         const calculateScore = () => {
@@ -1743,13 +1773,14 @@
             console.log("DOM fully loaded and parsed. Main script starting.");
 
             // --- Get Firebase objects and functions from window ---
+            // These variables are now guaranteed to be available due to module script's execution
             let db = window.db; 
             let auth = window.auth;
             let currentUserId = window.currentUserId;
             let isAuthReady = window.isAuthReady; 
 
 
-            // Collection paths (These need to be obtained from window)
+            // Collection paths are now accessed directly from window, defined in module script
             const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
             const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
@@ -1771,14 +1802,14 @@
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
             const cerRoleSelect = document.getElementById('cer-role');
-            const cerNameSelect = document.getElementById('cer-name'); // Get CER Name select element
+            const cerNameSelect = document.getElementById('cer-name');
 
 
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
 
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const addWebhookBtn = document.getElementById('addWebhookBtn'); // Corrected ID to addWebhookBtn
+            const addWebhookBtn = document.getElementById('addWebhookBtn');
 
 
             // --- EVENT LISTENERS (Attach to DOM elements) ---
@@ -1791,7 +1822,7 @@
 
                 if (usernameInput.value === CORRECT_USERNAME && passwordInput.value === CORRECT_PASSWORD) {
                     sessionStorage.setItem('loggedIn', 'true');
-                    initializeApp(); // Calls the top-level initializeApp
+                    initializeApp(); 
                 } else {
                     loginMessage.textContent = 'Invalid Username or Password. Please try again.';
                     loginMessage.classList.remove('hidden');
@@ -1808,14 +1839,34 @@
 
             // Added click listeners for navigation tabs
             auditFormTab.addEventListener('click', (e) => {
-                e.preventDefault(); // Prevent default link behavior
+                e.preventDefault(); 
+                console.log("Audit Form Tab CLICKED!");
                 showTab('auditForm');
             });
 
             databaseTab.addEventListener('click', (e) => {
-                e.preventDefault(); // Prevent default link behavior
+                e.preventDefault(); 
+                console.log("Database Tab CLICKED!");
                 showTab('database');
             });
+
+            // Event listeners for database actions (from merged database.js logic)
+            selectAllRecordsCheckbox.addEventListener('change', () => {
+                const isChecked = selectAllRecordsCheckbox.checked;
+                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+                updateDeleteButtonState();
+            });
+
+            // This listener is added in renderRecordsTable, but if there are no records
+            // initially, it won't be added. Let's make sure it's here for direct use too.
+            if (deleteSelectedRecordsBtn) {
+                deleteSelectedRecordsBtn.addEventListener('click', deleteSelectedRecords);
+            }
+            if (addWebhookBtn) {
+                addWebhookBtn.addEventListener('click', addWebhook);
+            }
 
 
             reviewerNameSelect.addEventListener('change', () => {
@@ -1832,11 +1883,10 @@
 
             cerRoleSelect.addEventListener('change', (event) => {
                 const selectedRole = event.target.value;
-                renderQuestionsForRole(selectedRole); // Calls the top-level renderQuestionsForRole
-                resetFormFieldsButKeepRole(); // Calls the top-level resetFormFieldsButKeepRole
+                renderQuestionsForRole(selectedRole); 
+                resetFormFieldsButKeepRole(); 
             });
 
-            // NEW EVENT LISTENER: Listen for changes on CER Name select
             cerNameSelect.addEventListener('change', (event) => {
                 const selectedCerName = event.target.value;
                 if (selectedCerName) {
@@ -1847,7 +1897,7 @@
             });
 
 
-            submitFormToDBBtn.addEventListener('click', async (event) => { // Now submits to DB
+            submitFormToDBBtn.addEventListener('click', async (event) => { 
                 event.preventDefault();
                 console.log("Submit to Database button clicked.");
 
@@ -1856,7 +1906,6 @@
                     return;
                 }
 
-                // Dynamically collect all relevant form data based on current DOM
                 const formDataForSubmission = {};
                 const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
                 basicInfoInputs.forEach(input => {
@@ -1899,14 +1948,13 @@
                 });
                 console.log("Collected Data for Submission:", formDataForSubmission);
 
-                await addRecordToFirestore(formDataForSubmission); // Calls top-level addRecordToFirestore
+                await addRecordToFirestore(formDataForSubmission); 
             });
 
 
             printEmailBtn.addEventListener('click', async () => {
                 console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
 
-                // Validate fields before proceeding with PDF and Email
                 if (!validateAllMandatoryFields()) {
                     showMessageBox("Validation Error", "Please fill out all mandatory fields before generating PDF and Email.", true, false, true);
                     return;
@@ -1977,7 +2025,7 @@
 
                     const cerNameVal = cerNameSelect.value;
                     const evaluationDateVal = evaluationDateInput.value;
-                    const overallScoreVal = overallFinalPercentageDisplay.textContent; // Use corrected ID
+                    const overallScoreVal = overallFinalPercentageDisplay.textContent; 
                     const contactIdVal = contactIdInput.value;
                     const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
 
@@ -2003,28 +2051,28 @@
             // Initial trigger for app setup after DOM is ready
             // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
-                // Ensure the global db and auth objects are correctly referenced after Firebase is ready
+                // These variables are now available and correctly referenced
                 let db = window.db; 
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
 
-                // Update collection path variables, which depend on window.appId being set by module script
+                // Collection path variables are now explicitly defined globally in the module script
                 const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
                 
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
-                initializeApp(); // Calls the top-level initializeApp
+                initializeApp(); 
 
                 // If already logged in, fetch initial records
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks(); // Call initially once logged in
+                   fetchRecordsAndWebhooks(); 
                 }
             });
 
             // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
             if (document.readyState === 'complete' && window.isAuthReady !== null) { 
-                let db = window.db; // Get global references
+                let db = window.db; 
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
@@ -2033,9 +2081,9 @@
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
-                initializeApp(); // Calls the top-level initializeApp
+                initializeApp(); 
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks(); // Call initially once logged in
+                   fetchRecordsAndWebhooks(); 
                 }
             } else {
                 console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
