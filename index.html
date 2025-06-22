@@ -675,8 +675,9 @@
         let allRecords = []; // Records fetched from Firestore for display
         let allWebhooks = []; // Webhooks fetched from Firestore for display
 
-        let unsubscribeRecords = null; // Unsubscribe function for real-time records listener
-        let unsubscribeWebhooks = null; // Unsubscribe function for real-time webhooks listener
+        // Removed 'let' declaration here to prevent redeclaration error
+        window.unsubscribeRecords = null; 
+        window.unsubscribeWebhooks = null; 
 
         // --- GLOBAL SCORE VARIABLES (Used by calculateScore) ---
         let globalTotalPoints = 0;
@@ -968,9 +969,10 @@
         }
 
         // Firestore Data Handling Functions
-        // Unsubscribe functions now defined outside to be managed globally
-        let unsubscribeRecords = null; 
-        let unsubscribeWebhooks = null;
+        // Unsubscribe functions now defined globally on window in the module script
+        // No local 'let' declarations here to avoid redeclaration error
+        // window.unsubscribeRecords is already used for consistency.
+        // window.unsubscribeWebhooks is already used for consistency.
 
         /**
          * Fetches records and webhooks from Firestore in real-time.
@@ -989,7 +991,7 @@
                 return;
             }
 
-            // IMPORTANT: Access the global collection paths
+            // IMPORTANT: Access the global collection paths directly from window
             if (!window.EVALUATION_RECORDS_COLLECTION_PATH || !window.WEBHOOKS_COLLECTION_PATH) {
                 console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
@@ -997,14 +999,14 @@
             }
             
             // Unsubscribe previous listeners to prevent duplicates if function called multiple times
-            if (unsubscribeRecords) unsubscribeRecords(); 
-            if (unsubscribeWebhooks) unsubscribeWebhooks(); 
+            if (window.unsubscribeRecords) window.unsubscribeRecords(); 
+            if (window.unsubscribeWebhooks) window.unsubscribeWebhooks(); 
             
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
             try {
                 const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH); 
-                unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => { 
+                window.unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => { 
                     allRecords = []; // Use global allRecords
                     snapshot.forEach(doc => { 
                         allRecords.push({ id: doc.id, ...doc.data() });
@@ -1018,7 +1020,7 @@
                 });
 
                 const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH); 
-                unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => { 
+                window.unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => { 
                     allWebhooks = []; // Use global allWebhooks
                     snapshot.forEach(doc => { 
                         allWebhooks.push({ id: doc.id, ...doc.data() });
@@ -1132,7 +1134,7 @@
 
             messageBoxContent.innerHTML = '';
             messageBoxContent.appendChild(confirmDeleteBtn);
-            messageBoxContent.appendChild(cancelDeleteBtn);
+            messageBoxContent.appendChild(cancelBtn);
             
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
             messageBoxCloseBtn.onclick = () => {
@@ -1954,8 +1956,8 @@
             logoutBtn.addEventListener('click', function() {
                 sessionStorage.removeItem('loggedIn');
                 // Unsubscribe Firestore listeners on logout to prevent memory leaks
-                if (unsubscribeRecords) unsubscribeRecords();
-                if (unsubscribeWebhooks) unsubscribeWebhooks();
+                if (window.unsubscribeRecords) window.unsubscribeRecords(); // Use window.unsubscribeRecords
+                if (window.unsubscribeWebhooks) window.unsubscribeWebhooks(); // Use window.unsubscribeWebhooks
                 window.location.reload(); // Reload to show login page
             });
 
