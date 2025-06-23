@@ -2116,23 +2116,38 @@
                     }
                 });
 
-                // Add autofail description to form data if visible
-                if (autofailTypeSelect.value !== '') {
-                    formDataForSubmission[autofailDescriptionInput.name] = autofailDescriptionInput.value.trim();
+                // Get current overall score from display
+                const overallScoreDisplay = document.getElementById('overall-score-display');
+                const overallScoreValue = parseFloat(overallScoreDisplay.textContent); // Parse "0%" to 0
+
+                // If overall score is 0%, ensure autofail fields are populated
+                if (overallScoreValue === 0) {
+                    // Only set default autofail type if it's currently empty
+                    if (!autofailTypeSelect.value.trim()) {
+                        formDataForSubmission['Auto Fail Type'] = 'Auto-Scored Fail';
+                        // Ensure the dropdown itself reflects this change for immediate visual feedback
+                        autofailTypeSelect.value = 'Auto-Scored Fail'; 
+                        // If 'Auto-Scored Fail' isn't an option, you might need to add it or pick an existing one.
+                        // For now, it will just set the data field.
+                    }
+                    // Only set default autofail description if it's currently empty
+                    if (!autofailDescriptionInput.value.trim()) {
+                        formDataForSubmission['Autofail Description'] = 'Automatically marked due to 0% overall score.';
+                        autofailDescriptionInput.value = 'Automatically marked due to 0% overall score.';
+                        autofailDescriptionContainer.classList.remove('hidden'); // Ensure visible if it was hidden
+                        autofailDescriptionInput.setAttribute('required', 'required'); // Ensure it becomes required
+                    }
                 } else {
-                    formDataForSubmission[autofailDescriptionInput.name] = ''; // Ensure it's empty if not selected
+                    // If score is not 0, ensure autofail fields are stored as empty if they are indeed empty
+                    formDataForSubmission['Auto Fail Type'] = autofailTypeSelect.value.trim();
+                    formDataForSubmission['Autofail Description'] = autofailDescriptionInput.value.trim();
                 }
 
-                const overallScoreDisplay = document.getElementById('overall-score-display');
-                const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
-                const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
-
-
                 formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
-                formDataForSubmission['Business & Compliance Accuracy'] = businessComplianceAccuracyDisplay.textContent;
+                formDataForSubmission['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
                 formDataForSubmission['Total Pts.'] = globalTotalPoints;
                 formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
-                formDataForSubmission['Final Score'] = overallFinalPercentageDisplay.textContent;
+                formDataForSubmission['Final Score'] = overallScoreDisplay.textContent; // Use overall score for Final Score
 
                 const dynamicSelects = document.querySelectorAll('.rating-select');
                 dynamicSelects.forEach(selectElement => {
