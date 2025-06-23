@@ -6,7 +6,6 @@
     <title>Admin - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Optional: Add Garamond if you want it applied to admin form fields too -->
     <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@400;700&display=swap" rel="stylesheet"> 
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -247,10 +246,11 @@
 
     <nav class="main-nav" id="mainNav" style="display: none;">
         <ul>
-            <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Audit Form</a></li>
+            <li><a href="index.html" id="evaluationFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
             <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
             <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
-            <li><a href="admin.html" id="adminTab" class="active"><i class="fas fa-user-cog"></i> Admin</a></li>
+            <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+            <li id="adminTabNav"><a href="admin.html" id="adminTab" class="active"><i class="fas fa-user-cog"></i> Admin</a></li>
         </ul>
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
@@ -305,7 +305,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         import { FieldValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js"; // Import FieldValue
 
@@ -327,7 +327,10 @@
         window.auth = getAuth(window.firebaseApp);
         window.db = getFirestore(window.firebaseApp); // Make db global
 
-        // Expose necessary Firestore functions globally
+        // Expose necessary Firebase Auth functions globally (for admin login)
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+
+        // Expose ALL necessary Firestore functions globally
         window.fsCollection = collection;
         window.fsAddDoc = addDoc;
         window.fsGetDocs = getDocs;
@@ -337,80 +340,88 @@
         window.fsSetDoc = setDoc;
         window.fsGetDoc = getDoc;
         window.fsFieldValue = FieldValue; // Expose FieldValue
+        window.signOut = signOut; // Expose signOut
 
         window.currentUserId = null;
-        window.isAuthReady = false;
         window.currentUserRole = null; // Store user role
+        window.isAuthReady = false;
+
+        // NEW: Function to check and handle session timeout
+        function checkSessionTimeout() {
+            const lastActivity = localStorage.getItem('lastActivity');
+            const loginTime = localStorage.getItem('loginTime'); // New: Store login time
+            if (lastActivity && loginTime) {
+                const now = new Date().getTime();
+                const eightHours = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+                
+                // If last activity was more than 8 hours ago OR total session length exceeds 8 hours
+                if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
+                    console.log("Session expired. Logging out.");
+                    localStorage.removeItem('lastActivity');
+                    localStorage.removeItem('loginTime'); // Clear login time
+                    sessionStorage.removeItem('loggedIn'); // Clear loggedIn flag
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Update last activity on user interaction
+        function updateLastActivity() {
+            localStorage.setItem('lastActivity', new Date().getTime().toString());
+        }
+
+        // Add event listeners for activity to reset timeout
+        document.addEventListener('mousemove', updateLastActivity);
+        document.addEventListener('keydown', updateLastActivity);
+        document.addEventListener('click', updateLastActivity);
+
 
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
+                // If session expired, log out even if Firebase thinks user is authenticated
+                if (checkSessionTimeout()) {
+                    await signOut(window.auth); // Force Firebase sign out
+                    return; // Stop further processing
+                }
+
                 window.currentUserId = user.uid;
                 console.log("Firebase Auth State Changed: User logged in:", user.uid);
+                
                 // Fetch user role from Firestore
-                const userDocRef = window.fsDoc(window.db, `artifacts/${appId}/users/${user.uid}`);
+                const userDocRef = window.fsDoc(window.db, `${appId}/users/${user.uid}`);
                 const userDocSnap = await window.fsGetDoc(userDocRef);
+                
                 if (userDocSnap.exists()) {
                     window.currentUserRole = userDocSnap.data().role;
                     console.log("User role fetched:", window.currentUserRole);
                 } else {
-                    window.currentUserRole = 'CER'; // Default role if not found
-                    console.log("User role not found, defaulting to CER.");
+                    // This could happen for a newly signed-in anonymous user
+                    window.currentUserRole = 'Guest'; 
+                    console.log("User profile not found in Firestore, defaulting to Guest.");
+                    // Optional: You could create a basic profile for anonymous users here
+                    await window.fsSetDoc(userDocRef, {
+                        email: `anonymous-${user.uid.substring(0, 8)}@example.com`, // Placeholder email
+                        role: 'Guest',
+                        createdAt: window.fsFieldValue.serverTimestamp()
+                    }, { merge: true });
                 }
+                // Update last activity on successful authentication check
+                updateLastActivity();
             } else {
-                console.log("Firebase Auth State Changed: No user logged in. Attempting sign-in.");
-                if (initialAuthToken) {
-                    try {
-                        await signInWithCustomToken(window.auth, initialAuthToken);
-                        window.currentUserId = window.auth.currentUser.uid;
-                        console.log("Signed in with custom token:", window.currentUserId);
-                        // Fetch role after custom token sign-in
-                        const userDocRef = window.fsDoc(window.db, `artifacts/${appId}/users/${window.currentUserId}`);
-                        const userDocSnap = await window.fsGetDoc(userDocRef);
-                        if (userDocSnap.exists()) {
-                            window.currentUserRole = userDocSnap.data().role;
-                            console.log("User role fetched after custom token:", window.currentUserRole);
-                        } else {
-                            window.currentUserRole = 'CER';
-                        }
-
-                    } catch (error) {
-                        console.error("Error signing in with custom token:", error);
-                        // Fallback to anonymous if custom token fails
-                        try {
-                            await signInAnonymously(window.auth);
-                            window.currentUserId = window.auth.currentUser.uid;
-                            console.log("Signed in anonymously:", window.currentUserId);
-                            window.currentUserRole = 'Guest'; // Anonymous users are guests
-                        } catch (anonError) {
-                            console.error("Error signing in anonymously (fallback):", anonError);
-                        }
-                    }
-                } else {
-                    // If no custom token, sign in anonymously
-                    try {
-                        await signInAnonymously(window.auth);
-                        window.currentUserId = window.auth.currentUser.uid;
-                        console.log("Signed in anonymously:", window.currentUserId);
-                        window.currentUserRole = 'Guest';
-                    } catch (anonError) {
-                        console.error("Error signing in anonymously:", anonError);
-                    }
-                }
-                if (!window.currentUserId) {
-                    console.error("No user ID available after authentication attempts. Using random UUID as fallback.");
-                    window.currentUserId = crypto.randomUUID();
-                    window.currentUserRole = 'Guest'; // Fallback role for random UUID
-                }
+                console.log("Firebase Auth State Changed: No user logged in.");
+                window.currentUserId = null;
+                window.currentUserRole = null; // Clear role if no user
+                sessionStorage.removeItem('loggedIn'); // Ensure sessionStorage is cleared
+                localStorage.removeItem('lastActivity');
+                localStorage.removeItem('loginTime');
             }
             window.isAuthReady = true;
             document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
         });
 
-        // NEW: Firestore collection path for user roles/profiles
+        // Define collection path
         window.USERS_COLLECTION_PATH_PREFIX = `artifacts/${appId}/users`;
-        // Old form config path is no longer needed here as this admin page only manages users now.
-        // If you still need to manage form configs, ensure FORM_CONFIGS_DOC_REF is also defined here
-        // and its functionality is retained or moved. For this specific request, it's removed from admin.html.
 
     </script>
     <script>
@@ -425,7 +436,12 @@
         const loginMessage = document.getElementById('loginMessage');
 
         const mainNav = document.getElementById('mainNav');
-        const adminTab = document.getElementById('adminTab');
+        const evaluationFormTab = document.getElementById('evaluationFormTab'); // Renamed
+        const databaseTab = document.getElementById('databaseTab');
+        const reportsTab = document.getElementById('reportsTab');
+        const autofailsTab = document.getElementById('autofailsTab');
+        const adminTabNav = document.getElementById('adminTabNav'); // li element for Admin tab
+        const adminTab = document.getElementById('adminTab'); // anchor element for Admin tab
         const logoutBtn = document.getElementById('logoutBtn');
 
         const adminContent = document.getElementById('adminContent');
@@ -477,10 +493,41 @@
 
         // --- ADMIN SPECIFIC FUNCTIONS (User Management) ---
 
+        // Function to dynamically show/hide navigation tabs based on user role
+        function updateNavigationVisibility() {
+            const userRole = window.currentUserRole;
+            const isLoggedIn = sessionStorage.getItem('loggedIn') === 'true';
+
+            // Hide all by default
+            evaluationFormTab.parentElement.style.display = 'none'; // Parent is li
+            databaseTab.parentElement.style.display = 'none';
+            reportsTab.parentElement.style.display = 'none';
+            autofailsTab.parentElement.style.display = 'none';
+            adminTabNav.style.display = 'none'; // Admin tab is already li
+
+            if (isLoggedIn && userRole) {
+                if (userRole === 'CER') {
+                    evaluationFormTab.parentElement.style.display = 'inline-block';
+                    reportsTab.parentElement.style.display = 'inline-block';
+                } else if (userRole === 'Supervisor') {
+                    evaluationFormTab.parentElement.style.display = 'inline-block';
+                    reportsTab.parentElement.style.display = 'inline-block';
+                    autofailsTab.parentElement.style.display = 'inline-block';
+                } else if (userRole === 'Admin') {
+                    evaluationFormTab.parentElement.style.display = 'inline-block';
+                    databaseTab.parentElement.style.display = 'inline-block';
+                    reportsTab.parentElement.style.display = 'inline-block';
+                    autofailsTab.parentElement.style.display = 'inline-block';
+                    adminTabNav.style.display = 'inline-block'; // Show Admin tab
+                }
+            }
+        }
+
+
         async function fetchUsers() {
+            // Only fetch if current user is Admin
             if (!window.db || !window.currentUserId || window.currentUserRole !== 'Admin') {
                 console.warn("Not authorized to fetch users or Firebase not ready.");
-                // showMessageBox("Unauthorized", "You do not have permission to view users.", true, false, true);
                 usersTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Not authorized or no users found.</td></tr>';
                 return;
             }
@@ -523,13 +570,14 @@
 
             showMessageBox("Creating User", `Creating user ${email}...`, false, true, false);
             try {
-                // Firebase Auth: Create user
-                // NOTE: This client-side method usually requires specific Firebase Auth setup (e.g., email enumeration protection disabled for client-side API keys)
-                // For a secure production app, user creation (especially for admins) should be done via Firebase Admin SDK on a trusted server (e.g., Cloud Function).
+                // This is a client-side user creation for demo purposes.
+                // In a real application, user creation for specific roles (especially Admin)
+                // should happen via Firebase Admin SDK on a secure backend (e.g., Cloud Function)
+                // to avoid exposing sensitive API keys and maintain security.
                 const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
                 const user = userCredential.user;
 
-                // Firestore: Save user role
+                // Store user role in Firestore
                 const userDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${user.uid}`);
                 await window.fsSetDoc(userDocRef, {
                     email: user.email,
@@ -557,7 +605,7 @@
 
             // Prevent self-deletion
             if (uid === window.currentUserId) {
-                showMessageBox("Error", "You cannot delete your own admin account.", true, false, true);
+                showMessageBox("Error", "You cannot delete your own admin account from here.", true, false, true);
                 return;
             }
 
@@ -571,46 +619,21 @@
                 hideMessageBox();
                 showMessageBox("Deleting User", `Deleting user ${email}...`, false, true, false);
                 try {
-                    // Delete from Firebase Authentication
-                    // This direct client-side deletion requires a re-authentication from the user doing the deletion for security.
-                    // A Cloud Function is the standard way to bypass this for admin tools.
-                    // For this client-side demo, we'll try direct delete, but note the re-auth requirement.
+                    // Client-side deleteUser() only works for the currently logged-in user.
+                    // To delete another user, you MUST use the Firebase Admin SDK (e.g., via a Cloud Function).
+                    // This client-side code will only delete the user's profile from Firestore,
+                    // but the Firebase Authentication user account will remain unless deleted via backend.
                     
-                    // First, delete the user's document from Firestore
                     const userDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${uid}`);
-                    await window.fsDeleteDoc(userDocRef);
-                    
-                    // Then, attempt to delete the user from Authentication.
-                    // This will likely fail if the admin hasn't recently re-authenticated.
-                    // The common workaround for client-side is to ask the admin to log in again
-                    // right before this operation, or use a Cloud Function.
-                    // For now, we proceed with direct delete and inform user if it fails.
-                    await deleteUser(window.auth.currentUser); // This deletes the CURRENTLY authenticated user. This is NOT what we want.
-                                                             // To delete another user, you need Firebase Admin SDK (Cloud Function).
-                                                             // Since you are in the browser, direct deletion of OTHER users is NOT POSSIBLE.
+                    await window.fsDeleteDoc(userDocRef); // Delete the user's role profile
 
-                    // The Firebase client SDK only allows current authenticated user to delete their OWN account.
-                    // To delete *another* user, you MUST use the Firebase Admin SDK (i.e., a backend/Cloud Function).
-                    // As a workaround for client-side only: if the admin wants to delete another user, this prompt
-                    // is functionally limited without a backend.
-                    
-                    // For now, let's simulate by just removing from Firestore and updating the UI.
-                    // In a real app, deleteUser(targetUserObject) requires Firebase Admin SDK.
-                    // The simplest is to log out the current admin and ask them to log in again, then delete self.
-                    // But deleting *other* users always needs server-side.
+                    // Optional: If you had a Cloud Function, you would call it here to delete Auth user:
+                    // await fetch('/your-cloud-function-endpoint/deleteUser', { method: 'POST', body: JSON.stringify({ uid }), headers: { 'Content-Type': 'application/json' } });
 
-                    // For now, just deleting the Firestore record is what we can do reliably client-side.
-                    // The Firebase Auth user would remain, but they'd lose their role.
-
-                    showMessageBox("Success", `User ${email} profile deleted (Auth account remains without backend)!`, false, false, true, fetchUsers);
+                    showMessageBox("Success", `User ${email} profile deleted (Note: Auth account requires server-side deletion)!`, false, false, true, fetchUsers);
                 } catch (error) {
                     console.error("Error deleting user:", error);
                     let errorMessage = `Failed to delete user: ${error.message}`;
-                    if (error.code === 'auth/requires-recent-login') {
-                        errorMessage += '. Admin must re-authenticate to perform this action. Please log out and log in again.';
-                    } else if (error.code === 'auth/user-not-found') {
-                        errorMessage = 'User not found in Authentication (profile deleted from Firestore, Auth account may not exist or already deleted).';
-                    }
                     showMessageBox("User Deletion Failed", errorMessage, true, false, true);
                 } finally {
                     messageBoxContent.innerHTML = originalMessageBoxContentHTML;
@@ -663,67 +686,111 @@
 
         // --- INITIALIZATION & EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', function() {
-            // Check login state and show appropriate content
-            const isLoggedIn = sessionStorage.getItem('loggedIn');
-            if (isLoggedIn === 'true') {
-                loginPage.style.display = 'none';
-                mainNav.style.display = 'flex';
-                adminContent.style.display = 'block'; // Show admin content
-                // fetchUsers will be called by firebaseAuthReady listener
-            } else {
-                loginPage.style.display = 'flex';
-                mainNav.style.display = 'none';
-                adminContent.style.display = 'none'; // Keep admin hidden
+            console.log("Admin DOM fully loaded and parsed.");
+
+            // Initial check for session timeout
+            if (checkSessionTimeout()) {
+                // checkSessionTimeout already handles redirect, so just return
+                return;
             }
 
+            // Check if logged in from sessionStorage
+            const isLoggedIn = sessionStorage.getItem('loggedIn');
+
+            // Hardcoded Supervisor Login Handler (now primarily for `admin.html` as the login page)
             loginForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 loginMessage.classList.add('hidden');
 
-                const email = usernameInput.value.trim(); // Use email for login too
+                const email = usernameInput.value.trim();
                 const pass = passwordInput.value.trim();
 
-                // Hardcoded login for Supervisor
                 if (email === 'Supervisor' && pass === 'Supervisor') {
-                    // For the purpose of this demo, we can assign a temporary admin role.
-                    // In a real app, 'Supervisor' would be a user with 'Admin' role in Firestore.
-                    sessionStorage.setItem('loggedIn', 'true');
-                    // We also need to simulate Firebase Auth login if this is the entry point
+                    // Simulate login for Supervisor (create/get profile in Firestore)
                     try {
-                        await signOut(window.auth); // Sign out any anonymous user first
-                        // You would normally sign in with email/password here
-                        // await signInWithEmailAndPassword(window.auth, email, pass);
-                        // For the hardcoded 'Supervisor' login, we just grant access.
-                        // For this local demo, Firebase Auth isn't managing 'Supervisor' directly.
-                        // The actual user session will be anonymous, but we override role for UI.
-                        window.currentUserRole = 'Admin'; // Assume 'Supervisor' is admin
-                        window.currentUserId = 'SupervisorDemoAdmin'; // A dummy UID for Supervisor
-                        window.isAuthReady = true;
+                        // Attempt Firebase Auth sign-in for a dummy user or just set roles directly for demo
+                        // For a real app, this should involve actual Firebase Auth email/password sign-in
+                        // and then fetching roles from Firestore based on the actual UID.
                         
-                        loginPage.style.display = 'none';
-                        mainNav.style.display = 'flex';
-                        adminContent.style.display = 'block';
-                        fetchUsers(); // Load users after successful login
+                        // For demo: create a dummy user in Auth if not exists for Supervisor
+                        let userCredential;
+                        let userAuthId = 'SupervisorDemoAdmin'; // Consistent dummy UID for Supervisor
+
+                        // Try to get existing user profile for Supervisor
+                        const supervisorDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${userAuthId}`);
+                        const supervisorDocSnap = await window.fsGetDoc(supervisorDocRef);
+
+                        if (!supervisorDocSnap.exists()) {
+                             console.log("Creating Supervisor profile in Firestore.");
+                             // If a supervisor profile doesn't exist, create it.
+                             // No actual Auth user created here, just a profile.
+                             await window.fsSetDoc(supervisorDocRef, {
+                                 email: 'supervisor@icealion.com', // Dummy email for Firestore profile
+                                 role: 'Admin', // Supervisor is Admin role
+                                 createdAt: window.fsFieldValue.serverTimestamp()
+                             });
+                        } else {
+                            console.log("Supervisor profile already exists in Firestore.");
+                        }
+
+                        sessionStorage.setItem('loggedIn', 'true');
+                        localStorage.setItem('loginTime', new Date().getTime().toString()); // Set login time
+                        updateLastActivity(); // Set initial last activity
+
+                        window.currentUserId = userAuthId; // Set dummy UID for global access
+                        window.currentUserRole = 'Admin'; // Assign Admin role for the Supervisor
+
+                        // Redirect to main app page (index.html) after successful login
+                        window.location.href = 'index.html'; 
+
                     } catch (error) {
-                        console.error("Login simulation error:", error);
+                        console.error("Supervisor login error:", error);
                         loginMessage.textContent = 'Login failed. Check console.';
                         loginMessage.classList.remove('hidden');
                     }
                 } else {
-                    loginMessage.textContent = 'Invalid Username or Password. Please try again.';
-                    loginMessage.classList.remove('hidden');
+                    // For other logins (if Firebase Auth users were directly managed here)
+                    try {
+                        // Example: Firebase Auth Email/Password login for other users
+                        const userCredential = await window.signInWithEmailAndPassword(window.auth, email, pass);
+                        const user = userCredential.user;
+
+                        sessionStorage.setItem('loggedIn', 'true');
+                        localStorage.setItem('loginTime', new Date().getTime().toString()); // Set login time
+                        updateLastActivity(); // Set initial last activity
+
+                        window.currentUserId = user.uid; // Set actual Firebase Auth UID
+                        // Role will be fetched via onAuthStateChanged listener and then redirect
+                        
+                        // Redirect to main app page (index.html) after successful login
+                        window.location.href = 'index.html';
+
+                    } catch (error) {
+                        console.error("General login error:", error);
+                        let errorMessage = 'Login failed. Invalid credentials.';
+                        if (error.code === 'auth/user-not-found') {
+                            errorMessage = 'No user found with this email.';
+                        } else if (error.code === 'auth/wrong-password') {
+                            errorMessage = 'Incorrect password.';
+                        }
+                        showMessageBox("Login Failed", errorMessage, true, false, true);
+                        loginMessage.textContent = errorMessage; // Update login form message too
+                        loginMessage.classList.remove('hidden');
+                    }
                 }
             });
 
             logoutBtn.addEventListener('click', async function() {
                 sessionStorage.removeItem('loggedIn');
+                localStorage.removeItem('lastActivity');
+                localStorage.removeItem('loginTime');
                 try {
-                    await signOut(window.auth); // Sign out from Firebase Auth
+                    await window.signOut(window.auth); // Sign out from Firebase Auth
                     console.log("Signed out from Firebase.");
                 } catch (error) {
                     console.error("Error signing out:", error);
                 }
-                window.location.href = 'index.html'; // Redirect to index/login
+                window.location.href = 'admin.html'; // Redirect to login page
             });
 
             // Add User button enablement
@@ -737,41 +804,46 @@
             addNewUserBtn.addEventListener('click', createUser);
 
 
+            // Initial display and user fetch based on session/role
+            if (isLoggedIn === 'true' && window.isAuthReady) {
+                loginPage.style.display = 'none';
+                mainNav.style.display = 'flex';
+                adminContent.style.display = 'block';
+                // Fetch users only if the current user is confirmed Admin after auth state.
+                // This is handled by the firebaseAuthReady listener.
+            } else {
+                loginPage.style.display = 'flex';
+                mainNav.style.display = 'none';
+                adminContent.style.display = 'none';
+            }
+
             // Listen for Firebase Auth readiness (from module script)
             document.addEventListener('firebaseAuthReady', () => {
-                // Once Firebase is ready, if user is logged in, attempt to load users
+                console.log("Admin: Firebase Auth is ready. Current User ID:", window.currentUserId, "Role:", window.currentUserRole);
+                
+                // If user is logged in (via sessionStorage) and auth is ready
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                    // For the hardcoded 'Supervisor' login, manually set role if needed
-                    // In a real app, this would be determined by checking the logged-in user's UID against a 'users' collection
-                    if (window.currentUserId === 'SupervisorDemoAdmin') { // Check if it's our simulated admin
-                        window.currentUserRole = 'Admin';
-                    }
-                    if (window.currentUserRole === 'Admin') {
-                        fetchUsers(); // Load users only if current user is admin
-                    } else {
-                        // Redirect or show unauthorized message if not admin
-                        showMessageBox("Access Denied", "You must be an Admin to access this page.", true, false, true, () => {
-                            window.location.href = 'index.html'; // Redirect non-admins
-                        });
-                    }
-                }
-            });
+                    // Update navigation based on role immediately
+                    updateNavigationVisibility(); 
 
-            // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
-            if (document.readyState === 'complete' && window.isAuthReady) {
-                if (sessionStorage.getItem('loggedIn') === 'true') {
-                    if (window.currentUserId === 'SupervisorDemoAdmin') { // Check if it's our simulated admin
-                        window.currentUserRole = 'Admin';
-                    }
                     if (window.currentUserRole === 'Admin') {
-                        fetchUsers();
+                        loginPage.style.display = 'none'; // Ensure login page is hidden
+                        mainNav.style.display = 'flex'; // Ensure nav is visible
+                        adminContent.style.display = 'block'; // Show admin content
+                        fetchUsers(); // Fetch users if Admin
                     } else {
-                        showMessageBox("Access Denied", "You must be an Admin to access this page.", true, false, true, () => {
+                        // If not Admin, redirect to index or show access denied
+                        showMessageBox("Access Denied", "You do not have administrative privileges. Redirecting to main application.", true, false, true, () => {
                             window.location.href = 'index.html';
                         });
                     }
+                } else {
+                    // If not logged in at all, show login page
+                    loginPage.style.display = 'flex';
+                    mainNav.style.display = 'none';
+                    adminContent.style.display = 'none';
                 }
-            }
+            });
         });
     </script>
 </body>
