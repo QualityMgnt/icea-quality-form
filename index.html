@@ -393,6 +393,12 @@
                     <option value="Follow-up & action items">Follow-up & action items</option>
                 </select>
             </div>
+            <!-- NEW AUTOFAL DESCRIPTION FIELD -->
+            <div id="autofailDescriptionContainer" class="hidden">
+                <label for="autofail-description" class="block text-sm font-medium text-gray-700">Autofail Description</label>
+                <textarea id="autofail-description" name="Autofail Description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" placeholder="Provide details about the autofail"></textarea>
+            </div>
+            <!-- END NEW AUTOFAL DESCRIPTION FIELD -->
             <div>
                 <label for="review-date" class="block text-sm font-medium text-gray-700">Evaluation Date</label>
                 <input type="date" id="review-date" name="Evaluation Date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
@@ -1582,6 +1588,10 @@
             const callDateTimeInput = document.getElementById('call-date-time');
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name'); // Get CER Name select
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+
 
             evaluationDateInput.valueAsDate = new Date();
             const now = new Date();
@@ -1590,6 +1600,12 @@
 
             cerNameSelect.value = ''; // Reset CER Name
             cerRoleSelect.value = '';
+            autofailTypeSelect.value = ''; // Reset autofail type
+
+            autofailDescriptionContainer.classList.add('hidden'); // Hide autofail description
+            autofailDescriptionInput.value = ''; // Clear autofail description
+            autofailDescriptionInput.removeAttribute('required'); // Remove required attribute
+
             renderQuestionsForRole('');
             calculateScore();
             // Clear last evaluations table on form initialization
@@ -1697,6 +1713,9 @@
             const autofailTypeSelect = document.getElementById('autofail-type');
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+
 
             console.log("Full form reset.");
 
@@ -1712,6 +1731,11 @@
 
             durationInput.value = '';
             autofailTypeSelect.value = '';
+
+            // Reset autofail description field
+            autofailDescriptionContainer.classList.add('hidden');
+            autofailDescriptionInput.value = '';
+            autofailDescriptionInput.removeAttribute('required');
 
             reviewerNameSelect.value = '';
             otherReviewerNameInput.classList.add('hidden');
@@ -1781,6 +1805,22 @@
                 }
             }
 
+            // Validate autofail description only if autofail type is selected
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+            if (autofailTypeSelect.value !== '') { // If autofail type is selected
+                autofailDescriptionInput.setAttribute('required', 'required'); // Make it mandatory for validation
+                if (autofailDescriptionInput.value.trim() === '') {
+                    autofailDescriptionInput.style.borderColor = 'red';
+                    allFieldsValid = false;
+                } else {
+                    autofailDescriptionInput.style.borderColor = '';
+                }
+            } else {
+                autofailDescriptionInput.removeAttribute('required'); // Ensure not required if type is not selected
+                autofailDescriptionInput.style.borderColor = '';
+            }
+
 
             // Validate dynamically generated rating selects
             const dynamicRatingSelects = document.querySelectorAll('.rating-select');
@@ -1807,7 +1847,7 @@
 
             if (!allFieldsValid) {
                 // Find the first invalid field and scroll to it
-                const firstInvalidField = document.querySelector('input[required][value=""], select[required][value=""], .rating-select[value=""][style*="border-color: red"]');
+                const firstInvalidField = document.querySelector('input[required][value=""], select[required][value=""], .rating-select[value=""][style*="border-color: red"], textarea[required][value=""]');
                 if (firstInvalidField) {
                     firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     firstInvalidField.focus();
@@ -1936,6 +1976,10 @@
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
 
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+
 
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
@@ -2002,6 +2046,19 @@
                 addWebhookBtn.addEventListener('click', addWebhook);
             }
 
+            // Autofail type change listener
+            autofailTypeSelect.addEventListener('change', () => {
+                if (autofailTypeSelect.value !== '') {
+                    autofailDescriptionContainer.classList.remove('hidden');
+                    autofailDescriptionInput.setAttribute('required', 'required');
+                } else {
+                    autofailDescriptionContainer.classList.add('hidden');
+                    autofailDescriptionInput.value = ''; // Clear content when hidden
+                    autofailDescriptionInput.removeAttribute('required');
+                    autofailDescriptionInput.style.borderColor = ''; // Clear any validation styles
+                }
+            });
+
 
             reviewerNameSelect.addEventListener('change', () => {
                 if (reviewerNameSelect.value === 'Other') {
@@ -2053,6 +2110,13 @@
                         }
                     }
                 });
+
+                // Add autofail description to form data if visible
+                if (autofailTypeSelect.value !== '') {
+                    formDataForSubmission[autofailDescriptionInput.name] = autofailDescriptionInput.value.trim();
+                } else {
+                    formDataForSubmission[autofailDescriptionInput.name] = ''; // Ensure it's empty if not selected
+                }
 
                 const overallScoreDisplay = document.getElementById('overall-score-display');
                 const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
