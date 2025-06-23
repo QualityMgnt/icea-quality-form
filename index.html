@@ -1432,12 +1432,15 @@
             const overallScore = record['Overall Score'] || 'N/A';
             const evaluationDate = record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'N/A';
 
-            const subject = `Quality Assessment Report for Contact ID: ${contactId}`;
-            const body = `Dear Team,\n\nPlease find the summary for Contact ID: ${contactId}\n\n` +
+            // Custom Subject and Body as requested
+            const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
+            const body = `Dear ${cerName},\n\n` +
+                         `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                         `Contact ID: ${contactId}\n` +
                          `CER Name: ${cerName}\n` +
                          `Overall Score: ${overallScore}\n` +
                          `Evaluation Date: ${evaluationDate}\n\n` +
-                         `For full details, please refer to the Quality Assessment Application.\n\nRegards.`;
+                         `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\nKind Regards,\nQuality Evaluation Team`;
 
             const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
@@ -2215,25 +2218,40 @@
                     }
                     console.log("PDF images added.");
 
-                    const contactIdForPdf = contactIdInput.value || 'UnknownContact';
-                    const cerNameForPdf = cerNameSelect.value || 'UnknownCER';
-                    const reviewDateForPdf = evaluationDateInput.value || 'UnknownDate';
+                    const contactIdForPdf = contactIdInput.value || 'N/A';
+                    const cerNameForPdf = cerNameSelect.value || 'N/A';
+                    const reviewDateForPdf = evaluationDateInput.value || 'N/A';
                     pdf.save(`QA_Form_${contactIdForPdf}_${cerNameForPdf}_${reviewDateForPdf}.pdf`);
                     console.log("PDF saved.");
 
                     const cerNameVal = cerNameSelect.value;
+                    const contactIdVal = contactIdInput.value;
                     const evaluationDateVal = evaluationDateInput.value;
                     const overallScoreVal = overallFinalPercentageDisplay.textContent; 
-                    const contactIdVal = contactIdInput.value;
                     const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
 
-                    const subject = `Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'} - CER: ${cerNameVal || 'N/A'} - Date: ${evaluationDateVal || 'N/A'}.\n\nOverall Score: ${overallScoreVal || 'N/A'}`;
-                    const body = `Dear Team,\n\nPlease find the attached Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'},\nCER: ${cerNameVal || 'N/A'},\nEvaluated on: ${evaluationDateVal || 'N/A'}.\n\nThe overall score is: ${overallScoreVal || 'N/A'}.\n\nRegards,\n${reviewerNameVal || 'Reviewer'}`;
+                    // Custom Subject and Body as requested
+                    const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
+                    const body = `Dear ${cerNameVal},\n\n` +
+                                 `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                 `Contact ID: ${contactIdVal}\n` +
+                                 `CER Name: ${cerNameVal}\n` +
+                                 `Overall Score: ${overallScoreVal}\n` +
+                                 `Evaluation Date: ${evaluationDateVal}\n\n` +
+                                 `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                 `Kind Regards,\nQuality Evaluation Team`;
 
-                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}`;
-                    window.location.href = mailtoLink;
-                    showMessageBox("PDF Generated", "PDF generated and downloaded. Please attach the PDF manually to your email client.", false, false, true);
 
+                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                    // Attempt to open email client
+                    try {
+                        window.location.href = mailtoLink;
+                        showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please attach the PDF manually and send the email.", false, false, true);
+                    } catch (e) {
+                        console.error("Failed to open email client:", e);
+                        showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+                    }
                 } catch (error) {
                     console.error("Critical Error during PDF generation or mailto attempt:", error);
                     showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
