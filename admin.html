@@ -6,7 +6,7 @@
     <title>Admin - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@400;700&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@400;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -225,9 +225,9 @@
             <form id="loginForm" class="p-8 space-y-6">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="username" name="username"
+                    <input type="email" id="username" name="username"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                           required placeholder="Enter your username">
+                           required placeholder="Enter your email">
                 </div>
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
@@ -403,13 +403,12 @@
                     window.currentUserRole = userDocSnap.data().role;
                     console.log("User role fetched:", window.currentUserRole);
                 } else {
-                    // If user exists in Auth but not in Firestore (e.g., new anonymous sign-in)
-                    // or if it's the supervisor demo login that bypasses Firebase Auth user creation,
-                    // default to 'Guest' or handle as needed.
+                    // This could happen for a newly signed-in anonymous user
+                    // For the 'Supervisor' dummy login, this part is not relevant anymore if they use actual Firebase Auth.
                     window.currentUserRole = 'Guest'; 
-                    console.log("User profile not found in Firestore, defaulting to Guest.");
+                    console.log("User profile not found in Firestore, defaulting to Guest. This might be a new user or a demo user.");
                 }
-                 // Set last activity on successful authentication check
+                // Set last activity on successful authentication check
                 window.updateLastActivity(); // Use window.updateLastActivity
 
             } else {
@@ -440,7 +439,7 @@
         const loginMessage = document.getElementById('loginMessage');
 
         const mainNav = document.getElementById('mainNav');
-        const evaluationFormTab = document.getElementById('evaluationFormTab'); // Renamed
+        const evaluationFormTab = document.getElementById('evaluationFormTab');
         const databaseTab = document.getElementById('databaseTab');
         const reportsTab = document.getElementById('reportsTab');
         const autofailsTab = document.getElementById('autofailsTab');
@@ -542,7 +541,10 @@
                 allUsers = [];
                 querySnapshot.forEach(doc => {
                     const userData = doc.data();
-                    allUsers.push({ id: doc.id, email: userData.email, role: userData.role });
+                    // Exclude the 'Guest' role from the admin panel user list unless explicitly needed
+                    if (userData.role !== 'Guest') { 
+                        allUsers.push({ id: doc.id, email: userData.email, role: userData.role });
+                    }
                 });
                 console.log("Users loaded:", allUsers);
                 renderUsersTable();
@@ -572,14 +574,11 @@
 
             showMessageBox("Creating User", `Creating user ${email}...`, false, true, false);
             try {
-                // This is a client-side user creation for demo purposes.
-                // In a real application, user creation for specific roles (especially Admin)
-                // should happen via Firebase Admin SDK on a secure backend (e.g., Cloud Function)
-                // to avoid exposing sensitive API keys and maintain security.
+                // Create user in Firebase Authentication
                 const userCredential = await window.createUserWithEmailAndPassword(window.auth, email, password);
                 const user = userCredential.user;
 
-                // Store user role in Firestore
+                // Store user role in Firestore under their actual Firebase Auth UID
                 const userDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${user.uid}`);
                 await window.fsSetDoc(userDocRef, {
                     email: user.email,
@@ -621,18 +620,14 @@
                 hideMessageBox();
                 showMessageBox("Deleting User", `Deleting user ${email}...`, false, true, false);
                 try {
-                    // Client-side deleteUser() only works for the currently logged-in user.
-                    // To delete another user, you MUST use the Firebase Admin SDK (e.g., via a Cloud Function).
-                    // This client-side code will only delete the user's profile from Firestore,
-                    // but the Firebase Authentication user account will remain unless deleted via backend.
-                    
+                    // Admin SDK (backend) is required to delete Firebase Auth users other than the currently logged-in one.
+                    // This client-side code will only delete the user's profile from Firestore.
+                    // For a complete deletion, you'd trigger a Cloud Function here.
+
                     const userDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${uid}`);
                     await window.fsDeleteDoc(userDocRef); // Delete the user's role profile
 
-                    // Optional: If you had a Cloud Function, you would call it here to delete Auth user:
-                    // await fetch('/your-cloud-function-endpoint/deleteUser', { method: 'POST', body: JSON.stringify({ uid }), headers: { 'Content-Type': 'application/json' } });
-
-                    showMessageBox("Success", `User ${email} profile deleted (Note: Auth account requires server-side deletion)!`, false, false, true, fetchUsers);
+                    showMessageBox("Success", `User ${email} profile deleted. (Note: Firebase Auth user may remain if not deleted via Admin SDK)`, false, false, true, fetchUsers);
                 } catch (error) {
                     console.error("Error deleting user:", error);
                     let errorMessage = `Failed to delete user: ${error.message}`;
@@ -691,15 +686,12 @@
             console.log("Admin DOM fully loaded and parsed.");
 
             // Initial check for session timeout
-            if (window.checkSessionTimeout()) { // Use window.checkSessionTimeout
-                // checkSessionTimeout already handles redirect, so just return
-                return;
+            if (window.checkSessionTimeout()) {
+                return; // checkSessionTimeout already handles redirect
             }
 
-            // Check if logged in from sessionStorage
             const isLoggedIn = sessionStorage.getItem('loggedIn');
 
-            // Hardcoded Supervisor Login Handler (now primarily for `admin.html` as the login page)
             loginForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 loginMessage.classList.add('hidden');
@@ -707,72 +699,57 @@
                 const email = usernameInput.value.trim();
                 const pass = passwordInput.value.trim();
 
-                if (email === 'Supervisor' && pass === 'Supervisor') {
-                    // Simulate login for Supervisor (create/get profile in Firestore)
-                    try {
-                        let userAuthId = 'SupervisorDemoAdmin'; // Consistent dummy UID for Supervisor
+                // All logins (including Supervisor) now use Firebase Email/Password Auth
+                try {
+                    showMessageBox("Logging In", "Authenticating...", false, true, false);
+                    const userCredential = await window.signInWithEmailAndPassword(window.auth, email, pass);
+                    const user = userCredential.user;
 
-                        // Try to get existing user profile for Supervisor
-                        const supervisorDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${userAuthId}`);
-                        const supervisorDocSnap = await window.fsGetDoc(supervisorDocRef);
+                    // Ensure user's role profile exists in Firestore. If not, create it.
+                    // This is important for new users or if roles weren't set up manually.
+                    const userDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${user.uid}`);
+                    const userDocSnap = await window.fsGetDoc(userDocRef);
 
-                        if (!supervisorDocSnap.exists()) {
-                             console.log("Creating Supervisor profile in Firestore.");
-                             // If a supervisor profile doesn't exist, create it.
-                             // No actual Auth user created here, just a profile.
-                             await window.fsSetDoc(supervisorDocRef, {
-                                 email: 'supervisor@icealion.com', // Dummy email for Firestore profile
-                                 role: 'Admin', // Supervisor is Admin role
-                                 createdAt: window.fsFieldValue.serverTimestamp()
-                             });
-                        } else {
-                            console.log("Supervisor profile already exists in Firestore.");
-                        }
-
-                        sessionStorage.setItem('loggedIn', 'true');
-                        localStorage.setItem('loginTime', new Date().getTime().toString()); // Set login time
-                        window.updateLastActivity(); // Set initial last activity
-
-                        window.currentUserId = userAuthId; // Set dummy UID for global access
-                        window.currentUserRole = 'Admin'; // Assign Admin role for the Supervisor
-
-                        // Redirect to main app page (index.html) after successful login
-                        window.location.href = 'index.html'; 
-
-                    } catch (error) {
-                        console.error("Supervisor login error:", error);
-                        loginMessage.textContent = 'Login failed. Check console.';
-                        loginMessage.classList.remove('hidden');
+                    if (!userDocSnap.exists()) {
+                        console.log(`Creating Firestore profile for new user ${user.email}`);
+                        // Default role for new users signing in directly via login form can be 'CER' or 'Guest'
+                        // Admins should add users via the "Add New User" panel to assign specific roles.
+                        await window.fsSetDoc(userDocRef, {
+                            email: user.email,
+                            role: 'CER', // Default role for newly signed-up users (if allowed)
+                            createdAt: window.fsFieldValue.serverTimestamp()
+                        });
+                        window.currentUserRole = 'CER'; // Set role immediately
+                    } else {
+                        window.currentUserRole = userDocSnap.data().role; // Set role from existing profile
                     }
-                } else {
-                    // For other logins (if Firebase Auth users were directly managed here)
-                    try {
-                        // Example: Firebase Auth Email/Password login for other users
-                        const userCredential = await window.signInWithEmailAndPassword(window.auth, email, pass);
-                        const user = userCredential.user;
 
-                        sessionStorage.setItem('loggedIn', 'true');
-                        localStorage.setItem('loginTime', new Date().getTime().toString()); // Set login time
-                        window.updateLastActivity(); // Set initial last activity
+                    sessionStorage.setItem('loggedIn', 'true');
+                    localStorage.setItem('loginTime', new Date().getTime().toString());
+                    window.updateLastActivity();
 
-                        window.currentUserId = user.uid; // Set actual Firebase Auth UID
-                        // Role will be fetched via onAuthStateChanged listener and then redirect
-                        
-                        // Redirect to main app page (index.html) after successful login
-                        window.location.href = 'index.html';
-
-                    } catch (error) {
-                        console.error("General login error:", error);
-                        let errorMessage = 'Login failed. Invalid credentials.';
-                        if (error.code === 'auth/user-not-found') {
-                            errorMessage = 'No user found with this email.';
-                        } else if (error.code === 'auth/wrong-password') {
-                            errorMessage = 'Incorrect password.';
-                        }
-                        showMessageBox("Login Failed", errorMessage, true, false, true);
-                        loginMessage.textContent = errorMessage; // Update login form message too
-                        loginMessage.classList.remove('hidden');
+                    hideMessageBox();
+                    // Redirect based on the user's role
+                    if (window.currentUserRole === 'Admin') {
+                         window.location.href = 'admin.html'; // Admins stay on admin page by default after login
+                    } else {
+                        window.location.href = 'index.html'; // Other roles go to the main app
                     }
+                   
+
+                } catch (error) {
+                    console.error("Login error:", error);
+                    let errorMessage = 'Login failed. Invalid credentials.';
+                    if (error.code === 'auth/user-not-found') {
+                        errorMessage = 'No user found with this email. Please register or check your email.';
+                    } else if (error.code === 'auth/wrong-password') {
+                        errorMessage = 'Incorrect password.';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = 'Invalid email format.';
+                    }
+                    showMessageBox("Login Failed", errorMessage, true, false, true);
+                    loginMessage.textContent = errorMessage;
+                    loginMessage.classList.remove('hidden');
                 }
             });
 
@@ -805,8 +782,6 @@
                 loginPage.style.display = 'none';
                 mainNav.style.display = 'flex';
                 adminContent.style.display = 'block';
-                // Fetch users only if the current user is confirmed Admin after auth state.
-                // This is handled by the firebaseAuthReady listener.
             } else {
                 loginPage.style.display = 'flex';
                 mainNav.style.display = 'none';
@@ -819,7 +794,6 @@
                 
                 // If user is logged in (via sessionStorage) and auth is ready
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                    // Update navigation based on role immediately
                     updateNavigationVisibility(); 
 
                     if (window.currentUserRole === 'Admin') {
