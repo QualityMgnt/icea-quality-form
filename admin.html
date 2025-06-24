@@ -329,6 +329,8 @@
 
         // Expose necessary Firebase Auth functions globally (for admin login)
         window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword; // Expose createUser
+        window.deleteUser = deleteUser; // Expose deleteUser
 
         // Expose ALL necessary Firestore functions globally
         window.fsCollection = collection;
@@ -365,22 +367,27 @@
             }
             return false;
         }
+        // Expose checkSessionTimeout globally
+        window.checkSessionTimeout = checkSessionTimeout;
+
 
         // Update last activity on user interaction
         function updateLastActivity() {
             localStorage.setItem('lastActivity', new Date().getTime().toString());
         }
+        // Expose updateLastActivity globally
+        window.updateLastActivity = updateLastActivity;
 
-        // Add event listeners for activity to reset timeout
-        document.addEventListener('mousemove', updateLastActivity);
-        document.addEventListener('keydown', updateLastActivity);
-        document.addEventListener('click', updateLastActivity);
+        // Listen for user activity
+        document.addEventListener('mousemove', window.updateLastActivity);
+        document.addEventListener('keydown', window.updateLastActivity);
+        document.addEventListener('click', window.updateLastActivity);
 
 
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
                 // If session expired, log out even if Firebase thinks user is authenticated
-                if (checkSessionTimeout()) {
+                if (window.checkSessionTimeout()) { // Use window.checkSessionTimeout
                     await signOut(window.auth); // Force Firebase sign out
                     return; // Stop further processing
                 }
@@ -389,25 +396,22 @@
                 console.log("Firebase Auth State Changed: User logged in:", user.uid);
                 
                 // Fetch user role from Firestore
-                const userDocRef = window.fsDoc(window.db, `${appId}/users/${user.uid}`);
+                const userDocRef = window.fsDoc(window.db, `artifacts/${appId}/users/${user.uid}`);
                 const userDocSnap = await window.fsGetDoc(userDocRef);
                 
                 if (userDocSnap.exists()) {
                     window.currentUserRole = userDocSnap.data().role;
                     console.log("User role fetched:", window.currentUserRole);
                 } else {
-                    // This could happen for a newly signed-in anonymous user
+                    // If user exists in Auth but not in Firestore (e.g., new anonymous sign-in)
+                    // or if it's the supervisor demo login that bypasses Firebase Auth user creation,
+                    // default to 'Guest' or handle as needed.
                     window.currentUserRole = 'Guest'; 
                     console.log("User profile not found in Firestore, defaulting to Guest.");
-                    // Optional: You could create a basic profile for anonymous users here
-                    await window.fsSetDoc(userDocRef, {
-                        email: `anonymous-${user.uid.substring(0, 8)}@example.com`, // Placeholder email
-                        role: 'Guest',
-                        createdAt: window.fsFieldValue.serverTimestamp()
-                    }, { merge: true });
                 }
-                // Update last activity on successful authentication check
-                updateLastActivity();
+                 // Set last activity on successful authentication check
+                window.updateLastActivity(); // Use window.updateLastActivity
+
             } else {
                 console.log("Firebase Auth State Changed: No user logged in.");
                 window.currentUserId = null;
@@ -491,8 +495,6 @@
             messageBoxOverlay.classList.add('hidden');
         }
 
-        // --- ADMIN SPECIFIC FUNCTIONS (User Management) ---
-
         // Function to dynamically show/hide navigation tabs based on user role
         function updateNavigationVisibility() {
             const userRole = window.currentUserRole;
@@ -574,7 +576,7 @@
                 // In a real application, user creation for specific roles (especially Admin)
                 // should happen via Firebase Admin SDK on a secure backend (e.g., Cloud Function)
                 // to avoid exposing sensitive API keys and maintain security.
-                const userCredential = await createUserWithEmailAndPassword(window.auth, email, password);
+                const userCredential = await window.createUserWithEmailAndPassword(window.auth, email, password);
                 const user = userCredential.user;
 
                 // Store user role in Firestore
@@ -689,7 +691,7 @@
             console.log("Admin DOM fully loaded and parsed.");
 
             // Initial check for session timeout
-            if (checkSessionTimeout()) {
+            if (window.checkSessionTimeout()) { // Use window.checkSessionTimeout
                 // checkSessionTimeout already handles redirect, so just return
                 return;
             }
@@ -708,12 +710,6 @@
                 if (email === 'Supervisor' && pass === 'Supervisor') {
                     // Simulate login for Supervisor (create/get profile in Firestore)
                     try {
-                        // Attempt Firebase Auth sign-in for a dummy user or just set roles directly for demo
-                        // For a real app, this should involve actual Firebase Auth email/password sign-in
-                        // and then fetching roles from Firestore based on the actual UID.
-                        
-                        // For demo: create a dummy user in Auth if not exists for Supervisor
-                        let userCredential;
                         let userAuthId = 'SupervisorDemoAdmin'; // Consistent dummy UID for Supervisor
 
                         // Try to get existing user profile for Supervisor
@@ -735,7 +731,7 @@
 
                         sessionStorage.setItem('loggedIn', 'true');
                         localStorage.setItem('loginTime', new Date().getTime().toString()); // Set login time
-                        updateLastActivity(); // Set initial last activity
+                        window.updateLastActivity(); // Set initial last activity
 
                         window.currentUserId = userAuthId; // Set dummy UID for global access
                         window.currentUserRole = 'Admin'; // Assign Admin role for the Supervisor
@@ -757,7 +753,7 @@
 
                         sessionStorage.setItem('loggedIn', 'true');
                         localStorage.setItem('loginTime', new Date().getTime().toString()); // Set login time
-                        updateLastActivity(); // Set initial last activity
+                        window.updateLastActivity(); // Set initial last activity
 
                         window.currentUserId = user.uid; // Set actual Firebase Auth UID
                         // Role will be fetched via onAuthStateChanged listener and then redirect
