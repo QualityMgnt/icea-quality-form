@@ -552,7 +552,7 @@
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Webhook Management</h2>
                 <p class="text-sm text-gray-600 mb-4">
                     Add webhook URLs below. When new records are created, data will be sent to these webhooks.
-                    **Note:** Sending data to external webhooks will depend on their CORS policy.
+                    **Note:** Sending data to external webhooks will depend on their server's CORS policy.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
                     <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)"
@@ -613,7 +613,8 @@
         window.isAuthReady = false;
 
         // NEW: Function to check and handle session timeout
-        function checkSessionTimeout() {
+        // Exposed globally for access by initializeApp and other parts of the script
+        window.checkSessionTimeout = function() {
             const lastActivity = localStorage.getItem('lastActivity');
             const loginTime = localStorage.getItem('loginTime'); // New: Store login time
             if (lastActivity && loginTime) {
@@ -630,17 +631,14 @@
                 }
             }
             return false;
-        }
-        // Expose checkSessionTimeout globally
-        window.checkSessionTimeout = checkSessionTimeout;
+        };
 
 
         // Update last activity on user interaction
-        function updateLastActivity() {
+        // Exposed globally for event listeners
+        window.updateLastActivity = function() {
             localStorage.setItem('lastActivity', new Date().getTime().toString());
-        }
-        // Expose updateLastActivity globally
-        window.updateLastActivity = updateLastActivity;
+        };
 
         // Listen for user activity
         document.addEventListener('mousemove', window.updateLastActivity);
@@ -1262,152 +1260,6 @@
             console.log("All webhook dispatches attempted.");
         }
 
-        // --- INTERNAL RENDERING & UI STATE FUNCTIONS (Used by database.js content) ---
-
-        /**
-         * Renders the evaluation records table.
-         */
-        function renderRecordsTable(records) {
-            const recordsTableBody = document.getElementById('recordsTableBody');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-
-            recordsTableBody.innerHTML = '';
-            if (records.length === 0) {
-                // Adjust colspan for new columns
-                recordsTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="10" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
-                    </tr>
-                `;
-                deleteSelectedRecordsBtn.disabled = true;
-                selectAllRecordsCheckbox.checked = false;
-                selectAllRecordsCheckbox.disabled = true;
-                return;
-            }
-
-            selectAllRecordsCheckbox.disabled = false;
-
-            records.forEach(record => {
-                const row = recordsTableBody.insertRow();
-                row.className = 'border-b border-gray-200';
-                row.insertCell().innerHTML = `<input type="checkbox" class="record-checkbox" data-record-id="${record.id}">`;
-                row.insertCell().textContent = record.submittedAt ? new Date(record.submittedAt).toLocaleString() : 'N/A';
-                row.insertCell().textContent = record['Contact ID'] || '';
-                row.insertCell().textContent = record['Client Name'] || '';
-                row.insertCell().textContent = record['CER Name'] || '';
-                row.insertCell().textContent = record['Overall Score'] || '';
-                
-                // Actions cell (delete button)
-                row.insertCell().innerHTML = `
-                    <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
-                `;
-
-                // View button
-                const viewCell = row.insertCell();
-                const viewBtn = document.createElement('button');
-                viewBtn.className = 'view-record-btn';
-                viewBtn.textContent = 'View';
-                viewBtn.dataset.recordId = record.id;
-                viewBtn.addEventListener('click', () => viewRecordDetails(record.id));
-                viewCell.appendChild(viewBtn);
-
-                // Email button
-                const emailCell = row.insertCell();
-                const emailBtn = document.createElement('button');
-                emailBtn.className = 'email-record-btn';
-                emailBtn.textContent = 'Email';
-                emailBtn.dataset.recordId = record.id;
-                emailBtn.addEventListener('click', () => sendRecordEmail(record.id));
-                emailCell.appendChild(emailBtn);
-
-                // Download button
-                const downloadCell = row.insertCell();
-                const downloadBtn = document.createElement('button');
-                downloadBtn.className = 'download-record-btn';
-                downloadBtn.textContent = 'Download';
-                downloadBtn.dataset.recordId = record.id;
-                downloadBtn.addEventListener('click', () => downloadRecordData(record.id));
-                downloadCell.appendChild(downloadBtn);
-            });
-
-            document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', updateDeleteButtonState);
-            });
-            // The delete-record-btn listeners are now handled directly in the loop where buttons are created.
-            // No need for a global querySelectorAll here for delete buttons.
-
-            updateDeleteButtonState();
-        }
-
-        /**
-         * Updates the state of the "Delete Selected" button.
-         */
-        function updateDeleteButtonState() {
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-            const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
-            deleteSelectedRecordsBtn.disabled = checkedCount === 0;
-        }
-
-        /**
-         * Renders the list of configured webhooks.
-         */
-        function renderWebhookList(webhooks) {
-            const webhookList = document.getElementById('webhookList');
-            webhookList.innerHTML = '';
-            if (webhooks.length === 0) {
-                webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
-                return;
-            }
-
-            webhooks.forEach(hook => {
-                const webhookDiv = document.createElement('div');
-                webhookDiv.innerHTML = `
-                    <span>${hook.url}</span>
-                    <button class="delete-webhook-btn bg-red-400 hover:bg-red-500 text-white p-1 rounded-md text-xs" data-webhook-id="${hook.id}">
-                        <i class="fas fa-times"></i> Delete
-                    </button>
-                `;
-                webhookList.appendChild(webhookDiv);
-            });
-
-            document.querySelectorAll('.delete-webhook-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const webhookId = e.target.closest('button').dataset.webhookId;
-                    const messageBoxContent = document.getElementById('messageBoxContent');
-                    const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
-
-                    showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, false);
-                    const confirmBtn = document.createElement('button');
-                    confirmBtn.textContent = 'Delete';
-                    confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-                    confirmBtn.onclick = async () => {
-                        hideMessageBox();
-                        showMessageBox("Deleting", "Deleting webhook...", false, true, false);
-                        await deleteWebhook(webhookId); 
-                        hideMessageBox();
-                    };
-                    const cancelBtn = document.createElement('button');
-                    cancelBtn.textContent = 'Cancel';
-                    cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-                    cancelBtn.onclick = () => {
-                        hideMessageBox();
-                        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-                    };
-
-                    messageBoxContent.innerHTML = '';
-                    messageBoxContent.appendChild(confirmBtn);
-                    messageBoxContent.appendChild(cancelBtn);
-
-                    const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-                    messageBoxCloseBtn.onclick = () => {
-                        hideMessageBox();
-                        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-                    };
-                });
-            });
-        }
-
         /**
          * NEW: Displays full details of a selected record in a modal.
          */
@@ -1465,7 +1317,7 @@
             // Attempt to open email client
             try {
                 window.location.href = mailtoLink;
-                showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please attach the PDF manually and send the email.", false, false, true);
+                showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please review and send the email.", false, false, true);
             } catch (e) {
                 console.error("Failed to open email client:", e);
                 showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
