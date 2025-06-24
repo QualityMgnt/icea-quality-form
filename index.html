@@ -552,7 +552,7 @@
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Webhook Management</h2>
                 <p class="text-sm text-gray-600 mb-4">
                     Add webhook URLs below. When new records are created, data will be sent to these webhooks.
-                    **Note:** Sending data to external webhooks will depend on their server's CORS policy.
+                    **Note:** Sending data to external webhooks will depend on their CORS policy.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
                     <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)"
@@ -615,36 +615,43 @@
         // NEW: Function to check and handle session timeout
         function checkSessionTimeout() {
             const lastActivity = localStorage.getItem('lastActivity');
-            if (lastActivity) {
+            const loginTime = localStorage.getItem('loginTime'); // New: Store login time
+            if (lastActivity && loginTime) {
                 const now = new Date().getTime();
                 const eightHours = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
-                if (now - parseInt(lastActivity) > eightHours) {
-                    // Session expired, log out
+                
+                // If last activity was more than 8 hours ago OR total session length exceeds 8 hours
+                if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
                     console.log("Session expired. Logging out.");
                     localStorage.removeItem('lastActivity');
-                    sessionStorage.removeItem('loggedIn');
-                    window.location.href = 'admin.html'; // Redirect to admin/login page
+                    localStorage.removeItem('loginTime'); // Clear login time
+                    sessionStorage.removeItem('loggedIn'); // Clear loggedIn flag
                     return true;
                 }
             }
             return false;
         }
+        // Expose checkSessionTimeout globally
+        window.checkSessionTimeout = checkSessionTimeout;
+
 
         // Update last activity on user interaction
         function updateLastActivity() {
             localStorage.setItem('lastActivity', new Date().getTime().toString());
         }
+        // Expose updateLastActivity globally
+        window.updateLastActivity = updateLastActivity;
 
         // Listen for user activity
-        document.addEventListener('mousemove', updateLastActivity);
-        document.addEventListener('keydown', updateLastActivity);
-        document.addEventListener('click', updateLastActivity);
+        document.addEventListener('mousemove', window.updateLastActivity);
+        document.addEventListener('keydown', window.updateLastActivity);
+        document.addEventListener('click', window.updateLastActivity);
 
 
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
                 // If session expired, log out even if Firebase thinks user is authenticated
-                if (checkSessionTimeout()) {
+                if (window.checkSessionTimeout()) { // Use window.checkSessionTimeout
                     await signOut(window.auth); // Force Firebase sign out
                     return; // Stop further processing
                 }
@@ -660,20 +667,20 @@
                     window.currentUserRole = userDocSnap.data().role;
                     console.log("User role fetched:", window.currentUserRole);
                 } else {
-                    // If user exists in Auth but not in Firestore (e.g., new anonymous sign-in)
-                    // or if it's the supervisor demo login that bypasses Firebase Auth user creation,
-                    // default to 'Guest' or handle as needed.
+                    // This could happen for a newly signed-in anonymous user
                     window.currentUserRole = 'Guest'; 
                     console.log("User profile not found in Firestore, defaulting to Guest.");
                 }
                  // Set last activity on successful authentication check
-                updateLastActivity();
+                window.updateLastActivity(); // Use window.updateLastActivity
 
             } else {
                 console.log("Firebase Auth State Changed: No user logged in.");
                 window.currentUserId = null;
                 window.currentUserRole = null; // Clear role if no user
                 sessionStorage.removeItem('loggedIn'); // Ensure sessionStorage is cleared
+                localStorage.removeItem('lastActivity');
+                localStorage.removeItem('loginTime');
             }
             window.isAuthReady = true;
             document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
@@ -690,10 +697,9 @@
         let allRecords = []; // Records fetched from Firestore for display
         let allWebhooks = []; // Webhooks fetched from Firestore for display
 
-        // Unsubscribe functions now defined globally on window in the module script
-        // No local 'let' declarations here to avoid redeclaration error
-        // window.unsubscribeRecords is already used for consistency.
-        // window.unsubscribeWebhooks is already used for consistency.
+        // Removed 'let' declaration here to prevent redeclaration error
+        window.unsubscribeRecords = null; 
+        window.unsubscribeWebhooks = null; 
 
         // --- GLOBAL SCORE VARIABLES (Used by calculateScore) ---
         let globalTotalPoints = 0;
@@ -1459,7 +1465,7 @@
             // Attempt to open email client
             try {
                 window.location.href = mailtoLink;
-                showMessageBox("Email Client Opened", "Your email client should open shortly. Please review and send the email.", false, false, true);
+                showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please attach the PDF manually and send the email.", false, false, true);
             } catch (e) {
                 console.error("Failed to open email client:", e);
                 showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
@@ -1598,7 +1604,7 @@
         };
 
         // Audit Form Initialization and Reset
-        function initializeAuditForm() {
+        function initializeEvaluationForm() { // Renamed
             const evaluationDateInput = document.getElementById('review-date');
             const callDateTimeInput = document.getElementById('call-date-time');
             const cerRoleSelect = document.getElementById('cer-role');
@@ -1820,15 +1826,14 @@
                 }
             }
 
-            // Validate autofail description only if autofail type is selected
+            // Validate autofail description only if autofail type is selected OR overall score is 0
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionInput = document.getElementById('autofail-description');
-            // Check current overall score to decide if autofail description should be mandatory
             const overallScoreDisplay = document.getElementById('overall-score-display');
-            const overallScoreValue = parseFloat(overallScoreDisplay.textContent); // e.g., "0%" -> 0
+            const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
 
-            if (autofailTypeSelect.value !== '' || overallScoreValue === 0) { // If autofail type is selected OR score is 0%
-                autofailDescriptionInput.setAttribute('required', 'required'); // Make it mandatory for validation
+            if (autofailTypeSelect.value !== '' || overallScoreValue === 0) {
+                autofailDescriptionInput.setAttribute('required', 'required');
                 if (autofailDescriptionInput.value.trim() === '') {
                     autofailDescriptionInput.style.borderColor = 'red';
                     allFieldsValid = false;
@@ -1836,7 +1841,7 @@
                     autofailDescriptionInput.style.borderColor = '';
                 }
             } else {
-                autofailDescriptionInput.removeAttribute('required'); // Ensure not required if type is not selected AND score isn't 0
+                autofailDescriptionInput.removeAttribute('required');
                 autofailDescriptionInput.style.borderColor = '';
             }
 
@@ -1962,33 +1967,33 @@
             // Configure navigation visibility based on role
             // Fetch the role from window.currentUserRole, which is set in onAuthStateChanged
             const userRole = window.currentUserRole; 
-            const auditFormTab = document.getElementById('evaluationFormTab');
+            const evaluationFormTab = document.getElementById('evaluationFormTab'); // Renamed
             const databaseTab = document.getElementById('databaseTab');
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
 
             // Hide all tabs initially, then show based on role
-            auditFormTab.style.display = 'none';
-            databaseTab.style.display = 'none';
-            reportsTab.style.display = 'none';
-            autofailsTab.style.display = 'none';
+            evaluationFormTab.parentElement.style.display = 'none'; // Parent is li
+            databaseTab.parentElement.style.display = 'none';
+            reportsTab.parentElement.style.display = 'none';
+            autofailsTab.parentElement.style.display = 'none';
             adminTabNav.style.display = 'none'; // Hide admin tab li
 
             if (userRole === 'CER') {
-                auditFormTab.style.display = 'inline-block'; // Show Evaluation Form
-                reportsTab.style.display = 'inline-block'; // Show Reports
+                evaluationFormTab.parentElement.style.display = 'inline-block'; // Show Evaluation Form
+                reportsTab.parentElement.style.display = 'inline-block'; // Show Reports
                 showTab('evaluationForm'); // Default to Evaluation Form for CER
             } else if (userRole === 'Supervisor') {
-                auditFormTab.style.display = 'inline-block'; // Show Evaluation Form
-                reportsTab.style.display = 'inline-block'; // Show Reports
-                autofailsTab.style.display = 'inline-block'; // Show Autofails
+                evaluationFormTab.parentElement.style.display = 'inline-block'; // Show Evaluation Form
+                reportsTab.parentElement.style.display = 'inline-block'; // Show Reports
+                autofailsTab.parentElement.style.display = 'inline-block'; // Show Autofails
                 showTab('evaluationForm'); // Default to Evaluation Form for Supervisor
             } else if (userRole === 'Admin') {
-                auditFormTab.style.display = 'inline-block'; // Show Evaluation Form
-                databaseTab.style.display = 'inline-block'; // Show Database
-                reportsTab.style.display = 'inline-block'; // Show Reports
-                autofailsTab.style.display = 'inline-block'; // Show Autofails
+                evaluationFormTab.parentElement.style.display = 'inline-block'; // Show Evaluation Form
+                databaseTab.parentElement.style.display = 'inline-block'; // Show Database
+                reportsTab.parentElement.style.display = 'inline-block'; // Show Reports
+                autofailsTab.parentElement.style.display = 'inline-block'; // Show Autofails
                 adminTabNav.style.display = 'inline-block'; // Show Admin Tab
                 showTab('evaluationForm'); // Default to Evaluation Form for Admin
             } else {
@@ -1998,7 +2003,7 @@
                 });
             }
 
-            initializeAuditForm(); // Initialize the form fields once the app is set up
+            initializeEvaluationForm(); // Initialize the form fields once the app is set up
         }
 
 
@@ -2007,7 +2012,7 @@
             console.log("DOM fully loaded and parsed. Main script starting.");
 
             // Initial check for session timeout
-            if (checkSessionTimeout()) {
+            if (window.checkSessionTimeout()) { // Use window.checkSessionTimeout
                 // checkSessionTimeout already handles redirect, so just return
                 return;
             }
@@ -2064,6 +2069,7 @@
             logoutBtn.addEventListener('click', async function() {
                 sessionStorage.removeItem('loggedIn'); // Clear loggedIn status
                 localStorage.removeItem('lastActivity'); // Clear last activity for session timeout
+                localStorage.removeItem('loginTime'); // Clear login time
                 try {
                     await window.signOut(window.auth); // Sign out from Firebase Auth
                     console.log("Signed out from Firebase.");
