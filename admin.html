@@ -304,10 +304,10 @@
     </div>
 
     <script type="module">
+        // Corrected import: Import `serverTimestamp` directly
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        import { FieldValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js"; // Import FieldValue
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, setDoc, getDoc, FieldValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
@@ -316,7 +316,7 @@
           projectId: "icea-lion-qa",
           storageBucket: "icea-lion-qa.firebasestorage.app",
           messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+          appId: "1:820082472004:web:8caddf941e1b5b661d76c94e", // Changed to match the user's actual app ID
           measurementId: "G-1RJJTT3QET"
         };
 
@@ -341,7 +341,10 @@
         window.fsUpdateDoc = updateDoc;
         window.fsSetDoc = setDoc;
         window.fsGetDoc = getDoc;
-        window.fsFieldValue = FieldValue; // Expose FieldValue
+        // Expose FieldValue for other uses like arrayUnion/Remove if needed
+        window.fsFieldValue = FieldValue; 
+        // Expose serverTimestamp directly as a function
+        window.fsServerTimestamp = serverTimestamp; 
         window.signOut = signOut; // Expose signOut
 
         window.currentUserId = null;
@@ -583,7 +586,8 @@
                 await window.fsSetDoc(userDocRef, {
                     email: user.email,
                     role: role,
-                    createdAt: window.fsFieldValue.serverTimestamp()
+                    // Corrected: Use window.fsServerTimestamp() directly
+                    createdAt: window.fsServerTimestamp() 
                 });
 
                 newUserEmailInput.value = '';
@@ -717,7 +721,7 @@
                         await window.fsSetDoc(userDocRef, {
                             email: user.email,
                             role: 'CER', // Default role for newly signed-up users (if allowed)
-                            createdAt: window.fsFieldValue.serverTimestamp()
+                            createdAt: window.fsServerTimestamp() // Corrected usage
                         });
                         window.currentUserRole = 'CER'; // Set role immediately
                     } else {
