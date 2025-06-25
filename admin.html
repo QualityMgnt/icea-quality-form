@@ -204,6 +204,39 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Dropdown management specific styles */
+        .dropdown-options-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 0.25rem;
+            background-color: #f8f8f8;
+            padding: 0.5rem;
+        }
+        .dropdown-options-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 0.6rem;
+            border-bottom: 1px solid #eee;
+        }
+        .dropdown-options-list li:last-child {
+            border-bottom: none;
+        }
+        .dropdown-options-list li button {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.2rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .dropdown-options-list li button:hover {
+            background-color: #dc2626; /* red-600 */
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -260,7 +293,7 @@
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="adminContent" style="display: none;">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
-            Admin Panel - User Management
+            Admin Panel - User Management and Dropdowns
         </div>
         <div class="p-6">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Manage Users</h2>
@@ -303,14 +336,52 @@
                     </div>
                 </div>
             </div>
+
+            <hr class="my-6 border-gray-300">
+
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Manage Dropdown Options</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <!-- CER Names Dropdown Management -->
+                <div class="admin-section">
+                    <h3>CER Names</h3>
+                    <input type="text" id="addCerNameInput" placeholder="New CER Name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border mb-2">
+                    <button id="addCerNameBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Add CER Name</button>
+                    <ul id="cerNamesList" class="dropdown-options-list"></ul>
+                </div>
+
+                <!-- CER Roles Dropdown Management -->
+                <div class="admin-section">
+                    <h3>CER Roles</h3>
+                    <input type="text" id="addCerRoleInput" placeholder="New CER Role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border mb-2">
+                    <button id="addCerRoleBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Add CER Role</button>
+                    <ul id="cerRolesList" class="dropdown-options-list"></ul>
+                </div>
+
+                <!-- Reviewer Names Dropdown Management -->
+                <div class="admin-section">
+                    <h3>Reviewer Names</h3>
+                    <input type="text" id="addReviewerNameInput" placeholder="New Reviewer Name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border mb-2">
+                    <button id="addReviewerNameBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Add Reviewer Name</button>
+                    <ul id="reviewerNamesList" class="dropdown-options-list"></ul>
+                </div>
+
+                <!-- Autofail Types Dropdown Management -->
+                <div class="admin-section">
+                    <h3>Autofail Types</h3>
+                    <input type="text" id="addAutofailTypeInput" placeholder="New Autofail Type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border mb-2">
+                    <button id="addAutofailTypeBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Add Autofail Type</button>
+                    <ul id="autofailTypesList" class="dropdown-options-list"></ul>
+                </div>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        // Import sendPasswordResetEmail
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser, signOut, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, setDoc, getDoc, FieldValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        // Import FieldValue from 'firebase/firestore' for arrayUnion/arrayRemove
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, setDoc, getDoc, FieldValue, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
@@ -345,8 +416,11 @@
         window.fsUpdateDoc = updateDoc;
         window.fsSetDoc = setDoc;
         window.fsGetDoc = getDoc;
+        // Expose FieldValue and arrayUnion/arrayRemove functions
         window.fsFieldValue = FieldValue; 
         window.fsServerTimestamp = serverTimestamp; 
+        window.fsArrayUnion = arrayUnion; // NEW: Expose arrayUnion
+        window.fsArrayRemove = arrayRemove; // NEW: Expose arrayRemove
         window.signOut = signOut; // Expose signOut
 
         window.currentUserId = null;
@@ -426,13 +500,16 @@
             document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
         });
 
-        // Define collection path
+        // Define collection paths
         window.USERS_COLLECTION_PATH_PREFIX = `artifacts/${appId}/users`;
+        // NEW: Collection path for dropdown options
+        window.DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
 
     </script>
     <script>
         // --- GLOBAL DATA STORES ---
         let allUsers = []; // Stores user profiles (email, role) from Firestore
+        let dropdownOptions = {}; // Stores dynamically fetched dropdown options
 
         // --- UI ELEMENTS ---
         const loginPage = document.getElementById('loginPage');
@@ -453,13 +530,30 @@
 
         const adminContent = document.getElementById('adminContent');
 
-        // New User Management Elements
+        // User Management Elements
         const newUserEmailInput = document.getElementById('newUserEmailInput');
         const newUserPasswordInput = document.getElementById('newUserPasswordInput');
         const newUserRoleSelect = document.getElementById('newUserRoleSelect');
         const addNewUserBtn = document.getElementById('addNewUserBtn');
         const addUserMessage = document.getElementById('addUserMessage');
         const usersTableBody = document.getElementById('usersTableBody');
+
+        // Dropdown Management Elements (NEW)
+        const addCerNameInput = document.getElementById('addCerNameInput');
+        const addCerNameBtn = document.getElementById('addCerNameBtn');
+        const cerNamesList = document.getElementById('cerNamesList');
+
+        const addCerRoleInput = document.getElementById('addCerRoleInput');
+        const addCerRoleBtn = document.getElementById('addCerRoleBtn');
+        const cerRolesList = document.getElementById('cerRolesList');
+
+        const addReviewerNameInput = document.getElementById('addReviewerNameInput');
+        const addReviewerNameBtn = document.getElementById('addReviewerNameBtn');
+        const reviewerNamesList = document.getElementById('reviewerNamesList');
+
+        const addAutofailTypeInput = document.getElementById('addAutofailTypeInput');
+        const addAutofailTypeBtn = document.getElementById('addAutofailTypeBtn');
+        const autofailTypesList = document.getElementById('autofailTypesList');
 
 
         // Message Box elements (re-used for confirmation modals etc.)
@@ -624,10 +718,6 @@
                 hideMessageBox();
                 showMessageBox("Deleting User", `Deleting user ${email}...`, false, true, false);
                 try {
-                    // Admin SDK (backend) is required to delete Firebase Auth users other than the currently logged-in one.
-                    // This client-side code will only delete the user's profile from Firestore.
-                    // For a complete deletion, you'd trigger a Cloud Function here.
-
                     const userDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${uid}`);
                     await window.fsDeleteDoc(userDocRef); // Delete the user's role profile
 
@@ -684,7 +774,7 @@
             });
         }
 
-        // NEW: Function to handle password reset
+        // Function to handle password reset
         async function handlePasswordReset() {
             const email = usernameInput.value.trim();
             if (!email) {
@@ -694,7 +784,6 @@
 
             showMessageBox("Sending Reset Email", `Sending password reset link to ${email}...`, false, true, false);
             try {
-                // Use the globally exposed sendPasswordResetEmail function
                 await window.sendPasswordResetEmail(window.auth, email);
                 showMessageBox("Email Sent", `A password reset link has been sent to ${email}. Please check your inbox.`, false, false, true);
             } catch (error) {
@@ -709,6 +798,150 @@
             }
         }
 
+        // NEW DROPDOWN MANAGEMENT FUNCTIONS
+
+        /**
+         * Fetches dropdown options from Firestore.
+         * @param {string} docId - The document ID for the dropdown type (e.g., 'cerNames', 'cerRoles').
+         * @returns {Promise<Array<string>>} An array of options.
+         */
+        async function fetchDropdownOptions(docId) {
+            if (!window.db || !window.DROPDOWN_OPTIONS_COLLECTION_PATH) {
+                console.warn(`Firestore not ready or DROPDOWN_OPTIONS_COLLECTION_PATH not defined for ${docId}.`);
+                return [];
+            }
+            try {
+                const docRef = window.fsDoc(window.db, `${window.DROPDOWN_OPTIONS_COLLECTION_PATH}/${docId}`);
+                const docSnap = await window.fsGetDoc(docRef);
+                if (docSnap.exists()) {
+                    return docSnap.data().options || [];
+                }
+                return [];
+            } catch (error) {
+                console.error(`Error fetching dropdown options for ${docId}:`, error);
+                return [];
+            }
+        }
+
+        /**
+         * Adds an option to a specific dropdown list in Firestore.
+         * @param {string} docId - The document ID for the dropdown type.
+         * @param {string} option - The option to add.
+         * @param {HTMLElement} inputElement - The input field to clear.
+         * @param {Function} renderFunction - The function to re-render the list after update.
+         */
+        async function addDropdownOption(docId, option, inputElement, renderFunction) {
+            if (!window.db || !window.currentUserId || window.currentUserRole !== 'Admin') {
+                showMessageBox("Unauthorized", "You must be logged in as an Admin to manage dropdowns.", true, false, true);
+                return;
+            }
+            if (!option.trim()) {
+                showMessageBox("Input Required", "Please enter an option to add.", true, false, true);
+                return;
+            }
+            showMessageBox("Adding Option", `Adding "${option}" to ${docId}...`, false, true, false);
+            try {
+                const docRef = window.fsDoc(window.db, `${window.DROPDOWN_OPTIONS_COLLECTION_PATH}/${docId}`);
+                // Use arrayUnion to add the option if it's not already there
+                await window.fsSetDoc(docRef, {
+                    options: window.fsArrayUnion(option.trim())
+                }, { merge: true });
+                inputElement.value = '';
+                showMessageBox("Success", `"${option}" added successfully!`, false, false, true);
+                renderFunction(); // Re-render the list
+            } catch (error) {
+                console.error(`Error adding option to ${docId}:`, error);
+                showMessageBox("Failed to Add Option", `Error adding option: ${error.message}`, true, false, true);
+            }
+        }
+
+        /**
+         * Removes an option from a specific dropdown list in Firestore.
+         * @param {string} docId - The document ID for the dropdown type.
+         * @param {string} option - The option to remove.
+         * @param {Function} renderFunction - The function to re-render the list after update.
+         */
+        async function removeDropdownOption(docId, option, renderFunction) {
+            if (!window.db || !window.currentUserId || window.currentUserRole !== 'Admin') {
+                showMessageBox("Unauthorized", "You must be logged in as an Admin to manage dropdowns.", true, false, true);
+                return;
+            }
+            const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
+            showMessageBox("Confirm Removal", `Are you sure you want to remove "${option}" from ${docId}?`, true, false, false);
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = 'Remove';
+            confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+            confirmBtn.onclick = async () => {
+                hideMessageBox();
+                showMessageBox("Removing Option", `Removing "${option}" from ${docId}...`, false, true, false);
+                try {
+                    const docRef = window.fsDoc(window.db, `${window.DROPDOWN_OPTIONS_COLLECTION_PATH}/${docId}`);
+                    // Use arrayRemove to delete the option
+                    await window.fsUpdateDoc(docRef, {
+                        options: window.fsArrayRemove(option)
+                    });
+                    showMessageBox("Success", `"${option}" removed successfully!`, false, false, true);
+                    renderFunction(); // Re-render the list
+                } catch (error) {
+                    console.error(`Error removing option from ${docId}:`, error);
+                    showMessageBox("Failed to Remove Option", `Error removing option: ${error.message}`, true, false, true);
+                } finally {
+                    messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore content for next message
+                    messageBoxCloseBtn.onclick = () => { hideMessageBox(); }; // Restore close handler
+                }
+            };
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+            cancelBtn.onclick = () => {
+                hideMessageBox();
+                messageBoxContent.innerHTML = originalMessageBoxContentHTML; // Restore content
+                messageBoxCloseBtn.onclick = () => { hideMessageBox(); }; // Restore close handler
+            };
+
+            messageBoxContent.innerHTML = ''; // Clear content to add new buttons
+            messageBoxContent.appendChild(confirmBtn);
+            messageBoxContent.appendChild(cancelBtn);
+            messageBoxCloseBtn.onclick = () => { hideMessageBox(); messageBoxContent.innerHTML = originalMessageBoxContentHTML; }; // Ensure overlay closes and content restores
+        }
+
+        /**
+         * Renders the options for a specific dropdown type.
+         * @param {string} docId - The document ID for the dropdown type.
+         * @param {HTMLElement} listElement - The UL element to render options into.
+         */
+        async function renderDropdownOptions(docId, listElement) {
+            listElement.innerHTML = '<li class="text-center text-gray-500">Loading...</li>';
+            const options = await fetchDropdownOptions(docId);
+            listElement.innerHTML = ''; // Clear loading message
+
+            if (options.length === 0) {
+                listElement.innerHTML = '<li class="text-center text-gray-500">No options added yet.</li>';
+                return;
+            }
+
+            options.forEach(option => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${option}</span>
+                    <button data-option="${option}">Delete</button>
+                `;
+                li.querySelector('button').addEventListener('click', () => removeDropdownOption(docId, option, () => renderDropdownOptions(docId, listElement)));
+                listElement.appendChild(li);
+            });
+            // Update global dropdowns object for index.html usage (if needed)
+            dropdownOptions[docId] = options;
+        }
+
+        // Initialize all dropdown lists in the Admin panel
+        async function initializeDropdownManagement() {
+            await renderDropdownOptions('cerNames', cerNamesList);
+            await renderDropdownOptions('cerRoles', cerRolesList);
+            await renderDropdownOptions('reviewerNames', reviewerNamesList);
+            await renderDropdownOptions('autofailTypes', autofailTypesList);
+        }
 
         // --- INITIALIZATION & EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', function() {
@@ -728,13 +961,11 @@
                 const email = usernameInput.value.trim();
                 const pass = passwordInput.value.trim();
 
-                // All logins now use Firebase Email/Password Auth
                 try {
                     showMessageBox("Logging In", "Authenticating...", false, true, false);
                     const userCredential = await window.signInWithEmailAndPassword(window.auth, email, pass);
                     const user = userCredential.user;
 
-                    // Ensure user's role profile exists in Firestore. If not, create it.
                     const userDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${user.uid}`);
                     const userDocSnap = await window.fsGetDoc(userDocRef);
 
@@ -745,9 +976,9 @@
                             role: 'CER', // Default role for newly signed-up users
                             createdAt: window.fsServerTimestamp() 
                         });
-                        window.currentUserRole = 'CER'; // Set role immediately
+                        window.currentUserRole = 'CER'; 
                     } else {
-                        window.currentUserRole = userDocSnap.data().role; // Set role from existing profile
+                        window.currentUserRole = userDocSnap.data().role; 
                     }
 
                     sessionStorage.setItem('loggedIn', 'true');
@@ -755,11 +986,10 @@
                     window.updateLastActivity();
 
                     hideMessageBox();
-                    // Redirect based on the user's role
                     if (window.currentUserRole === 'Admin') {
-                         window.location.href = 'admin.html'; // Admins stay on admin page by default after login
+                         window.location.href = 'admin.html'; 
                     } else {
-                        window.location.href = 'index.html'; // Other roles go to the main app
+                        window.location.href = 'index.html'; 
                     }
                    
                 } catch (error) {
@@ -778,7 +1008,6 @@
                 }
             });
 
-            // New: Add event listener for the "Forgot Password?" button
             forgotPasswordBtn.addEventListener('click', handlePasswordReset);
 
             logoutBtn.addEventListener('click', async function() {
@@ -804,6 +1033,12 @@
             
             addNewUserBtn.addEventListener('click', createUser);
 
+            // NEW: Dropdown management event listeners
+            addCerNameBtn.addEventListener('click', () => addDropdownOption('cerNames', addCerNameInput.value, addCerNameInput, () => renderDropdownOptions('cerNames', cerNamesList)));
+            addCerRoleBtn.addEventListener('click', () => addDropdownOption('cerRoles', addCerRoleInput.value, addCerRoleInput, () => renderDropdownOptions('cerRoles', cerRolesList)));
+            addReviewerNameBtn.addEventListener('click', () => addDropdownOption('reviewerNames', addReviewerNameInput.value, addReviewerNameInput, () => renderDropdownOptions('reviewerNames', reviewerNamesList)));
+            addAutofailTypeBtn.addEventListener('click', () => addDropdownOption('autofailTypes', addAutofailTypeInput.value, addAutofailTypeInput, () => renderDropdownOptions('autofailTypes', autofailTypesList)));
+
 
             // Initial display and user fetch based on session/role
             if (isLoggedIn === 'true' && window.isAuthReady) {
@@ -820,23 +1055,21 @@
             document.addEventListener('firebaseAuthReady', () => {
                 console.log("Admin: Firebase Auth is ready. Current User ID:", window.currentUserId, "Role:", window.currentUserRole);
                 
-                // If user is logged in (via sessionStorage) and auth is ready
                 if (sessionStorage.getItem('loggedIn') === 'true') {
                     updateNavigationVisibility(); 
 
                     if (window.currentUserRole === 'Admin') {
-                        loginPage.style.display = 'none'; // Ensure login page is hidden
-                        mainNav.style.display = 'flex'; // Ensure nav is visible
-                        adminContent.style.display = 'block'; // Show admin content
-                        fetchUsers(); // Fetch users if Admin
+                        loginPage.style.display = 'none'; 
+                        mainNav.style.display = 'flex'; 
+                        adminContent.style.display = 'block'; 
+                        fetchUsers(); // Fetch users for user management
+                        initializeDropdownManagement(); // NEW: Initialize dropdown management
                     } else {
-                        // If not Admin, redirect to index or show access denied
                         showMessageBox("Access Denied", "You do not have administrative privileges. Redirecting to main application.", true, false, true, () => {
                             window.location.href = 'index.html';
                         });
                     }
                 } else {
-                    // If not logged in at all, show login page
                     loginPage.style.display = 'flex';
                     mainNav.style.display = 'none';
                     adminContent.style.display = 'none';
