@@ -148,7 +148,7 @@
         .autofail-table .email-btn:hover {
             background-color: #E65100;
         }
-         /* Specific styles for modal/message box */
+          /* Specific styles for modal/message box */
         .message-box-overlay {
             position: fixed;
             top: 0;
@@ -249,8 +249,42 @@
             Autofail Records
         </div>
         <div class="p-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Records with Autofails</h2>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Add New Autofail Record</h2>
+            <form id="addAutofailForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div>
+                    <label for="cerRole" class="block text-sm font-medium text-gray-700">CER Role</label>
+                    <input type="text" id="cerRole" name="cerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                </div>
+                <div>
+                    <label for="cerName" class="block text-sm font-medium text-gray-700">CER Name</label>
+                    <input type="text" id="cerName" name="cerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                </div>
+                <div>
+                    <label for="contactId" class="block text-sm font-medium text-gray-700">Contact ID</label>
+                    <input type="text" id="contactId" name="contactId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                </div>
+                <div>
+                    <label for="autofailType" class="block text-sm font-medium text-gray-700">Autofail Type</label>
+                    <input type="text" id="autofailType" name="autofailType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="autofailReason" class="block text-sm font-medium text-gray-700">Reason for Autofail</label>
+                    <textarea id="autofailReason" name="autofailReason" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required></textarea>
+                </div>
+                <div class="md:col-span-2 text-right">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        Add Autofail Record
+                    </button>
+                </div>
+            </form>
             
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-gray-800">Existing Autofail Records</h2>
+                <button id="generateReportBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                    <i class="fas fa-file-csv mr-2"></i>Generate Autofail Report
+                </button>
+            </div>
+
             <div id="autofailTableContainer" class="overflow-x-auto max-h-[70vh]">
                 <table class="autofail-table min-w-full">
                     <thead>
@@ -278,7 +312,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where, orderBy, limit, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
@@ -308,6 +342,8 @@
         window.fsDoc = doc; // For doc references
         window.fsUpdateDoc = updateDoc; // For updating documents
         window.fsDeleteDoc = deleteDoc; // For deleting documents
+        window.fsAddDoc = addDoc; // For adding documents
+        window.fsServerTimestamp = serverTimestamp; // For adding timestamps
 
         window.currentUserId = null;
         window.isAuthReady = false;
@@ -372,6 +408,14 @@
 
         const autofailsContent = document.getElementById('autofailsContent');
         const autofailRecordsTableBody = document.getElementById('autofailRecordsTableBody');
+        const generateReportBtn = document.getElementById('generateReportBtn'); // New: Report Button
+
+        const addAutofailForm = document.getElementById('addAutofailForm');
+        const cerRoleInput = document.getElementById('cerRole');
+        const cerNameInput = document.getElementById('cerName');
+        const contactIdInput = document.getElementById('contactId');
+        const autofailTypeInput = document.getElementById('autofailType');
+        const autofailReasonInput = document.getElementById('autofailReason');
 
         const messageBoxOverlay = document.getElementById('messageBoxOverlay');
         const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -424,12 +468,12 @@
             try {
                 const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
                 
-                // FIX: Add orderBy on 'Autofail Type' as the first orderBy clause
+                // Query records where 'Auto Fail Type' is not empty to identify autofails
                 const q = window.fsQuery(
                     recordsColRef,
-                    window.fsWhere('Autofail Type', '!=', ''), // Inequality filter on 'Autofail Type'
-                    window.fsOrderBy('Autofail Type', 'asc'), // FIRST orderBy must be on the inequality field
-                    window.fsOrderBy('submittedAt', 'desc')   // Then you can orderBy other fields
+                    window.fsWhere('Auto Fail Type', '!=', ''), // Filter for records with an autofail type
+                    window.fsOrderBy('Auto Fail Type', 'asc'), // First orderBy must be on the inequality field
+                    window.fsOrderBy('submittedAt', 'desc')    // Then you can orderBy other fields
                 );
                 
                 const querySnapshot = await window.fsGetDocs(q);
@@ -465,7 +509,7 @@
                     <td class="py-2 px-4">${record['CER Name'] || 'N/A'}</td>
                     <td class="py-2 px-4">${record['Total Pts.'] || 'N/A'}</td>
                     <td class="py-2 px-4">${record['Contact ID'] || 'N/A'}</td>
-                    <td class="py-2 px-4">${record['Evaluation Date'] || (record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'N/A')}</td>
+                    <td class="py-2 px-4">${record['Evaluation Date'] || (record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A')}</td>
                     <td class="py-2 px-4">${record['Auto Fail Type'] || 'N/A'}</td>
                     <td class="py-2 px-4">${record['Autofail Description'] || 'N/A'}</td>
                     <td class="py-2 px-4 whitespace-nowrap">
@@ -512,10 +556,12 @@
         async function deleteAutofailRecord(recordId) {
             const recordRef = window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, recordId);
             showMessageBox("Confirm Delete", "Are you sure you want to delete this autofail record permanently?", false, false, false);
-            const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = 'Delete';
-            confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-            confirmBtn.onclick = async () => {
+            
+            // Create custom confirm/cancel buttons for the message box
+            const confirmDeleteBtn = document.createElement('button');
+            confirmDeleteBtn.textContent = 'Delete';
+            confirmDeleteBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+            confirmDeleteBtn.onclick = async () => {
                 hideMessageBox();
                 showMessageBox("Deleting Record", "Deleting autofail record...", false, true, false);
                 try {
@@ -528,13 +574,22 @@
                     showMessageBox("Error", `Failed to delete record: ${error.message}`, true, false, true);
                 }
             };
-            const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-            cancelBtn.onclick = () => hideMessageBox();
-            messageBoxContent.innerHTML = '';
-            messageBoxContent.appendChild(confirmBtn);
-            messageBoxContent.appendChild(cancelBtn);
+
+            const cancelDeleteBtn = document.createElement('button');
+            cancelDeleteBtn.textContent = 'Cancel';
+            cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+            cancelDeleteBtn.onclick = () => hideMessageBox();
+
+            // Clear previous message box content and append new buttons
+            messageBoxContent.innerHTML = 'Are you sure you want to delete this autofail record permanently?';
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'mt-4';
+            buttonContainer.appendChild(confirmDeleteBtn);
+            buttonContainer.appendChild(cancelDeleteBtn);
+            messageBoxContent.appendChild(buttonContainer);
+
+            // Ensure the main close button is hidden when custom buttons are shown
+            messageBoxCloseBtn.classList.add('hidden');
         }
 
         function emailAutofailRecord(recordId) {
@@ -548,19 +603,19 @@
             const contactId = record['Contact ID'] || 'N/A';
             const autofailType = record['Auto Fail Type'] || 'N/A';
             const autofailDescription = record['Autofail Description'] || 'No description provided.';
-            const overallScore = record['Overall Score'] || 'N/A';
-            const evaluationDate = record['Evaluation Date'] || (record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'N/A');
+            const overallScore = record['Total Pts.'] || 'N/A'; // Using 'Total Pts.' as 'Overall Score'
+            const evaluationDate = record['Evaluation Date'] || (record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A');
 
             const subject = `Autofail Feedback - ${cerName} - Contact ID: ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
-                         `This email is regarding an autofail detected in your recent evaluation.\n\n` +
-                         `Contact ID: ${contactId}\n` +
-                         `Evaluation Date: ${evaluationDate}\n` +
-                         `Overall Score: ${overallScore}\n` +
-                         `Autofail Type: ${autofailType}\n` +
-                         `Reason for Autofail: ${autofailDescription}\n\n` +
-                         `Please review this feedback and reach out to your supervisor for further discussion.\n\n` +
-                         `Kind Regards,\nQuality Evaluation Team`;
+                                 `This email is regarding an autofail detected in your recent evaluation.\n\n` +
+                                 `Contact ID: ${contactId}\n` +
+                                 `Evaluation Date: ${evaluationDate}\n` +
+                                 `Overall Score: ${overallScore}\n` +
+                                 `Autofail Type: ${autofailType}\n` +
+                                 `Reason for Autofail: ${autofailDescription}\n\n` +
+                                 `Please review this feedback and reach out to your supervisor for further discussion.\n\n` +
+                                 `Kind Regards,\nQuality Evaluation Team`;
 
             const mailtoLink = `mailto:${cerName.replace(/\s/g, '').toLowerCase()}@icealion.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // Example email, adjust as needed
 
@@ -572,6 +627,97 @@
                 showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
             }
         }
+
+        // --- ADD NEW AUTOFAIL RECORD FUNCTION ---
+        async function addNewAutofailRecord(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            if (!window.db || !window.currentUserId) {
+                showMessageBox("Authentication Required", "Please log in to add autofail records.", true, false, true);
+                return;
+            }
+
+            const newRecord = {
+                'CER Role': cerRoleInput.value,
+                'CER Name': cerNameInput.value,
+                'Contact ID': contactIdInput.value,
+                'Auto Fail Type': autofailTypeInput.value,
+                'Autofail Description': autofailReasonInput.value,
+                'Total Pts.': 'N/A', // New autofail records might not have an immediate overall score
+                'Evaluation Date': new Date().toLocaleDateString(), // Capture current date
+                submittedAt: window.fsServerTimestamp() // Firestore server timestamp
+            };
+
+            if (!newRecord['Auto Fail Type'] || !newRecord['Autofail Description']) {
+                showMessageBox("Missing Information", "Both 'Autofail Type' and 'Reason for Autofail' are required.", true, false, true);
+                return;
+            }
+
+            showMessageBox("Adding Record", "Submitting new autofail record...", false, true, false);
+
+            try {
+                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+                await window.fsAddDoc(recordsColRef, newRecord);
+
+                showMessageBox("Success", "New autofail record added successfully!", false, false, true, () => {
+                    addAutofailForm.reset(); // Clear the form
+                    fetchAutofailRecords(); // Refresh the table
+                });
+            } catch (error) {
+                console.error("Error adding new autofail record:", error);
+                showMessageBox("Error", `Failed to add autofail record: ${error.message}`, true, false, true);
+            }
+        }
+
+        // --- GENERATE AUTOFAIL REPORT FUNCTION ---
+        function generateAutofailReport() {
+            if (autofailRecords.length === 0) {
+                showMessageBox("No Data", "There are no autofail records to generate a report.", false, false, true);
+                return;
+            }
+
+            showMessageBox("Generating Report", "Preparing autofail report...", false, true, false);
+
+            try {
+                const headers = [
+                    "CER Role", "CER Name", "Overall Score", "Contact ID", 
+                    "Evaluation Date", "Autofail Type", "Reason for Autofail"
+                ];
+
+                const csvRows = [];
+                csvRows.push(headers.map(header => `"${header}"`).join(',')); // Add quoted headers
+
+                autofailRecords.forEach(record => {
+                    const row = [
+                        record['CER Role'] || '',
+                        record['CER Name'] || '',
+                        record['Total Pts.'] || '',
+                        record['Contact ID'] || '',
+                        record['Evaluation Date'] || (record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : ''),
+                        record['Auto Fail Type'] || '',
+                        record['Autofail Description'] || ''
+                    ];
+                    // Escape double quotes and wrap each field in double quotes
+                    csvRows.push(row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','));
+                });
+
+                const csvString = csvRows.join('\n');
+                const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `autofail_report_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(link); // Append to body for Firefox compatibility
+                link.click(); // Trigger download
+                document.body.removeChild(link); // Clean up the link
+
+                showMessageBox("Report Generated", "Autofail report downloaded successfully!", false, false, true);
+
+            } catch (error) {
+                console.error("Error generating report:", error);
+                showMessageBox("Error", `Failed to generate report: ${error.message}`, true, false, true);
+            }
+        }
+
 
         // --- INITIALIZATION ---
         function initializeAutofailsPage() {
@@ -626,6 +772,12 @@
                     fetchAutofailRecords();
                 }
             });
+
+            // Add event listener for the new autofail form
+            addAutofailForm.addEventListener('submit', addNewAutofailRecord);
+
+            // New: Add event listener for the generate report button
+            generateReportBtn.addEventListener('click', generateAutofailReport);
         });
 
     </script>
