@@ -582,7 +582,8 @@
           projectId: "icea-lion-qa",
           storageBucket: "icea-lion-qa.firebasestorage.app",
           messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+          // IMPORTANT: Updated appId to match the one from admin.html and recent console logs.
+          appId: "1:820082472004:web:8caddf941e1b5b661d76c94e", 
           measurementId: "G-1RJJTT3QET"
         };
 
@@ -669,7 +670,7 @@
                     window.currentUserRole = 'Guest'; 
                     console.log("User profile not found in Firestore, defaulting to Guest.");
                 }
-                 // Set last activity on successful authentication check
+                // Set last activity on successful authentication check
                 window.updateLastActivity(); // Use window.updateLastActivity
 
             } else {
@@ -1060,6 +1061,94 @@
         }
 
         /**
+         * Renders the records table with data.
+         * @param {Array<Object>} records - An array of record objects.
+         */
+        function renderRecordsTable(records) {
+            const recordsTableBody = document.getElementById('recordsTableBody');
+            recordsTableBody.innerHTML = ''; // Clear existing rows
+
+            if (records.length === 0) {
+                recordsTableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td></tr>';
+                return;
+            }
+
+            records.forEach(record => {
+                const row = recordsTableBody.insertRow();
+                row.innerHTML = `
+                    <td><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>
+                    <td>${record.submittedAt ? new Date(record.submittedAt).toLocaleString() : 'N/A'}</td>
+                    <td>${record['Contact ID'] || 'N/A'}</td>
+                    <td>${record['Client Name'] || 'N/A'}</td>
+                    <td>${record['CER Name'] || 'N/A'}</td>
+                    <td>${record['Overall Score'] || 'N/A'}</td>
+                    <td class="actions">
+                        <button class="view-record-btn bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-md" data-record-id="${record.id}">View</button>
+                    </td>
+                    <td>
+                        <button class="email-record-btn bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-md" data-record-id="${record.id}">Email</button>
+                    </td>
+                    <td>
+                        <button class="download-record-btn bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md" data-record-id="${record.id}">Download</button>
+                    </td>
+                `;
+            });
+
+            // Attach event listeners for individual record actions
+            document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updateDeleteButtonState);
+            });
+
+            document.querySelectorAll('.view-record-btn').forEach(button => {
+                button.addEventListener('click', (e) => viewRecordDetails(e.target.dataset.recordId));
+            });
+            document.querySelectorAll('.email-record-btn').forEach(button => {
+                button.addEventListener('click', (e) => sendRecordEmail(e.target.dataset.recordId));
+            });
+            document.querySelectorAll('.download-record-btn').forEach(button => {
+                button.addEventListener('click', (e) => downloadRecordData(e.target.dataset.recordId));
+            });
+            updateDeleteButtonState(); // Initial state update
+        }
+
+        /**
+         * Renders the list of webhooks.
+         * @param {Array<Object>} webhooks - An array of webhook objects.
+         */
+        function renderWebhookList(webhooks) {
+            const webhookList = document.getElementById('webhookList');
+            webhookList.innerHTML = ''; // Clear existing list
+
+            if (webhooks.length === 0) {
+                webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
+                return;
+            }
+
+            webhooks.forEach(webhook => {
+                const webhookDiv = document.createElement('div');
+                webhookDiv.className = 'flex justify-between items-center bg-f0f9ff p-2 rounded-md mb-2';
+                webhookDiv.innerHTML = `
+                    <span>${webhook.url}</span>
+                    <button class="delete-webhook-btn bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs" data-webhook-id="${webhook.id}">Delete</button>
+                `;
+                webhookList.appendChild(webhookDiv);
+            });
+
+            document.querySelectorAll('.delete-webhook-btn').forEach(button => {
+                button.addEventListener('click', (e) => deleteWebhook(e.target.dataset.webhookId));
+            });
+        }
+
+        /**
+         * Updates the state of the "Delete Selected" button based on checkbox selections.
+         */
+        function updateDeleteButtonState() {
+            const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            deleteSelectedRecordsBtn.disabled = selectedCheckboxes.length === 0;
+        }
+
+        /**
          * Adds a new evaluation record to Firestore.
          */
         async function addRecordToFirestore(recordData) {
@@ -1157,9 +1246,9 @@
             messageBoxContent.appendChild(cancelBtn);
             
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            messageBoxCloseBtn.onclick = () => {
-                hideMessageBox();
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+            messageBoxCloseBtn.onclick = () => { 
+                hideMessageBox(); 
+                messageBoxContent.innerHTML = originalMessageBoxContentHTML; 
             };
         }
 
@@ -1303,13 +1392,13 @@
             // Custom Subject and Body as requested
             const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
-                         `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                         `Contact ID: ${contactId}\n` +
-                         `CER Name: ${cerName}\n` +
-                         `Overall Score: ${overallScore}\n` +
-                         `Evaluation Date: ${evaluationDate}\n\n` +
-                         `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                         `Kind Regards,\nQuality Evaluation Team`;
+                                 `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                 `Contact ID: ${contactId}\n` +
+                                 `CER Name: ${cerName}\n` +
+                                 `Overall Score: ${overallScore}\n` +
+                                 `Evaluation Date: ${evaluationDate}\n\n` +
+                                 `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                 `Kind Regards,\nQuality Evaluation Team`;
 
 
             const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -1317,7 +1406,7 @@
             // Attempt to open email client
             try {
                 window.location.href = mailtoLink;
-                showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please review and send the email.", false, false, true);
+                showMessageBox("Email Prepared", "Your email client should open shortly. Please review and send the email.", false, false, true);
             } catch (e) {
                 console.error("Failed to open email client:", e);
                 showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
@@ -1851,7 +1940,7 @@
             } else {
                 // Unknown role or Guest (if anonymous sign-in is allowed but no role assigned)
                 showMessageBox("Access Denied", "Your role is not recognized. Please contact an administrator.", true, false, true, () => {
-                     window.location.href = 'admin.html'; // Redirect unknown roles to login
+                    window.location.href = 'admin.html'; // Redirect unknown roles to login
                 });
             }
 
@@ -1973,7 +2062,7 @@
             }
 
             if (adminTab) { // Only add listener if adminTab exists (it's conditionally rendered)
-                 adminTab.addEventListener('click', (e) => {
+                    adminTab.addEventListener('click', (e) => {
                     e.preventDefault();
                     console.log("Admin Tab CLICKED!");
                     window.location.href = 'admin.html'; // Direct link to admin page
@@ -1984,7 +2073,7 @@
             // Event listeners for database actions 
             // These event listeners now correctly reference the functions in the main script scope.
             if (selectAllRecordsCheckbox) { // Check if element exists before adding listener
-                 selectAllRecordsCheckbox.addEventListener('change', () => {
+                    selectAllRecordsCheckbox.addEventListener('change', () => {
                     const isChecked = selectAllRecordsCheckbox.checked;
                     document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                         checkbox.checked = isChecked;
@@ -2128,7 +2217,9 @@
                     return;
                 }
 
-                const auditFormContent = document.getElementById('auditFormContent');
+                // IMPORTANT: Ensure this auditFormContent ID exists in your HTML if not already there.
+                // Assuming #evaluationFormContent is the main form content to be converted to PDF.
+                const auditFormContent = document.getElementById('evaluationFormContent'); 
                 if (!auditFormContent) {
                     console.error('Error: Form container not found for PDF generation.');
                     showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
@@ -2143,6 +2234,7 @@
                 const evaluationDateInput = document.getElementById('review-date');
                 const reviewerNameSelect = document.getElementById('reviewer-name');
                 const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+                const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
 
 
                 const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
@@ -2200,13 +2292,13 @@
                     // Custom Subject and Body as requested
                     const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
                     const body = `Dear ${cerNameVal},\n\n` +
-                                 `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                 `Contact ID: ${contactIdVal}\n` +
-                                 `CER Name: ${cerNameVal}\n` +
-                                 `Overall Score: ${overallScoreVal}\n` +
-                                 `Evaluation Date: ${evaluationDateVal}\n\n` +
-                                 `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                 `Kind Regards,\nQuality Evaluation Team`;
+                                         `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                         `Contact ID: ${contactIdVal}\n` +
+                                         `CER Name: ${cerNameVal}\n` +
+                                         `Overall Score: ${overallScoreVal}\n` +
+                                         `Evaluation Date: ${evaluationDateVal}\n\n` +
+                                         `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                         `Kind Regards,\nQuality Evaluation Team`;
 
 
                     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -2250,7 +2342,7 @@
 
                 // If already logged in, fetch initial records
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks(); 
+                    fetchRecordsAndWebhooks(); 
                 }
             });
 
@@ -2268,7 +2360,7 @@
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
                 initializeApp(); 
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks(); 
+                    fetchRecordsAndWebhooks(); 
                 }
             } else {
                 console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
