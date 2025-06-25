@@ -148,7 +148,7 @@
         .autofail-table .email-btn:hover {
             background-color: #E65100;
         }
-          /* Specific styles for modal/message box */
+            /* Specific styles for modal/message box */
         .message-box-overlay {
             position: fixed;
             top: 0;
@@ -311,8 +311,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js"; // Added signOut
+        import { getFirestore, collection, getDocs, query, where, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js"; // Added getDoc
 
         // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
@@ -344,44 +344,36 @@
         window.fsDeleteDoc = deleteDoc; // For deleting documents
         window.fsAddDoc = addDoc; // For adding documents
         window.fsServerTimestamp = serverTimestamp; // For adding timestamps
+        window.fsGetDoc = getDoc; // For getting a single doc
 
         window.currentUserId = null;
+        window.currentUserRole = null; // Track current user's role
         window.isAuthReady = false;
 
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
                 window.currentUserId = user.uid;
                 console.log("Firebase Auth State Changed: User logged in:", user.uid);
+                // Fetch user role from Firestore
+                const userDocRef = window.fsDoc(window.db, `artifacts/${appId}/users/${user.uid}`);
+                try {
+                    const userDocSnap = await window.fsGetDoc(userDocRef);
+                    if (userDocSnap.exists()) {
+                        window.currentUserRole = userDocSnap.data().role;
+                        console.log("User role fetched:", window.currentUserRole);
+                    } else {
+                        window.currentUserRole = 'Guest'; // Default if profile missing
+                        console.warn("User profile not found in Firestore for UID:", user.uid, "Defaulting to Guest role.");
+                    }
+                } catch (error) {
+                    console.error("Error fetching user role:", error);
+                    window.currentUserRole = 'Guest';
+                }
             } else {
                 console.log("Firebase Auth State Changed: No user logged in. Attempting sign-in.");
-                if (initialAuthToken) {
-                    try {
-                        await signInWithCustomToken(window.auth, initialAuthToken);
-                        window.currentUserId = window.auth.currentUser.uid;
-                        console.log("Signed in with custom token:", window.currentUserId);
-                    } catch (error) {
-                        console.error("Error signing in with custom token:", error);
-                        try {
-                            await signInAnonymously(window.auth);
-                            window.currentUserId = window.auth.currentUser.uid;
-                            console.log("Signed in anonymously:", window.currentUserId);
-                        } catch (anonError) {
-                            console.error("Error signing in anonymously (fallback):", anonError);
-                        }
-                    }
-                } else {
-                    try {
-                        await signInAnonymously(window.auth);
-                        window.currentUserId = window.auth.currentUser.uid;
-                        console.log("Signed in anonymously:", window.currentUserId);
-                    } catch (anonError) {
-                        console.error("Error signing in anonymously:", anonError);
-                    }
-                }
-                if (!window.currentUserId) {
-                    console.error("No user ID available after authentication attempts. Using random UUID as fallback.");
-                    window.currentUserId = crypto.randomUUID();
-                }
+                // Redirect to login page if no user or session not found
+                window.location.href = 'admin.html'; // Assuming admin.html is your centralized login
+                return; // Stop execution
             }
             window.isAuthReady = true;
             document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
@@ -454,6 +446,13 @@
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Authentication Required", "Please log in to view autofail records.", true, false, true);
                 autofailRecordsTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Authentication required.</td></tr>';
+                return;
+            }
+            if (window.currentUserRole !== 'Admin') { // Only Admin can view autofails
+                showMessageBox("Access Denied", "You do not have permission to view this page.", true, false, true, () => {
+                    window.location.href = 'index.html'; // Redirect to a page accessible by the user's role
+                });
+                autofailRecordsTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Access Denied. Only Admin can view autofails.</td></tr>';
                 return;
             }
             if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
@@ -535,6 +534,10 @@
         // --- ACTION BUTTON FUNCTIONS ---
 
         async function reviewAutofailRecord(recordId) {
+            if (window.currentUserRole !== 'Admin') { // Restrict to Admin
+                showMessageBox("Access Denied", "Only Admin users can review autofail records.", true, false, true);
+                return;
+            }
             const recordRef = window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, recordId);
             showMessageBox("Reviewing Record", "Marking record as reviewed...", false, true, false);
             try {
@@ -554,6 +557,10 @@
         }
 
         async function deleteAutofailRecord(recordId) {
+            if (window.currentUserRole !== 'Admin') { // Restrict to Admin
+                showMessageBox("Access Denied", "Only Admin users can delete autofail records.", true, false, true);
+                return;
+            }
             const recordRef = window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, recordId);
             showMessageBox("Confirm Delete", "Are you sure you want to delete this autofail record permanently?", false, false, false);
             
@@ -593,6 +600,9 @@
         }
 
         function emailAutofailRecord(recordId) {
+            // Email functionality is usually for sending, not modifying/deleting,
+            // so it can remain accessible to any role that can view autofails.
+            // If you want to restrict email sending to Admin too, add a check here.
             const record = autofailRecords.find(r => r.id === recordId);
             if (!record) {
                 showMessageBox("Error", "Record not found for email.", true, false, true);
@@ -608,14 +618,14 @@
 
             const subject = `Autofail Feedback - ${cerName} - Contact ID: ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
-                                 `This email is regarding an autofail detected in your recent evaluation.\n\n` +
-                                 `Contact ID: ${contactId}\n` +
-                                 `Evaluation Date: ${evaluationDate}\n` +
-                                 `Overall Score: ${overallScore}\n` +
-                                 `Autofail Type: ${autofailType}\n` +
-                                 `Reason for Autofail: ${autofailDescription}\n\n` +
-                                 `Please review this feedback and reach out to your supervisor for further discussion.\n\n` +
-                                 `Kind Regards,\nQuality Evaluation Team`;
+                                     `This email is regarding an autofail detected in your recent evaluation.\n\n` +
+                                     `Contact ID: ${contactId}\n` +
+                                     `Evaluation Date: ${evaluationDate}\n` +
+                                     `Overall Score: ${overallScore}\n` +
+                                     `Autofail Type: ${autofailType}\n` +
+                                     `Reason for Autofail: ${autofailDescription}\n\n` +
+                                     `Please review this feedback and reach out to your supervisor for further discussion.\n\n` +
+                                     `Kind Regards,\nQuality Evaluation Team`;
 
             const mailtoLink = `mailto:${cerName.replace(/\s/g, '').toLowerCase()}@icealion.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // Example email, adjust as needed
 
@@ -631,6 +641,11 @@
         // --- ADD NEW AUTOFAIL RECORD FUNCTION ---
         async function addNewAutofailRecord(event) {
             event.preventDefault(); // Prevent default form submission
+
+            if (window.currentUserRole !== 'Admin') { // Restrict to Admin
+                showMessageBox("Access Denied", "Only Admin users can add new autofail records.", true, false, true);
+                return;
+            }
 
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Authentication Required", "Please log in to add autofail records.", true, false, true);
@@ -648,10 +663,12 @@
                 submittedAt: window.fsServerTimestamp() // Firestore server timestamp
             };
 
-            if (!newRecord['Auto Fail Type'] || !newRecord['Autofail Description']) {
-                showMessageBox("Missing Information", "Both 'Autofail Type' and 'Reason for Autofail' are required.", true, false, true);
+            // Basic client-side validation
+            if (!newRecord['CER Role'] || !newRecord['CER Name'] || !newRecord['Contact ID'] || !newRecord['Auto Fail Type'] || !newRecord['Autofail Description']) {
+                showMessageBox("Missing Information", "All fields are required to add a new autofail record.", true, false, true);
                 return;
             }
+
 
             showMessageBox("Adding Record", "Submitting new autofail record...", false, true, false);
 
@@ -675,6 +692,14 @@
                 showMessageBox("No Data", "There are no autofail records to generate a report.", false, false, true);
                 return;
             }
+
+            // Report generation doesn't modify data, so it might not need role restriction
+            // if you want Supervisors to also generate reports.
+            // If you want to restrict it to Admin, add:
+            // if (window.currentUserRole !== 'Admin') {
+            //     showMessageBox("Access Denied", "Only Admin users can generate autofail reports.", true, false, true);
+            //     return;
+            // }
 
             showMessageBox("Generating Report", "Preparing autofail report...", false, true, false);
 
@@ -720,58 +745,110 @@
 
 
         // --- INITIALIZATION ---
+        // Changed initializeAutofailsPage to wait for Firebase Auth to be ready
         function initializeAutofailsPage() {
-            autofailsContent.style.display = 'block';
-            fetchAutofailRecords();
+            if (window.isAuthReady) {
+                if (window.currentUserRole === 'Admin') {
+                    loginPage.style.display = 'none';
+                    mainNav.style.display = 'flex';
+                    autofailsContent.style.display = 'block';
+                    fetchAutofailRecords(); // Fetch records only if Admin
+                } else {
+                    // Redirect or show access denied message if not Admin
+                    showMessageBox("Access Denied", "You must be logged in as an Admin to access this page. Redirecting...", true, false, true, () => {
+                        window.location.href = 'admin.html'; // Or 'index.html'
+                    });
+                }
+            } else {
+                // If auth is not ready, wait for the event
+                document.addEventListener('firebaseAuthReady', initializeAutofailsPage);
+            }
         }
 
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', function() {
             console.log("Autofails DOM fully loaded and parsed.");
 
-            // Authentication check and page display
-            const isLoggedIn = sessionStorage.getItem('loggedIn');
-            if (isLoggedIn === 'true') {
-                loginPage.style.display = 'none';
-                mainNav.style.display = 'flex';
-                initializeAutofailsPage();
-            } else {
-                loginPage.style.display = 'flex';
-                mainNav.style.display = 'none';
-                autofailsContent.style.display = 'none';
-            }
+            // Initial check/redirect based on session storage and auth state
+            // The `onAuthStateChanged` callback will handle the primary routing
+            // after Firebase authentication determines the user's state and role.
 
-            loginForm.addEventListener('submit', function(event) {
+            loginForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 loginMessage.classList.add('hidden');
 
-                const CORRECT_USERNAME = 'Supervisor';
-                const CORRECT_PASSWORD = 'Supervisor';
+                const enteredUsername = usernameInput.value;
+                const enteredPassword = passwordInput.value;
 
-                if (usernameInput.value === CORRECT_USERNAME && passwordInput.value === CORRECT_PASSWORD) {
-                    sessionStorage.setItem('loggedIn', 'true');
-                    loginPage.style.display = 'none';
-                    mainNav.style.display = 'flex';
-                    initializeAutofailsPage();
+                // IMPORTANT: In a real application, you would authenticate these credentials
+                // against Firebase Authentication (e.g., signInWithEmailAndPassword).
+                // For this example, we're using a hardcoded check for the "Admin" role.
+                const ADMIN_USERNAME = 'Admin'; // Your actual admin username
+                const ADMIN_PASSWORD = 'Admin'; // Your actual admin password
+
+                if (enteredUsername === ADMIN_USERNAME && enteredPassword === ADMIN_PASSWORD) {
+                    try {
+                        // Assuming you have an Admin user set up in Firebase Authentication
+                        // You might need a custom token generated from a backend,
+                        // or directly sign in with email/password if using that.
+                        // For simplicity in a client-side only example, if you just want
+                        // to *simulate* an Admin login for the UI:
+                        // This bypasses real Firebase Auth if initialAuthToken isn't present
+                        // and relies on anonymous sign-in, then setting role.
+                        // For production, this part should be securely handled.
+                        
+                        // For demonstration: If you have a dedicated Admin email/password
+                        // you'd use signInWithEmailAndPassword here.
+                        // Example:
+                        // await signInWithEmailAndPassword(window.auth, 'admin@yourdomain.com', 'yourAdminPassword');
+                        // Then your onAuthStateChanged listener would pick it up and fetch role.
+
+                        // Since your current auth flow for this page relies on anonymous sign-in or custom token,
+                        // and then checking role:
+                        // For the purpose of getting into the Admin section if hardcoded credentials match,
+                        // we can set a session flag and then rely on onAuthStateChanged to pick up the actual role.
+                        // However, directly calling initializeAutofailsPage (which fetches role)
+                        // might be better here to ensure the Firebase role is also 'Admin'.
+
+                        // Instead of a direct hardcoded login that grants access,
+                        // it's better to ensure this page only loads if Firebase auth confirms the user is Admin.
+                        // This hardcoded check is only for UI access; real auth comes from Firebase.
+
+                        sessionStorage.setItem('loggedIn', 'true');
+                        // Instead of directly displaying, rely on onAuthStateChanged to redirect/display
+                        // if the authenticated user's role is indeed 'Admin'.
+                        // For this page, we're assuming the user has already successfully authenticated
+                        // in `admin.html` or `index.html` and their session persists.
+                        // The `onAuthStateChanged` at the top will handle role checking and page access.
+                        initializeAutofailsPage(); // Trigger initial load logic again
+                    } catch (error) {
+                        console.error("Login simulation error:", error);
+                        loginMessage.textContent = 'An error occurred during login. Please try again.';
+                        loginMessage.classList.remove('hidden');
+                    }
+
                 } else {
-                    loginMessage.textContent = 'Invalid Username or Password. Please try again.';
+                    loginMessage.textContent = 'Invalid Admin Username or Password. Please try again.';
                     loginMessage.classList.remove('hidden');
                 }
             });
 
-            logoutBtn.addEventListener('click', function() {
+            logoutBtn.addEventListener('click', async function() {
                 sessionStorage.removeItem('loggedIn');
-                // For autofails.html, just reload to go back to login (or redirect to index.html)
-                window.location.href = 'index.html'; 
+                await signOut(window.auth); // Sign out from Firebase
+                window.location.href = 'admin.html'; // Redirect to a centralized login/admin page
             });
 
             // Listen for Firebase Auth readiness
-            document.addEventListener('firebaseAuthReady', () => {
-                if (sessionStorage.getItem('loggedIn') === 'true') {
-                    // Re-fetch records if auth state changes after initial load
-                    fetchAutofailRecords();
-                }
-            });
+            // This event ensures that currentUserId and currentUserRole are populated
+            // before trying to fetch/render anything sensitive.
+            document.addEventListener('firebaseAuthReady', initializeAutofailsPage);
+            
+            // If the DOM is already complete and auth is already ready (e.g., cached session),
+            // call initializeAutofailsPage directly.
+            if (document.readyState === 'complete' && window.isAuthReady) {
+                initializeAutofailsPage();
+            }
 
             // Add event listener for the new autofail form
             addAutofailForm.addEventListener('submit', addNewAutofailRecord);
