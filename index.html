@@ -6,7 +6,6 @@
     <title>Evaluation Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
@@ -70,7 +69,6 @@
             font-weight: bold;
         }
 
-
         /* Weightage: Size 11 and Bold */
         .weightage-display {
             font-size: 0.6875rem; /* Equivalent to 11px */
@@ -96,6 +94,7 @@
             box-sizing: border-box; /* Include padding and border in element's total width and height */
             white-space: pre-wrap; /* For textareas and wrapping text */
             word-wrap: break-word;
+            overflow-wrap: break-word; /* Ensure long words break */
             font-weight: normal; /* Ensure not bold for the displayed value */
             display: none; /* Keep hidden by default, visible during PDF capture */
         }
@@ -315,6 +314,45 @@
             font-size: 0.6875rem; /* Matched with other inputs for consistency */
             box-sizing: border-box; /* Include padding and border in the element's total width and height */
         }
+
+        /* Styles for the new Monthly Evaluation Statistics Table */
+        #monthlyStatsContainer table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        #monthlyStatsContainer th, #monthlyStatsContainer td {
+            border: 1px solid #e5e7eb; /* gray-300 */
+            padding: 0.75rem;
+            text-align: center; /* Center align for counts */
+            font-size: 0.875rem; /* text-sm */
+        }
+        #monthlyStatsContainer th {
+            background-color: #eff6ff; /* blue-50 */
+            font-weight: 600;
+            color: #1f2937; /* gray-800 */
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        #monthlyStatsContainer tbody tr:nth-child(even) {
+            background-color: #f9fafb; /* gray-50 */
+        }
+        #monthlyStatsContainer tbody tr:hover {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+
+        /* Conditional background colors for Total column */
+        .total-red {
+            background-color: #fca5a5; /* red-300 */
+            color: #dc2626; /* red-700 */
+            font-weight: bold;
+        }
+        .total-green {
+            background-color: #a7f3d0; /* green-300 */
+            color: #065f46; /* green-700 */
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -330,15 +368,13 @@
     <div id="loginPage" style="display: none;"></div>
 
     <nav class="main-nav" id="mainNav" style="display: none;">
-
-<ul>
+        <ul>
             <li><a href="#" id="evaluationFormTab" class="active"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
             <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
             <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
             <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-            <li id="adminTabNav" style="display: none;"><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li> </ul>
-
-
+            <li id="adminTabNav" style="display: none;"><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+        </ul>
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
 
@@ -346,7 +382,7 @@
         <div class="icealion-blue p-4 flex items-center justify-between">
             <div class="text-xl font-semibold">Quality Assessment Form - ICEALION GROUP Contact Centre</div>
             <img src="assets/images/icealion_logo.png" alt="ICEALION Logo" class="h-10">
-            </div>
+        </div>
 
         <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
@@ -427,7 +463,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="cxQuestionsContainer">
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -444,7 +480,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="psQuestionsContainer">
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -461,7 +497,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="caQuestionsContainer">
-                        </div>
+                    </div>
                 </div>
             </div>
         </form>
@@ -519,7 +555,26 @@
                 </table>
             </div>
         </div>
+
+        <div class="p-6 mt-8">
+            <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
+                <i class="fas fa-chart-line tile-icon"></i> This Month Evaluation Statistics
+            </div>
+            <div id="monthlyStatsContainer" class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-200 rounded-md">
+                    <thead>
+                        <tr id="monthlyStatsHeader" class="bg-gray-100">
+                            </tr>
+                    </thead>
+                    <tbody id="monthlyStatsTableBody">
+                        <tr>
+                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading monthly statistics...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
+    </div>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
@@ -574,7 +629,7 @@
                 </div>
                 <div id="webhookList" class="border border-gray-300 p-4 rounded-md bg-gray-50 min-h-[100px]">
                     <p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>
-                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -639,7 +694,6 @@
             return false;
         };
 
-
         window.updateLastActivity = function() {
             localStorage.setItem('lastActivity', new Date().getTime().toString());
         };
@@ -647,7 +701,6 @@
         document.addEventListener('mousemove', window.updateLastActivity);
         document.addEventListener('keydown', window.updateLastActivity);
         document.addEventListener('click', window.updateLastActivity);
-
 
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
@@ -706,6 +759,9 @@
 
         let complianceCurrentPoints = 0;
         let complianceMaxPoints = 0;
+
+        // NEW CONSTANT: Minimum evaluations for total column to be green
+        const MIN_EVALUATIONS_FOR_GREEN = 10;
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
         const allRolesQuestions = {
@@ -915,7 +971,6 @@
             }
         };
 
-
         // --- Message Box Functions ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
@@ -977,6 +1032,7 @@
                 databaseContent.style.display = 'block';
                 if (window.db && window.currentUserId) {
                     fetchRecordsAndWebhooks();
+                    fetchAndRenderMonthlyStats(); // Also refresh monthly stats when database tab is viewed
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
@@ -1007,9 +1063,6 @@
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
                 return;
             }
-
-            if (window.unsubscribeRecords) window.unsubscribeRecords();
-            if (window.unsubscribeWebhooks) window.unsubscribeWebhooks();
 
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
@@ -1198,7 +1251,6 @@
             if (!confirm(`Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`)) {
                 return; // User cancelled
             }
-
 
             showMessageBox("Deleting", "Deleting selected records...", false, true, false);
             try {
@@ -1480,6 +1532,7 @@
                         if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
                             complianceCurrentPoints += weightage;
                         }
+                        // Only add to max possible points if a valid rating (Yes/No/N/A) is selected
                         if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) {
                              complianceMaxPoints += weightage;
                         }
@@ -1544,7 +1597,7 @@
             let questionNumber = 1;
 
             for (const sectionTitle in roleQuestions) {
-                const questions = roleRoles[sectionTitle]; // FIX: Changed questions from allRolesQuestions to roleQuestions
+                const questions = roleQuestions[sectionTitle]; // CORRECTED: using roleQuestions, not roleRoles
                 const container = questionContainers[sectionTitle];
 
                 if (!container) {
@@ -1562,7 +1615,6 @@
                     else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
                     else iconColorClass = 'icon-bg-yellow';
-
 
                     rowDiv.innerHTML = `
                         <div class="col-span-6 flex items-center gap-2">
@@ -1867,6 +1919,7 @@
             });
         }
 
+
         /**
          * Fetches all dropdown options from Firestore and stores them globally.
          */
@@ -1938,6 +1991,165 @@
             }
         }
 
+        /**
+         * Fetches evaluation data for the last 30 days, processes it, and renders the monthly statistics table.
+         */
+        async function fetchAndRenderMonthlyStats() {
+            const monthlyStatsTableBody = document.getElementById('monthlyStatsTableBody');
+            monthlyStatsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading monthly statistics...</td></tr>'; // Reset message
+
+            if (!dynamicDropdownOptions.cerNames || !dynamicDropdownOptions.cerRoles) {
+                console.warn("CER Names or Roles not yet loaded for monthly stats. Retrying...");
+                // If dropdowns aren't ready, wait for them to be populated
+                setTimeout(fetchAndRenderMonthlyStats, 500); // Retry after 0.5 seconds
+                return;
+            }
+
+            const monthlyRecords = await fetchMonthlyEvaluationRecords();
+            const processedData = processMonthlyEvaluationData(
+                monthlyRecords,
+                dynamicDropdownOptions.cerNames,
+                dynamicDropdownOptions.cerRoles
+            );
+            renderMonthlyStatsTable(processedData);
+        }
+
+        /**
+         * Fetches all evaluation records submitted within the last 30 days.
+         * @returns {Promise<Array<Object>>} A promise that resolves to an array of relevant records.
+         */
+        async function fetchMonthlyEvaluationRecords() {
+            if (!window.db || !window.EVALUATION_RECORDS_COLLECTION_PATH) {
+                console.error("Firestore not initialized or collection path not defined for monthly stats.");
+                return [];
+            }
+
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
+
+            const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+            const q = window.fsQuery(
+                recordsColRef,
+                window.fsWhere('submittedAt', '>=', thirtyDaysAgoISO),
+                window.fsOrderBy('submittedAt', 'desc')
+            );
+
+            try {
+                const querySnapshot = await window.getDocs(q);
+                const monthlyRecords = [];
+                querySnapshot.forEach(doc => {
+                    monthlyRecords.push(doc.data());
+                });
+                console.log(`Fetched ${monthlyRecords.length} records for monthly statistics.`);
+                return monthlyRecords;
+            } catch (error) {
+                console.error("Error fetching monthly evaluation records:", error);
+                return [];
+            }
+        }
+
+        /**
+         * Processes raw evaluation data into a matrix suitable for display.
+         * @param {Array<Object>} records - An array of evaluation record objects.
+         * @param {Array<string>} cerNames - An array of all possible CER names.
+         * @param {Array<string>} cerRoles - An array of all possible CER roles (column headers).
+         * @returns {Object} An object containing rowLabels, columnHeaders, and dataMatrix.
+         */
+        function processMonthlyEvaluationData(records, cerNames, cerRoles) {
+            const dataMatrix = {}; // cerName -> { role1: count, role2: count, ..., Total: count }
+
+            // Initialize matrix with all CER names and roles
+            cerNames.forEach(name => {
+                dataMatrix[name] = {};
+                cerRoles.forEach(role => {
+                    dataMatrix[name][role] = 0;
+                });
+                dataMatrix[name]['Total'] = 0; // Initialize Total for each CER Name
+            });
+
+            // Populate matrix with counts from records
+            records.forEach(record => {
+                const cerName = record['CER Name'];
+                const cerRole = record['CER Role'];
+
+                if (cerName && cerRole && dataMatrix[cerName] && dataMatrix[cerName][cerRole] !== undefined) {
+                    dataMatrix[cerName][cerRole]++;
+                    dataMatrix[cerName]['Total']++; // Increment total for the CER Name
+                }
+            });
+
+            const columnHeaders = ['CER Name', ...cerRoles, 'Total']; // Ensure 'Total' is the last column
+            const rowLabels = cerNames.sort(); // Sort CER Names alphabetically for consistent display
+
+            return { rowLabels, columnHeaders, dataMatrix };
+        }
+
+        /**
+         * Renders the monthly evaluation statistics table.
+         * @param {Object} data - The processed data from processMonthlyEvaluationData.
+         */
+        function renderMonthlyStatsTable(data) {
+            const monthlyStatsHeader = document.getElementById('monthlyStatsHeader');
+            const monthlyStatsTableBody = document.getElementById('monthlyStatsTableBody');
+
+            if (!monthlyStatsHeader || !monthlyStatsTableBody) {
+                console.error("Monthly stats table elements not found during rendering.");
+                return;
+            }
+
+            monthlyStatsHeader.innerHTML = '';
+            monthlyStatsTableBody.innerHTML = '';
+
+            // Render table headers
+            data.columnHeaders.forEach(header => {
+                const th = document.createElement('th');
+                th.className = 'py-2 px-4 border-b text-center text-sm font-medium text-gray-600';
+                th.textContent = header;
+                // Align "CER Name" to left, others center
+                if (header === 'CER Name') {
+                    th.classList.remove('text-center');
+                    th.classList.add('text-left');
+                }
+                monthlyStatsHeader.appendChild(th);
+            });
+
+            // Render table rows
+            if (data.rowLabels.length === 0) {
+                monthlyStatsTableBody.innerHTML = `<tr><td colspan="${data.columnHeaders.length}" class="py-4 px-4 text-center text-gray-500">No evaluation data for this month.</td></tr>`;
+                return;
+            }
+
+            data.rowLabels.forEach(cerName => {
+                const row = monthlyStatsTableBody.insertRow();
+                row.className = 'border-b border-gray-200';
+
+                // CER Name column (aligned left)
+                const nameCell = row.insertCell();
+                nameCell.className = 'py-2 px-4 text-left';
+                nameCell.textContent = cerName;
+
+                // Role-wise counts (aligned center)
+                data.columnHeaders.slice(1, -1).forEach(role => { // Exclude 'CER Name' and 'Total'
+                    const countCell = row.insertCell();
+                    countCell.className = 'py-2 px-4 text-center';
+                    countCell.textContent = data.dataMatrix[cerName][role] || 0;
+                });
+
+                // Total column with conditional coloring (aligned center)
+                const totalCell = row.insertCell();
+                totalCell.className = 'py-2 px-4 text-center';
+                const totalCount = data.dataMatrix[cerName]['Total'];
+                totalCell.textContent = totalCount;
+
+                if (totalCount < MIN_EVALUATIONS_FOR_GREEN) {
+                    totalCell.classList.add('total-red');
+                } else {
+                    totalCell.classList.add('total-green');
+                }
+            });
+        }
+
 
         // Main Application Initialization Function
         function initializeApp() {
@@ -1999,6 +2211,7 @@
 
             initializeEvaluationForm();
             fetchAllDropdownOptions();
+            fetchAndRenderMonthlyStats(); // Call here on app initialization
         }
 
         // Array to store references to generated display elements for cleanup
@@ -2017,7 +2230,6 @@
             let currentUserId = window.currentUserId;
             let isAuthReady = window.isAuthReady;
 
-
             const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
             const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
@@ -2027,7 +2239,6 @@
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
-
 
             const logoutBtn = document.getElementById('logoutBtn');
 
@@ -2080,6 +2291,9 @@
                     e.preventDefault();
                     console.log("Database Tab CLICKED!");
                     showTab('database');
+                    if (window.db && window.currentUserId) {
+                        fetchAndRenderMonthlyStats(); // Refresh monthly stats when database tab is viewed
+                    }
                 });
             } else {
                 console.error("Database Tab element not found!");
@@ -2263,6 +2477,7 @@
                 const mainNav = document.getElementById('mainNav');
                 const printEmailBtn = document.getElementById('print-email-btn');
                 const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
+                const monthlyStatsContainer = document.getElementById('monthlyStatsContainer'); // NEW: Get reference to the monthly stats table container
 
                 // --- PDF CAPTURE PREPARATION: Replace inputs/selects with static text for capture ---
                 const elementsToReplace = document.querySelectorAll('#evaluationFormContent input, #evaluationFormContent select, #evaluationFormContent textarea');
@@ -2280,7 +2495,7 @@
                         // For select elements, get the text of the selected option
                         valueToDisplay = originalElement.options[originalElement.selectedIndex]?.textContent || '';
                     } else if (originalElement.type === 'datetime-local') {
-                         // Format datetime-local for better readability in PDF
+                           // Format datetime-local for better readability in PDF
                         const dt = new Date(originalElement.value);
                         // Check for valid date to avoid "Invalid Date"
                         if (!isNaN(dt.getTime())) {
@@ -2326,7 +2541,7 @@
                 });
 
                 // Hide other UI elements not meant for PDF
-                const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
+                const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn, monthlyStatsContainer]; // ADDED: monthlyStatsContainer
                 const originalDisplays = [];
                 elementsToHide.forEach(el => {
                     if (el) {
@@ -2454,10 +2669,10 @@
                 const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
 
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
-                initializeApp();
-
+                initializeApp(); // This already calls fetchAndRenderMonthlyStats indirectly
                 if (sessionStorage.getItem('loggedIn') === 'true') {
                     fetchRecordsAndWebhooks();
+                    fetchAndRenderMonthlyStats(); // Ensure monthly stats are loaded after auth
                 }
             });
 
@@ -2477,6 +2692,7 @@
                 initializeApp();
                 if (sessionStorage.getItem('loggedIn') === 'true') {
                     fetchRecordsAndWebhooks();
+                    fetchAndRenderMonthlyStats(); // Call here too for immediate display
                 }
             } else {
                 console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
