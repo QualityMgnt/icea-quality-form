@@ -58,7 +58,7 @@
         .rating-select,
         .points-input {
             padding: 10px; /* Increased padding */
-            font-size: 0.6875rem; /* Equivalent to 11px */
+            font-size: 0.6875rem; /* Equivalent to 11px (0.6875 * 16 = 11) */
             font-weight: normal; /* Not bold */
             min-height: 40px; /* Increased minimum height for single-line inputs/selects */
             box-sizing: border-box; /* Include padding and border in the element's total width and height */
@@ -304,7 +304,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body>
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
         <div class="message-box">
             <div id="messageBoxSpinner" class="spinner hidden"></div>
@@ -582,7 +582,9 @@
           measurementId: "G-1RJJTT3QET"
         };
 
-        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+        // Make appId globally accessible
+        window.appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         window.firebaseApp = initializeApp(firebaseConfig);
@@ -645,7 +647,7 @@
                 window.currentUserId = user.uid;
                 console.log("Firebase Auth State Changed: User logged in:", user.uid);
 
-                const userDocRef = window.fsDoc(window.db, `artifacts/${appId}/users/${user.uid}`);
+                const userDocRef = window.fsDoc(window.db, `artifacts/${window.appId}/users/${user.uid}`);
                 const userDocSnap = await window.fsGetDoc(userDocRef);
 
                 if (userDocSnap.exists()) {
@@ -669,10 +671,11 @@
             document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
         });
 
-        window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
-        window.USERS_COLLECTION_PATH = `artifacts/${appId}/users`;
-        window.DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
+        // Use window.appId here
+        window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/evaluation_records`;
+        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/webhooks`;
+        window.USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
+        window.DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
 
     </script>
     <script>
@@ -687,7 +690,10 @@
         // --- GLOBAL SCORE VARIABLES (Used by calculateScore) ---
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
-        let globalBusinessComplianceAccuracyValue = 0;
+        let autofailTriggered = false;
+
+        let complianceCurrentPoints = 0;
+        let complianceMaxPoints = 0;
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
         const allRolesQuestions = {
@@ -1176,28 +1182,7 @@
                 return;
             }
 
-            const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
-
-            showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, true); // Changed to show close button for user to confirm
-            // Removed direct confirmation buttons here; rely on OK/Cancel from messageBoxCloseBtn for simpler flow.
-            // If you need custom confirm/cancel buttons, you'll need to re-add the button creation logic here
-            // and hide messageBoxCloseBtn.
-            const closeBtn = document.getElementById('messageBoxCloseBtn');
-            closeBtn.textContent = 'Cancel'; // Temporarily change "OK" to "Cancel" for context
-            closeBtn.onclick = () => {
-                hideMessageBox();
-                // Restore "OK" text if needed, or if it's always "OK" don't change it.
-                // Revert any UI states if cancellation needs specific action.
-            };
-
-            // Instead of custom buttons in the messagebox, let's use the OK button as the confirm.
-            // If the user presses OK on the "Confirm Deletion" message, proceed.
-            // This requires modifying the showMessageBox to have a "confirm" option.
-            // For now, I'll put the deletion logic directly here, but ideally you'd use a custom modal.
-            // Reverting to the old confirmation method that uses the prompt logic, or custom buttons.
-            // For this, let's just make showMessageBox flexible, or use browser confirm for simplicity in delete.
-
-            // A simple confirm dialog for now:
+            // Using browser's native confirm dialog for simplicity in delete operation
             if (!confirm(`Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`)) {
                 return; // User cancelled
             }
@@ -1215,8 +1200,7 @@
                 console.error("Error deleting documents: ", e);
                 showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
             } finally {
-                // originalMessageBoxContentHTML is not truly "restored" this way, as showMessageBox overrides it.
-                // The main thing is that the message box state is handled.
+                // message box will be hidden by showMessageBox in success/failure, no explicit hide here needed.
             }
         }
 
@@ -1655,7 +1639,7 @@
 
             cerNameSelect.innerHTML = '<option value="">Loading CER Names...</option>';
             cerRoleSelect.innerHTML = '<option value="">Loading CER Roles...</option>';
-            document.getElementById('reviewer-name').innerHTML = '<option value="">Loading Reviewer Names...</option>'; // Fixed typo "Джером" back to "..."
+            document.getElementById('reviewer-name').innerHTML = '<option value="">Loading Reviewer Names...</option>';
             autofailTypeSelect.innerHTML = '<option value="">Loading Autofail Types...</option>';
 
 
@@ -2266,7 +2250,8 @@
                 tempPdfDisplayElements = []; // Reset array for current capture
 
                 elementsToReplace.forEach(originalElement => {
-                    if (originalElement.type === 'hidden' || originalElement.classList.contains('hidden')) return; // Skip hidden inputs and elements that are hidden by class
+                    // Skip hidden inputs and elements that are hidden by class
+                    if (originalElement.type === 'hidden' || originalElement.classList.contains('hidden')) return;
 
                     const displayDiv = document.createElement('div');
                     displayDiv.classList.add('pdf-display-value'); // Apply styling for PDF readability
@@ -2278,7 +2263,8 @@
                     } else if (originalElement.type === 'datetime-local') {
                          // Format datetime-local for better readability in PDF
                         const dt = new Date(originalElement.value);
-                        if (!isNaN(dt.getTime())) { // Check if date is valid
+                        // Check for valid date to avoid "Invalid Date"
+                        if (!isNaN(dt.getTime())) {
                             valueToDisplay = dt.toLocaleString(undefined, {
                                 year: 'numeric',
                                 month: 'short',
@@ -2288,18 +2274,19 @@
                                 hour12: true
                             });
                         } else {
-                            valueToDisplay = originalElement.value;
+                            valueToDisplay = originalElement.value; // Fallback to raw value if invalid
                         }
                     } else if (originalElement.type === 'date') {
                         const d = new Date(originalElement.value);
-                        if (!isNaN(d.getTime())) { // Check if date is valid
+                        // Check for valid date to avoid "Invalid Date"
+                        if (!isNaN(d.getTime())) {
                             valueToDisplay = d.toLocaleDateString(undefined, {
                                 year: 'numeric',
                                 month: 'short',
                                 day: 'numeric'
                             });
                         } else {
-                            valueToDisplay = originalElement.value;
+                            valueToDisplay = originalElement.value; // Fallback to raw value if invalid
                         }
                     }
                     else {
@@ -2366,7 +2353,7 @@
                     }
                     console.log("PDF images added.");
 
-                    // Use the actual input values for the filename and email body
+                    // Use the actual input values for the filename and email body (these are from the live DOM, not the temporary elements)
                     const contactIdInput = document.getElementById('contact-id');
                     const cerNameSelect = document.getElementById('cer-name');
                     const evaluationDateInput = document.getElementById('review-date');
@@ -2434,10 +2421,11 @@
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
 
+                // Use window.appId here
                 const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                const USERS_COLLECTION_PATH = `artifacts/${appId}/users`; // Ensure correct path for users
-                const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
+                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH;
+                const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
 
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
                 initializeApp();
@@ -2453,10 +2441,11 @@
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
 
+                // Use window.appId here
                 const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                const USERS_COLLECTION_PATH = `artifacts/${appId}/users`; // Ensure correct path for users
-                const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
+                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH;
+                const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
 
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
                 initializeApp();
