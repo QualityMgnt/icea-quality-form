@@ -122,6 +122,9 @@
             <p class="mt-4 text-center text-sm text-gray-600">
                 Don't have an account? <a href="#" id="showRegisterForm" class="text-blue-600 hover:underline">Register</a>
             </p>
+            <p class="text-center text-sm text-gray-600">
+                <a href="#" id="forgotPasswordLink" class="text-blue-600 hover:underline">Forgot Password?</a>
+            </p>
         </div>
 
         <div id="registerSection" class="w-full max-w-md mx-auto hidden">
@@ -262,7 +265,8 @@
             signInWithEmailAndPassword,
             createUserWithEmailAndPassword,
             onAuthStateChanged,
-            signOut
+            signOut,
+            sendPasswordResetEmail // Import sendPasswordResetEmail
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import {
             getFirestore,
@@ -320,6 +324,7 @@
         const registerError = document.getElementById('registerError');
         const showRegisterFormBtn = document.getElementById('showRegisterForm');
         const showLoginFormBtn = document.getElementById('showLoginForm');
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink'); // Added Forgot Password Link
 
         const usersTabBtn = document.getElementById('usersTabBtn');
         const dropdownsTabBtn = document.getElementById('dropdownsTabBtn');
@@ -465,6 +470,40 @@
         showLoginFormBtn.addEventListener('click', (e) => {
             e.preventDefault();
             showLoginForm();
+        });
+
+        // --- Forgot Password Link ---
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = loginEmail.value.trim(); // Use email from login field if available
+
+            if (!email) {
+                showMessageBox("Email Required", "Please enter your email in the login field to reset your password.", true);
+                return;
+            }
+
+            showMessageBox("Sending Reset Email", "Please wait...", false, true, false);
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                hideMessageBox();
+                showMessageBox(
+                    "Password Reset",
+                    `A password reset link has been sent to ${email}. Please check your inbox (and spam folder).`,
+                    false, false, true
+                );
+            } catch (error) {
+                hideMessageBox();
+                let errorMessage = "Failed to send password reset email.";
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = "No user found with that email address.";
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = "The email address is not valid.";
+                } else {
+                    errorMessage = `Error: ${error.message}`;
+                }
+                showMessageBox("Password Reset Failed", errorMessage, true, false, true);
+            }
         });
 
         // --- Login Form Submission ---
@@ -743,7 +782,7 @@
                 });
 
                 hideMessageBox();
-                showMessageBox("Success", `New user ${email} (${role}) added successfully!`, false, false, true, () => {
+                showMessageBox("Success", `New user ${email} registered as ${role}!`, false, false, true, () => {
                     addNewUserForm.reset(); // Clear the form
                     loadUsers(); // Refresh the user list in the dashboard
                 });
@@ -801,7 +840,7 @@
                 `;
                 containerElement.appendChild(div);
             });
-            // Attach event listeners after all buttons are created
+            // Attach event listeners to dynamically created elements
             containerElement.querySelectorAll('.delete-option-btn').forEach(btn => {
                 btn.addEventListener('click', deleteDropdownOption);
             });
