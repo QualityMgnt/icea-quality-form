@@ -239,6 +239,9 @@
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                     Login
                 </button>
+                <button type="button" id="forgotPasswordBtn" class="w-full text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 text-center">
+                    Forgot Password?
+                </button>
                 <div id="loginMessage" class="error-message hidden"></div>
             </form>
         </div>
@@ -304,9 +307,9 @@
     </div>
 
     <script type="module">
-        // Corrected import: Import `serverTimestamp` directly
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        // Import sendPasswordResetEmail
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser, signOut, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, setDoc, getDoc, FieldValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Your Web App's Firebase Configuration ---
@@ -316,7 +319,7 @@
           projectId: "icea-lion-qa",
           storageBucket: "icea-lion-qa.firebasestorage.app",
           messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b661d76c94e", // Changed to match the user's actual app ID
+          appId: "1:820082472004:web:8caddf941e1b5b661d76c94e", 
           measurementId: "G-1RJJTT3QET"
         };
 
@@ -331,6 +334,7 @@
         window.signInWithEmailAndPassword = signInWithEmailAndPassword;
         window.createUserWithEmailAndPassword = createUserWithEmailAndPassword; // Expose createUser
         window.deleteUser = deleteUser; // Expose deleteUser
+        window.sendPasswordResetEmail = sendPasswordResetEmail; // Expose sendPasswordResetEmail
 
         // Expose ALL necessary Firestore functions globally
         window.fsCollection = collection;
@@ -341,9 +345,7 @@
         window.fsUpdateDoc = updateDoc;
         window.fsSetDoc = setDoc;
         window.fsGetDoc = getDoc;
-        // Expose FieldValue for other uses like arrayUnion/Remove if needed
         window.fsFieldValue = FieldValue; 
-        // Expose serverTimestamp directly as a function
         window.fsServerTimestamp = serverTimestamp; 
         window.signOut = signOut; // Expose signOut
 
@@ -406,8 +408,6 @@
                     window.currentUserRole = userDocSnap.data().role;
                     console.log("User role fetched:", window.currentUserRole);
                 } else {
-                    // This could happen for a newly signed-in anonymous user
-                    // For the 'Supervisor' dummy login, this part is not relevant anymore if they use actual Firebase Auth.
                     window.currentUserRole = 'Guest'; 
                     console.log("User profile not found in Firestore, defaulting to Guest. This might be a new user or a demo user.");
                 }
@@ -440,6 +440,7 @@
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
         const loginMessage = document.getElementById('loginMessage');
+        const forgotPasswordBtn = document.getElementById('forgotPasswordBtn'); // New: Forgot Password button
 
         const mainNav = document.getElementById('mainNav');
         const evaluationFormTab = document.getElementById('evaluationFormTab');
@@ -586,7 +587,6 @@
                 await window.fsSetDoc(userDocRef, {
                     email: user.email,
                     role: role,
-                    // Corrected: Use window.fsServerTimestamp() directly
                     createdAt: window.fsServerTimestamp() 
                 });
 
@@ -684,6 +684,31 @@
             });
         }
 
+        // NEW: Function to handle password reset
+        async function handlePasswordReset() {
+            const email = usernameInput.value.trim();
+            if (!email) {
+                showMessageBox("Password Reset Failed", "Please enter your email address in the username field.", true, false, true);
+                return;
+            }
+
+            showMessageBox("Sending Reset Email", `Sending password reset link to ${email}...`, false, true, false);
+            try {
+                // Use the globally exposed sendPasswordResetEmail function
+                await window.sendPasswordResetEmail(window.auth, email);
+                showMessageBox("Email Sent", `A password reset link has been sent to ${email}. Please check your inbox.`, false, false, true);
+            } catch (error) {
+                console.error("Error sending password reset email:", error);
+                let errorMessage = "Failed to send password reset email.";
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = "No user found with this email. Please check the email address or create an account.";
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = "The email address is not valid.";
+                }
+                showMessageBox("Password Reset Failed", errorMessage, true, false, true);
+            }
+        }
+
 
         // --- INITIALIZATION & EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', function() {
@@ -703,25 +728,22 @@
                 const email = usernameInput.value.trim();
                 const pass = passwordInput.value.trim();
 
-                // All logins (including Supervisor) now use Firebase Email/Password Auth
+                // All logins now use Firebase Email/Password Auth
                 try {
                     showMessageBox("Logging In", "Authenticating...", false, true, false);
                     const userCredential = await window.signInWithEmailAndPassword(window.auth, email, pass);
                     const user = userCredential.user;
 
                     // Ensure user's role profile exists in Firestore. If not, create it.
-                    // This is important for new users or if roles weren't set up manually.
                     const userDocRef = window.fsDoc(window.db, `${window.USERS_COLLECTION_PATH_PREFIX}/${user.uid}`);
                     const userDocSnap = await window.fsGetDoc(userDocRef);
 
                     if (!userDocSnap.exists()) {
                         console.log(`Creating Firestore profile for new user ${user.email}`);
-                        // Default role for new users signing in directly via login form can be 'CER' or 'Guest'
-                        // Admins should add users via the "Add New User" panel to assign specific roles.
                         await window.fsSetDoc(userDocRef, {
                             email: user.email,
-                            role: 'CER', // Default role for newly signed-up users (if allowed)
-                            createdAt: window.fsServerTimestamp() // Corrected usage
+                            role: 'CER', // Default role for newly signed-up users
+                            createdAt: window.fsServerTimestamp() 
                         });
                         window.currentUserRole = 'CER'; // Set role immediately
                     } else {
@@ -740,7 +762,6 @@
                         window.location.href = 'index.html'; // Other roles go to the main app
                     }
                    
-
                 } catch (error) {
                     console.error("Login error:", error);
                     let errorMessage = 'Login failed. Invalid credentials.';
@@ -756,6 +777,9 @@
                     loginMessage.classList.remove('hidden');
                 }
             });
+
+            // New: Add event listener for the "Forgot Password?" button
+            forgotPasswordBtn.addEventListener('click', handlePasswordReset);
 
             logoutBtn.addEventListener('click', async function() {
                 sessionStorage.removeItem('loggedIn');
