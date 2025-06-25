@@ -52,17 +52,30 @@
         .form-row-light { background-color: #f9fafb; /* gray-50 */ }
         .form-row-dark { background-color: #edf2f7; /* gray-200 */ }
 
-        /* General input styling for consistency */
-        /* Adjusted font size to 10px */
+        /* General input styling for consistency (Other fields: size 11, not bold) */
         .form-grid-input,
-        .rating-select,
+        .rating-select {
+            padding: 8px; /* p-2 */
+            font-size: 0.6875rem; /* Equivalent to 11px (0.6875 * 16 = 11) */
+            font-weight: normal; /* Not bold */
+        }
+
+        /* Weightage: Size 11 and Bold */
+        .weightage-display {
+            font-size: 0.6875rem; /* Equivalent to 11px */
+            font-weight: bold;
+        }
+
+        /* Points: Size 11 and Not Bold */
         .points-input {
             padding: 8px; /* p-2 */
-            font-size: 0.625rem; /* Equivalent to 10px (1rem = 16px, so 0.625 * 16 = 10) */
+            font-size: 0.6875rem; /* Equivalent to 11px */
+            font-weight: normal; /* Not bold */
         }
+
         /* Style for temporary display elements during PDF capture */
         .pdf-display-value {
-            font-size: 0.625rem; /* Match input font size */
+            font-size: 0.6875rem; /* Match general input font size (11px) */
             padding: 8px;
             display: block; /* Ensure it takes full width of its container */
             color: #333; /* Darker text for readability */
@@ -73,6 +86,7 @@
             box-sizing: border-box; /* Include padding and border in element's total width and height */
             white-space: pre-wrap; /* For textareas and wrapping text */
             word-wrap: break-word;
+            font-weight: normal; /* Ensure not bold */
         }
 
         /* Navigation styles */
@@ -1640,7 +1654,7 @@
 
             cerNameSelect.innerHTML = '<option value="">Loading CER Names...</option>';
             cerRoleSelect.innerHTML = '<option value="">Loading CER Roles...</option>';
-            document.getElementById('reviewer-name').innerHTML = '<option value="">Loading Reviewer Names Джером</option>'; // Typo fix
+            document.getElementById('reviewer-name').innerHTML = '<option value="">Loading Reviewer Names...</option>';
             autofailTypeSelect.innerHTML = '<option value="">Loading Autofail Types...</option>';
 
 
@@ -1822,7 +1836,8 @@
                     });
                     renderLastThreeEvaluationsTable(evaluations);
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Error fetching last 3 evaluations:", error);
                 lastEvaluationsTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error loading evaluations: ${error.message}</td></tr>`;
             }
@@ -2257,7 +2272,8 @@
 
                     let valueToDisplay = '';
                     if (originalElement.tagName === 'SELECT') {
-                        valueToDisplay = originalElement.options[originalElement.selectedIndex].textContent;
+                        // For select elements, get the text of the selected option
+                        valueToDisplay = originalElement.options[originalElement.selectedIndex]?.textContent || '';
                     } else if (originalElement.type === 'datetime-local') {
                          // Format datetime-local for better readability in PDF
                         const dt = new Date(originalElement.value);
