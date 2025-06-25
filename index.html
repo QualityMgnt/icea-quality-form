@@ -307,42 +307,13 @@
             <div>
                 <label for="cer-name" class="block text-sm font-medium text-gray-700">CER Name</label>
                 <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
-                    <option value="">Select CER</option>
-                    <option value="Ann Nyokabi">Ann Nyokabi</option>
-                    <option value="Cliff Kiyaka">Cliff Kiyaka</option>
-                    <option value="Edith watahi">Edith watahi</option>
-                    <option value="Faith Irungu">Faith Irungu</option>
-                    <option value="Ian Wanyagi">Ian Wanyagi</option>
-                    <option value="Kelvin Nyagaka">Kelvin Nyagaka</option>
-                    <option value="Lawrence Ochola">Lawrence Ochola</option>
-                    <option value="Linnet Chege">Linnet Chege</option>
-                    <option value="Margaret Mukulu">Margaret Mukulu</option>
-                    <option value="Bonface Masiaga">Bonface Masiaga</option>
-                    <option value="Maureen Ongola">Maureen Ongola</option>
-                    <option value="Melinda Omballa">Melinda Omballa</option>
-                    <option value="Nancy Wanjiku">Nancy Wanjiku</option>
-                    <option value="Patricia Mumbi">Patricia Mumbi</option>
-                    <option value="Philly Osikeh">Philly Osikeh</option>
-                    <option value="Phina Owiti">Phina Owiti</option>
-                    <option value="Sharon Wambugu">Sharon Wambugu</option>
-                    <option value="Victor Kibet">Victor Kibet</option>
-                    <option value="Harlod Mwiti">Harlod Mwiti</option>
+                    <option value="">Loading CER Names...</option>
                 </select>
             </div>
             <div>
                 <label for="cer-role" class="block text-sm font-medium text-gray-700">CER Role</label>
                 <select id="cer-role" name="CER Role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
-                    <option value="">Select Role</option>
-                    <option value="Outbound Sales">Outbound Sales</option>
-                    <option value="Onboarding outbound">Onboarding outbound</option>
-                    <option value="Social Media">Social Media</option>
-                    <option value="Live Chat">Live Chat</option>
-                    <option value="Inbound">Inbound</option>
-                    <option value="Email">Email</option>
-                    <option value="Digital troubleshooting">Digital troubleshooting</option>
-                    <option value="SMS">SMS</option>
-                    <option value="NPS outbound">NPS outbound</option>
-                    <option value="Reviewed case handling">Reviewed case handling</option>
+                    <option value="">Loading CER Roles...</option>
                 </select>
             </div>
             <div>
@@ -352,21 +323,14 @@
             <div>
                 <label for="reviewer-name" class="block text-sm font-medium text-gray-700">Reviewer's Name</label>
                 <select id="reviewer-name" name="Reviewer's Name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
-                    <option value="">Select Reviewer</option>
-                    <option value="Rebecca Nduta">Rebecca Nduta</option>
-                    <option value="Lawrence Ochola">Lawrence Ochola</option>
-                    <option value="Other">Other</option>
+                    <option value="">Loading Reviewer Names...</option>
                 </select>
                 <input type="text" id="other-reviewer-name" name="Other Reviewer Name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input hidden" placeholder="Enter Reviewer Name">
             </div>
             <div>
                 <label for="autofail-type" class="block text-sm font-medium text-gray-700">Auto Fail Type</label>
                 <select id="autofail-type" name="Auto Fail Type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input">
-                    <option value="">Select Autofail Type</option>
-                    <option value="First Contact Resolution">First Contact Resolution</option>
-                    <option value="KYC">KYC</option>
-                    <option value="Data Capture">Data Capture</option>
-                    <option value="Follow-up & action items">Follow-up & action items</option>
+                    <option value="">Loading Autofail Types...</option>
                 </select>
             </div>
             <!-- NEW AUTOFAL DESCRIPTION FIELD -->
@@ -571,7 +535,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        // Import orderBy and limit for querying
+        // Import orderBy and limit for querying, and getDoc, FieldValue, arrayUnion/arrayRemove
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         // import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
 
@@ -604,30 +568,28 @@
         window.fsWhere = where;
         window.fsOrderBy = orderBy;
         window.fsLimit = limit;
-        window.getDocs = getDocs; // Ensure getDocs is exposed for queries that aren't snapshots
-        window.fsSetDoc = setDoc; // Expose setDoc for setting user profiles
-        window.fsGetDoc = getDoc; // Expose getDoc for retrieving user profiles
-        window.signOut = signOut; // Expose signOut
+        window.getDocs = getDocs; 
+        window.fsSetDoc = setDoc; 
+        window.fsGetDoc = getDoc; 
+        window.signOut = signOut; 
 
         window.currentUserId = null;
-        window.currentUserRole = null; // Store current user's role
+        window.currentUserRole = null; 
         window.isAuthReady = false;
 
         // NEW: Function to check and handle session timeout
-        // Exposed globally for access by initializeApp and other parts of the script
         window.checkSessionTimeout = function() {
             const lastActivity = localStorage.getItem('lastActivity');
-            const loginTime = localStorage.getItem('loginTime'); // New: Store login time
+            const loginTime = localStorage.getItem('loginTime'); 
             if (lastActivity && loginTime) {
                 const now = new Date().getTime();
-                const eightHours = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+                const eightHours = 8 * 60 * 60 * 1000; 
                 
-                // If last activity was more than 8 hours ago OR total session length exceeds 8 hours
                 if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
                     console.log("Session expired. Logging out.");
                     localStorage.removeItem('lastActivity');
-                    localStorage.removeItem('loginTime'); // Clear login time
-                    sessionStorage.removeItem('loggedIn'); // Clear loggedIn flag
+                    localStorage.removeItem('loginTime'); 
+                    sessionStorage.removeItem('loggedIn'); 
                     return true;
                 }
             }
@@ -636,7 +598,6 @@
 
 
         // Update last activity on user interaction
-        // Exposed globally for event listeners
         window.updateLastActivity = function() {
             localStorage.setItem('lastActivity', new Date().getTime().toString());
         };
@@ -649,16 +610,14 @@
 
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
-                // If session expired, log out even if Firebase thinks user is authenticated
-                if (window.checkSessionTimeout()) { // Use window.checkSessionTimeout
-                    await signOut(window.auth); // Force Firebase sign out
-                    return; // Stop further processing
+                if (window.checkSessionTimeout()) { 
+                    await signOut(window.auth); 
+                    return; 
                 }
 
                 window.currentUserId = user.uid;
                 console.log("Firebase Auth State Changed: User logged in:", user.uid);
                 
-                // Fetch user role from Firestore
                 const userDocRef = window.fsDoc(window.db, `artifacts/${appId}/users/${user.uid}`);
                 const userDocSnap = await window.fsGetDoc(userDocRef);
                 
@@ -666,18 +625,16 @@
                     window.currentUserRole = userDocSnap.data().role;
                     console.log("User role fetched:", window.currentUserRole);
                 } else {
-                    // This could happen for a newly signed-in anonymous user
                     window.currentUserRole = 'Guest'; 
                     console.log("User profile not found in Firestore, defaulting to Guest.");
                 }
-                // Set last activity on successful authentication check
-                window.updateLastActivity(); // Use window.updateLastActivity
+                window.updateLastActivity(); 
 
             } else {
                 console.log("Firebase Auth State Changed: No user logged in.");
                 window.currentUserId = null;
-                window.currentUserRole = null; // Clear role if no user
-                sessionStorage.removeItem('loggedIn'); // Ensure sessionStorage is cleared
+                window.currentUserRole = null; 
+                sessionStorage.removeItem('loggedIn'); 
                 localStorage.removeItem('lastActivity');
                 localStorage.removeItem('loginTime');
             }
@@ -688,15 +645,17 @@
         // Define collection paths here, where appId is definitively available
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`; 
-        window.USERS_COLLECTION_PATH = `artifacts/${appId}/users`; // New collection path for user roles
+        window.USERS_COLLECTION_PATH = `artifacts/${appId}/users`; 
+        // NEW: Collection path for dropdown options
+        window.DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
         
     </script>
     <script>
         // --- GLOBAL DATA STORES ---
-        let allRecords = []; // Records fetched from Firestore for display
-        let allWebhooks = []; // Webhooks fetched from Firestore for display
+        let allRecords = []; 
+        let allWebhooks = []; 
+        let dynamicDropdownOptions = {}; // NEW: Store fetched dynamic dropdown options
 
-        // Removed 'let' declaration here to prevent redeclaration error
         window.unsubscribeRecords = null; 
         window.unsubscribeWebhooks = null; 
 
@@ -958,31 +917,31 @@
 
         // UI Tab Switching Logic
         function showTab(tabName) {
-            const evaluationFormTab = document.getElementById('evaluationFormTab'); // Renamed
+            const evaluationFormTab = document.getElementById('evaluationFormTab'); 
             const databaseTab = document.getElementById('databaseTab');
-            const evaluationFormContent = document.getElementById('evaluationFormContent'); // Renamed
+            const evaluationFormContent = document.getElementById('evaluationFormContent'); 
             const databaseContent = document.getElementById('databaseContent');
 
-            console.log("showTab called with:", tabName); // Diagnostic log
+            console.log("showTab called with:", tabName); 
 
             // Deactivate all tabs
-            evaluationFormTab.classList.remove('active'); // Renamed
+            evaluationFormTab.classList.remove('active'); 
             databaseTab.classList.remove('active');
 
             // Hide all content sections
-            evaluationFormContent.style.display = 'none'; // Renamed
+            evaluationFormContent.style.display = 'none'; 
             databaseContent.style.display = 'none';
 
             // Activate selected tab and show its content
-            if (tabName === 'evaluationForm') { // Renamed
-                evaluationFormTab.classList.add('active'); // Renamed
-                evaluationFormContent.style.display = 'block'; // Renamed
+            if (tabName === 'evaluationForm') { 
+                evaluationFormTab.classList.add('active'); 
+                evaluationFormContent.style.display = 'block'; 
             } else if (tabName === 'database') {
                 databaseTab.classList.add('active');
                 databaseContent.style.display = 'block';
                 // Trigger database table refresh when switching to it
-                if (window.db && window.currentUserId) { // Ensure Firebase is initialized and auth is ready
-                    fetchRecordsAndWebhooks(); // Refresh data when entering the tab
+                if (window.db && window.currentUserId) { 
+                    fetchRecordsAndWebhooks(); 
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
@@ -990,16 +949,13 @@
         }
 
         // Firestore Data Handling Functions
-        // Unsubscribe functions now defined globally on window in the module script
-        // No local 'let' declarations here to avoid redeclaration error
-        // window.unsubscribeRecords is already used for consistency.
-        // window.unsubscribeWebhooks is already used for consistency.
+        window.unsubscribeRecords = null; 
+        window.unsubscribeWebhooks = null; 
 
         /**
          * Fetches records and webhooks from Firestore in real-time.
          */
         async function fetchRecordsAndWebhooks() {
-            // Get elements inside the function to ensure DOM is loaded and current
             const recordsTableBody = document.getElementById('recordsTableBody'); 
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
@@ -1012,14 +968,12 @@
                 return;
             }
 
-            // IMPORTANT: Access the global collection paths directly from window
             if (!window.EVALUATION_RECORDS_COLLECTION_PATH || !window.WEBHOOKS_COLLECTION_PATH) {
                 console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
                 return;
             }
             
-            // Unsubscribe previous listeners to prevent duplicates if function called multiple times
             if (window.unsubscribeRecords) window.unsubscribeRecords(); 
             if (window.unsubscribeWebhooks) window.unsubscribeWebhooks(); 
             
@@ -1028,13 +982,13 @@
             try {
                 const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH); 
                 window.unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => { 
-                    allRecords = []; // Use global allRecords
+                    allRecords = []; 
                     snapshot.forEach(doc => { 
                         allRecords.push({ id: doc.id, ...doc.data() });
                     });
                     console.log("Records updated:", allRecords.length, "records.");
-                    renderRecordsTable(allRecords); // Call internal rendering function
-                    hideMessageBox(); // Access global hide message box
+                    renderRecordsTable(allRecords); 
+                    hideMessageBox(); 
                 }, (error) => {
                     console.error("Error listening to records:", error);
                     showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
@@ -1042,13 +996,13 @@
 
                 const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH); 
                 window.unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => { 
-                    allWebhooks = []; // Use global allWebhooks
+                    allWebhooks = []; 
                     snapshot.forEach(doc => { 
                         allWebhooks.push({ id: doc.id, ...doc.data() });
                     });
                     console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
-                    renderWebhookList(allWebhooks); // Call internal rendering function
-                    hideMessageBox(); // Access global hide message box
+                    renderWebhookList(allWebhooks); 
+                    hideMessageBox(); 
                 }, (error) => {
                     console.error("Error listening to webhooks:", error);
                     showMessageBox("Error Loading Webhooks", `Could not load webhooks: ${error.message}`, true, false, true);
@@ -1066,7 +1020,7 @@
          */
         function renderRecordsTable(records) {
             const recordsTableBody = document.getElementById('recordsTableBody');
-            recordsTableBody.innerHTML = ''; // Clear existing rows
+            recordsTableBody.innerHTML = ''; 
 
             if (records.length === 0) {
                 recordsTableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td></tr>';
@@ -1094,7 +1048,6 @@
                 `;
             });
 
-            // Attach event listeners for individual record actions
             document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', updateDeleteButtonState);
             });
@@ -1108,7 +1061,7 @@
             document.querySelectorAll('.download-record-btn').forEach(button => {
                 button.addEventListener('click', (e) => downloadRecordData(e.target.dataset.recordId));
             });
-            updateDeleteButtonState(); // Initial state update
+            updateDeleteButtonState(); 
         }
 
         /**
@@ -1117,7 +1070,7 @@
          */
         function renderWebhookList(webhooks) {
             const webhookList = document.getElementById('webhookList');
-            webhookList.innerHTML = ''; // Clear existing list
+            webhookList.innerHTML = ''; 
 
             if (webhooks.length === 0) {
                 webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
@@ -1170,8 +1123,8 @@
                 });
                 console.log("Record written with ID:", docRef.id);
                 showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
-                    window.resetForm(); // Call global reset form
-                    sendDataToWebhooks(recordData); // Call internal webhook sender
+                    window.resetForm(); 
+                    sendDataToWebhooks(recordData); 
                 });
                 return true;
             } catch (e) {
@@ -1185,7 +1138,6 @@
          * Deletes selected records from Firestore.
          */
         async function deleteSelectedRecords() {
-            // Get elements inside the function to ensure DOM is loaded and current
             const messageBoxContent = document.getElementById('messageBoxContent');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); 
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox'); 
@@ -1223,8 +1175,8 @@
                     await Promise.all(deletePromises);
                     console.log("Selected records deleted successfully.");
                     showMessageBox("Success", "Selected records deleted.", false, false, true);
-                    selectAllRecordsCheckbox.checked = false; // Uncheck select all
-                    updateDeleteButtonState(); // Call internal state update
+                    selectAllRecordsCheckbox.checked = false; 
+                    updateDeleteButtonState(); 
                 } catch (e) {
                     console.error("Error deleting documents: ", e);
                     showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
@@ -1256,7 +1208,6 @@
          * Adds a new webhook URL to Firestore.
          */
         async function addWebhook() {
-            // Get elements inside the function to ensure DOM is loaded and current
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); 
 
             if (!window.db || !window.currentUserId) {
@@ -1278,7 +1229,7 @@
                 showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
                 return;
             }
-            if (allWebhooks.some(hook => hook.url === webhookUrl)) { // Uses global allWebhooks
+            if (allWebhooks.some(hook => hook.url === webhookUrl)) { 
                 showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
                 newWebhookUrlInput.value = '';
                 return;
@@ -1442,11 +1393,11 @@
 
         // Audit Form Calculations
         const calculateScore = () => {
-            const cerRoleSelect = document.getElementById('cer-role'); // Get element inside function scope
+            const cerRoleSelect = document.getElementById('cer-role'); 
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
-            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display'); // Corrected ID
+            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display'); 
 
             let globalTotalPoints = 0;
             let globalMaxPossiblePoints = 0;
@@ -1465,7 +1416,7 @@
                 const weightageDisplay = rowDiv.querySelector('.weightage-display');
                 const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
                 const questionText = selectElement.name.replace(' (Rating)', '');
-                const hasNA = selectElement.hasAttribute('data-has-na'); // Check for hasNA attribute
+                const hasNA = selectElement.hasAttribute('data-has-na'); 
 
                 if (!pointsElement || !weightageDisplay) {
                     console.warn(`Missing associated elements for select: ${selectElement.name}`);
@@ -1479,7 +1430,7 @@
                 pointsElement.style.backgroundColor = '#e9ecef';
                 pointsElement.style.color = '#555';
 
-                if (rating === 'Yes' || (rating === 'N/A' && hasNA)) { // If N/A and hasNA, treat as Yes points
+                if (rating === 'Yes' || (rating === 'N/A' && hasNA)) { 
                     currentPoints = weightage;
                     pointsElement.readOnly = false;
                     pointsElement.style.backgroundColor = '#fff';
@@ -1494,7 +1445,7 @@
                     } else {
                         pointsElement.style.backgroundColor = '#e0e0e0';
                     }
-                } else { // Handles "None" or other empty states
+                } else { 
                     currentPoints = 0;
                     pointsElement.readOnly = true;
                     pointsElement.style.backgroundColor = '#e9ecef';
@@ -1508,10 +1459,10 @@
                 if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
                     const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
                     if (complianceQuestions.includes(questionText)) {
-                        if (rating === 'Yes' || (rating === 'N/A' && hasNA)) { // Include N/A for compliance score calculation
+                        if (rating === 'Yes' || (rating === 'N/A' && hasNA)) { 
                             complianceCurrentPoints += weightage;
                         }
-                        if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) { // Count N/A towards max compliance points
+                        if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) { 
                              complianceMaxPoints += weightage;
                         }
                     }
@@ -1531,7 +1482,7 @@
 
             overallScoreDisplay.textContent = `${overallPercentage}%`;
             totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
-            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`; // Use corrected ID
+            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`; 
 
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
@@ -1541,15 +1492,14 @@
             }
             businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
 
-            // globalBusinessComplianceAccuracyValue is already updated within calculateScore
         };
 
         // Audit Form Initialization and Reset
-        function initializeEvaluationForm() { // Renamed
+        function initializeEvaluationForm() { 
             const evaluationDateInput = document.getElementById('review-date');
             const callDateTimeInput = document.getElementById('call-date-time');
             const cerRoleSelect = document.getElementById('cer-role');
-            const cerNameSelect = document.getElementById('cer-name'); // Get CER Name select
+            const cerNameSelect = document.getElementById('cer-name'); 
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
@@ -1560,170 +1510,44 @@
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             callDateTimeInput.value = now.toISOString().slice(0,16);
 
-            cerNameSelect.value = ''; // Reset CER Name
-            cerRoleSelect.value = '';
-            autofailTypeSelect.value = ''; // Reset autofail type
-
-            autofailDescriptionContainer.classList.add('hidden'); // Hide autofail description
-            autofailDescriptionInput.value = ''; // Clear autofail description
-            autofailDescriptionInput.removeAttribute('required'); // Remove required attribute
-
-            renderQuestionsForRole('');
-            calculateScore();
-            // Clear last evaluations table on form initialization
-            document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
-        }
-
-        // Dynamic Question Rendering (moved to top-level)
-        function renderQuestionsForRole(role) {
-            const cerRoleSelect = document.getElementById('cer-role'); // Access element here
-            const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
-            const psQuestionsContainer = document.getElementById('psQuestionsContainer');
-            const caQuestionsContainer = document.getElementById('caQuestionsContainer');
-            
-            const questionContainers = { // Re-define locally or access global elements
-                'CUSTOMER EXPERIENCE': cxQuestionsContainer,
-                'PROBLEM SOLVING SKILLS': psQuestionsContainer,
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
-            };
-
-            console.log("Rendering questions for role:", role);
-
-            for (const key in questionContainers) {
-                if (questionContainers[key]) { // Defensive check
-                    questionContainers[key].innerHTML = '';
-                }
-            }
-
-            const roleQuestions = allRolesQuestions[role];
-
-            if (!roleQuestions) {
-                console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
-                calculateScore();
-                return;
-            }
-
-            let questionNumber = 1;
-
-            for (const sectionTitle in roleQuestions) {
-                const questions = roleQuestions[sectionTitle];
-                const container = questionContainers[sectionTitle];
-
-                if (!container) {
-                    console.error(`Container not found for section: ${sectionTitle}`);
-                    continue;
-                }
-
-                questions.forEach(q => {
-                    const rowDiv = document.createElement('div');
-                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
-
-                    let iconColorClass;
-                    const iconIndex = (questionNumber - 1) % 4;
-                    if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
-                    else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
-                    else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
-                    else iconColorClass = 'icon-bg-yellow'; // Corrected else to assign a class
-
-                    // Add 'required' attribute to select elements, unless it's an autofail type field or Remarks column.
-                    const requiredAttribute = q.autofail ? '' : (q.required ? 'required' : '');
-                    // Add data-has-na attribute if the question supports 'N/A'
-                    const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
+            // Set initial value for dynamically populated dropdowns to "Loading..."
+            cerNameSelect.innerHTML = '<option value="">Loading CER Names...</option>';
+            cerRoleSelect.innerHTML = '<option value="">Loading CER Roles...</option>';
+            document.getElementById('reviewer-name').innerHTML = '<option value="">Loading Reviewer Names...</option>';
+            autofailTypeSelect.innerHTML = '<option value="">Loading Autofail Types...</option>';
 
 
-                    rowDiv.innerHTML = `
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
-                            ${q.desc}
-                        </div>
-                        <div class="col-span-2">
-                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${requiredAttribute} ${hasNAAttribute}>
-                                <option value="" >None</option>
-                                <option value="Yes" selected>Yes</option>
-                                <option value="No">No</option>
-                                ${q.hasNA ? '<option value="N/A">N/A</option>' : ''}
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea"></textarea>
-                        </div>
-                    `;
-                    container.appendChild(rowDiv);
+            autofailDescriptionContainer.classList.add('hidden'); 
+            autofailDescriptionInput.value = ''; 
+            autofailDescriptionInput.removeAttribute('required'); 
 
-                    const newSelect = rowDiv.querySelector('.rating-select');
-                    if (newSelect) {
-                        newSelect.addEventListener('change', calculateScore);
-                    }
-                    questionNumber++;
-                });
-            }
-            calculateScore();
-        }
+            document.getElementById('reviewer-name').value = '';
+            document.getElementById('other-reviewer-name').classList.add('hidden');
+            document.getElementById('other-reviewer-name').value = '';
+            document.getElementById('other-reviewer-name').removeAttribute('required');
+            document.getElementById('other-reviewer-name').style.borderColor = '';
 
-        function resetForm() {
-            const contactIdInput = document.getElementById('contact-id');
-            const clientNameInput = document.getElementById('client-name');
-            const cerNameSelect = document.getElementById('cer-name');
-            const cerRoleSelect = document.getElementById('cer-role');
-            const callDateTimeInput = document.getElementById('call-date-time');
-            const evaluationDateInput = document.getElementById('review-date');
-            const durationInput = document.getElementById('duration');
-            const autofailTypeSelect = document.getElementById('autofail-type');
-            const reviewerNameSelect = document.getElementById('reviewer-name');
-            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
-            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
-            const autofailDescriptionInput = document.getElementById('autofail-description');
-
-
-            console.log("Full form reset.");
-
-            contactIdInput.value = '';
-            clientNameInput.value = '';
-            cerNameSelect.value = ''; // Reset CER Name select
-            cerRoleSelect.value = '';
-
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            callDateTimeInput.value = now.toISOString().slice(0,16);
-            evaluationDateInput.valueAsDate = new Date();
-
-            durationInput.value = '';
-            autofailTypeSelect.value = '';
-
-            // Reset autofail description field
-            autofailDescriptionContainer.classList.add('hidden');
-            autofailDescriptionInput.value = '';
-            autofailDescriptionInput.removeAttribute('required');
-
-            reviewerNameSelect.value = '';
-            otherReviewerNameInput.classList.add('hidden');
-            otherReviewerNameInput.value = '';
-            otherReviewerNameInput.removeAttribute('required');
-            otherReviewerNameInput.style.borderColor = '';
-
-            // Clear red borders on required fields
             const requiredInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
             requiredInputs.forEach(input => {
                 input.style.borderColor = '';
             });
 
+            // Re-populate dropdowns from `dynamicDropdownOptions`
+            populateDropdownsFromCache(); 
+            
             renderQuestionsForRole('');
-            // Clear last evaluations table on form reset
+            calculateScore();
             document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
         }
 
         function resetFormFieldsButKeepRole() {
-            const cerRoleSelect = document.getElementById('cer-role'); // Get element inside function scope
+            const cerRoleSelect = document.getElementById('cer-role'); 
 
             console.log("Resetting question fields only.");
 
             const dynamicSelects = document.querySelectorAll('.rating-select');
             dynamicSelects.forEach(selectElement => {
-                selectElement.value = 'Yes'; // Reset to Yes
+                selectElement.value = 'Yes'; 
                 selectElement.style.borderColor = '';
 
                 const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
@@ -1732,7 +1556,7 @@
                     const remarksElement = rowDiv.querySelector('.remarks-textarea');
 
                     if (pointsElement) {
-                        pointsElement.value = 0; // Will be recalculated by calculateScore
+                        pointsElement.value = 0; 
                         pointsElement.readOnly = true;
                         pointsElement.style.backgroundColor = '#e9ecef';
                         pointsElement.style.color = '#555';
@@ -1750,12 +1574,10 @@
             const form = document.getElementById('assessment-form');
             let allFieldsValid = true;
 
-            // Validate top-level form fields
             const topLevelInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
             for (const input of topLevelInputs) {
-                // Skip validation for hidden 'other-reviewer-name' if it's not applicable
                 if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
-                    input.style.borderColor = ''; // Clear any previous red border
+                    input.style.borderColor = ''; 
                     continue;
                 }
 
@@ -1767,7 +1589,6 @@
                 }
             }
 
-            // Validate autofail description only if autofail type is selected OR overall score is 0
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionInput = document.getElementById('autofail-description');
             const overallScoreDisplay = document.getElementById('overall-score-display');
@@ -1787,31 +1608,26 @@
             }
 
 
-            // Validate dynamically generated rating selects
             const dynamicRatingSelects = document.querySelectorAll('.rating-select');
             for (const selectElement of dynamicRatingSelects) {
-                // If it's a rating select and NOT an autofail question, it's mandatory.
-                // We also check if it's not "None" if it's required (default is "Yes", so only "None" is an issue).
                 if (!selectElement.hasAttribute('data-autofail-question')) {
-                    if (selectElement.value === '') { // '' corresponds to "None"
+                    if (selectElement.value === '') { 
                         selectElement.style.borderColor = 'red';
                         allFieldsValid = false;
                     } else {
                         selectElement.style.borderColor = '';
                     }
                 } else {
-                    selectElement.style.borderColor = ''; // Autofail type fields are optional
+                    selectElement.style.borderColor = ''; 
                 }
             }
 
-            // Remarks fields are always optional
             const remarksTextareas = document.querySelectorAll('.remarks-textarea');
             remarksTextareas.forEach(textarea => {
                 textarea.style.borderColor = '';
             });
 
             if (!allFieldsValid) {
-                // Find the first invalid field and scroll to it
                 const firstInvalidField = document.querySelector('input[required][value=""], select[required][value=""], .rating-select[value=""][style*="border-color: red"], textarea[required][value=""]');
                 if (firstInvalidField) {
                     firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1838,10 +1654,10 @@
                 const q = window.fsQuery(
                     recordsColRef,
                     window.fsWhere('CER Name', '==', cerName),
-                    window.fsOrderBy('submittedAt', 'desc'), // Assuming 'submittedAt' is your timestamp field
+                    window.fsOrderBy('submittedAt', 'desc'), 
                     window.fsLimit(3)
                 );
-                const querySnapshot = await window.getDocs(q); // Use getDocs for a one-time fetch
+                const querySnapshot = await window.getDocs(q); 
 
                 const evaluations = [];
                 if (querySnapshot.empty) {
@@ -1861,7 +1677,7 @@
         // NEW FUNCTION: Render Last 3 Evaluations Table
         function renderLastThreeEvaluationsTable(evaluations) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
-            lastEvaluationsTableBody.innerHTML = ''; // Clear previous content
+            lastEvaluationsTableBody.innerHTML = ''; 
 
             if (evaluations.length === 0) {
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
@@ -1881,70 +1697,139 @@
             });
         }
 
+        /**
+         * Fetches all dropdown options from Firestore and stores them globally.
+         */
+        async function fetchAllDropdownOptions() {
+            if (!window.db || !window.DROPDOWN_OPTIONS_COLLECTION_PATH) {
+                console.warn("Firestore not ready or DROPDOWN_OPTIONS_COLLECTION_PATH not defined for fetching all dropdowns.");
+                return;
+            }
+            try {
+                // Fetch all dropdown documents
+                const querySnapshot = await window.getDocs(window.fsCollection(window.db, window.DROPDOWN_OPTIONS_COLLECTION_PATH));
+                querySnapshot.forEach(doc => {
+                    if (doc.exists() && doc.data().options) {
+                        dynamicDropdownOptions[doc.id] = doc.data().options;
+                    }
+                });
+                console.log("All dynamic dropdown options fetched:", dynamicDropdownOptions);
+                populateDropdownsFromCache(); // Populate dropdowns once data is fetched
+            } catch (error) {
+                console.error("Error fetching all dropdown options:", error);
+            }
+        }
+
+        /**
+         * Populates the HTML select elements using the globally stored dynamicDropdownOptions.
+         */
+        function populateDropdownsFromCache() {
+            const cerNameSelect = document.getElementById('cer-name');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+
+            // Helper to populate a single select element
+            function populateSelect(selectElement, optionsArray, defaultText) {
+                selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+                optionsArray.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option;
+                    opt.textContent = option;
+                    selectElement.appendChild(opt);
+                });
+            }
+
+            if (dynamicDropdownOptions.cerNames) {
+                populateSelect(cerNameSelect, dynamicDropdownOptions.cerNames, 'Select CER');
+            } else {
+                cerNameSelect.innerHTML = '<option value="">No CER Names available</option>';
+            }
+
+            if (dynamicDropdownOptions.cerRoles) {
+                populateSelect(cerRoleSelect, dynamicDropdownOptions.cerRoles, 'Select Role');
+            } else {
+                cerRoleSelect.innerHTML = '<option value="">No CER Roles available</option>';
+            }
+
+            if (dynamicDropdownOptions.reviewerNames) {
+                // Ensure 'Other' is always an option even if not in DB for reviewer names
+                const reviewerOptions = [...dynamicDropdownOptions.reviewerNames];
+                if (!reviewerOptions.includes('Other')) {
+                    reviewerOptions.push('Other');
+                }
+                populateSelect(reviewerNameSelect, reviewerOptions, 'Select Reviewer');
+            } else {
+                // If no reviewer names are available from DB, at least provide 'Other'
+                populateSelect(reviewerNameSelect, ['Other'], 'Select Reviewer');
+            }
+
+            if (dynamicDropdownOptions.autofailTypes) {
+                populateSelect(autofailTypeSelect, dynamicDropdownOptions.autofailTypes, 'Select Autofail Type');
+            } else {
+                autofailTypeSelect.innerHTML = '<option value="">No Autofail Types available</option>';
+            }
+        }
+
 
         // Main Application Initialization Function
         function initializeApp() {
             const loginPage = document.getElementById('loginPage');
             const mainNav = document.getElementById('mainNav');
-            const evaluationFormContent = document.getElementById('evaluationFormContent'); // Renamed
+            const evaluationFormContent = document.getElementById('evaluationFormContent'); 
             const databaseContent = document.getElementById('databaseContent'); 
-            const adminTabNav = document.getElementById('adminTabNav'); // Get admin tab li
+            const adminTabNav = document.getElementById('adminTabNav'); 
 
             console.log("Initializing main application.");
             const isLoggedIn = sessionStorage.getItem('loggedIn');
 
-            // If not logged in or session expired, redirect to admin.html for login
             if (!isLoggedIn || window.checkSessionTimeout()) {
                 window.location.href = 'admin.html';
-                return; // Stop execution
+                return; 
             }
 
-            // User is logged in, show main content and configure navigation based on role
             loginPage.style.display = 'none';
             mainNav.style.display = 'flex';
-            evaluationFormContent.style.display = 'block'; // Show evaluation form by default
-            databaseContent.style.display = 'none'; // Ensure other content is hidden
+            evaluationFormContent.style.display = 'block'; 
+            databaseContent.style.display = 'none'; 
 
-            // Configure navigation visibility based on role
-            // Fetch the role from window.currentUserRole, which is set in onAuthStateChanged
             const userRole = window.currentUserRole; 
-            const evaluationFormTab = document.getElementById('evaluationFormTab'); // Renamed
+            const evaluationFormTab = document.getElementById('evaluationFormTab'); 
             const databaseTab = document.getElementById('databaseTab');
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
 
-            // Hide all tabs initially, then show based on role
-            evaluationFormTab.parentElement.style.display = 'none'; // Parent is li
+            evaluationFormTab.parentElement.style.display = 'none'; 
             databaseTab.parentElement.style.display = 'none';
             reportsTab.parentElement.style.display = 'none';
             autofailsTab.parentElement.style.display = 'none';
-            adminTabNav.style.display = 'none'; // Hide admin tab li
+            adminTabNav.style.display = 'none'; 
 
             if (userRole === 'CER') {
-                evaluationFormTab.parentElement.style.display = 'inline-block'; // Show Evaluation Form
-                reportsTab.parentElement.style.display = 'inline-block'; // Show Reports
-                showTab('evaluationForm'); // Default to Evaluation Form for CER
+                evaluationFormTab.parentElement.style.display = 'inline-block'; 
+                reportsTab.parentElement.style.display = 'inline-block'; 
+                showTab('evaluationForm'); 
             } else if (userRole === 'Supervisor') {
-                evaluationFormTab.parentElement.style.display = 'inline-block'; // Show Evaluation Form
-                reportsTab.parentElement.style.display = 'inline-block'; // Show Reports
-                autofailsTab.parentElement.style.display = 'inline-block'; // Show Autofails
-                showTab('evaluationForm'); // Default to Evaluation Form for Supervisor
+                evaluationFormTab.parentElement.style.display = 'inline-block'; 
+                reportsTab.parentElement.style.display = 'inline-block'; 
+                autofailsTab.parentElement.style.display = 'inline-block'; 
+                showTab('evaluationForm'); 
             } else if (userRole === 'Admin') {
-                evaluationFormTab.parentElement.style.display = 'inline-block'; // Show Evaluation Form
-                databaseTab.parentElement.style.display = 'inline-block'; // Show Database
-                reportsTab.parentElement.style.display = 'inline-block'; // Show Reports
-                autofailsTab.parentElement.style.display = 'inline-block'; // Show Autofails
-                adminTabNav.style.display = 'inline-block'; // Show Admin Tab
-                showTab('evaluationForm'); // Default to Evaluation Form for Admin
+                evaluationFormTab.parentElement.style.display = 'inline-block'; 
+                databaseTab.parentElement.style.display = 'inline-block'; 
+                reportsTab.parentElement.style.display = 'inline-block'; 
+                autofailsTab.parentElement.style.display = 'inline-block'; 
+                adminTabNav.style.display = 'inline-block'; 
+                showTab('evaluationForm'); 
             } else {
-                // Unknown role or Guest (if anonymous sign-in is allowed but no role assigned)
                 showMessageBox("Access Denied", "Your role is not recognized. Please contact an administrator.", true, false, true, () => {
-                    window.location.href = 'admin.html'; // Redirect unknown roles to login
+                    window.location.href = 'admin.html'; 
                 });
             }
 
-            initializeEvaluationForm(); // Initialize the form fields once the app is set up
+            initializeEvaluationForm(); 
+            fetchAllDropdownOptions(); // NEW: Fetch dropdown options on app init
         }
 
 
@@ -1952,29 +1837,21 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
-            // Initial check for session timeout
-            if (window.checkSessionTimeout()) { // Use window.checkSessionTimeout
-                // checkSessionTimeout already handles redirect, so just return
-                return;
+            if (window.checkSessionTimeout()) { 
+                return; 
             }
 
-            // --- Get Firebase objects and functions from window ---
             let db = window.db; 
             let auth = window.auth;
             let currentUserId = window.currentUserId;
             let isAuthReady = window.isAuthReady; 
 
 
-            // Collection paths are now accessed directly from window, defined in module script
             const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
             const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
 
-            // --- UI Elements (Get references to DOM elements here) ---
-            // loginForm, usernameInput, passwordInput, loginMessage are now in admin.html
-            // no need to reference them here from index.html DOM
-
-            const evaluationFormTab = document.getElementById('evaluationFormTab'); // Renamed
+            const evaluationFormTab = document.getElementById('evaluationFormTab'); 
             const databaseTab = document.getElementById('databaseTab');
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
@@ -2004,31 +1881,27 @@
             const addWebhookBtn = document.getElementById('addWebhookBtn');
 
 
-            // --- EVENT LISTENERS (Attach to DOM elements) ---
-            // Login form listener is now in admin.html
-
             logoutBtn.addEventListener('click', async function() {
-                sessionStorage.removeItem('loggedIn'); // Clear loggedIn status
-                localStorage.removeItem('lastActivity'); // Clear last activity for session timeout
-                localStorage.removeItem('loginTime'); // Clear login time
+                sessionStorage.removeItem('loggedIn'); 
+                localStorage.removeItem('lastActivity'); 
+                localStorage.removeItem('loginTime'); 
                 try {
-                    await window.signOut(window.auth); // Sign out from Firebase Auth
+                    await window.signOut(window.auth); 
                     console.log("Signed out from Firebase.");
                 } catch (error) {
                     console.error("Error signing out:", error);
                 }
-                window.location.href = 'admin.html'; // Redirect to admin/login page
+                window.location.href = 'admin.html'; 
             });
 
-            // Added click listeners for navigation tabs
-            if (evaluationFormTab) { // Renamed evaluationFormTab
+            if (evaluationFormTab) { 
                 evaluationFormTab.addEventListener('click', (e) => {
                     e.preventDefault(); 
-                    console.log("Evaluation Form Tab CLICKED!"); // Renamed
-                    showTab('evaluationForm'); // Renamed
+                    console.log("Evaluation Form Tab CLICKED!"); 
+                    showTab('evaluationForm'); 
                 });
             } else {
-                console.error("Evaluation Form Tab element not found!"); // Renamed
+                console.error("Evaluation Form Tab element not found!"); 
             }
             
             if (databaseTab) {
@@ -2045,7 +1918,7 @@
                 reportsTab.addEventListener('click', (e) => {
                     e.preventDefault();
                     console.log("Reports Tab CLICKED!");
-                    window.location.href = 'reports.html'; // Direct link to reports page
+                    window.location.href = 'reports.html'; 
                 });
             } else {
                 console.error("Reports Tab element not found!");
@@ -2055,24 +1928,22 @@
                 autofailsTab.addEventListener('click', (e) => {
                     e.preventDefault();
                     console.log("Autofails Tab CLICKED!");
-                    window.location.href = 'autofails.html'; // Direct link to autofails page
+                    window.location.href = 'autofails.html'; 
                 });
             } else {
                 console.error("Autofails Tab element not found!");
             }
 
-            if (adminTab) { // Only add listener if adminTab exists (it's conditionally rendered)
+            if (adminTab) { 
                     adminTab.addEventListener('click', (e) => {
                     e.preventDefault();
                     console.log("Admin Tab CLICKED!");
-                    window.location.href = 'admin.html'; // Direct link to admin page
+                    window.location.href = 'admin.html'; 
                 });
             }
             
 
-            // Event listeners for database actions 
-            // These event listeners now correctly reference the functions in the main script scope.
-            if (selectAllRecordsCheckbox) { // Check if element exists before adding listener
+            if (selectAllRecordsCheckbox) { 
                     selectAllRecordsCheckbox.addEventListener('change', () => {
                     const isChecked = selectAllRecordsCheckbox.checked;
                     document.querySelectorAll('.record-checkbox').forEach(checkbox => {
@@ -2090,16 +1961,15 @@
                 addWebhookBtn.addEventListener('click', addWebhook);
             }
 
-            // Autofail type change listener
             autofailTypeSelect.addEventListener('change', () => {
                 if (autofailTypeSelect.value !== '') {
                     autofailDescriptionContainer.classList.remove('hidden');
                     autofailDescriptionInput.setAttribute('required', 'required');
                 } else {
                     autofailDescriptionContainer.classList.add('hidden');
-                    autofailDescriptionInput.value = ''; // Clear content when hidden
+                    autofailDescriptionInput.value = ''; 
                     autofailDescriptionInput.removeAttribute('required');
-                    autofailDescriptionInput.style.borderColor = ''; // Clear any validation styles
+                    autofailDescriptionInput.style.borderColor = ''; 
                 }
             });
 
@@ -2155,29 +2025,21 @@
                     }
                 });
 
-                // Get current overall score from display
                 const overallScoreDisplay = document.getElementById('overall-score-display');
-                const overallScoreValue = parseFloat(overallScoreDisplay.textContent); // Parse "0%" to 0
+                const overallScoreValue = parseFloat(overallScoreDisplay.textContent); 
 
-                // If overall score is 0%, ensure autofail fields are populated
                 if (overallScoreValue === 0) {
-                    // Only set default autofail type if it's currently empty
                     if (!autofailTypeSelect.value.trim()) {
                         formDataForSubmission['Auto Fail Type'] = 'Auto-Scored Fail';
-                        // Ensure the dropdown itself reflects this change for immediate visual feedback
                         autofailTypeSelect.value = 'Auto-Scored Fail'; 
-                        // If 'Auto-Scored Fail' isn't an option, you might need to add it or pick an existing one.
-                        // For now, it will just set the data field.
                     }
-                    // Only set default autofail description if it's currently empty
                     if (!autofailDescriptionInput.value.trim()) {
                         formDataForSubmission['Autofail Description'] = 'Automatically marked due to 0% overall score.';
                         autofailDescriptionInput.value = 'Automatically marked due to 0% overall score.';
-                        autofailDescriptionContainer.classList.remove('hidden'); // Ensure visible if it was hidden
-                        autofailDescriptionInput.setAttribute('required', 'required'); // Ensure it becomes required
+                        autofailDescriptionContainer.classList.remove('hidden'); 
+                        autofailDescriptionInput.setAttribute('required', 'required'); 
                     }
                 } else {
-                    // If score is not 0, ensure autofail fields are stored as empty if they are indeed empty
                     formDataForSubmission['Auto Fail Type'] = autofailTypeSelect.value.trim();
                     formDataForSubmission['Autofail Description'] = autofailDescriptionInput.value.trim();
                 }
@@ -2186,7 +2048,7 @@
                 formDataForSubmission['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
                 formDataForSubmission['Total Pts.'] = globalTotalPoints;
                 formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
-                formDataForSubmission['Final Score'] = overallScoreDisplay.textContent; // Use overall score for Final Score
+                formDataForSubmission['Final Score'] = overallScoreDisplay.textContent; 
 
                 const dynamicSelects = document.querySelectorAll('.rating-select');
                 dynamicSelects.forEach(selectElement => {
@@ -2217,8 +2079,6 @@
                     return;
                 }
 
-                // IMPORTANT: Ensure this auditFormContent ID exists in your HTML if not already there.
-                // Assuming #evaluationFormContent is the main form content to be converted to PDF.
                 const auditFormContent = document.getElementById('evaluationFormContent'); 
                 if (!auditFormContent) {
                     console.error('Error: Form container not found for PDF generation.');
@@ -2326,21 +2186,19 @@
             // Initial trigger for app setup after DOM is ready
             // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
-                // These variables are now available and correctly referenced
                 let db = window.db; 
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
 
-                // Collection path variables are now explicitly defined globally in the module script
                 const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH; // Added for completeness here
+                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH; 
+                const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
                 
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
                 initializeApp(); 
 
-                // If already logged in, fetch initial records
                 if (sessionStorage.getItem('loggedIn') === 'true') {
                     fetchRecordsAndWebhooks(); 
                 }
@@ -2355,7 +2213,8 @@
 
                 const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH; // Added for completeness here
+                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH; 
+                const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
 
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
                 initializeApp(); 
