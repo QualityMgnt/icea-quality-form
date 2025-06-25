@@ -1367,7 +1367,14 @@
 
             try {
                 window.location.href = mailtoLink;
-                showMessageBox("Email Prepared", "Your email client should open shortly. Please review and send the email.", false, false, true);
+                // INFORM THE USER ABOUT MANUAL ATTACHMENT
+                showMessageBox(
+                    "PDF Generated & Email Prepared",
+                    "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** before sending.",
+                    false, // Not an error
+                    false, // No spinner
+                    true // Show close button
+                );
             } catch (e) {
                 console.error("Failed to open email client:", e);
                 showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
@@ -1537,7 +1544,7 @@
             let questionNumber = 1;
 
             for (const sectionTitle in roleQuestions) {
-                const questions = roleQuestions[sectionTitle];
+                const questions = roleRoles[sectionTitle]; // FIX: Changed questions from allRolesQuestions to roleQuestions
                 const container = questionContainers[sectionTitle];
 
                 if (!container) {
@@ -1950,7 +1957,7 @@
 
             loginPage.style.display = 'none';
             mainNav.style.display = 'flex';
-            evaluationFormContent.style.display = 'block';
+            evaluationFormContent.style.display = 'block'; // Default to evaluation form
             databaseContent.style.display = 'none';
 
             const userRole = window.currentUserRole;
@@ -1960,12 +1967,14 @@
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
 
+            // Hide all navigation tabs by default (they'll be shown based on role)
             evaluationFormTab.parentElement.style.display = 'none';
             databaseTab.parentElement.style.display = 'none';
             reportsTab.parentElement.style.display = 'none';
             autofailsTab.parentElement.style.display = 'none';
             adminTabNav.style.display = 'none';
 
+            // Show tabs based on user role and set default view
             if (userRole === 'CER') {
                 evaluationFormTab.parentElement.style.display = 'inline-block';
                 reportsTab.parentElement.style.display = 'inline-block';
@@ -1981,7 +1990,7 @@
                 reportsTab.parentElement.style.display = 'inline-block';
                 autofailsTab.parentElement.style.display = 'inline-block';
                 adminTabNav.style.display = 'inline-block';
-                showTab('evaluationForm');
+                showTab('evaluationForm'); // Explicitly show Evaluation Form for Admin
             } else {
                 showMessageBox("Access Denied", "Your role is not recognized. Please contact an administrator.", true, false, true, () => {
                     window.location.href = 'admin.html';
