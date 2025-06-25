@@ -285,10 +285,10 @@
         </div>
     </div>
 
-    <div id="loginPage" style="display: none;"></div> 
+    <div id="loginPage" style="display: none;"></div>
 
     <nav class="main-nav" id="mainNav" style="display: none;">
-        
+
 <ul>
             <li><a href="#" id="evaluationFormTab" class="active"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
             <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
@@ -297,7 +297,6 @@
             <li id="adminTabNav" style="display: none;"><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li> </ul>
 
 
-        
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
 
@@ -494,7 +493,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <div id="databaseTableContainer" class="overflow-x-auto max-h-[60vh]">
                 <table class="min-w-full">
                     <thead>
@@ -550,7 +549,7 @@
           projectId: "icea-lion-qa",
           storageBucket: "icea-lion-qa.firebasestorage.app",
           messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b661d76c94e", 
+          appId: "1:820082472004:web:8caddf941e1b5b661d76c94e",
           measurementId: "G-1RJJTT3QET"
         };
 
@@ -560,7 +559,7 @@
         window.firebaseApp = initializeApp(firebaseConfig);
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
-        
+
         window.fsCollection = collection;
         window.fsOnSnapshot = onSnapshot;
         window.fsAddDoc = addDoc;
@@ -570,27 +569,27 @@
         window.fsWhere = where;
         window.fsOrderBy = orderBy;
         window.fsLimit = limit;
-        window.getDocs = getDocs; 
-        window.fsSetDoc = setDoc; 
-        window.fsGetDoc = getDoc; 
-        window.signOut = signOut; 
+        window.getDocs = getDocs;
+        window.fsSetDoc = setDoc;
+        window.fsGetDoc = getDoc;
+        window.signOut = signOut;
 
         window.currentUserId = null;
-        window.currentUserRole = null; 
+        window.currentUserRole = null;
         window.isAuthReady = false;
 
         window.checkSessionTimeout = function() {
             const lastActivity = localStorage.getItem('lastActivity');
-            const loginTime = localStorage.getItem('loginTime'); 
+            const loginTime = localStorage.getItem('loginTime');
             if (lastActivity && loginTime) {
                 const now = new Date().getTime();
-                const eightHours = 8 * 60 * 60 * 1000; 
-                
+                const eightHours = 8 * 60 * 60 * 1000;
+
                 if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
                     console.log("Session expired. Logging out.");
                     localStorage.removeItem('lastActivity');
-                    localStorage.removeItem('loginTime'); 
-                    sessionStorage.removeItem('loggedIn'); 
+                    localStorage.removeItem('loginTime');
+                    sessionStorage.removeItem('loggedIn');
                     return true;
                 }
             }
@@ -609,31 +608,31 @@
 
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
-                if (window.checkSessionTimeout()) { 
-                    await signOut(window.auth); 
-                    return; 
+                if (window.checkSessionTimeout()) {
+                    await signOut(window.auth);
+                    return;
                 }
 
                 window.currentUserId = user.uid;
                 console.log("Firebase Auth State Changed: User logged in:", user.uid);
-                
+
                 const userDocRef = window.fsDoc(window.db, `artifacts/${appId}/users/${user.uid}`);
                 const userDocSnap = await window.fsGetDoc(userDocRef);
-                
+
                 if (userDocSnap.exists()) {
                     window.currentUserRole = userDocSnap.data().role;
                     console.log("User role fetched:", window.currentUserRole);
                 } else {
-                    window.currentUserRole = 'Guest'; 
+                    window.currentUserRole = 'Guest';
                     console.log("User profile not found in Firestore, defaulting to Guest.");
                 }
-                window.updateLastActivity(); 
+                window.updateLastActivity();
 
             } else {
                 console.log("Firebase Auth State Changed: No user logged in.");
                 window.currentUserId = null;
-                window.currentUserRole = null; 
-                sessionStorage.removeItem('loggedIn'); 
+                window.currentUserRole = null;
+                sessionStorage.removeItem('loggedIn');
                 localStorage.removeItem('lastActivity');
                 localStorage.removeItem('loginTime');
             }
@@ -642,19 +641,19 @@
         });
 
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`; 
-        window.USERS_COLLECTION_PATH = `artifacts/${appId}/users`; 
+        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
+        window.USERS_COLLECTION_PATH = `artifacts/${appId}/users`;
         window.DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
-        
+
     </script>
     <script>
         // --- GLOBAL DATA STORES ---
-        let allRecords = []; 
-        let allWebhooks = []; 
-        let dynamicDropdownOptions = {}; 
+        let allRecords = [];
+        let allWebhooks = [];
+        let dynamicDropdownOptions = {};
 
-        window.unsubscribeRecords = null; 
-        window.unsubscribeWebhooks = null; 
+        window.unsubscribeRecords = null;
+        window.unsubscribeWebhooks = null;
 
         // --- GLOBAL SCORE VARIABLES (Used by calculateScore) ---
         let globalTotalPoints = 0;
@@ -886,15 +885,15 @@
                 messageBoxContent.textContent = message;
                 messageBoxContent.classList.remove('message-box-content-pre');
             }
-            
+
             messageBoxOverlay.classList.remove('hidden');
             messageBoxSpinner.classList.toggle('hidden', !showSpinner);
             messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
 
             if (isError) {
-                messageBoxTitle.style.color = '#dc2626'; 
+                messageBoxTitle.style.color = '#dc2626';
             } else {
-                messageBoxTitle.style.color = '#1a73e8'; 
+                messageBoxTitle.style.color = '#1a73e8';
             }
 
             messageBoxCloseBtn.onclick = () => {
@@ -910,27 +909,27 @@
 
         // UI Tab Switching Logic
         function showTab(tabName) {
-            const evaluationFormTab = document.getElementById('evaluationFormTab'); 
+            const evaluationFormTab = document.getElementById('evaluationFormTab');
             const databaseTab = document.getElementById('databaseTab');
-            const evaluationFormContent = document.getElementById('evaluationFormContent'); 
+            const evaluationFormContent = document.getElementById('evaluationFormContent');
             const databaseContent = document.getElementById('databaseContent');
 
-            console.log("showTab called with:", tabName); 
+            console.log("showTab called with:", tabName);
 
-            evaluationFormTab.classList.remove('active'); 
+            evaluationFormTab.classList.remove('active');
             databaseTab.classList.remove('active');
 
-            evaluationFormContent.style.display = 'none'; 
+            evaluationFormContent.style.display = 'none';
             databaseContent.style.display = 'none';
 
-            if (tabName === 'evaluationForm') { 
-                evaluationFormTab.classList.add('active'); 
-                evaluationFormContent.style.display = 'block'; 
+            if (tabName === 'evaluationForm') {
+                evaluationFormTab.classList.add('active');
+                evaluationFormContent.style.display = 'block';
             } else if (tabName === 'database') {
                 databaseTab.classList.add('active');
                 databaseContent.style.display = 'block';
-                if (window.db && window.currentUserId) { 
-                    fetchRecordsAndWebhooks(); 
+                if (window.db && window.currentUserId) {
+                    fetchRecordsAndWebhooks();
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
@@ -938,14 +937,14 @@
         }
 
         // Firestore Data Handling Functions
-        window.unsubscribeRecords = null; 
-        window.unsubscribeWebhooks = null; 
+        window.unsubscribeRecords = null;
+        window.unsubscribeWebhooks = null;
 
         /**
          * Fetches records and webhooks from Firestore in real-time.
          */
         async function fetchRecordsAndWebhooks() {
-            const recordsTableBody = document.getElementById('recordsTableBody'); 
+            const recordsTableBody = document.getElementById('recordsTableBody');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
@@ -961,36 +960,36 @@
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
                 return;
             }
-            
-            if (window.unsubscribeRecords) window.unsubscribeRecords(); 
-            if (window.unsubscribeWebhooks) window.unsubscribeWebhooks(); 
-            
+
+            if (window.unsubscribeRecords) window.unsubscribeRecords();
+            if (window.unsubscribeWebhooks) window.unsubscribeWebhooks();
+
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
             try {
-                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH); 
-                window.unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => { 
-                    allRecords = []; 
-                    snapshot.forEach(doc => { 
+                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+                window.unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => {
+                    allRecords = [];
+                    snapshot.forEach(doc => {
                         allRecords.push({ id: doc.id, ...doc.data() });
                     });
                     console.log("Records updated:", allRecords.length, "records.");
-                    renderRecordsTable(allRecords); 
-                    hideMessageBox(); 
+                    renderRecordsTable(allRecords);
+                    hideMessageBox();
                 }, (error) => {
                     console.error("Error listening to records:", error);
                     showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
                 });
 
-                const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH); 
-                window.unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => { 
-                    allWebhooks = []; 
-                    snapshot.forEach(doc => { 
+                const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH);
+                window.unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => {
+                    allWebhooks = [];
+                    snapshot.forEach(doc => {
                         allWebhooks.push({ id: doc.id, ...doc.data() });
                     });
                     console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
-                    renderWebhookList(allWebhooks); 
-                    hideMessageBox(); 
+                    renderWebhookList(allWebhooks);
+                    hideMessageBox();
                 }, (error) => {
                     console.error("Error listening to webhooks:", error);
                     showMessageBox("Error Loading Webhooks", `Could not load webhooks: ${error.message}`, true, false, true);
@@ -1008,7 +1007,7 @@
          */
         function renderRecordsTable(records) {
             const recordsTableBody = document.getElementById('recordsTableBody');
-            recordsTableBody.innerHTML = ''; 
+            recordsTableBody.innerHTML = '';
 
             if (records.length === 0) {
                 recordsTableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td></tr>';
@@ -1049,7 +1048,7 @@
             document.querySelectorAll('.download-record-btn').forEach(button => {
                 button.addEventListener('click', (e) => downloadRecordData(e.target.dataset.recordId));
             });
-            updateDeleteButtonState(); 
+            updateDeleteButtonState();
         }
 
         /**
@@ -1058,7 +1057,7 @@
          */
         function renderWebhookList(webhooks) {
             const webhookList = document.getElementById('webhookList');
-            webhookList.innerHTML = ''; 
+            webhookList.innerHTML = '';
 
             if (webhooks.length === 0) {
                 webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
@@ -1105,14 +1104,14 @@
 
             showMessageBox("Submitting", "Saving record to database...", false, true, false);
             try {
-                const docRef = await window.fsAddDoc(window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH), { 
+                const docRef = await window.fsAddDoc(window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH), {
                     ...recordData,
                     submittedAt: new Date().toISOString() // Add a server timestamp
                 });
                 console.log("Record written with ID:", docRef.id);
                 showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
-                    window.resetForm(); 
-                    sendDataToWebhooks(recordData); 
+                    window.resetForm();
+                    sendDataToWebhooks(recordData);
                 });
                 return true;
             } catch (e) {
@@ -1127,8 +1126,8 @@
          */
         async function deleteSelectedRecords() {
             const messageBoxContent = document.getElementById('messageBoxContent');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); 
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox'); 
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
 
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1151,7 +1150,7 @@
             const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
 
             showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
-            
+
             const confirmBtn = document.createElement('button');
             confirmBtn.textContent = 'Delete';
             confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
@@ -1163,8 +1162,8 @@
                     await Promise.all(deletePromises);
                     console.log("Selected records deleted successfully.");
                     showMessageBox("Success", "Selected records deleted.", false, false, true);
-                    selectAllRecordsCheckbox.checked = false; 
-                    updateDeleteButtonState(); 
+                    selectAllRecordsCheckbox.checked = false;
+                    updateDeleteButtonState();
                 } catch (e) {
                     console.error("Error deleting documents: ", e);
                     showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
@@ -1184,11 +1183,11 @@
             messageBoxContent.innerHTML = '';
             messageBoxContent.appendChild(confirmBtn);
             messageBoxContent.appendChild(cancelBtn);
-            
+
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            messageBoxCloseBtn.onclick = () => { 
-                hideMessageBox(); 
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML; 
+            messageBoxCloseBtn.onclick = () => {
+                hideMessageBox();
+                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
             };
         }
 
@@ -1196,7 +1195,7 @@
          * Adds a new webhook URL to Firestore.
          */
         async function addWebhook() {
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); 
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
 
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1207,7 +1206,7 @@
                 showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
                 return;
             }
-            
+
             const webhookUrl = newWebhookUrlInput.value.trim();
             if (!webhookUrl) {
                 showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
@@ -1217,7 +1216,7 @@
                 showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
                 return;
             }
-            if (allWebhooks.some(hook => hook.url === webhookUrl)) { 
+            if (allWebhooks.some(hook => hook.url === webhookUrl)) {
                 showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
                 newWebhookUrlInput.value = '';
                 return;
@@ -1298,7 +1297,7 @@
                 return;
             }
 
-            let detailsHtml = '<pre>'; 
+            let detailsHtml = '<pre>';
             for (const key in record) {
                 if (record.hasOwnProperty(key)) {
                     let value = record[key];
@@ -1361,17 +1360,17 @@
             }
 
             const filename = `record_${record.id}_${record['Contact ID'] || 'unknown'}.json`;
-            const dataStr = JSON.stringify(record, null, 2); 
+            const dataStr = JSON.stringify(record, null, 2);
 
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
-            document.body.appendChild(a); 
-            a.click(); 
-            document.body.removeChild(a); 
-            URL.revokeObjectURL(url); 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
 
             showMessageBox("Download Complete", `Record '${filename}' downloaded successfully.`, false, false, true);
         }
@@ -1379,11 +1378,11 @@
 
         // Audit Form Calculations
         const calculateScore = () => {
-            const cerRoleSelect = document.getElementById('cer-role'); 
+            const cerRoleSelect = document.getElementById('cer-role');
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
-            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display'); 
+            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
 
             let globalTotalPoints = 0;
             let globalMaxPossiblePoints = 0;
@@ -1402,7 +1401,7 @@
                 const weightageDisplay = rowDiv.querySelector('.weightage-display');
                 const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
                 const questionText = selectElement.name.replace(' (Rating)', '');
-                const hasNA = selectElement.hasAttribute('data-has-na'); 
+                const hasNA = selectElement.hasAttribute('data-has-na');
 
                 if (!pointsElement || !weightageDisplay) {
                     console.warn(`Missing associated elements for select: ${selectElement.name}`);
@@ -1416,7 +1415,7 @@
                 pointsElement.style.backgroundColor = '#e9ecef';
                 pointsElement.style.color = '#555';
 
-                if (rating === 'Yes' || (rating === 'N/A' && hasNA)) { 
+                if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
                     currentPoints = weightage;
                     pointsElement.readOnly = false;
                     pointsElement.style.backgroundColor = '#fff';
@@ -1431,7 +1430,7 @@
                     } else {
                         pointsElement.style.backgroundColor = '#e0e0e0';
                     }
-                } else { 
+                } else {
                     currentPoints = 0;
                     pointsElement.readOnly = true;
                     pointsElement.style.backgroundColor = '#e9ecef';
@@ -1446,10 +1445,10 @@
                 if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
                     const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
                     if (complianceQuestions.includes(questionText)) {
-                        if (rating === 'Yes' || (rating === 'N/A' && hasNA)) { 
+                        if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
                             complianceCurrentPoints += weightage;
                         }
-                        if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) { 
+                        if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) {
                              complianceMaxPoints += weightage;
                         }
                     }
@@ -1469,7 +1468,7 @@
 
             overallScoreDisplay.textContent = `${overallPercentage}%`;
             totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
-            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`; 
+            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`;
 
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
@@ -1483,12 +1482,12 @@
 
         // Dynamic Question Rendering (moved to top-level to ensure availability)
         window.renderQuestionsForRole = function(role) {
-            const cerRoleSelect = document.getElementById('cer-role'); 
+            const cerRoleSelect = document.getElementById('cer-role');
             const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
             const psQuestionsContainer = document.getElementById('psQuestionsContainer');
             const caQuestionsContainer = document.getElementById('caQuestionsContainer');
-            
-            const questionContainers = { 
+
+            const questionContainers = {
                 'CUSTOMER EXPERIENCE': cxQuestionsContainer,
                 'PROBLEM SOLVING SKILLS': psQuestionsContainer,
                 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
@@ -1497,7 +1496,7 @@
             console.log("Rendering questions for role:", role);
 
             for (const key in questionContainers) {
-                if (questionContainers[key]) { 
+                if (questionContainers[key]) {
                     questionContainers[key].innerHTML = '';
                 }
             }
@@ -1530,7 +1529,7 @@
                     if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
                     else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
-                    else iconColorClass = 'icon-bg-yellow'; 
+                    else iconColorClass = 'icon-bg-yellow';
 
                     const requiredAttribute = q.autofail ? '' : (q.required ? 'required' : '');
                     const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
@@ -1580,13 +1579,13 @@
         }
 
         window.resetFormFieldsButKeepRole = function() {
-            const cerRoleSelect = document.getElementById('cer-role'); 
+            const cerRoleSelect = document.getElementById('cer-role');
 
             console.log("Resetting question fields only.");
 
             const dynamicSelects = document.querySelectorAll('.rating-select');
             dynamicSelects.forEach(selectElement => {
-                selectElement.value = 'Yes'; 
+                selectElement.value = 'Yes';
                 selectElement.style.borderColor = '';
 
                 const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
@@ -1595,14 +1594,14 @@
                     const remarksElement = rowDiv.querySelector('.remarks-textarea');
 
                     if (pointsElement) {
-                        pointsElement.value = 0; 
+                        pointsElement.value = 0;
                         pointsElement.readOnly = true;
                         pointsElement.style.backgroundColor = '#e9ecef';
                         pointsElement.style.color = '#555';
                     }
                     if (remarksElement) {
                         remarksElement.value = '';
-                        remarksElement.style.height = '24px'; // Reset height
+                        remarksElement.style.height = '24px'; // Reset height to min-height
                     }
                 }
             });
@@ -1610,11 +1609,11 @@
         }; // Exposed globally
 
         // Audit Form Initialization and Reset
-        function initializeEvaluationForm() { 
+        function initializeEvaluationForm() {
             const evaluationDateInput = document.getElementById('review-date');
             const callDateTimeInput = document.getElementById('call-date-time');
             const cerRoleSelect = document.getElementById('cer-role');
-            const cerNameSelect = document.getElementById('cer-name'); 
+            const cerNameSelect = document.getElementById('cer-name');
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
@@ -1631,9 +1630,9 @@
             autofailTypeSelect.innerHTML = '<option value="">Loading Autofail Types...</option>';
 
 
-            autofailDescriptionContainer.classList.add('hidden'); 
-            autofailDescriptionInput.value = ''; 
-            autofailDescriptionInput.removeAttribute('required'); 
+            autofailDescriptionContainer.classList.add('hidden');
+            autofailDescriptionInput.value = '';
+            autofailDescriptionInput.removeAttribute('required');
             autofailDescriptionInput.style.height = 'auto'; // Reset height
 
             document.getElementById('reviewer-name').value = '';
@@ -1647,8 +1646,8 @@
                 input.style.borderColor = '';
             });
 
-            populateDropdownsFromCache(); 
-            
+            populateDropdownsFromCache();
+
             window.renderQuestionsForRole(''); // Call globally exposed function
             calculateScore();
             document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
@@ -1673,7 +1672,7 @@
 
             contactIdInput.value = '';
             clientNameInput.value = '';
-            cerNameSelect.value = ''; 
+            cerNameSelect.value = '';
             cerRoleSelect.value = '';
 
             const now = new Date();
@@ -1684,9 +1683,9 @@
             durationInput.value = '';
             autofailTypeSelect.value = '';
 
-            autofailDescriptionContainer.classList.add('hidden'); 
-            autofailDescriptionInput.value = ''; 
-            autofailDescriptionInput.removeAttribute('required'); 
+            autofailDescriptionContainer.classList.add('hidden');
+            autofailDescriptionInput.value = '';
+            autofailDescriptionInput.removeAttribute('required');
             autofailDescriptionInput.style.height = 'auto'; // Reset height
 
             reviewerNameSelect.value = '';
@@ -1708,13 +1707,16 @@
 
         // Function to validate all mandatory fields
         function validateAllMandatoryFields() {
-            const form = document.getElementById('assessment-form');
+            // UPDATED SELECTOR FOR MORE ROBUSTNESS
+            const topLevelInputs = document.querySelectorAll('#evaluationFormContent input[required]:not([type="hidden"]), #evaluationFormContent select[required]');
             let allFieldsValid = true;
 
-            const topLevelInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
             for (const input of topLevelInputs) {
+                // The check for 'other-reviewer-name' and 'hidden' class is less critical now
+                // because the :not([type="hidden"]) in the selector handles it,
+                // but keeping it here for clarity/future changes is fine.
                 if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
-                    input.style.borderColor = ''; 
+                    input.style.borderColor = '';
                     continue;
                 }
 
@@ -1731,6 +1733,7 @@
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
 
+            // Logic to set/unset required for autofail description
             if (autofailTypeSelect.value !== '' || overallScoreValue === 0) {
                 autofailDescriptionInput.setAttribute('required', 'required');
                 if (autofailDescriptionInput.value.trim() === '') {
@@ -1741,27 +1744,27 @@
                 }
             } else {
                 autofailDescriptionInput.removeAttribute('required');
-                autofailDescriptionInput.style.borderColor = '';
+                autofailDescriptionInput.style.borderColor = ''; // Ensure border is cleared when not required
             }
-
 
             const dynamicRatingSelects = document.querySelectorAll('.rating-select');
             for (const selectElement of dynamicRatingSelects) {
-                if (!selectElement.hasAttribute('data-autofail-question')) {
-                    if (selectElement.value === '') { 
-                        selectElement.style.borderColor = 'red';
-                        allFieldsValid = false;
-                    } else {
-                        selectElement.style.borderColor = '';
-                    }
+                // This logic is for dynamically generated rating selects
+                // and checks if they are empty, assuming 'None' (empty string) is not allowed
+                // (which you've removed, so this correctly validates that a choice is made)
+                if (selectElement.value === '') { // Checks if "Yes", "No", or "N/A" has been selected
+                    selectElement.style.borderColor = 'red';
+                    allFieldsValid = false;
                 } else {
-                    selectElement.style.borderColor = ''; 
+                    selectElement.style.borderColor = '';
                 }
             }
 
             const remarksTextareas = document.querySelectorAll('.remarks-textarea');
             remarksTextareas.forEach(textarea => {
-                textarea.style.style.borderColor = '';
+                // Remarks textareas are not strictly required unless part of autofail,
+                // but this ensures their border is reset.
+                textarea.style.borderColor = '';
             });
 
             if (!allFieldsValid) {
@@ -1791,10 +1794,10 @@
                 const q = window.fsQuery(
                     recordsColRef,
                     window.fsWhere('CER Name', '==', cerName),
-                    window.fsOrderBy('submittedAt', 'desc'), 
+                    window.fsOrderBy('submittedAt', 'desc'),
                     window.fsLimit(3)
                 );
-                const querySnapshot = await window.getDocs(q); 
+                const querySnapshot = await window.getDocs(q);
 
                 const evaluations = [];
                 if (querySnapshot.empty) {
@@ -1814,7 +1817,7 @@
         // NEW FUNCTION: Render Last 3 Evaluations Table
         function renderLastThreeEvaluationsTable(evaluations) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
-            lastEvaluationsTableBody.innerHTML = ''; 
+            lastEvaluationsTableBody.innerHTML = '';
 
             if (evaluations.length === 0) {
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
@@ -1850,7 +1853,7 @@
                     }
                 });
                 console.log("All dynamic dropdown options fetched:", dynamicDropdownOptions);
-                populateDropdownsFromCache(); 
+                populateDropdownsFromCache();
             } catch (error) {
                 console.error("Error fetching all dropdown options:", error);
             }
@@ -1909,60 +1912,60 @@
         function initializeApp() {
             const loginPage = document.getElementById('loginPage');
             const mainNav = document.getElementById('mainNav');
-            const evaluationFormContent = document.getElementById('evaluationFormContent'); 
-            const databaseContent = document.getElementById('databaseContent'); 
-            const adminTabNav = document.getElementById('adminTabNav'); 
+            const evaluationFormContent = document.getElementById('evaluationFormContent');
+            const databaseContent = document.getElementById('databaseContent');
+            const adminTabNav = document.getElementById('adminTabNav');
 
             console.log("Initializing main application.");
             const isLoggedIn = sessionStorage.getItem('loggedIn');
 
             if (!isLoggedIn || window.checkSessionTimeout()) {
                 window.location.href = 'admin.html';
-                return; 
+                return;
             }
 
             loginPage.style.display = 'none';
             mainNav.style.display = 'flex';
-            evaluationFormContent.style.display = 'block'; 
-            databaseContent.style.display = 'none'; 
+            evaluationFormContent.style.display = 'block';
+            databaseContent.style.display = 'none';
 
-            const userRole = window.currentUserRole; 
-            const evaluationFormTab = document.getElementById('evaluationFormTab'); 
+            const userRole = window.currentUserRole;
+            const evaluationFormTab = document.getElementById('evaluationFormTab');
             const databaseTab = document.getElementById('databaseTab');
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
 
-            evaluationFormTab.parentElement.style.display = 'none'; 
+            evaluationFormTab.parentElement.style.display = 'none';
             databaseTab.parentElement.style.display = 'none';
             reportsTab.parentElement.style.display = 'none';
             autofailsTab.parentElement.style.display = 'none';
-            adminTabNav.style.display = 'none'; 
+            adminTabNav.style.display = 'none';
 
             if (userRole === 'CER') {
-                evaluationFormTab.parentElement.style.display = 'inline-block'; 
-                reportsTab.parentElement.style.display = 'inline-block'; 
-                showTab('evaluationForm'); 
+                evaluationFormTab.parentElement.style.display = 'inline-block';
+                reportsTab.parentElement.style.display = 'inline-block';
+                showTab('evaluationForm');
             } else if (userRole === 'Supervisor') {
-                evaluationFormTab.parentElement.style.display = 'inline-block'; 
-                reportsTab.parentElement.style.display = 'inline-block'; 
-                autofailsTab.parentElement.style.display = 'inline-block'; 
-                showTab('evaluationForm'); 
+                evaluationFormTab.parentElement.style.display = 'inline-block';
+                reportsTab.parentElement.style.display = 'inline-block';
+                autofailsTab.parentElement.style.display = 'inline-block';
+                showTab('evaluationForm');
             } else if (userRole === 'Admin') {
-                evaluationFormTab.parentElement.style.display = 'inline-block'; 
-                databaseTab.parentElement.style.display = 'inline-block'; 
-                reportsTab.parentElement.style.display = 'inline-block'; 
-                autofailsTab.parentElement.style.display = 'inline-block'; 
-                adminTabNav.style.display = 'inline-block'; 
-                showTab('evaluationForm'); 
+                evaluationFormTab.parentElement.style.display = 'inline-block';
+                databaseTab.parentElement.style.display = 'inline-block';
+                reportsTab.parentElement.style.display = 'inline-block';
+                autofailsTab.parentElement.style.display = 'inline-block';
+                adminTabNav.style.display = 'inline-block';
+                showTab('evaluationForm');
             } else {
                 showMessageBox("Access Denied", "Your role is not recognized. Please contact an administrator.", true, false, true, () => {
-                    window.location.href = 'admin.html'; 
+                    window.location.href = 'admin.html';
                 });
             }
 
-            initializeEvaluationForm(); 
-            fetchAllDropdownOptions(); 
+            initializeEvaluationForm();
+            fetchAllDropdownOptions();
         }
 
 
@@ -1970,21 +1973,21 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
-            if (window.checkSessionTimeout()) { 
-                return; 
+            if (window.checkSessionTimeout()) {
+                return;
             }
 
-            let db = window.db; 
+            let db = window.db;
             let auth = window.auth;
             let currentUserId = window.currentUserId;
-            let isAuthReady = window.isAuthReady; 
+            let isAuthReady = window.isAuthReady;
 
 
             const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
             const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
 
-            const evaluationFormTab = document.getElementById('evaluationFormTab'); 
+            const evaluationFormTab = document.getElementById('evaluationFormTab');
             const databaseTab = document.getElementById('databaseTab');
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
@@ -2015,31 +2018,31 @@
 
 
             logoutBtn.addEventListener('click', async function() {
-                sessionStorage.removeItem('loggedIn'); 
-                localStorage.removeItem('lastActivity'); 
-                localStorage.removeItem('loginTime'); 
+                sessionStorage.removeItem('loggedIn');
+                localStorage.removeItem('lastActivity');
+                localStorage.removeItem('loginTime');
                 try {
-                    await window.signOut(window.auth); 
+                    await window.signOut(window.auth);
                     console.log("Signed out from Firebase.");
                 } catch (error) {
                     console.error("Error signing out:", error);
                 }
-                window.location.href = 'admin.html'; 
+                window.location.href = 'admin.html';
             });
 
-            if (evaluationFormTab) { 
+            if (evaluationFormTab) {
                 evaluationFormTab.addEventListener('click', (e) => {
-                    e.preventDefault(); 
-                    console.log("Evaluation Form Tab CLICKED!"); 
-                    showTab('evaluationForm'); 
+                    e.preventDefault();
+                    console.log("Evaluation Form Tab CLICKED!");
+                    showTab('evaluationForm');
                 });
             } else {
-                console.error("Evaluation Form Tab element not found!"); 
+                console.error("Evaluation Form Tab element not found!");
             }
-            
+
             if (databaseTab) {
                 databaseTab.addEventListener('click', (e) => {
-                    e.preventDefault(); 
+                    e.preventDefault();
                     console.log("Database Tab CLICKED!");
                     showTab('database');
                 });
@@ -2051,7 +2054,7 @@
                 reportsTab.addEventListener('click', (e) => {
                     e.preventDefault();
                     console.log("Reports Tab CLICKED!");
-                    window.location.href = 'reports.html'; 
+                    window.location.href = 'reports.html';
                 });
             } else {
                 console.error("Reports Tab element not found!");
@@ -2061,22 +2064,22 @@
                 autofailsTab.addEventListener('click', (e) => {
                     e.preventDefault();
                     console.log("Autofails Tab CLICKED!");
-                    window.location.href = 'autofails.html'; 
+                    window.location.href = 'autofails.html';
                 });
             } else {
                 console.error("Autofails Tab element not found!");
             }
 
-            if (adminTab) { 
+            if (adminTab) {
                     adminTab.addEventListener('click', (e) => {
                     e.preventDefault();
                     console.log("Admin Tab CLICKED!");
-                    window.location.href = 'admin.html'; 
+                    window.location.href = 'admin.html';
                 });
             }
-            
 
-            if (selectAllRecordsCheckbox) { 
+
+            if (selectAllRecordsCheckbox) {
                     selectAllRecordsCheckbox.addEventListener('change', () => {
                     const isChecked = selectAllRecordsCheckbox.checked;
                     document.querySelectorAll('.record-checkbox').forEach(checkbox => {
@@ -2100,9 +2103,9 @@
                     autofailDescriptionInput.setAttribute('required', 'required');
                 } else {
                     autofailDescriptionContainer.classList.add('hidden');
-                    autofailDescriptionInput.value = ''; 
+                    autofailDescriptionInput.value = '';
                     autofailDescriptionInput.removeAttribute('required');
-                    autofailDescriptionInput.style.borderColor = ''; 
+                    autofailDescriptionInput.style.borderColor = '';
                 }
             });
 
@@ -2135,7 +2138,7 @@
             });
 
 
-            submitFormToDBBtn.addEventListener('click', async (event) => { 
+            submitFormToDBBtn.addEventListener('click', async (event) => {
                 event.preventDefault();
                 console.log("Submit to Database button clicked.");
 
@@ -2159,18 +2162,18 @@
                 });
 
                 const overallScoreDisplay = document.getElementById('overall-score-display');
-                const overallScoreValue = parseFloat(overallScoreDisplay.textContent); 
+                const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
 
                 if (overallScoreValue === 0) {
                     if (!autofailTypeSelect.value.trim()) {
                         formDataForSubmission['Auto Fail Type'] = 'Auto-Scored Fail';
-                        autofailTypeSelect.value = 'Auto-Scored Fail'; 
+                        autofailTypeSelect.value = 'Auto-Scored Fail';
                     }
                     if (!autofailDescriptionInput.value.trim()) {
                         formDataForSubmission['Autofail Description'] = 'Automatically marked due to 0% overall score.';
                         autofailDescriptionInput.value = 'Automatically marked due to 0% overall score.';
-                        autofailDescriptionContainer.classList.remove('hidden'); 
-                        autofailDescriptionInput.setAttribute('required', 'required'); 
+                        autofailDescriptionContainer.classList.remove('hidden');
+                        autofailDescriptionInput.setAttribute('required', 'required');
                     }
                 } else {
                     formDataForSubmission['Auto Fail Type'] = autofailTypeSelect.value.trim();
@@ -2181,7 +2184,7 @@
                 formDataForSubmission['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
                 formDataForSubmission['Total Pts.'] = globalTotalPoints;
                 formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
-                formDataForSubmission['Final Score'] = overallScoreDisplay.textContent; 
+                formDataForSubmission['Final Score'] = overallScoreDisplay.textContent;
 
                 const dynamicSelects = document.querySelectorAll('.rating-select');
                 dynamicSelects.forEach(selectElement => {
@@ -2200,7 +2203,7 @@
                 });
                 console.log("Collected Data for Submission:", formDataForSubmission);
 
-                await addRecordToFirestore(formDataForSubmission); 
+                await addRecordToFirestore(formDataForSubmission);
             });
 
 
@@ -2212,7 +2215,7 @@
                     return;
                 }
 
-                const auditFormContent = document.getElementById('evaluationFormContent'); 
+                const auditFormContent = document.getElementById('evaluationFormContent');
                 if (!auditFormContent) {
                     console.error('Error: Form container not found for PDF generation.');
                     showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
@@ -2279,7 +2282,7 @@
                     const cerNameVal = cerNameSelect.value;
                     const contactIdVal = contactIdInput.value;
                     const evaluationDateVal = evaluationDateInput.value;
-                    const overallScoreVal = overallFinalPercentageDisplay.textContent; 
+                    const overallScoreVal = overallFinalPercentageDisplay.textContent;
                     const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
 
                     const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
@@ -2315,39 +2318,39 @@
 
 
             document.addEventListener('firebaseAuthReady', () => {
-                let db = window.db; 
+                let db = window.db;
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
 
                 const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH; 
+                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH;
                 const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
 
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
-                initializeApp(); 
+                initializeApp();
 
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                    fetchRecordsAndWebhooks(); 
+                    fetchRecordsAndWebhooks();
                 }
             });
 
-            if (document.readyState === 'complete' && window.isAuthReady !== null) { 
-                let db = window.db; 
+            if (document.readyState === 'complete' && window.isAuthReady !== null) {
+                let db = window.db;
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
 
                 const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH; 
+                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH;
                 const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
 
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
-                initializeApp(); 
+                initializeApp();
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                    fetchRecordsAndWebhooks(); 
+                    fetchRecordsAndWebhooks();
                 }
             } else {
                 console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
