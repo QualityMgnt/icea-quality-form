@@ -6,8 +6,9 @@
     <title>Reports - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js Library for dynamic graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         /* Base styles */
@@ -29,7 +30,7 @@
             color: #f57c00;
         }
 
-        /* Error/Message styles (copied from index.html) */
+        /* Error/Message styles */
         .error-message {
             color: #dc2626; /* red-700 */
             font-size: 0.875rem; /* text-sm */
@@ -37,7 +38,7 @@
             text-align: center;
         }
 
-        /* Navigation styles (copied from index.html) */
+        /* Navigation styles */
         .main-nav {
             width: 100%;
             background-color: #1a73e8;
@@ -129,7 +130,7 @@
             animation: spin 1s linear infinite;
             margin: 1rem auto;
         }
-        /* Message Box styles (copied from index.html) */
+        /* Message Box styles */
         .message-box-overlay {
             position: fixed;
             top: 0;
@@ -173,6 +174,40 @@
         }
         .message-box button:hover {
             background-color: #0d47a1;
+        }
+
+        /* NEW: Styles for aligning table and chart */
+        .report-content-flex {
+            display: flex;
+            flex-wrap: wrap; /* Allows wrapping on smaller screens */
+            gap: 1.5rem; /* Space between table and chart */
+            align-items: flex-start; /* Align content to the top */
+        }
+        .report-content-flex > div {
+            flex: 1 1 45%; /* Allow divs to grow/shrink, base width ~45% */
+            min-width: 300px; /* Minimum width before wrapping */
+        }
+        .table-container, .chart-container {
+            flex: 1; /* Allow equal distribution if there's space */
+        }
+
+        .chart-container {
+            padding: 1rem;
+            background-color: #f8fafc; /* light blue background */
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex; /* Use flex to center message/spinner if no chart */
+            align-items: center;
+            justify-content: center;
+            min-height: 250px; /* Ensure chart container has a minimum height */
+        }
+        canvas {
+            max-width: 100%;
+            height: 300px; /* Fixed height for charts for consistency */
+        }
+        /* Hide canvas when no data or loading */
+        canvas.hidden {
+            display: none;
         }
     </style>
 </head>
@@ -219,6 +254,7 @@
             <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Audit Form</a></li>
             <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
             <li><a href="reports.html" id="reportsTab" class="active"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
         </ul>
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
@@ -260,118 +296,175 @@
                 </div>
             </div>
 
+            <!-- Report Section: Audits Per Agent -->
             <div id="auditsPerAgentReport" class="report-section">
                 <h3>Audits Per Agent</h3>
-                <div class="report-loading-spinner report-spinner hidden"></div>
-                <p id="auditsPerAgentMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
-                <table class="report-table hidden">
-                    <thead>
-                        <tr>
-                            <th>Agent Name</th>
-                            <th>Number of Audits</th>
-                        </tr>
-                    </thead>
-                    <tbody id="auditsPerAgentTableBody">
-                        </tbody>
-                </table>
+                <div class="report-content-flex">
+                    <div class="table-container">
+                        <div class="report-loading-spinner report-spinner hidden"></div>
+                        <p id="auditsPerAgentMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                        <table class="report-table hidden">
+                            <thead>
+                                <tr>
+                                    <th>Agent Name</th>
+                                    <th>Number of Audits</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditsPerAgentTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="auditsPerAgentChart" class="hidden"></canvas>
+                        <p id="auditsPerAgentChartMessage" class="text-sm text-gray-500 text-center">No chart data available for this report.</p>
+                    </div>
+                </div>
             </div>
 
+            <!-- Report Section: Autofails Per CER Role -->
             <div id="autofailsPerRoleReport" class="report-section">
                 <h3>Number of Autofails Per CER Role</h3>
-                <div class="report-loading-spinner report-spinner hidden"></div>
-                <p id="autofailsPerRoleMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
-                <table class="report-table hidden">
-                    <thead>
-                        <tr>
-                            <th>CER Role</th>
-                            <th>Autofail Count</th>
-                        </tr>
-                    </thead>
-                    <tbody id="autofailsPerRoleTableBody">
-                        </tbody>
-                </table>
+                <div class="report-content-flex">
+                    <div class="table-container">
+                        <div class="report-loading-spinner report-spinner hidden"></div>
+                        <p id="autofailsPerRoleMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                        <table class="report-table hidden">
+                            <thead>
+                                <tr>
+                                    <th>CER Role</th>
+                                    <th>Autofail Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="autofailsPerRoleTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="autofailsPerRoleChart" class="hidden"></canvas>
+                        <p id="autofailsPerRoleChartMessage" class="text-sm text-gray-500 text-center">No chart data available for this report.</p>
+                    </div>
+                </div>
             </div>
 
+            <!-- Report Section: Average Quality Score Per CER Role -->
             <div id="qualityScorePerRoleReport" class="report-section">
                 <h3>Average Quality Score Per CER Role</h3>
-                <div class="report-loading-spinner report-spinner hidden"></div>
-                <p id="qualityScorePerRoleMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
-                <table class="report-table hidden">
-                    <thead>
-                        <tr>
-                            <th>CER Role</th>
-                            <th>Average Score</th>
-                        </tr>
-                    </thead>
-                    <tbody id="qualityScorePerRoleTableBody">
-                        </tbody>
-                </table>
+                <div class="report-content-flex">
+                    <div class="table-container">
+                        <div class="report-loading-spinner report-spinner hidden"></div>
+                        <p id="qualityScorePerRoleMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                        <table class="report-table hidden">
+                            <thead>
+                                <tr>
+                                    <th>CER Role</th>
+                                    <th>Average Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="qualityScorePerRoleTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="qualityScorePerRoleChart" class="hidden"></canvas>
+                        <p id="qualityScorePerRoleChartMessage" class="text-sm text-gray-500 text-center">No chart data available for this report.</p>
+                    </div>
+                </div>
             </div>
 
+            <!-- Report Section: Number of Autofails Per CER Name -->
             <div id="autofailsPerCERNameReport" class="report-section">
                 <h3>Number of Autofails Per CER Name</h3>
-                <div class="report-loading-spinner report-spinner hidden"></div>
-                <p id="autofailsPerCERNameMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
-                <table class="report-table hidden">
-                    <thead>
-                        <tr>
-                            <th>CER Name</th>
-                            <th>Autofail Count</th>
-                        </tr>
-                    </thead>
-                    <tbody id="autofailsPerCERNameTableBody">
-                        </tbody>
-                </table>
+                <div class="report-content-flex">
+                    <div class="table-container">
+                        <div class="report-loading-spinner report-spinner hidden"></div>
+                        <p id="autofailsPerCERNameMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                        <table class="report-table hidden">
+                            <thead>
+                                <tr>
+                                    <th>CER Name</th>
+                                    <th>Autofail Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="autofailsPerCERNameTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="autofailsPerCERNameChart" class="hidden"></canvas>
+                        <p id="autofailsPerCERNameChartMessage" class="text-sm text-gray-500 text-center">No chart data available for this report.</p>
+                    </div>
+                </div>
             </div>
 
+            <!-- Report Section: Number of Audits Per CER Name -->
             <div id="auditsPerCERNameReport" class="report-section">
                 <h3>Number of Audits Per CER Name</h3>
-                <div class="report-loading-spinner report-spinner hidden"></div>
-                <p id="auditsPerCERNameMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
-                <table class="report-table hidden">
-                    <thead>
-                        <tr>
-                            <th>CER Name</th>
-                            <th>Number of Audits</th>
-                        </tr>
-                    </thead>
-                    <tbody id="auditsPerCERNameTableBody">
-                        </tbody>
-                </table>
+                <div class="report-content-flex">
+                    <div class="table-container">
+                        <div class="report-loading-spinner report-spinner hidden"></div>
+                        <p id="auditsPerCERNameMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                        <table class="report-table hidden">
+                            <thead>
+                                <tr>
+                                    <th>CER Name</th>
+                                    <th>Number of Audits</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditsPerCERNameTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="auditsPerCERNameChart" class="hidden"></canvas>
+                        <p id="auditsPerCERNameChartMessage" class="text-sm text-gray-500 text-center">No chart data available for this report.</p>
+                    </div>
+                </div>
             </div>
 
+            <!-- Report Section: Average QA Score Per CER Name -->
             <div id="averageQAScoreReport" class="report-section">
                 <h3>Average QA Score Per CER Name</h3>
-                <div class="report-loading-spinner report-spinner hidden"></div>
-                <p id="averageQAScoreMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
-                <table class="report-table hidden">
-                    <thead>
-                        <tr>
-                            <th>CER Name</th>
-                            <th>Average Score</th>
-                        </tr>
-                    </thead>
-                    <tbody id="averageQAScoreTableBody">
-                        </tbody>
-                </table>
+                <div class="report-content-flex">
+                    <div class="table-container">
+                        <div class="report-loading-spinner report-spinner hidden"></div>
+                        <p id="averageQAScoreMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                        <table class="report-table hidden">
+                            <thead>
+                                <tr>
+                                    <th>CER Name</th>
+                                    <th>Average Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="averageQAScoreTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="averageQAScoreChart" class="hidden"></canvas>
+                        <p id="averageQAScoreChartMessage" class="text-sm text-gray-500 text-center">No chart data available for this report.</p>
+                    </div>
+                </div>
             </div>
 
+            <!-- Report Section: Autofails Per Autofail Area -->
             <div id="autofailsPerAreaReport" class="report-section">
                 <h3>Number of Autofails Per Autofail Area</h3>
-                <div class="report-loading-spinner report-spinner hidden"></div>
-                <p id="autofailsPerAreaMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
-                <table class="report-table hidden">
-                    <thead>
-                        <tr>
-                            <th>Autofail Area</th>
-                            <th>Autofail Count</th>
-                        </tr>
-                    </thead>
-                    <tbody id="autofailsPerAreaTableBody">
-                        </tbody>
-                </table>
+                <div class="report-content-flex">
+                    <div class="table-container">
+                        <div class="report-loading-spinner report-spinner hidden"></div>
+                        <p id="autofailsPerAreaMessage" class="text-sm text-gray-500 text-center">Select a month and year and click "Generate Report".</p>
+                        <table class="report-table hidden">
+                            <thead>
+                                <tr>
+                                    <th>Autofail Area</th>
+                                    <th>Autofail Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="autofailsPerAreaTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="autofailsPerAreaChart" class="hidden"></canvas>
+                        <p id="autofailsPerAreaChartMessage" class="text-sm text-gray-500 text-center">No chart data available for this report.</p>
+                    </div>
+                </div>
             </div>
 
+            <!-- Report Section: Autofails Overview (No Chart for this summary) -->
             <div id="autofailsOverviewReport" class="report-section">
                 <h3>Autofails Overview (Total for Period)</h3>
                 <div class="report-loading-spinner report-spinner hidden"></div>
@@ -398,7 +491,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        // Note: 'addDoc', 'deleteDoc' not strictly needed here as reports are read-only
 
         // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
@@ -483,6 +575,9 @@
         let reportMonth = new Date().getMonth() + 1; // Default to current month
         let reportYear = new Date().getFullYear(); // Default to current year
 
+        // Global Chart.js instances to allow updating existing charts
+        let chartInstances = {};
+
         // --- UI ELEMENTS ---
         const loginPage = document.getElementById('loginPage');
         const loginForm = document.getElementById('loginForm');
@@ -500,52 +595,25 @@
         const reportYearInput = document.getElementById('reportYear');
         const generateReportBtn = document.getElementById('generateReportBtn');
 
-        const auditsPerAgentReportDiv = document.getElementById('auditsPerAgentReport');
-        const auditsPerAgentMessage = document.getElementById('auditsPerAgentMessage');
-        const auditsPerAgentSpinner = auditsPerAgentReportDiv.querySelector('.report-spinner');
-        const auditsPerAgentTable = auditsPerAgentReportDiv.querySelector('.report-table');
-        const auditsPerAgentTableBody = document.getElementById('auditsPerAgentTableBody');
+        // References for each report section's elements
+        const reportSections = [
+            'auditsPerAgent', 'autofailsPerRole', 'qualityScorePerRole',
+            'autofailsPerCERName', 'auditsPerCERName', 'averageQAScore',
+            'autofailsPerArea', 'autofailsOverview' // Overview section does not get a chart
+        ].reduce((acc, id) => {
+            acc[id] = {
+                div: document.getElementById(`${id}Report`),
+                message: document.getElementById(`${id}Message`),
+                spinner: document.getElementById(`${id}Report`).querySelector('.report-spinner'),
+                table: document.getElementById(`${id}Report`).querySelector('.report-table'),
+                tableBody: document.getElementById(`${id}TableBody`),
+                chartCanvas: document.getElementById(`${id}Chart`), // May be null for overview
+                chartMessage: document.getElementById(`${id}ChartMessage`), // May be null for overview
+            };
+            return acc;
+        }, {});
 
-        const autofailsPerRoleReportDiv = document.getElementById('autofailsPerRoleReport');
-        const autofailsPerRoleMessage = document.getElementById('autofailsPerRoleMessage');
-        const autofailsPerRoleSpinner = autofailsPerRoleReportDiv.querySelector('.report-spinner');
-        const autofailsPerRoleTable = autofailsPerRoleReportDiv.querySelector('.report-table');
-        const autofailsPerRoleTableBody = document.getElementById('autofailsPerRoleTableBody');
-
-        const qualityScorePerRoleReportDiv = document.getElementById('qualityScorePerRoleReport');
-        const qualityScorePerRoleMessage = document.getElementById('qualityScorePerRoleMessage');
-        const qualityScorePerRoleSpinner = qualityScorePerRoleReportDiv.querySelector('.report-spinner');
-        const qualityScorePerRoleTable = qualityScorePerRoleReportDiv.querySelector('.report-table');
-        const qualityScorePerRoleTableBody = document.getElementById('qualityScorePerRoleTableBody');
-
-        const autofailsPerCERNameReportDiv = document.getElementById('autofailsPerCERNameReport');
-        const autofailsPerCERNameMessage = document.getElementById('autofailsPerCERNameMessage');
-        const autofailsPerCERNameSpinner = autofailsPerCERNameReportDiv.querySelector('.report-spinner');
-        const autofailsPerCERNameTable = autofailsPerCERNameReportDiv.querySelector('.report-table');
-        const autofailsPerCERNameTableBody = document.getElementById('autofailsPerCERNameTableBody');
-
-        const auditsPerCERNameReportDiv = document.getElementById('auditsPerCERNameReport');
-        const auditsPerCERNameMessage = document.getElementById('auditsPerCERNameMessage');
-        const auditsPerCERNameSpinner = auditsPerCERNameReportDiv.querySelector('.report-spinner');
-        const auditsPerCERNameTable = auditsPerCERNameReportDiv.querySelector('.report-table');
-        const auditsPerCERNameTableBody = document.getElementById('auditsPerCERNameTableBody');
-
-        const averageQAScoreReportDiv = document.getElementById('averageQAScoreReport');
-        const averageQAScoreMessage = document.getElementById('averageQAScoreMessage');
-        const averageQAScoreSpinner = averageQAScoreReportDiv.querySelector('.report-spinner');
-        const averageQAScoreTable = averageQAScoreReportDiv.querySelector('.report-table');
-        const averageQAScoreTableBody = document.getElementById('averageQAScoreTableBody');
-
-        const autofailsPerAreaReportDiv = document.getElementById('autofailsPerAreaReport');
-        const autofailsPerAreaMessage = document.getElementById('autofailsPerAreaMessage');
-        const autofailsPerAreaSpinner = autofailsPerAreaReportDiv.querySelector('.report-spinner');
-        const autofailsPerAreaTable = autofailsPerAreaReportDiv.querySelector('.report-table');
-        const autofailsPerAreaTableBody = document.getElementById('autofailsPerAreaTableBody');
-
-        const autofailsOverviewReportDiv = document.getElementById('autofailsOverviewReport');
-        const autofailsOverviewMessage = document.getElementById('autofailsOverviewMessage');
-        const autofailsOverviewSpinner = autofailsOverviewReportDiv.querySelector('.report-spinner');
-        const autofailsOverviewTable = autofailsOverviewReportDiv.querySelector('.report-table');
+        // Specific overview elements
         const totalAuditsCount = document.getElementById('totalAuditsCount');
         const totalAutofailsCount = document.getElementById('totalAutofailsCount');
         const autofailPercentage = document.getElementById('autofailPercentage');
@@ -558,7 +626,7 @@
         const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
 
 
-        // --- MESSAGE BOX FUNCTIONS (copied from index.html) ---
+        // --- MESSAGE BOX FUNCTIONS ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             messageBoxTitle.textContent = title;
             messageBoxContent.textContent = message;
@@ -582,6 +650,100 @@
             messageBoxOverlay.classList.add('hidden');
         }
 
+        // Helper to safely parse score percentage (e.g., "94%" to 94)
+        function parseScore(scoreString) {
+            if (typeof scoreString !== 'string') return 0;
+            const match = scoreString.match(/(\d+\.?\d*)%/); // Allows for decimal scores
+            return match ? parseFloat(match[1]) : 0;
+        }
+
+        // Helper function to create or update a Chart.js instance
+        function createOrUpdateChart(chartId, type, labels, data, title, xLabel, yLabel, backgroundColor = 'rgba(26, 115, 232, 0.7)') {
+            const chartCanvas = reportSections[chartId].chartCanvas;
+            const chartMessage = reportSections[chartId].chartMessage;
+
+            if (!chartCanvas) return; // No canvas for this report (e.g., overview)
+
+            if (data.length === 0) {
+                chartCanvas.classList.add('hidden');
+                chartMessage.classList.remove('hidden');
+                if (chartInstances[chartId]) {
+                    chartInstances[chartId].destroy(); // Destroy old instance if no data
+                    delete chartInstances[chartId];
+                }
+                return;
+            }
+
+            chartCanvas.classList.remove('hidden');
+            chartMessage.classList.add('hidden');
+
+            const chartData = {
+                labels: labels,
+                datasets: [{
+                    label: yLabel, // Use yLabel for dataset label
+                    data: data,
+                    backgroundColor: backgroundColor,
+                    borderColor: 'rgba(26, 115, 232, 1)', // Darker border for icealion-blue
+                    borderWidth: 1
+                }]
+            };
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: title,
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: yLabel
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                // Add '%' for score charts
+                                return title.includes('Score') ? `${value}%` : value;
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: xLabel
+                        }
+                    }
+                }
+            };
+
+            if (chartInstances[chartId]) {
+                // Update existing chart
+                chartInstances[chartId].data = chartData;
+                chartInstances[chartId].options = chartOptions;
+                chartInstances[chartId].update();
+            } else {
+                // Create new chart
+                const ctx = chartCanvas.getContext('2d');
+                chartInstances[chartId] = new Chart(ctx, {
+                    type: type,
+                    data: chartData,
+                    options: chartOptions
+                });
+            }
+        }
+
+
         // --- REPORT GENERATION FUNCTIONS ---
 
         async function generateReport() {
@@ -589,13 +751,10 @@
                 showMessageBox("Authentication Required", "Please log in to generate reports.", true, false, true);
                 return;
             }
-            // Check if EVALUATION_RECORDS_COLLECTION_PATH is defined in this script's scope
-            // This is crucial because it's defined in the module script and exposed globally
             if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
                 showMessageBox("Configuration Error", "Firestore paths not set up. Check Firebase configuration. Collection path missing.", true, false, true);
                 return;
             }
-
 
             const selectedMonth = parseInt(reportMonthSelect.value);
             const selectedYear = parseInt(reportYearInput.value);
@@ -605,14 +764,14 @@
                 return;
             }
 
-            // Show loading indicators for all report sections
-            [autofailsOverviewMessage, autofailsOverviewTable, auditsPerAgentMessage, auditsPerAgentTable,
-             autofailsPerRoleMessage, autofailsPerRoleTable, qualityScorePerRoleMessage, qualityScorePerRoleTable,
-             autofailsPerCERNameMessage, autofailsPerCERNameTable, auditsPerCERNameMessage, auditsPerCERNameTable,
-             averageQAScoreMessage, averageQAScoreTable, autofailsPerAreaMessage, autofailsPerAreaTable].forEach(el => el.classList.add('hidden'));
-            
-            [autofailsOverviewSpinner, auditsPerAgentSpinner, autofailsPerRoleSpinner, qualityScorePerRoleSpinner,
-             autofailsPerCERNameSpinner, auditsPerCERNameSpinner, averageQAScoreSpinner, autofailsPerAreaSpinner].forEach(el => el.classList.remove('hidden'));
+            // Hide previous tables/charts, show loading indicators
+            Object.values(reportSections).forEach(section => {
+                section.message.classList.add('hidden');
+                section.table.classList.add('hidden');
+                section.spinner.classList.remove('hidden');
+                if (section.chartCanvas) section.chartCanvas.classList.add('hidden');
+                if (section.chartMessage) section.chartMessage.classList.add('hidden');
+            });
 
             showMessageBox("Generating Report", `Fetching data for ${reportMonthSelect.options[reportMonthSelect.selectedIndex].text}, ${selectedYear}...`, false, true, false);
 
@@ -620,13 +779,13 @@
                 const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
                 
                 // Firestore queries for month/year range
-                // submittedAt is ISO string: "YYYY-MM-DDTHH:mm:ss.sssZ"
+                // submittedAt is a Firestore Timestamp, which needs to be compared with Timestamp objects
                 const startDate = new Date(selectedYear, selectedMonth - 1, 1); // Month is 0-indexed
-                const endDate = new Date(selectedYear, selectedMonth, 0); // Last day of the month
+                const endDate = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999); // Last day of month, end of day
 
                 const q = window.fsQuery(recordsColRef, 
-                    window.fsWhere('submittedAt', '>=', startDate.toISOString()),
-                    window.fsWhere('submittedAt', '<=', endDate.toISOString())
+                    window.fsWhere('submittedAt', '>=', startDate),
+                    window.fsWhere('submittedAt', '<=', endDate)
                 );
                 
                 const querySnapshot = await window.fsGetDocs(q);
@@ -637,9 +796,9 @@
 
                 console.log(`Fetched ${allReportRecords.length} records for report.`);
 
-                // Render all reports
-                renderAutofailsOverviewReport(allReportRecords); 
-                renderAuditsPerAgentReport(allReportRecords); 
+                // Render all reports and charts
+                renderAutofailsOverviewReport(allReportRecords);
+                renderAuditsPerAgentReport(allReportRecords);
                 renderAutofailsPerRoleReport(allReportRecords);
                 renderQualityScorePerRoleReport(allReportRecords);
                 renderAutofailsPerCERNameReport(allReportRecords);
@@ -647,27 +806,22 @@
                 renderAverageQAScoreReport(allReportRecords);
                 renderAutofailsPerAreaReport(allReportRecords);
 
-
                 hideMessageBox(); // Hide message box on success
 
             } catch (error) {
                 console.error("Error generating report:", error);
                 showMessageBox("Report Error", `Failed to generate report: ${error.message}`, true, false, true);
             } finally {
-                // Hide all spinners
-                [autofailsOverviewSpinner, auditsPerAgentSpinner, autofailsPerRoleSpinner, qualityScorePerRoleSpinner,
-                 autofailsPerCERNameSpinner, auditsPerCERNameSpinner, averageQAScoreSpinner, autofailsPerAreaSpinner].forEach(el => el.classList.add('hidden'));
+                // Hide all spinners regardless of success or failure
+                Object.values(reportSections).forEach(section => {
+                    section.spinner.classList.add('hidden');
+                });
             }
         }
 
-        // Helper to safely parse score percentage
-        function parseScore(scoreString) {
-            const match = scoreString.match(/(\d+)%/);
-            return match ? parseFloat(match[1]) : 0;
-        }
-
+        // Render functions for each report table and its corresponding chart
         function renderAuditsPerAgentReport(records) {
-            auditsPerAgentTableBody.innerHTML = '';
+            reportSections.auditsPerAgent.tableBody.innerHTML = '';
             const agentCounts = {};
 
             records.forEach(record => {
@@ -675,71 +829,78 @@
                 agentCounts[cerName] = (agentCounts[cerName] || 0) + 1;
             });
 
-            if (Object.keys(agentCounts).length === 0) {
-                auditsPerAgentMessage.textContent = "No audits found for selected period.";
-                auditsPerAgentMessage.classList.remove('hidden');
-                auditsPerAgentTable.classList.add('hidden');
-                return;
-            }
+            const labels = Object.keys(agentCounts);
+            const data = Object.values(agentCounts);
 
-            for (const agent in agentCounts) {
-                const row = auditsPerAgentTableBody.insertRow();
-                row.insertCell().textContent = agent;
-                row.insertCell().textContent = agentCounts[agent];
+            if (labels.length === 0) {
+                reportSections.auditsPerAgent.message.textContent = "No audits found for selected period.";
+                reportSections.auditsPerAgent.message.classList.remove('hidden');
+                reportSections.auditsPerAgent.table.classList.add('hidden');
+            } else {
+                for (const agent in agentCounts) {
+                    const row = reportSections.auditsPerAgent.tableBody.insertRow();
+                    row.insertCell().textContent = agent;
+                    row.insertCell().textContent = agentCounts[agent];
+                }
+                reportSections.auditsPerAgent.message.classList.add('hidden');
+                reportSections.auditsPerAgent.table.classList.remove('hidden');
             }
-            auditsPerAgentMessage.classList.add('hidden');
-            auditsPerAgentTable.classList.remove('hidden');
+            createOrUpdateChart('auditsPerAgent', 'bar', labels, data, 'Audits Per Agent', 'Agent Name', 'Number of Audits');
         }
 
         function renderAutofailsOverviewReport(records) {
             let totalAudits = records.length;
-            let totalAutofails = records.filter(record => record['Final Score'] === '0%').length;
+            // Use 'Auto Fail Type' field to check for autofails, as per previous conversation
+            let totalAutofails = records.filter(record => record['Auto Fail Type'] && record['Auto Fail Type'].trim() !== '').length;
             let autofailPct = totalAudits > 0 ? ((totalAutofails / totalAudits) * 100).toFixed(0) : 0;
 
-            document.getElementById('totalAuditsCount').textContent = totalAudits;
-            document.getElementById('totalAutofailsCount').textContent = totalAutofails;
-            document.getElementById('autofailPercentage').textContent = `${autofailPct}%`;
+            totalAuditsCount.textContent = totalAudits;
+            totalAutofailsCount.textContent = totalAutofails;
+            autofailPercentage.textContent = `${autofailPct}%`;
 
-            autofailsOverviewMessage.classList.add('hidden');
-            autofailsOverviewTable.classList.remove('hidden');
+            reportSections.autofailsOverview.message.classList.add('hidden');
+            reportSections.autofailsOverview.table.classList.remove('hidden');
         }
 
         function renderAutofailsPerRoleReport(records) {
-            autofailsPerRoleTableBody.innerHTML = '';
+            reportSections.autofailsPerRole.tableBody.innerHTML = '';
             const roleAutofailCounts = {};
 
             records.forEach(record => {
                 const cerRole = record['CER Role'] || 'N/A';
-                if (record['Final Score'] === '0%') {
+                if (record['Auto Fail Type'] && record['Auto Fail Type'].trim() !== '') { // Check for any autofail type
                     roleAutofailCounts[cerRole] = (roleAutofailCounts[cerRole] || 0) + 1;
                 }
             });
 
-            if (Object.keys(roleAutofailCounts).length === 0) {
-                autofailsPerRoleMessage.textContent = "No autofails found per CER role for selected period.";
-                autofailsPerRoleMessage.classList.remove('hidden');
-                autofailsPerRoleTable.classList.add('hidden');
-                return;
-            }
+            const labels = Object.keys(roleAutofailCounts);
+            const data = Object.values(roleAutofailCounts);
 
-            for (const role in roleAutofailCounts) {
-                const row = autofailsPerRoleTableBody.insertRow();
-                row.insertCell().textContent = role;
-                row.insertCell().textContent = roleAutofailCounts[role];
+            if (labels.length === 0) {
+                reportSections.autofailsPerRole.message.textContent = "No autofails found per CER role for selected period.";
+                reportSections.autofailsPerRole.message.classList.remove('hidden');
+                reportSections.autofailsPerRole.table.classList.add('hidden');
+            } else {
+                for (const role in roleAutofailCounts) {
+                    const row = reportSections.autofailsPerRole.tableBody.insertRow();
+                    row.insertCell().textContent = role;
+                    row.insertCell().textContent = roleAutofailCounts[role];
+                }
+                reportSections.autofailsPerRole.message.classList.add('hidden');
+                reportSections.autofailsPerRole.table.classList.remove('hidden');
             }
-            autofailsPerRoleMessage.classList.add('hidden');
-            autofailsPerRoleTable.classList.remove('hidden');
+            createOrUpdateChart('autofailsPerRole', 'bar', labels, data, 'Autofails Per CER Role', 'CER Role', 'Autofail Count', 'rgba(245, 124, 0, 0.7)'); // icealion-orange
         }
 
         function renderQualityScorePerRoleReport(records) {
-            qualityScorePerRoleTableBody.innerHTML = '';
+            reportSections.qualityScorePerRole.tableBody.innerHTML = '';
             const roleScores = {}; // { 'Role': { sum: 0, count: 0 } }
 
             records.forEach(record => {
                 const cerRole = record['CER Role'] || 'N/A';
-                const score = parseScore(record['Overall Score']); // Parse "94%" to 94
+                const score = parseScore(record['Overall Score']);
 
-                if (!isNaN(score)) {
+                if (!isNaN(score) && record['Overall Score'] && record['Overall Score'].trim() !== '') { // Ensure score is valid and not empty
                     if (!roleScores[cerRole]) {
                         roleScores[cerRole] = { sum: 0, count: 0 };
                     }
@@ -748,52 +909,58 @@
                 }
             });
 
-            if (Object.keys(roleScores).length === 0) {
-                qualityScorePerRoleMessage.textContent = "No scores found per CER role for selected period.";
-                qualityScorePerRoleMessage.classList.remove('hidden');
-                qualityScorePerRoleTable.classList.add('hidden');
-                return;
-            }
+            const labels = Object.keys(roleScores);
+            const data = labels.map(role => roleScores[role].count > 0 ? (roleScores[role].sum / roleScores[role].count).toFixed(0) : 0);
 
-            for (const role in roleScores) {
-                const avg = roleScores[role].count > 0 ? (roleScores[role].sum / roleScores[role].count).toFixed(0) : 0;
-                const row = qualityScorePerRoleTableBody.insertRow();
-                row.insertCell().textContent = role;
-                row.insertCell().textContent = `${avg}%`;
+            if (labels.length === 0) {
+                reportSections.qualityScorePerRole.message.textContent = "No scores found per CER role for selected period.";
+                reportSections.qualityScorePerRole.message.classList.remove('hidden');
+                reportSections.qualityScorePerRole.table.classList.add('hidden');
+            } else {
+                for (const role in roleScores) {
+                    const avg = roleScores[role].count > 0 ? (roleScores[role].sum / roleScores[role].count).toFixed(0) : 0;
+                    const row = reportSections.qualityScorePerRole.tableBody.insertRow();
+                    row.insertCell().textContent = role;
+                    row.insertCell().textContent = `${avg}%`;
+                }
+                reportSections.qualityScorePerRole.message.classList.add('hidden');
+                reportSections.qualityScorePerRole.table.classList.remove('hidden');
             }
-            qualityScorePerRoleMessage.classList.add('hidden');
-            qualityScorePerRoleTable.classList.remove('hidden');
+            createOrUpdateChart('qualityScorePerRole', 'bar', labels, data, 'Average Quality Score Per CER Role', 'CER Role', 'Average Score (%)', 'rgba(76, 175, 80, 0.7)'); // Greenish color
         }
 
         function renderAutofailsPerCERNameReport(records) {
-            autofailsPerCERNameTableBody.innerHTML = '';
+            reportSections.autofailsPerCERName.tableBody.innerHTML = '';
             const cerNameAutofailCounts = {};
 
             records.forEach(record => {
                 const cerName = record['CER Name'] || 'N/A';
-                if (record['Final Score'] === '0%') {
+                if (record['Auto Fail Type'] && record['Auto Fail Type'].trim() !== '') { // Check for any autofail type
                     cerNameAutofailCounts[cerName] = (cerNameAutofailCounts[cerName] || 0) + 1;
                 }
             });
 
-            if (Object.keys(cerNameAutofailCounts).length === 0) {
-                autofailsPerCERNameMessage.textContent = "No autofails found per CER name for selected period.";
-                autofailsPerCERNameMessage.classList.remove('hidden');
-                autofailsPerCERNameTable.classList.add('hidden');
-                return;
-            }
+            const labels = Object.keys(cerNameAutofailCounts);
+            const data = Object.values(cerNameAutofailCounts);
 
-            for (const name in cerNameAutofailCounts) {
-                const row = autofailsPerCERNameTableBody.insertRow();
-                row.insertCell().textContent = name;
-                row.insertCell().textContent = cerNameAutofailCounts[name];
+            if (labels.length === 0) {
+                reportSections.autofailsPerCERName.message.textContent = "No autofails found per CER name for selected period.";
+                reportSections.autofailsPerCERName.message.classList.remove('hidden');
+                reportSections.autofailsPerCERName.table.classList.add('hidden');
+            } else {
+                for (const name in cerNameAutofailCounts) {
+                    const row = reportSections.autofailsPerCERName.tableBody.insertRow();
+                    row.insertCell().textContent = name;
+                    row.insertCell().textContent = cerNameAutofailCounts[name];
+                }
+                reportSections.autofailsPerCERName.message.classList.add('hidden');
+                reportSections.autofailsPerCERName.table.classList.remove('hidden');
             }
-            autofailsPerCERNameMessage.classList.add('hidden');
-            autofailsPerCERNameTable.classList.remove('hidden');
+            createOrUpdateChart('autofailsPerCERName', 'bar', labels, data, 'Autofails Per CER Name', 'CER Name', 'Autofail Count', 'rgba(239, 68, 68, 0.7)'); // Reddish color
         }
 
         function renderAuditsPerCERNameReport(records) {
-            auditsPerCERNameTableBody.innerHTML = '';
+            reportSections.auditsPerCERName.tableBody.innerHTML = '';
             const cerNameAuditCounts = {};
 
             records.forEach(record => {
@@ -801,31 +968,34 @@
                 cerNameAuditCounts[cerName] = (cerNameAuditCounts[cerName] || 0) + 1;
             });
 
-            if (Object.keys(cerNameAuditCounts).length === 0) {
-                auditsPerCERNameMessage.textContent = "No audits found per CER name for selected period.";
-                auditsPerCERNameMessage.classList.remove('hidden');
-                auditsPerCERNameTable.classList.add('hidden');
-                return;
-            }
+            const labels = Object.keys(cerNameAuditCounts);
+            const data = Object.values(cerNameAuditCounts);
 
-            for (const name in cerNameAuditCounts) {
-                const row = auditsPerCERNameTableBody.insertRow();
-                row.insertCell().textContent = name;
-                row.insertCell().textContent = cerNameAuditCounts[name];
+            if (labels.length === 0) {
+                reportSections.auditsPerCERName.message.textContent = "No audits found per CER name for selected period.";
+                reportSections.auditsPerCERName.message.classList.remove('hidden');
+                reportSections.auditsPerCERName.table.classList.add('hidden');
+            } else {
+                for (const name in cerNameAuditCounts) {
+                    const row = reportSections.auditsPerCERName.tableBody.insertRow();
+                    row.insertCell().textContent = name;
+                    row.insertCell().textContent = cerNameAuditCounts[name];
+                }
+                reportSections.auditsPerCERName.message.classList.add('hidden');
+                reportSections.auditsPerCERName.table.classList.remove('hidden');
             }
-            auditsPerCERNameMessage.classList.add('hidden');
-            auditsPerCERNameTable.classList.remove('hidden');
+            createOrUpdateChart('auditsPerCERName', 'bar', labels, data, 'Audits Per CER Name', 'CER Name', 'Number of Audits', 'rgba(59, 130, 246, 0.7)'); // Blue
         }
 
         function renderAverageQAScoreReport(records) {
-            averageQAScoreTableBody.innerHTML = '';
+            reportSections.averageQAScore.tableBody.innerHTML = '';
             const cerNameScores = {}; // { 'Name': { sum: 0, count: 0 } }
 
             records.forEach(record => {
                 const cerName = record['CER Name'] || 'N/A';
                 const score = parseScore(record['Overall Score']);
 
-                if (!isNaN(score)) {
+                if (!isNaN(score) && record['Overall Score'] && record['Overall Score'].trim() !== '') {
                     if (!cerNameScores[cerName]) {
                         cerNameScores[cerName] = { sum: 0, count: 0 };
                     }
@@ -834,48 +1004,55 @@
                 }
             });
 
-            if (Object.keys(cerNameScores).length === 0) {
-                averageQAScoreMessage.textContent = "No scores found per CER name for selected period.";
-                averageQAScoreMessage.classList.remove('hidden');
-                averageQAScoreTable.classList.add('hidden');
-                return;
-            }
+            const labels = Object.keys(cerNameScores);
+            const data = labels.map(name => cerNameScores[name].count > 0 ? (cerNameScores[name].sum / cerNameScores[name].count).toFixed(0) : 0);
 
-            for (const name in cerNameScores) {
-                const avg = cerNameScores[name].count > 0 ? (cerNameScores[name].sum / cerNameScores[name].count).toFixed(0) : 0;
-                const row = averageQAScoreTableBody.insertRow();
-                row.insertCell().textContent = name;
-                row.insertCell().textContent = `${avg}%`;
+            if (labels.length === 0) {
+                reportSections.averageQAScore.message.textContent = "No scores found per CER name for selected period.";
+                reportSections.averageQAScore.message.classList.remove('hidden');
+                reportSections.averageQAScore.table.classList.add('hidden');
+            } else {
+                for (const name in cerNameScores) {
+                    const avg = cerNameScores[name].count > 0 ? (cerNameScores[name].sum / cerNameScores[name].count).toFixed(0) : 0;
+                    const row = reportSections.averageQAScore.tableBody.insertRow();
+                    row.insertCell().textContent = name;
+                    row.insertCell().textContent = `${avg}%`;
+                }
+                reportSections.averageQAScore.message.classList.add('hidden');
+                reportSections.averageQAScore.table.classList.remove('hidden');
             }
-            averageQAScoreMessage.classList.add('hidden');
-            averageQAScoreTable.classList.remove('hidden');
+            createOrUpdateChart('averageQAScore', 'bar', labels, data, 'Average QA Score Per CER Name', 'CER Name', 'Average Score (%)', 'rgba(139, 92, 246, 0.7)'); // Purple-ish
         }
 
         function renderAutofailsPerAreaReport(records) {
-            autofailsPerAreaTableBody.innerHTML = '';
+            reportSections.autofailsPerArea.tableBody.innerHTML = '';
             const autofailAreaCounts = {};
 
             records.forEach(record => {
-                const autofailType = record['Auto Fail Type'] || 'N/A'; // Assuming 'Auto Fail Type' holds the area
-                if (record['Final Score'] === '0%') { // Only count if it's an actual autofail
+                // Ensure 'Auto Fail Type' is a non-empty string for it to be considered an autofail area
+                const autofailType = (record['Auto Fail Type'] && record['Auto Fail Type'].trim() !== '') ? record['Auto Fail Type'] : 'N/A (No Type)';
+                if (autofailType !== 'N/A (No Type)') { // Only count if a valid autofail type exists
                     autofailAreaCounts[autofailType] = (autofailAreaCounts[autofailType] || 0) + 1;
                 }
             });
 
-            if (Object.keys(autofailAreaCounts).length === 0) {
-                autofailsPerAreaMessage.textContent = "No autofails found per area for selected period.";
-                autofailsPerAreaMessage.classList.remove('hidden');
-                autofailsPerAreaTable.classList.add('hidden');
-                return;
-            }
+            const labels = Object.keys(autofailAreaCounts);
+            const data = Object.values(autofailAreaCounts);
 
-            for (const area in autofailAreaCounts) {
-                const row = autofailsPerAreaTableBody.insertRow();
-                row.insertCell().textContent = area;
-                row.insertCell().textContent = autofailAreaCounts[area];
+            if (labels.length === 0) {
+                reportSections.autofailsPerArea.message.textContent = "No autofails found per area for selected period.";
+                reportSections.autofailsPerArea.message.classList.remove('hidden');
+                reportSections.autofailAreaTable.classList.add('hidden');
+            } else {
+                for (const area in autofailAreaCounts) {
+                    const row = reportSections.autofailsPerArea.tableBody.insertRow();
+                    row.insertCell().textContent = area;
+                    row.insertCell().textContent = autofailAreaCounts[area];
+                }
+                reportSections.autofailsPerArea.message.classList.add('hidden');
+                reportSections.autofailsPerArea.table.classList.remove('hidden');
             }
-            autofailsPerAreaMessage.classList.add('hidden');
-            autofailsPerAreaTable.classList.remove('hidden');
+            createOrUpdateChart('autofailsPerArea', 'bar', labels, data, 'Autofails Per Autofail Area', 'Autofail Area', 'Autofail Count', 'rgba(251, 191, 36, 0.7)'); // Yellow/Amber
         }
 
 
@@ -888,27 +1065,20 @@
             // Show reports content (it's hidden by default via CSS)
             reportsContent.style.display = 'block';
 
-            // Show initial messages for all report sections
-            autofailsOverviewMessage.classList.remove('hidden'); 
-            autofailsOverviewTable.classList.add('hidden');
-            autofailsPerRoleMessage.classList.remove('hidden');
-            autofailsPerRoleTable.classList.add('hidden');
-            qualityScorePerRoleMessage.classList.remove('hidden');
-            qualityScorePerRoleTable.classList.add('hidden');
-            autofailsPerCERNameMessage.classList.remove('hidden');
-            autofailsPerCERNameTable.classList.add('hidden');
-            auditsPerCERNameMessage.classList.remove('hidden');
-            auditsPerCERNameTable.classList.add('hidden');
-            averageQAScoreMessage.classList.remove('hidden');
-            averageQAScoreTable.classList.add('hidden');
-            autofailsPerAreaMessage.classList.remove('hidden');
-            autofailsPerAreaTable.classList.add('hidden');
-            auditsPerAgentMessage.classList.remove('hidden');
-            auditsPerAgentTable.classList.add('hidden'); // Ensure agent table is also initially hidden
+            // Show initial messages for all report sections and hide tables/charts
+            Object.values(reportSections).forEach(section => {
+                section.message.classList.remove('hidden');
+                section.table.classList.add('hidden');
+                section.spinner.classList.add('hidden'); // Initially hide spinner
+                if (section.chartCanvas) section.chartCanvas.classList.add('hidden');
+                if (section.chartMessage) section.chartMessage.classList.remove('hidden');
+            });
         }
 
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("Reports DOM fully loaded and parsed.");
+
             // Authenticate (re-used from index.html logic)
             const isLoggedIn = sessionStorage.getItem('loggedIn');
             if (isLoggedIn === 'true') {
