@@ -555,26 +555,25 @@
                 </table>
             </div>
         </div>
-
-        <div class="p-6 mt-8">
-            <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
-                <i class="fas fa-chart-line tile-icon"></i> This Month Evaluation Statistics
-            </div>
-            <div id="monthlyStatsContainer" class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-200 rounded-md">
-                    <thead>
-                        <tr id="monthlyStatsHeader" class="bg-gray-100">
-                            </tr>
-                    </thead>
-                    <tbody id="monthlyStatsTableBody">
-                        <tr>
-                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading monthly statistics...</td>
+    </div> <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="monthlyStatsContainer">
+        <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
+            <i class="fas fa-chart-line tile-icon"></i> This Month Evaluation Statistics
+        </div>
+        <div class="p-6 overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-200 rounded-md">
+                <thead>
+                    <tr id="monthlyStatsHeader" class="bg-gray-100">
                         </tr>
-                    </tbody>
-                </table>
-            </div>
+                </thead>
+                <tbody id="monthlyStatsTableBody">
+                    <tr>
+                        <td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading monthly statistics...</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
+
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
@@ -1015,6 +1014,7 @@
             const databaseTab = document.getElementById('databaseTab');
             const evaluationFormContent = document.getElementById('evaluationFormContent');
             const databaseContent = document.getElementById('databaseContent');
+            const monthlyStatsContainer = document.getElementById('monthlyStatsContainer'); // Get the monthly stats container
 
             console.log("showTab called with:", tabName);
 
@@ -1023,16 +1023,18 @@
 
             evaluationFormContent.style.display = 'none';
             databaseContent.style.display = 'none';
+            monthlyStatsContainer.style.display = 'none'; // Hide monthly stats by default
 
             if (tabName === 'evaluationForm') {
                 evaluationFormTab.classList.add('active');
                 evaluationFormContent.style.display = 'block';
+                monthlyStatsContainer.style.display = 'block'; // Show monthly stats when evaluation form is active
+                fetchAndRenderMonthlyStats(); // Refresh stats when switching to this tab
             } else if (tabName === 'database') {
                 databaseTab.classList.add('active');
                 databaseContent.style.display = 'block';
                 if (window.db && window.currentUserId) {
                     fetchRecordsAndWebhooks();
-                    fetchAndRenderMonthlyStats(); // Also refresh monthly stats when database tab is viewed
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
@@ -1212,6 +1214,7 @@
                 showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
                     window.resetForm();
                     sendDataToWebhooks(recordData);
+                    fetchAndRenderMonthlyStats(); // Refresh monthly stats after submission
                 });
                 return true;
             } catch (e) {
@@ -1252,12 +1255,15 @@
                 return; // User cancelled
             }
 
+
             showMessageBox("Deleting", "Deleting selected records...", false, true, false);
             try {
                 const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, id)));
                 await Promise.all(deletePromises);
                 console.log("Selected records deleted successfully.");
-                showMessageBox("Success", "Selected records deleted.", false, false, true);
+                showMessageBox("Success", "Selected records deleted.", false, false, true, () => {
+                    fetchAndRenderMonthlyStats(); // Refresh monthly stats after deletion
+                });
                 selectAllRecordsCheckbox.checked = false;
                 updateDeleteButtonState();
             } catch (e) {
@@ -1996,7 +2002,10 @@
          */
         async function fetchAndRenderMonthlyStats() {
             const monthlyStatsTableBody = document.getElementById('monthlyStatsTableBody');
-            monthlyStatsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading monthly statistics...</td></tr>'; // Reset message
+            if (monthlyStatsTableBody) {
+                monthlyStatsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading monthly statistics...</td></tr>'; // Reset message
+            }
+
 
             if (!dynamicDropdownOptions.cerNames || !dynamicDropdownOptions.cerRoles) {
                 console.warn("CER Names or Roles not yet loaded for monthly stats. Retrying...");
@@ -2073,14 +2082,37 @@
                 const cerName = record['CER Name'];
                 const cerRole = record['CER Role'];
 
-                if (cerName && cerRole && dataMatrix[cerName] && dataMatrix[cerName][cerRole] !== undefined) {
-                    dataMatrix[cerName][cerRole]++;
+                // Ensure the CER Name and Role exist in our initialized matrix
+                if (dataMatrix[cerName]) {
+                    if (dataMatrix[cerName][cerRole] !== undefined) {
+                        dataMatrix[cerName][cerRole]++;
+                    } else {
+                        // If a role exists in data but not in dropdowns, add it dynamically
+                        dataMatrix[cerName][cerRole] = 1;
+                        // Also add it to cerRoles if it's new, so it appears as a column
+                        if (!cerRoles.includes(cerRole)) {
+                            cerRoles.push(cerRole);
+                        }
+                    }
                     dataMatrix[cerName]['Total']++; // Increment total for the CER Name
+                } else {
+                    // If a CER Name exists in data but not in dropdowns, add it dynamically
+                    dataMatrix[cerName] = {};
+                    cerRoles.forEach(role => {
+                        dataMatrix[cerName][role] = 0;
+                    });
+                    dataMatrix[cerName][cerRole] = 1;
+                    dataMatrix[cerName]['Total'] = 1;
+                    cerNames.push(cerName); // Add to cerNames so it gets rendered
                 }
             });
 
+            // Re-sort cerRoles and cerNames in case new ones were added dynamically
+            cerRoles.sort();
+            cerNames.sort();
+
             const columnHeaders = ['CER Name', ...cerRoles, 'Total']; // Ensure 'Total' is the last column
-            const rowLabels = cerNames.sort(); // Sort CER Names alphabetically for consistent display
+            const rowLabels = cerNames; // Already sorted
 
             return { rowLabels, columnHeaders, dataMatrix };
         }
@@ -2129,17 +2161,17 @@
                 nameCell.className = 'py-2 px-4 text-left';
                 nameCell.textContent = cerName;
 
-                // Role-wise counts (aligned center)
-                data.columnHeaders.slice(1, -1).forEach(role => { // Exclude 'CER Name' and 'Total'
+                // Role-wise counts (aligned center) - Iterate through all roles from `data.columnHeaders` excluding first and last
+                data.columnHeaders.slice(1, -1).forEach(role => {
                     const countCell = row.insertCell();
                     countCell.className = 'py-2 px-4 text-center';
-                    countCell.textContent = data.dataMatrix[cerName][role] || 0;
+                    countCell.textContent = (data.dataMatrix[cerName] && data.dataMatrix[cerName][role] !== undefined) ? data.dataMatrix[cerName][role] : 0;
                 });
 
                 // Total column with conditional coloring (aligned center)
                 const totalCell = row.insertCell();
                 totalCell.className = 'py-2 px-4 text-center';
-                const totalCount = data.dataMatrix[cerName]['Total'];
+                const totalCount = (data.dataMatrix[cerName] && data.dataMatrix[cerName]['Total'] !== undefined) ? data.dataMatrix[cerName]['Total'] : 0;
                 totalCell.textContent = totalCount;
 
                 if (totalCount < MIN_EVALUATIONS_FOR_GREEN) {
@@ -2157,6 +2189,7 @@
             const mainNav = document.getElementById('mainNav');
             const evaluationFormContent = document.getElementById('evaluationFormContent');
             const databaseContent = document.getElementById('databaseContent');
+            const monthlyStatsContainer = document.getElementById('monthlyStatsContainer'); // Get the monthly stats container
             const adminTabNav = document.getElementById('adminTabNav');
 
             console.log("Initializing main application.");
@@ -2171,6 +2204,7 @@
             mainNav.style.display = 'flex';
             evaluationFormContent.style.display = 'block'; // Default to evaluation form
             databaseContent.style.display = 'none';
+            monthlyStatsContainer.style.display = 'block'; // Show monthly stats by default with evaluation form
 
             const userRole = window.currentUserRole;
             const evaluationFormTab = document.getElementById('evaluationFormTab');
@@ -2240,6 +2274,7 @@
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
 
+
             const logoutBtn = document.getElementById('logoutBtn');
 
             const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
@@ -2291,9 +2326,8 @@
                     e.preventDefault();
                     console.log("Database Tab CLICKED!");
                     showTab('database');
-                    if (window.db && window.currentUserId) {
-                        fetchAndRenderMonthlyStats(); // Refresh monthly stats when database tab is viewed
-                    }
+                    // Monthly stats won't be visible on the database tab, no need to explicitly fetch here
+                    // fetchAndRenderMonthlyStats(); // Removed as it's for evaluation form tab
                 });
             } else {
                 console.error("Database Tab element not found!");
@@ -2468,18 +2502,19 @@
                 }
 
                 const auditFormContent = document.getElementById('evaluationFormContent');
-                if (!auditFormContent) {
-                    console.error('Error: Form container not found for PDF generation.');
-                    showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
+                const monthlyStatsContainer = document.getElementById('monthlyStatsContainer'); // Get the monthly stats container
+                if (!auditFormContent || !monthlyStatsContainer) {
+                    console.error('Error: Required containers not found for PDF generation.');
+                    showMessageBox("Error", "Could not find all content to generate PDF. Please try again.", true, false, true);
                     return;
                 }
 
                 const mainNav = document.getElementById('mainNav');
                 const printEmailBtn = document.getElementById('print-email-btn');
                 const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-                const monthlyStatsContainer = document.getElementById('monthlyStatsContainer'); // NEW: Get reference to the monthly stats table container
 
                 // --- PDF CAPTURE PREPARATION: Replace inputs/selects with static text for capture ---
+                // This section now applies to evaluationFormContent only, as monthlyStatsContainer has no inputs
                 const elementsToReplace = document.querySelectorAll('#evaluationFormContent input, #evaluationFormContent select, #evaluationFormContent textarea');
                 tempPdfDisplayElements = []; // Reset array for current capture
 
@@ -2540,8 +2575,8 @@
                     originalElement.style.display = 'none'; // Hide the original input
                 });
 
-                // Hide other UI elements not meant for PDF
-                const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn, monthlyStatsContainer]; // ADDED: monthlyStatsContainer
+                // Temporarily hide elements not meant for PDF capture, including the main nav and buttons
+                const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
                 const originalDisplays = [];
                 elementsToHide.forEach(el => {
                     if (el) {
@@ -2550,7 +2585,7 @@
                     }
                 });
 
-                // Now, make the temporary display elements visible
+                // Make the temporary display elements visible
                 tempPdfDisplayElements.forEach(item => {
                     item.display.style.display = 'block';
                 });
@@ -2558,43 +2593,65 @@
                 console.log("Elements prepared for PDF capture.");
 
                 try {
-                    const canvas = await html2canvas(auditFormContent, {
-                        scale: 2, // Higher scale for better resolution in PDF
+                    // Capture Evaluation Form content
+                    const formCanvas = await html2canvas(auditFormContent, {
+                        scale: 2,
                         useCORS: true,
                         logging: false
                     });
-                    console.log("html2canvas capture complete.");
+                    const formImgData = formCanvas.toDataURL('image/jpeg', 0.9);
 
-                    const imgData = canvas.toDataURL('image/jpeg', 0.9); // Higher quality JPEG
+                    // Capture Monthly Stats content
+                    const statsCanvas = await html2canvas(monthlyStatsContainer, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false
+                    });
+                    const statsImgData = statsCanvas.toDataURL('image/jpeg', 0.9);
+
                     const imgWidth = 210; // A4 width in mm
                     const pageHeight = 297; // A4 height in mm
-                    const imgHeight = canvas.height * imgWidth / canvas.width;
-                    let heightLeft = imgHeight;
 
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF('p', 'mm', 'a4');
-                    console.log("jsPDF initialized.");
 
-                    let position = 0;
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                    heightLeft -= pageHeight;
+                    // Add Evaluation Form to PDF
+                    const formImgHeight = formCanvas.height * imgWidth / formCanvas.width;
+                    let formHeightLeft = formImgHeight;
+                    let formPosition = 0;
 
-                    while (heightLeft > -1) {
-                        position = heightLeft - imgHeight;
+                    pdf.addImage(formImgData, 'JPEG', 0, formPosition, imgWidth, formImgHeight, undefined, 'FAST');
+                    formHeightLeft -= pageHeight;
+
+                    while (formHeightLeft > -1) {
+                        formPosition = formHeightLeft - formImgHeight;
                         pdf.addPage();
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                        heightLeft -= pageHeight;
+                        pdf.addImage(formImgData, 'JPEG', 0, formPosition, imgWidth, formImgHeight, undefined, 'FAST');
+                        formHeightLeft -= pageHeight;
                     }
+
+                    // Add Monthly Stats to PDF (on a new page)
+                    pdf.addPage(); // Start the statistics on a new page
+                    const statsImgHeight = statsCanvas.height * imgWidth / statsCanvas.width;
+                    let statsHeightLeft = statsImgHeight;
+                    let statsPosition = 0;
+
+                    pdf.addImage(statsImgData, 'JPEG', 0, statsPosition, imgWidth, statsImgHeight, undefined, 'FAST');
+                    statsHeightLeft -= pageHeight;
+
+                    while (statsHeightLeft > -1) {
+                        statsPosition = statsHeightLeft - statsImgHeight;
+                        pdf.addPage();
+                        pdf.addImage(statsImgData, 'JPEG', 0, statsPosition, imgWidth, statsImgHeight, undefined, 'FAST');
+                        statsHeightLeft -= pageHeight;
+                    }
+
                     console.log("PDF images added.");
 
-                    // Use the actual input values for the filename and email body (these are from the live DOM, not the temporary elements)
                     const contactIdInput = document.getElementById('contact-id');
                     const cerNameSelect = document.getElementById('cer-name');
                     const evaluationDateInput = document.getElementById('review-date');
-                    const reviewerNameSelect = document.getElementById('reviewer-name');
-                    const otherReviewerNameInput = document.getElementById('other-reviewer-name');
                     const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
-
 
                     const contactIdForPdf = contactIdInput.value || 'N/A';
                     const cerNameForPdf = cerNameSelect.value || 'N/A';
