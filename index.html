@@ -535,18 +535,14 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        // Import orderBy and limit for querying, and getDoc, FieldValue, arrayUnion/arrayRemove
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-analytics.js"; // Optional: Uncomment if you need Analytics
 
-        // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
           apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
           authDomain: "icea-lion-qa.firebaseapp.com",
           projectId: "icea-lion-qa",
           storageBucket: "icea-lion-qa.firebasestorage.app",
           messagingSenderId: "820082472004",
-          // IMPORTANT: Updated appId to match the one from admin.html and recent console logs.
           appId: "1:820082472004:web:8caddf941e1b5b661d76c94e", 
           measurementId: "G-1RJJTT3QET"
         };
@@ -558,7 +554,6 @@
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
         
-        // Expose ALL necessary Firestore functions globally
         window.fsCollection = collection;
         window.fsOnSnapshot = onSnapshot;
         window.fsAddDoc = addDoc;
@@ -577,7 +572,6 @@
         window.currentUserRole = null; 
         window.isAuthReady = false;
 
-        // NEW: Function to check and handle session timeout
         window.checkSessionTimeout = function() {
             const lastActivity = localStorage.getItem('lastActivity');
             const loginTime = localStorage.getItem('loginTime'); 
@@ -597,12 +591,10 @@
         };
 
 
-        // Update last activity on user interaction
         window.updateLastActivity = function() {
             localStorage.setItem('lastActivity', new Date().getTime().toString());
         };
 
-        // Listen for user activity
         document.addEventListener('mousemove', window.updateLastActivity);
         document.addEventListener('keydown', window.updateLastActivity);
         document.addEventListener('click', window.updateLastActivity);
@@ -642,11 +634,9 @@
             document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
         });
 
-        // Define collection paths here, where appId is definitively available
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`; 
         window.USERS_COLLECTION_PATH = `artifacts/${appId}/users`; 
-        // NEW: Collection path for dropdown options
         window.DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
         
     </script>
@@ -654,7 +644,7 @@
         // --- GLOBAL DATA STORES ---
         let allRecords = []; 
         let allWebhooks = []; 
-        let dynamicDropdownOptions = {}; // NEW: Store fetched dynamic dropdown options
+        let dynamicDropdownOptions = {}; 
 
         window.unsubscribeRecords = null; 
         window.unsubscribeWebhooks = null; 
@@ -665,8 +655,6 @@
         let globalBusinessComplianceAccuracyValue = 0;
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
-        // This object holds all the dynamic questions and their properties for each CER Role.
-        // It's placed here at the top-level of the script.
         const allRolesQuestions = {
             '': { 'CUSTOMER EXPERIENCE': [], 'PROBLEM SOLVING SKILLS': [], 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [] },
             'Outbound Sales': {
@@ -877,7 +865,6 @@
 
         // --- Message Box Functions ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-            // Get elements inside the function to ensure DOM is loaded
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
             const messageBoxTitle = document.getElementById('messageBoxTitle');
@@ -885,7 +872,6 @@
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
 
             messageBoxTitle.textContent = title;
-            // For detailed views, allow content to be HTML or preformatted text
             if (typeof message === 'string' && message.startsWith('<pre>')) {
                 messageBoxContent.innerHTML = message;
                 messageBoxContent.classList.add('message-box-content-pre');
@@ -899,9 +885,9 @@
             messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
 
             if (isError) {
-                messageBoxTitle.style.color = '#dc2626'; // Red for error
+                messageBoxTitle.style.color = '#dc2626'; 
             } else {
-                messageBoxTitle.style.color = '#1a73e8'; // Blue for info/success
+                messageBoxTitle.style.color = '#1a73e8'; 
             }
 
             messageBoxCloseBtn.onclick = () => {
@@ -924,22 +910,18 @@
 
             console.log("showTab called with:", tabName); 
 
-            // Deactivate all tabs
             evaluationFormTab.classList.remove('active'); 
             databaseTab.classList.remove('active');
 
-            // Hide all content sections
             evaluationFormContent.style.display = 'none'; 
             databaseContent.style.display = 'none';
 
-            // Activate selected tab and show its content
             if (tabName === 'evaluationForm') { 
                 evaluationFormTab.classList.add('active'); 
                 evaluationFormContent.style.display = 'block'; 
             } else if (tabName === 'database') {
                 databaseTab.classList.add('active');
                 databaseContent.style.display = 'block';
-                // Trigger database table refresh when switching to it
                 if (window.db && window.currentUserId) { 
                     fetchRecordsAndWebhooks(); 
                 } else {
@@ -1301,7 +1283,7 @@
         }
 
         /**
-         * NEW: Displays full details of a selected record in a modal.
+         * Displays full details of a selected record in a modal.
          */
         function viewRecordDetails(recordId) {
             const record = allRecords.find(r => r.id === recordId);
@@ -1310,7 +1292,7 @@
                 return;
             }
 
-            let detailsHtml = '<pre>'; // Use pre for formatting
+            let detailsHtml = '<pre>'; 
             for (const key in record) {
                 if (record.hasOwnProperty(key)) {
                     let value = record[key];
@@ -1326,7 +1308,7 @@
         }
 
         /**
-         * NEW: Sends the selected record's summary via email.
+         * Sends the selected record's summary via email.
          */
         function sendRecordEmail(recordId) {
             const record = allRecords.find(r => r.id === recordId);
@@ -1340,7 +1322,6 @@
             const overallScore = record['Overall Score'] || 'N/A';
             const evaluationDate = record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'N/A';
 
-            // Custom Subject and Body as requested
             const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
                                  `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
@@ -1354,7 +1335,6 @@
 
             const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-            // Attempt to open email client
             try {
                 window.location.href = mailtoLink;
                 showMessageBox("Email Prepared", "Your email client should open shortly. Please review and send the email.", false, false, true);
@@ -1365,7 +1345,7 @@
         }
 
         /**
-         * NEW: Downloads the selected record's data as a JSON file.
+         * Downloads the selected record's data as a JSON file.
          */
         function downloadRecordData(recordId) {
             const record = allRecords.find(r => r.id === recordId);
@@ -1375,17 +1355,17 @@
             }
 
             const filename = `record_${record.id}_${record['Contact ID'] || 'unknown'}.json`;
-            const dataStr = JSON.stringify(record, null, 2); // Pretty print JSON
+            const dataStr = JSON.stringify(record, null, 2); 
 
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
-            document.body.appendChild(a); // Append to trigger download
-            a.click(); // Programmatically click the link
-            document.body.removeChild(a); // Clean up
-            URL.revokeObjectURL(url); // Release the object URL
+            document.body.appendChild(a); 
+            a.click(); 
+            document.body.removeChild(a); 
+            URL.revokeObjectURL(url); 
 
             showMessageBox("Download Complete", `Record '${filename}' downloaded successfully.`, false, false, true);
         }
@@ -1494,53 +1474,95 @@
 
         };
 
-        // Audit Form Initialization and Reset
-        function initializeEvaluationForm() { 
-            const evaluationDateInput = document.getElementById('review-date');
-            const callDateTimeInput = document.getElementById('call-date-time');
-            const cerRoleSelect = document.getElementById('cer-role');
-            const cerNameSelect = document.getElementById('cer-name'); 
-            const autofailTypeSelect = document.getElementById('autofail-type');
-            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
-            const autofailDescriptionInput = document.getElementById('autofail-description');
-
-
-            evaluationDateInput.valueAsDate = new Date();
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            callDateTimeInput.value = now.toISOString().slice(0,16);
-
-            // Set initial value for dynamically populated dropdowns to "Loading..."
-            cerNameSelect.innerHTML = '<option value="">Loading CER Names...</option>';
-            cerRoleSelect.innerHTML = '<option value="">Loading CER Roles...</option>';
-            document.getElementById('reviewer-name').innerHTML = '<option value="">Loading Reviewer Names...</option>';
-            autofailTypeSelect.innerHTML = '<option value="">Loading Autofail Types...</option>';
-
-
-            autofailDescriptionContainer.classList.add('hidden'); 
-            autofailDescriptionInput.value = ''; 
-            autofailDescriptionInput.removeAttribute('required'); 
-
-            document.getElementById('reviewer-name').value = '';
-            document.getElementById('other-reviewer-name').classList.add('hidden');
-            document.getElementById('other-reviewer-name').value = '';
-            document.getElementById('other-reviewer-name').removeAttribute('required');
-            document.getElementById('other-reviewer-name').style.borderColor = '';
-
-            const requiredInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
-            requiredInputs.forEach(input => {
-                input.style.borderColor = '';
-            });
-
-            // Re-populate dropdowns from `dynamicDropdownOptions`
-            populateDropdownsFromCache(); 
+        // Dynamic Question Rendering (moved to top-level to ensure availability)
+        window.renderQuestionsForRole = function(role) {
+            const cerRoleSelect = document.getElementById('cer-role'); 
+            const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
+            const psQuestionsContainer = document.getElementById('psQuestionsContainer');
+            const caQuestionsContainer = document.getElementById('caQuestionsContainer');
             
-            renderQuestionsForRole('');
-            calculateScore();
-            document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
-        }
+            const questionContainers = { 
+                'CUSTOMER EXPERIENCE': cxQuestionsContainer,
+                'PROBLEM SOLVING SKILLS': psQuestionsContainer,
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
+            };
 
-        function resetFormFieldsButKeepRole() {
+            console.log("Rendering questions for role:", role);
+
+            for (const key in questionContainers) {
+                if (questionContainers[key]) { 
+                    questionContainers[key].innerHTML = '';
+                }
+            }
+
+            const roleQuestions = allRolesQuestions[role];
+
+            if (!roleQuestions) {
+                console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
+                calculateScore();
+                return;
+            }
+
+            let questionNumber = 1;
+
+            for (const sectionTitle in roleQuestions) {
+                const questions = roleQuestions[sectionTitle];
+                const container = questionContainers[sectionTitle];
+
+                if (!container) {
+                    console.error(`Container not found for section: ${sectionTitle}`);
+                    continue;
+                }
+
+                questions.forEach(q => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
+
+                    let iconColorClass;
+                    const iconIndex = (questionNumber - 1) % 4;
+                    if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
+                    else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
+                    else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
+                    else iconColorClass = 'icon-bg-yellow'; 
+
+                    const requiredAttribute = q.autofail ? '' : (q.required ? 'required' : '');
+                    const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
+
+
+                    rowDiv.innerHTML = `
+                        <div class="col-span-6 flex items-center gap-2">
+                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
+                            ${q.desc}
+                        </div>
+                        <div class="col-span-2">
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${requiredAttribute} ${hasNAAttribute}>
+                                <option value="" >None</option>
+                                <option value="Yes" selected>Yes</option>
+                                <option value="No">No</option>
+                                ${q.hasNA ? '<option value="N/A">N/A</option>' : ''}
+                            </select>
+                        </div>
+                        <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
+                        <div class="col-span-1 text-center">
+                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
+                        </div>
+                        <div class="col-span-2">
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea"></textarea>
+                        </div>
+                    `;
+                    container.appendChild(rowDiv);
+
+                    const newSelect = rowDiv.querySelector('.rating-select');
+                    if (newSelect) {
+                        newSelect.addEventListener('change', calculateScore);
+                    }
+                    questionNumber++;
+                });
+            }
+            calculateScore();
+        }; // Exposed globally
+
+        window.resetFormFieldsButKeepRole = function() {
             const cerRoleSelect = document.getElementById('cer-role'); 
 
             console.log("Resetting question fields only.");
@@ -1567,7 +1589,102 @@
                 }
             });
             calculateScore();
+        }; // Exposed globally
+
+        // Audit Form Initialization and Reset
+        function initializeEvaluationForm() { 
+            const evaluationDateInput = document.getElementById('review-date');
+            const callDateTimeInput = document.getElementById('call-date-time');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const cerNameSelect = document.getElementById('cer-name'); 
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+
+
+            evaluationDateInput.valueAsDate = new Date();
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            callDateTimeInput.value = now.toISOString().slice(0,16);
+
+            cerNameSelect.innerHTML = '<option value="">Loading CER Names...</option>';
+            cerRoleSelect.innerHTML = '<option value="">Loading CER Roles...</option>';
+            document.getElementById('reviewer-name').innerHTML = '<option value="">Loading Reviewer Names...</option>';
+            autofailTypeSelect.innerHTML = '<option value="">Loading Autofail Types...</option>';
+
+
+            autofailDescriptionContainer.classList.add('hidden'); 
+            autofailDescriptionInput.value = ''; 
+            autofailDescriptionInput.removeAttribute('required'); 
+
+            document.getElementById('reviewer-name').value = '';
+            document.getElementById('other-reviewer-name').classList.add('hidden');
+            document.getElementById('other-reviewer-name').value = '';
+            document.getElementById('other-reviewer-name').removeAttribute('required');
+            document.getElementById('other-reviewer-name').style.borderColor = '';
+
+            const requiredInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
+            requiredInputs.forEach(input => {
+                input.style.borderColor = '';
+            });
+
+            populateDropdownsFromCache(); 
+            
+            window.renderQuestionsForRole(''); // Call globally exposed function
+            calculateScore();
+            document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
         }
+
+        function resetForm() {
+            const contactIdInput = document.getElementById('contact-id');
+            const clientNameInput = document.getElementById('client-name');
+            const cerNameSelect = document.getElementById('cer-name');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const callDateTimeInput = document.getElementById('call-date-time');
+            const evaluationDateInput = document.getElementById('review-date');
+            const durationInput = document.getElementById('duration');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+
+
+            console.log("Full form reset.");
+
+            contactIdInput.value = '';
+            clientNameInput.value = '';
+            cerNameSelect.value = ''; 
+            cerRoleSelect.value = '';
+
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            callDateTimeInput.value = now.toISOString().slice(0,16);
+            evaluationDateInput.valueAsDate = new Date();
+
+            durationInput.value = '';
+            autofailTypeSelect.value = '';
+
+            autofailDescriptionContainer.classList.add('hidden'); 
+            autofailDescriptionInput.value = ''; 
+            autofailDescriptionInput.removeAttribute('required'); 
+
+            reviewerNameSelect.value = '';
+            otherReviewerNameInput.classList.add('hidden');
+            otherReviewerNameInput.value = '';
+            otherReviewerNameInput.removeAttribute('required');
+            otherReviewerNameInput.style.borderColor = '';
+
+            const requiredInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
+            requiredInputs.forEach(input => {
+                input.style.borderColor = '';
+            });
+
+            window.renderQuestionsForRole(''); // Call globally exposed function
+            calculateScore();
+            document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
+        }
+
 
         // Function to validate all mandatory fields
         function validateAllMandatoryFields() {
@@ -1706,7 +1823,6 @@
                 return;
             }
             try {
-                // Fetch all dropdown documents
                 const querySnapshot = await window.getDocs(window.fsCollection(window.db, window.DROPDOWN_OPTIONS_COLLECTION_PATH));
                 querySnapshot.forEach(doc => {
                     if (doc.exists() && doc.data().options) {
@@ -1714,7 +1830,7 @@
                     }
                 });
                 console.log("All dynamic dropdown options fetched:", dynamicDropdownOptions);
-                populateDropdownsFromCache(); // Populate dropdowns once data is fetched
+                populateDropdownsFromCache(); 
             } catch (error) {
                 console.error("Error fetching all dropdown options:", error);
             }
@@ -1729,7 +1845,6 @@
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const autofailTypeSelect = document.getElementById('autofail-type');
 
-            // Helper to populate a single select element
             function populateSelect(selectElement, optionsArray, defaultText) {
                 selectElement.innerHTML = `<option value="">${defaultText}</option>`;
                 optionsArray.forEach(option => {
@@ -1753,14 +1868,12 @@
             }
 
             if (dynamicDropdownOptions.reviewerNames) {
-                // Ensure 'Other' is always an option even if not in DB for reviewer names
                 const reviewerOptions = [...dynamicDropdownOptions.reviewerNames];
                 if (!reviewerOptions.includes('Other')) {
                     reviewerOptions.push('Other');
                 }
                 populateSelect(reviewerNameSelect, reviewerOptions, 'Select Reviewer');
             } else {
-                // If no reviewer names are available from DB, at least provide 'Other'
                 populateSelect(reviewerNameSelect, ['Other'], 'Select Reviewer');
             }
 
@@ -1829,7 +1942,7 @@
             }
 
             initializeEvaluationForm(); 
-            fetchAllDropdownOptions(); // NEW: Fetch dropdown options on app init
+            fetchAllDropdownOptions(); 
         }
 
 
@@ -1988,8 +2101,8 @@
 
             cerRoleSelect.addEventListener('change', (event) => {
                 const selectedRole = event.target.value;
-                renderQuestionsForRole(selectedRole); 
-                resetFormFieldsButKeepRole(); 
+                window.renderQuestionsForRole(selectedRole); // Call globally exposed function
+                window.resetFormFieldsButKeepRole(); // Call globally exposed function
             });
 
             cerNameSelect.addEventListener('change', (event) => {
@@ -2149,7 +2262,6 @@
                     const overallScoreVal = overallFinalPercentageDisplay.textContent; 
                     const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
 
-                    // Custom Subject and Body as requested
                     const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
                     const body = `Dear ${cerNameVal},\n\n` +
                                          `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
@@ -2163,7 +2275,6 @@
 
                     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-                    // Attempt to open email client
                     try {
                         window.location.href = mailtoLink;
                         showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please attach the PDF manually and send the email.", false, false, true);
@@ -2183,8 +2294,6 @@
             });
 
 
-            // Initial trigger for app setup after DOM is ready
-            // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
                 let db = window.db; 
                 let auth = window.auth;
@@ -2195,7 +2304,7 @@
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
                 const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH; 
                 const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
-                
+
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
                 initializeApp(); 
 
@@ -2204,7 +2313,6 @@
                 }
             });
 
-            // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
             if (document.readyState === 'complete' && window.isAuthReady !== null) { 
                 let db = window.db; 
                 let auth = window.auth;
