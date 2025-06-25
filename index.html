@@ -55,6 +55,7 @@
         /* General input styling for consistency */
         .form-grid-input {
             padding: 8px; /* p-2 */
+            font-size: 0.75rem; /* Equivalent to 12px for form inputs */
         }
 
         /* Navigation styles */
@@ -260,6 +261,21 @@
             font-size: 0.875rem;
         }
 
+        /* Specific style for remarks textarea to allow wrapping */
+        .remarks-textarea {
+            white-space: pre-wrap; /* Allows text to wrap and preserves spaces/line breaks */
+            word-wrap: break-word; /* Breaks long words that don't fit */
+            overflow-wrap: break-word; /* Ensures long words break to prevent overflow */
+            resize: vertical; /* Allow vertical resizing only */
+            min-height: 24px; /* Adjust as needed */
+        }
+
+        /* Font size for input and select elements within the form */
+        .form-grid-input,
+        .rating-select,
+        .points-input {
+            font-size: 0.75rem; /* Corresponds to 12px */
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -272,7 +288,6 @@
         </div>
     </div>
 
-    <!-- Login is now handled by admin.html, this page assumes user is already logged in or will be redirected -->
     <div id="loginPage" style="display: none;"></div> 
 
     <nav class="main-nav" id="mainNav" style="display: none;">
@@ -333,12 +348,10 @@
                     <option value="">Loading Autofail Types...</option>
                 </select>
             </div>
-            <!-- NEW AUTOFAL DESCRIPTION FIELD -->
             <div id="autofailDescriptionContainer" class="hidden">
                 <label for="autofail-description" class="block text-sm font-medium text-gray-700">Autofail Description</label>
-                <textarea id="autofail-description" name="Autofail Description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" placeholder="Provide details about the autofail"></textarea>
+                <textarea id="autofail-description" name="Autofail Description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input remarks-textarea" placeholder="Provide details about the autofail"></textarea>
             </div>
-            <!-- END NEW AUTOFAL DESCRIPTION FIELD -->
             <div>
                 <label for="review-date" class="block text-sm font-medium text-gray-700">Evaluation Date</label>
                 <input type="date" id="review-date" name="Evaluation Date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
@@ -446,7 +459,6 @@
                 </div>
             </div>
 
-        <!-- NEW SECTION FOR LAST 3 EVALUATIONS - MOVED TO END -->
         <div class="p-6">
             <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
                 <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
@@ -470,8 +482,7 @@
                 </table>
             </div>
         </div>
-        <!-- END NEW SECTION -->
-    </div>
+        </div>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
@@ -498,7 +509,6 @@
                             <th>CER Name</th>
                             <th>Overall Score</th>
                             <th class="w-24">Actions</th>
-                            <!-- NEW HEADERS FOR ADDITIONAL ACTIONS -->
                             <th>View</th>
                             <th>Email</th>
                             <th>Download</th>
@@ -949,7 +959,6 @@
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
                 return;
             }
-
             if (!window.EVALUATION_RECORDS_COLLECTION_PATH || !window.WEBHOOKS_COLLECTION_PATH) {
                 console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
@@ -1324,13 +1333,13 @@
 
             const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
-                                 `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                 `Contact ID: ${contactId}\n` +
-                                 `CER Name: ${cerName}\n` +
-                                 `Overall Score: ${overallScore}\n` +
-                                 `Evaluation Date: ${evaluationDate}\n\n` +
-                                 `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                 `Kind Regards,\nQuality Evaluation Team`;
+                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                     `Contact ID: ${contactId}\n` +
+                                     `CER Name: ${cerName}\n` +
+                                     `Overall Score: ${overallScore}\n` +
+                                     `Evaluation Date: ${evaluationDate}\n\n` +
+                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                     `Kind Regards,\nQuality Evaluation Team`;
 
 
             const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -1429,6 +1438,7 @@
                     currentPoints = 0;
                     pointsElement.readOnly = true;
                     pointsElement.style.backgroundColor = '#e9ecef';
+                    pointsElement.style.color = '#555';
                 }
 
                 pointsElement.value = currentPoints;
@@ -1536,7 +1546,6 @@
                         </div>
                         <div class="col-span-2">
                             <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${requiredAttribute} ${hasNAAttribute}>
-                                <option value="" >None</option>
                                 <option value="Yes" selected>Yes</option>
                                 <option value="No">No</option>
                                 ${q.hasNA ? '<option value="N/A">N/A</option>' : ''}
@@ -1741,7 +1750,7 @@
 
             const remarksTextareas = document.querySelectorAll('.remarks-textarea');
             remarksTextareas.forEach(textarea => {
-                textarea.style.borderColor = '';
+                textarea.style.style.borderColor = '';
             });
 
             if (!allFieldsValid) {
@@ -2264,13 +2273,13 @@
 
                     const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
                     const body = `Dear ${cerNameVal},\n\n` +
-                                         `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                         `Contact ID: ${contactIdVal}\n` +
-                                         `CER Name: ${cerNameVal}\n` +
-                                         `Overall Score: ${overallScoreVal}\n` +
-                                         `Evaluation Date: ${evaluationDateVal}\n\n` +
-                                         `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                         `Kind Regards,\nQuality Evaluation Team`;
+                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                     `Contact ID: ${contactIdVal}\n` +
+                                     `CER Name: ${cerNameVal}\n` +
+                                     `Overall Score: ${overallScoreVal}\n` +
+                                     `Evaluation Date: ${evaluationDateVal}\n\n` +
+                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                     `Kind Regards,\nQuality Evaluation Team`;
 
 
                     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
