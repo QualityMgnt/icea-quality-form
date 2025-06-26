@@ -511,7 +511,7 @@
                     <div class="text-xl font-bold text-blue-600" id="business-compliance-accuracy">0%</div>
                 </div>
             </div>
-        </div>
+        </div
         <form id="assessment-form">
             <div class="mt-4">
                 <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
@@ -726,8 +726,18 @@
 
         // Initialize Firebase using global variables provided by the Canvas environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+        let firebaseConfig = {};
+        try {
+            firebaseConfig = JSON.parse(firebaseConfigString);
+        } catch (e) {
+            console.error("Error parsing __firebase_config:", e);
+            console.warn("Falling back to empty Firebase config. Firebase functions may not work.");
+        }
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Log the parsed config for debugging purposes
+        console.log("Firebase config received:", firebaseConfig);
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -1855,7 +1865,6 @@
                 console.warn("Dropdown options not fully loaded for monthly stats. Attempting re-fetch.");
                 // Since fetchAllDropdownOptions uses onSnapshot, it might take a moment.
                 // For immediate use here, we'd need to await a one-time fetch or rely on global state.
-                // For simplicity here, we'll just check if they are available and proceed.
                 // If they are still missing, the table will show a message.
             }
 
@@ -2224,7 +2233,8 @@
                 } else {
                     showMessageBox("Error", "Record not found.", true);
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 showMessageBox("Error", `Failed to fetch record details: ${error.message}`, true);
             }
         }
