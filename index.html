@@ -697,50 +697,36 @@
             updateDoc
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // Global variables provided by the Canvas environment for Firebase config
-        const appId = typeof __app_id !== 'undefined' ? __app_id : '1:820082472004:web:8caddf941e1b5b6dfaf811'; // Using the latest provided appId
-        const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
-        let firebaseConfig = {};
-        try {
-            firebaseConfig = JSON.parse(firebaseConfigString);
-            // If the parsed config from __firebase_config is empty, provide a default consistent with icea-lion-qa
-            if (Object.keys(firebaseConfig).length === 0) {
-                 firebaseConfig = {
-                    apiKey: "AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY", // From your last console log's apiKey
-                    authDomain: "icea-lion-qa.firebaseapp.com",
-                    databaseURL: "https://icea-lion-qa-default-rtdb.firebaseio.com",
-                    projectId: "icea-lion-qa",
-                    storageBucket: "icea-lion-qa.firebasestorage.app", // Common pattern for storageBucket
-                    messagingSenderId: "820082472004",
-                    appId: "1:820082472004:web:8caddf941e1b5b6dfaf811", // User's latest provided appId
-                    measurementId: "G-1RJJTT3QET" // From previous config
-                };
-                console.warn("Using default Firebase config for icea-lion-qa project. Please ensure __firebase_config environment variable is set correctly.");
-            }
-        } catch (e) {
-            console.error("Error parsing __firebase_config:", e);
-            // This error will be caught during initialization, no need to showMessageBox here.
-            // A fallback might be set in the login.html, but for index.html we let it fail for redirection.
-        }
+        // Hardcoded Firebase Configuration for GitHub/local hosting
+        // IMPORTANT: For production with sensitive data, use environment variables or a backend.
+        const firebaseConfig = {
+            apiKey: "AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY", // Your provided API key
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            databaseURL: "https://icea-lion-qa-default-rtdb.firebaseio.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app", // Your provided storageBucket
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b6dfaf811", // Your latest provided appId
+            measurementId: "G-1RJJTT3QET" // Your provided measurementId
+        };
 
-        // Log the parsed config for debugging purposes to see exactly what Firebase.js receives
-        console.log("Firebase config received (at runtime):", firebaseConfig);
+        // Log the hardcoded config for verification
+        console.log("Firebase config (hardcoded in index.html):", firebaseConfig);
 
         let app, auth, db;
 
-        // Initialize Firebase if config is present and seemingly valid
+        // Initialize Firebase if config is not empty
         if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey && firebaseConfig.projectId) {
             try {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
             } catch (initError) {
-                console.error("Firebase app initialization failed:", initError);
-                // This error typically leads to the `onAuthStateChanged` failing due to undefined `auth`
-                // and will trigger the redirect to login.
+                console.error("Firebase app initialization failed in index.html:", initError);
+                // If initialization fails, auth will be undefined, triggering the redirect below.
             }
         } else {
-            console.error("Firebase app not initialized due to missing or invalid config. Expect redirect to login.");
+            console.error("Firebase config is missing or invalid in index.html. Redirecting to login.");
             // This path will lead to `auth` being undefined, triggering the redirect below.
         }
 
@@ -748,7 +734,7 @@
         window.firebaseApp = app;
         window.auth = auth;
         window.db = db;
-        window.appId = appId;
+        window.appId = firebaseConfig.appId; // Use appId directly from hardcoded config
 
         // Expose Firestore methods globally for the second script block
         window.fsCollection = collection;
@@ -891,7 +877,7 @@
                     window.currentUserId = user.uid;
                     console.log("Firebase Auth State Changed: User logged in:", user.uid);
 
-                    const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
+                    const userDocRef = doc(db, `artifacts/${firebaseConfig.appId}/users/${user.uid}`); // Use firebaseConfig.appId directly
                     try {
                         const userDocSnap = await getDoc(userDocRef);
 
@@ -1570,7 +1556,7 @@
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
             lastEvaluationsTableBody.innerHTML = '';
 
-            if (evaluations.length === 0) {
+            if (evaluallength === 0) {
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
                 return;
             }
@@ -2000,7 +1986,7 @@
 
                     window.location.href = mailtoLink;
                     hideMessageBox();
-                    showMessageBox("Email Prepared", "Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** if applicable.", false, false, true);
+                    showMessageBox("PDF Generated & Email Prepared", "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** if applicable.", false, false, true);
 
                 } else {
                     hideMessageBox();
@@ -2621,7 +2607,7 @@
                     }
 
                     pdf.addPage();
-                    const statsImgHeight = statsCanvas.height * imgWidth / statsCanvas.width;
+                    const statsImgHeight = statsCanvas.height * imgWidth / canvas.width; // Corrected: use statsCanvas.width
                     let statsHeightLeft = statsImgHeight;
                     let statsPosition = 0;
                     pdf.addImage(statsImgData, 'JPEG', 0, statsPosition, imgWidth, statsImgHeight, undefined, 'FAST');
@@ -2663,7 +2649,7 @@
 
                     try {
                         window.location.href = mailtoLink;
-                        showMessageBox("PDF Generated & Email Prepared", "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** before sending.", false, false, true);
+                        showMessageBox("PDF Generated & Email Prepared", "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** if applicable.", false, false, true);
                     } catch (e) {
                         console.error("Failed to open email client:", e);
                         showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
