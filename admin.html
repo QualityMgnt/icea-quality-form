@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Base styles for the body, centering content */
         body {
             font-family: 'Inter', sans-serif;
             display: flex;
@@ -16,6 +17,7 @@
             min-height: 100vh;
             background-color: #f3f4f6;
         }
+        /* Custom brand colors for ICEA LION */
         .icealion-blue {
             background-color: #1a73e8;
             color: white;
@@ -24,12 +26,14 @@
             background-color: #f57c00;
             color: white;
         }
+        /* Styling for error messages */
         .error-message {
             color: #dc2626;
             font-size: 0.875rem;
             margin-top: 0.5rem;
             text-align: center;
         }
+        /* Spinner animation for loading states */
         .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
             border-left-color: #1a73e8;
@@ -43,6 +47,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Tab button styling for navigation */
         .tab-button {
             padding: 0.75rem 1.5rem;
             border-radius: 0.375rem;
@@ -60,6 +65,7 @@
         .tab-button:hover:not(.active) {
             background-color: #94a3b8; /* gray-400 */
         }
+        /* Table styling for user management */
         .user-table th, .user-table td {
             padding: 0.75rem;
             border-bottom: 1px solid #e5e7eb;
@@ -76,6 +82,7 @@
         .user-table tr:hover {
             background-color: #f3f4f6;
         }
+        /* Styling for individual dropdown items */
         .dropdown-item {
             display: flex;
             justify-content: space-between;
@@ -89,20 +96,28 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
 
+    <!-- Custom Message/Confirmation Box Overlay -->
     <div id="messageBoxOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm mx-auto">
             <div id="messageBoxSpinner" class="spinner hidden"></div>
             <h3 id="messageBoxTitle" class="text-xl font-semibold text-blue-600 mb-3"></h3>
             <p id="messageBoxContent" class="text-gray-700 mb-5"></p>
             <button id="messageBoxCloseBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md hidden">OK</button>
+            <div id="messageBoxConfirmButtons" class="flex justify-center space-x-4 hidden">
+                <button id="messageBoxConfirmYesBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">Yes</button>
+                <button id="messageBoxConfirmNoBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md">No</button>
+            </div>
         </div>
     </div>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl p-8 mt-8 mb-8">
+        <!-- Header Section -->
         <div class="icealion-blue p-4 flex items-center justify-between mb-6">
-            <div class="text-2xl font-semibold">ICEA LION QA Audit Admin Portal</div> <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
+            <div class="text-2xl font-semibold">ICEA LION QA Audit Admin Portal</div>
+            <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
         </div>
 
+        <!-- Access Denied Section -->
         <div id="accessDeniedSection" class="w-full max-w-md mx-auto hidden">
             <h2 class="text-2xl font-bold text-gray-800 text-center mb-6" id="accessDeniedTitle">Access Denied</h2>
             <p id="accessDeniedMessage" class="text-gray-700 text-center mb-4">You must be logged in as an administrator to access this page.</p>
@@ -110,8 +125,9 @@
             <button id="logoutIfLoggedInBtn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md mt-2 hidden">Logout</button>
         </div>
 
-
+        <!-- Admin Dashboard Section -->
         <div id="adminDashboard" class="hidden">
+            <!-- Tab Navigation -->
             <div class="flex space-x-2 border-b border-gray-200 mb-6">
                 <button id="usersTabBtn" class="tab-button active">User Management</button>
                 <button id="dropdownsTabBtn" class="tab-button">Dropdown Options</button>
@@ -120,6 +136,7 @@
                 <button id="backToAppBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md ml-2">Back to App</button>
             </div>
 
+            <!-- User Management Content -->
             <div id="usersContent" class="tab-content">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Users</h3>
                 <div class="overflow-x-auto">
@@ -153,6 +170,7 @@
                 </div>
             </div>
 
+            <!-- Dropdown Options Content -->
             <div id="dropdownsContent" class="tab-content hidden">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Dropdown Options</h3>
 
@@ -185,6 +203,7 @@
                 </div>
             </div>
 
+            <!-- Autofail Types Content (Conceptual) -->
             <div id="autofailsContent" class="tab-content hidden">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Autofail Rules</h3>
                 <p class="text-gray-600 mb-4">
@@ -222,7 +241,8 @@
             createUserWithEmailAndPassword,
             onAuthStateChanged,
             signOut,
-            sendPasswordResetEmail
+            signInWithCustomToken, // Import signInWithCustomToken
+            signInAnonymously // Import signInAnonymously
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import {
             getFirestore,
@@ -239,28 +259,22 @@
             getDoc
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // Firebase Configuration (replace with your actual config)
-        const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", // Your provided API key
-            authDomain: "icea-lion-qa.firebaseapp.com",
-            projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
-            messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b661d76c94e", // This should match your project's web app ID
-            measurementId: "G-1RJJTT3QET"
-        };
+        // Initialize Firebase using global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Expose Firebase instances globally (less critical for admin.html if it's self-contained)
+        // Expose Firebase instances and appId globally for easier access in other scripts if needed
         window.firebaseApp = app;
         window.auth = auth;
         window.db = db;
-        window.appId = firebaseConfig.appId;
+        window.appId = appId; // Ensure window.appId is correctly set
 
-        // Firebase Collection Paths
+        // Firebase Collection Paths using the dynamic appId
         const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
         const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
 
@@ -269,7 +283,7 @@
         const accessDeniedTitle = document.getElementById('accessDeniedTitle');
         const accessDeniedMessage = document.getElementById('accessDeniedMessage');
         const goToLoginBtn = document.getElementById('goToLoginBtn');
-        const logoutIfLoggedInBtn = document.getElementById('logoutIfLoggedInBtn'); // New button
+        const logoutIfLoggedInBtn = document.getElementById('logoutIfLoggedInBtn');
 
         const adminDashboard = document.getElementById('adminDashboard');
 
@@ -277,7 +291,7 @@
         const dropdownsTabBtn = document.getElementById('dropdownsTabBtn');
         const autofailsTabBtn = document.getElementById('autofailsTabBtn');
         const logoutAdminBtn = document.getElementById('logoutAdminBtn');
-        const backToAppBtn = document.getElementById('backToAppBtn'); // New button
+        const backToAppBtn = document.getElementById('backToAppBtn');
 
         const userTableBody = document.getElementById('userTableBody');
         const addNewUserForm = document.getElementById('addNewUserForm');
@@ -288,14 +302,23 @@
         const reviewerNamesList = document.getElementById('reviewerNamesList');
         const autofailTypesList = document.getElementById('autofailTypesList');
 
-
         // --- Message Box Functions ---
+        /**
+         * Displays a custom message/alert box.
+         * @param {string} title - The title of the message box.
+         * @param {string} message - The content message.
+         * @param {boolean} [isError=false] - If true, displays title in red.
+         * @param {boolean} [showSpinner=false] - If true, displays a loading spinner.
+         * @param {boolean} [showCloseButton=true] - If true, displays an "OK" button.
+         * @param {function} [onClose=null] - Callback function when "OK" is clicked.
+         */
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
             const messageBoxTitle = document.getElementById('messageBoxTitle');
             const messageBoxContent = document.getElementById('messageBoxContent');
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+            const messageBoxConfirmButtons = document.getElementById('messageBoxConfirmButtons');
 
             messageBoxTitle.textContent = title;
             messageBoxContent.textContent = message;
@@ -303,6 +326,7 @@
             messageBoxOverlay.classList.remove('hidden');
             messageBoxSpinner.classList.toggle('hidden', !showSpinner);
             messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
+            messageBoxConfirmButtons.classList.add('hidden'); // Ensure confirm buttons are hidden
 
             messageBoxTitle.style.color = isError ? '#dc2626' : '#1a73e8';
 
@@ -310,6 +334,43 @@
                 messageBoxOverlay.classList.add('hidden');
                 if (onClose) onClose();
             };
+        }
+
+        /**
+         * Displays a custom confirmation box.
+         * @param {string} title - The title of the confirmation box.
+         * @param {string} message - The confirmation message.
+         * @returns {Promise<boolean>} A promise that resolves to true if 'Yes', false if 'No'.
+         */
+        function showConfirmationBox(title, message) {
+            return new Promise((resolve) => {
+                const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+                const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+                const messageBoxTitle = document.getElementById('messageBoxTitle');
+                const messageBoxContent = document.getElementById('messageBoxContent');
+                const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+                const messageBoxConfirmButtons = document.getElementById('messageBoxConfirmButtons');
+                const messageBoxConfirmYesBtn = document.getElementById('messageBoxConfirmYesBtn');
+                const messageBoxConfirmNoBtn = document.getElementById('messageBoxConfirmNoBtn');
+
+                messageBoxTitle.textContent = title;
+                messageBoxContent.textContent = message;
+
+                messageBoxOverlay.classList.remove('hidden');
+                messageBoxSpinner.classList.add('hidden'); // No spinner for confirmation
+                messageBoxCloseBtn.classList.add('hidden'); // No single OK button for confirmation
+                messageBoxConfirmButtons.classList.remove('hidden'); // Show confirm buttons
+
+                messageBoxTitle.style.color = '#1a73e8'; // Confirmation is typically not an error
+
+                const closeAndResolve = (result) => {
+                    messageBoxOverlay.classList.add('hidden');
+                    resolve(result);
+                };
+
+                messageBoxConfirmYesBtn.onclick = () => closeAndResolve(true);
+                messageBoxConfirmNoBtn.onclick = () => closeAndResolve(false);
+            });
         }
 
         function hideMessageBox() {
@@ -322,33 +383,56 @@
             const loginTime = localStorage.getItem('loginTime');
             if (lastActivity && loginTime) {
                 const now = new Date().getTime();
-                const eightHours = 8 * 60 * 60 * 1000;
+                const eightHours = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
 
+                // Check if last activity or total login time exceeds 8 hours
                 if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
                     console.log("Session expired. Logging out.");
                     localStorage.removeItem('lastActivity');
                     localStorage.removeItem('loginTime');
                     sessionStorage.removeItem('loggedIn');
-                    return true;
+                    return true; // Session expired
                 }
             }
-            return false;
+            return false; // Session still active
         };
 
         window.updateLastActivity = function() {
             localStorage.setItem('lastActivity', new Date().getTime().toString());
         };
 
+        // Add event listeners to update last activity on user interaction
         document.addEventListener('mousemove', window.updateLastActivity);
         document.addEventListener('keydown', window.updateLastActivity);
         document.addEventListener('click', window.updateLastActivity);
 
 
         // --- Auth State Listener for Admin Page ---
-        let currentAdminUser = null; // Store current logged-in user object
-        let currentAdminUserRole = null;
+        let currentAdminUser = null; // Store current logged-in user object from Firebase Auth
+        let currentAdminUserRole = null; // Store the role fetched from Firestore
 
         onAuthStateChanged(auth, async (user) => {
+            // If initialAuthToken is present and no user is currently authenticated, try signing in with it.
+            if (initialAuthToken && !user) {
+                try {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    // Auth state change listener will be triggered again with the user object
+                    return; // Exit this call to avoid re-processing before signInWithCustomToken completes
+                } catch (error) {
+                    console.error("Error signing in with custom token:", error);
+                    // Fallback to anonymous sign-in if custom token fails (or show access denied)
+                    try {
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously due to custom token failure.");
+                    } catch (anonError) {
+                        console.error("Error signing in anonymously:", anonError);
+                        displayAccessDenied("Authentication Error", "Could not sign in. Please try again.");
+                        return;
+                    }
+                }
+            }
+
+            // Check for session timeout only after initial auth attempt (if any)
             if (window.checkSessionTimeout()) {
                 await signOut(auth); // Clear any expired Firebase session
                 displayAccessDenied("Session Expired", "Your session has expired. Please log in again.");
@@ -356,6 +440,7 @@
             }
 
             if (user) {
+                // User is authenticated (either via custom token, anonymous, or existing session)
                 const userDocRef = doc(db, USERS_COLLECTION_PATH, user.uid);
                 try {
                     const userDocSnap = await getDoc(userDocRef);
@@ -363,13 +448,14 @@
                     if (userDocSnap.exists()) {
                         const userData = userDocSnap.data();
                         currentAdminUserRole = userData.role;
-                        currentAdminUser = user;
+                        currentAdminUser = user; // Store the authenticated user object
+
                         console.log(`User ${user.email} logged in with role: ${currentAdminUserRole} on admin.html`);
 
                         if (currentAdminUserRole === 'Admin') {
                             accessDeniedSection.classList.add('hidden'); // Hide access denied message
                             adminDashboard.classList.remove('hidden'); // Show dashboard
-                            loadAdminDashboard();
+                            loadAdminDashboard(); // Load all admin-specific data
                             showAdminTab('usersContent'); // Default to Users tab
                         } else {
                             // User is logged in, but not an Admin.
@@ -384,11 +470,11 @@
                     }
                 } catch (error) {
                     console.error("Error fetching user role from Firestore:", error);
-                    await signOut(auth);
+                    await signOut(auth); // Log out in case of Firestore error
                     displayAccessDenied("Error", `Failed to verify your role: ${error.message}. Please try again.`);
                 }
             } else {
-                // No user logged in. Display access denied message.
+                // No user logged in or after logout. Display access denied message.
                 console.log("No user logged in to admin portal.");
                 displayAccessDenied("Access Denied", "You must be logged in as an administrator to access this page.");
             }
@@ -397,7 +483,7 @@
         // Function to display the access denied message
         function displayAccessDenied(title, message) {
             adminDashboard.classList.add('hidden'); // Ensure dashboard is hidden
-            accessDeniedSection.classList.remove('hidden');
+            accessDeniedSection.classList.remove('hidden'); // Show access denied section
             accessDeniedTitle.textContent = title;
             accessDeniedMessage.textContent = message;
             logoutIfLoggedInBtn.classList.add('hidden'); // Hide logout button by default initially
@@ -421,20 +507,30 @@
 
 
         // --- Admin Dashboard Tabs Logic ---
+        /**
+         * Shows the specified admin tab content and activates its corresponding button.
+         * @param {string} tabId - The ID of the tab content to show (e.g., 'usersContent').
+         */
         function showAdminTab(tabId) {
+            // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            // Deactivate all tab buttons
             document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
 
+            // Show the selected tab content
             document.getElementById(tabId).classList.remove('hidden');
+            // Activate the corresponding tab button
             if (tabId === 'usersContent') usersTabBtn.classList.add('active');
             else if (tabId === 'dropdownsContent') dropdownsTabBtn.classList.add('active');
             else if (tabId === 'autofailsContent') autofailsTabBtn.classList.add('active');
         }
 
+        // Add event listeners for tab buttons
         usersTabBtn.addEventListener('click', () => showAdminTab('usersContent'));
         dropdownsTabBtn.addEventListener('click', () => showAdminTab('dropdownsContent'));
         autofailsTabBtn.addEventListener('click', () => showAdminTab('autofailsContent'));
         
+        // Event listener for admin logout button
         logoutAdminBtn.addEventListener('click', async () => {
             await signOut(auth);
             sessionStorage.removeItem('loggedIn');
@@ -443,34 +539,37 @@
             window.location.href = 'index.html'; // Redirect to the main login page after admin logout
         });
 
+        // Event listener for "Back to App" button
         backToAppBtn.addEventListener('click', () => {
             window.location.href = 'index.html'; // Navigate back to the main app page (evaluation form)
         });
 
         // --- Load Admin Dashboard Data ---
+        /**
+         * Loads all necessary data for the admin dashboard (users and dropdown options).
+         */
         async function loadAdminDashboard() {
             showMessageBox("Loading Admin Data", "Fetching user data and configurations...", false, true, false);
             try {
                 await Promise.all([loadUsers(), loadDropdownOptions()]);
-                hideMessageBox();
+                hideMessageBox(); // Hide loading message on success
             } catch (error) {
-                hideMessageBox();
+                hideMessageBox(); // Hide loading message on error
                 showMessageBox("Error Loading Data", `Failed to load admin data: ${error.message}`, true);
             }
         }
 
         // --- User Management Functions ---
-        // These constants need to be available in this script's scope
-        const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
-        const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
-
-
+        /**
+         * Loads and displays all user data in the user management table.
+         * This function listens for real-time updates using onSnapshot for user data.
+         */
         async function loadUsers() {
             userTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Loading users...</td></tr>';
-            try {
-                const q = query(collection(db, USERS_COLLECTION_PATH));
-                const querySnapshot = await getDocs(q);
-                userTableBody.innerHTML = '';
+            
+            // Set up real-time listener for users collection
+            onSnapshot(collection(db, USERS_COLLECTION_PATH), (querySnapshot) => {
+                userTableBody.innerHTML = ''; // Clear existing rows
 
                 if (querySnapshot.empty) {
                     userTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">No users found.</td></tr>';
@@ -482,7 +581,7 @@
                     const userId = docSnap.id;
                     const row = userTableBody.insertRow();
                     row.innerHTML = `
-                        <td>${userData.email}</td>
+                        <td>${userData.email || 'N/A'}</td>
                         <td>
                             <select class="user-role-select p-1 border rounded-md" data-user-id="${userId}">
                                 <option value="CER" ${userData.role === 'CER' ? 'selected' : ''}>CER</option>
@@ -491,55 +590,81 @@
                             </select>
                         </td>
                         <td>
-                            <button class="delete-user-btn bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded-md" data-user-id="${userId}">Delete</button>
+                            <button class="delete-user-btn bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded-md" data-user-id="${userId}" data-user-email="${userData.email}">Delete</button>
                         </td>
                     `;
+                    // Attach event listeners to dynamically created elements
                     row.querySelector('.user-role-select').addEventListener('change', (e) => updateRole(userId, e.target.value));
                     row.querySelector('.delete-user-btn').addEventListener('click', (e) => deleteUser(userId, userData.email));
                 });
-            } catch (error) {
-                console.error("Error loading users:", error);
+            }, (error) => {
+                // Error callback for onSnapshot
+                console.error("Error setting up real-time user listener:", error);
                 userTableBody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-red-500">Error loading users: ${error.message}</td></tr>`;
-            }
+            });
         }
 
+        /**
+         * Updates the role of a specified user in Firestore.
+         * Replaces confirm() with showConfirmationBox().
+         * @param {string} userId - The ID of the user to update.
+         * @param {string} newRole - The new role for the user.
+         */
         async function updateRole(userId, newRole) {
+            // Prevent an admin from demoting their own role
             if (currentAdminUser && currentAdminUser.uid === userId && newRole !== 'Admin') {
                 showMessageBox("Action Blocked", "You cannot demote your own admin role. Please ask another admin to change your role.", true);
+                // Reload users to revert the dropdown selection in the UI
                 loadUsers();
                 return;
             }
-            if (!confirm(`Are you sure you want to change the role of user ${userId} to ${newRole}?`)) {
+
+            // Show confirmation dialog before proceeding
+            const confirmed = await showConfirmationBox("Confirm Role Change", `Are you sure you want to change the role of user ${userId} to ${newRole}?`);
+            if (!confirmed) {
+                // Reload users to revert the dropdown selection in the UI if user cancels
                 loadUsers();
                 return;
             }
+
             showMessageBox("Updating Role", "Updating user role...", false, true, false);
             try {
                 const userDocRef = doc(db, USERS_COLLECTION_PATH, userId);
                 await updateDoc(userDocRef, { role: newRole });
                 hideMessageBox();
                 showMessageBox("Success", "User role updated successfully!", false);
-            }
-            catch (error) {
+                // loadUsers() is not explicitly called here because onSnapshot already handles real-time updates.
+            } catch (error) {
                 hideMessageBox();
                 showMessageBox("Error", `Failed to update role: ${error.message}`, true);
             }
         }
 
+        /**
+         * Deletes a user's profile document from Firestore.
+         * Replaces confirm() with showConfirmationBox().
+         * @param {string} userId - The ID of the user document to delete.
+         * @param {string} userEmail - The email of the user for display in messages.
+         */
         async function deleteUser(userId, userEmail) {
+            // Prevent an admin from deleting their own account
             if (currentAdminUser && currentAdminUser.uid === userId) {
                 showMessageBox("Action Blocked", "You cannot delete your own user account from here.", true);
                 return;
             }
-            if (!confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone and will not delete the Firebase Authentication user.`)) {
+
+            // Show confirmation dialog before proceeding
+            const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete user ${userEmail}? This action cannot be undone and will not delete the Firebase Authentication user.`);
+            if (!confirmed) {
                 return;
             }
+
             showMessageBox("Deleting User", "Deleting user...", false, true, false);
             try {
                 await deleteDoc(doc(db, USERS_COLLECTION_PATH, userId));
                 hideMessageBox();
                 showMessageBox("Success", `User ${userEmail} document deleted from Firestore! (Manual Firebase Authentication user deletion may be required.)`, false);
-                loadUsers();
+                // loadUsers() is not explicitly called here because onSnapshot already handles real-time updates.
             } catch (error) {
                 hideMessageBox();
                 showMessageBox("Error", `Failed to delete user: ${error.message}`, true);
@@ -549,7 +674,7 @@
         // --- Add New User Form Submission ---
         addNewUserForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            addNewUserError.classList.add('hidden');
+            addNewUserError.classList.add('hidden'); // Hide previous errors
             const email = document.getElementById('newEmail').value;
             const password = document.getElementById('newPassword').value;
             const role = document.getElementById('newUserRole').value;
@@ -565,10 +690,12 @@
             try {
                 // IMPORTANT: In a production environment, user creation by an admin should ideally happen
                 // via a secure Firebase Cloud Function using the Firebase Admin SDK.
-                // This client-side call is for demonstration/prototype simplicity.
+                // This client-side call is for demonstration/prototype simplicity and assumes appropriate
+                // Firebase Security Rules for `create` on the 'users' collection are in place.
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
+                // Create a user profile document in Firestore
                 await setDoc(doc(db, USERS_COLLECTION_PATH, user.uid), {
                     email: user.email,
                     role: role,
@@ -577,18 +704,18 @@
 
                 hideMessageBox();
                 showMessageBox("Success", `New user ${email} registered as ${role}!`, false, false, true, () => {
-                    addNewUserForm.reset();
-                    loadUsers();
+                    addNewUserForm.reset(); // Clear the form
+                    // loadUsers() is not explicitly called here because onSnapshot already handles real-time updates.
                 });
 
             } catch (error) {
                 hideMessageBox();
                 let errorMessage = "Failed to add user.";
                 if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = "This email is already in use.";
+                    errorMessage = "This email is already in use. Please use a different email.";
                 } else if (error.code === 'auth/weak-password') {
-                    errorMessage = "Password is too weak (min 6 characters).";
-                } else if (error.code) {
+                    errorMessage = "Password is too weak (minimum 6 characters required).";
+                } else if (error.message) {
                     errorMessage = `Error: ${error.message}`;
                 }
                 addNewUserError.textContent = errorMessage;
@@ -598,29 +725,37 @@
 
 
         // --- Dropdown Options Management Functions ---
-        // Ensure this constant is defined in this script's scope
-        const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
-
+        /**
+         * Loads and displays dropdown options from Firestore.
+         * Uses onSnapshot for real-time updates to dropdown options.
+         */
         async function loadDropdownOptions() {
-            try {
-                const docSnap = await getDoc(doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options'));
+            const docRef = doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options');
+            
+            // Set up real-time listener for the 'options' document
+            onSnapshot(docRef, (docSnap) => {
                 const data = docSnap.exists() ? docSnap.data() : {};
 
                 renderDropdownList(data.cerNames || [], cerNamesList, 'cerNames');
                 renderDropdownList(data.cerRoles || [], cerRolesList, 'cerRoles');
                 renderDropdownList(data.reviewerNames || [], reviewerNamesList, 'reviewerNames');
                 renderDropdownList(data.autofailTypes || [], autofailTypesList, 'autofailTypes');
-
-            } catch (error) {
-                console.error("Error loading dropdown options:", error);
+            }, (error) => {
+                console.error("Error setting up real-time dropdown options listener:", error);
                 showMessageBox("Error", `Failed to load dropdown options: ${error.message}`, true);
-            }
+            });
         }
 
+        /**
+         * Renders a list of dropdown options into a specified HTML container.
+         * @param {Array<string>} optionsArray - An array of strings representing the options.
+         * @param {HTMLElement} containerElement - The HTML element where options will be rendered.
+         * @param {string} type - The type of dropdown (e.g., 'cerNames', 'cerRoles').
+         */
         function renderDropdownList(optionsArray, containerElement, type) {
-            containerElement.innerHTML = '';
+            containerElement.innerHTML = ''; // Clear existing content
             if (optionsArray.length === 0) {
-                containerElement.innerHTML = `<p class="text-gray-500 text-sm">No ${type} defined yet.</p>`;
+                containerElement.innerHTML = `<p class="text-gray-500 text-sm">No ${type.replace(/([A-Z])/g, ' $1').toLowerCase()} defined yet.</p>`;
                 return;
             }
             optionsArray.forEach((option, index) => {
@@ -632,26 +767,33 @@
                 `;
                 containerElement.appendChild(div);
             });
+            // Attach event listeners to newly created delete buttons
             containerElement.querySelectorAll('.delete-option-btn').forEach(btn => {
                 btn.addEventListener('click', deleteDropdownOption);
             });
         }
 
+        // Attach event listeners to all "Add Option" buttons
         document.querySelectorAll('.add-option-btn').forEach(button => {
             button.addEventListener('click', addDropdownOption);
         });
 
+        /**
+         * Adds a new dropdown option to Firestore.
+         * @param {Event} e - The click event from the add button.
+         */
         async function addDropdownOption(e) {
-            const type = e.target.dataset.type;
+            const type = e.target.dataset.type; // Get the type from data-type attribute
             let inputElement;
+            // Determine which input element to use based on the type
             if (type === 'cerNames') inputElement = document.getElementById('newCerName');
             else if (type === 'cerRoles') inputElement = document.getElementById('newCerRole');
             else if (type === 'reviewerNames') inputElement = document.getElementById('newReviewerName');
             else if (type === 'autofailTypes') inputElement = document.getElementById('newAutofailType');
 
-            const newValue = inputElement.value.trim();
+            const newValue = inputElement.value.trim(); // Get and trim the new value
             if (!newValue) {
-                showMessageBox("Input Required", `Please enter a value for ${type}.`, true);
+                showMessageBox("Input Required", `Please enter a value for ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}.`, true);
                 return;
             }
 
@@ -660,22 +802,25 @@
                 const docRef = doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options');
                 const docSnap = await getDoc(docRef);
                 const currentOptions = docSnap.exists() ? docSnap.data() : {};
+                // Get the array for the specific type, or initialize as empty if not present
                 const optionsArray = currentOptions[type] || [];
 
+                // Check for duplicates
                 if (optionsArray.includes(newValue)) {
                     hideMessageBox();
-                    showMessageBox("Duplicate", `${newValue} already exists in ${type}.`, false);
-                    inputElement.value = '';
+                    showMessageBox("Duplicate", `'${newValue}' already exists in ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}.`, false);
+                    inputElement.value = ''; // Clear input field
                     return;
                 }
 
-                optionsArray.push(newValue);
+                optionsArray.push(newValue); // Add the new value
+                // Update the document in Firestore with the modified array
                 await updateDoc(docRef, { [type]: optionsArray });
 
                 hideMessageBox();
-                showMessageBox("Success", `${newValue} added to ${type}!`, false, false, true, () => {
-                    inputElement.value = '';
-                    loadDropdownOptions();
+                showMessageBox("Success", `'${newValue}' added to ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}!`, false, false, true, () => {
+                    inputElement.value = ''; // Clear input after successful add
+                    // loadDropdownOptions() is not explicitly called here because onSnapshot already handles real-time updates.
                 });
             } catch (error) {
                 hideMessageBox();
@@ -683,11 +828,18 @@
             }
         }
 
+        /**
+         * Deletes a dropdown option from Firestore.
+         * Replaces confirm() with showConfirmationBox().
+         * @param {Event} e - The click event from the delete button.
+         */
         async function deleteDropdownOption(e) {
-            const index = parseInt(e.target.dataset.index);
-            const type = e.target.dataset.type;
+            const index = parseInt(e.target.dataset.index); // Get the index of the option to delete
+            const type = e.target.dataset.type; // Get the type of dropdown
 
-            if (!confirm(`Are you sure you want to delete this option from ${type}?`)) {
+            // Show confirmation dialog before proceeding
+            const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete this option from ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}?`);
+            if (!confirmed) {
                 return;
             }
 
@@ -699,16 +851,16 @@
                 const optionsArray = currentOptions[type] || [];
 
                 if (index > -1 && index < optionsArray.length) {
-                    optionsArray.splice(index, 1);
-                    await updateDoc(docRef, { [type]: optionsArray });
+                    optionsArray.splice(index, 1); // Remove the option at the specified index
+                    await updateDoc(docRef, { [type]: optionsArray }); // Update Firestore
 
                     hideMessageBox();
                     showMessageBox("Success", "Option deleted successfully!", false, false, true, () => {
-                        loadDropdownOptions();
+                        // loadDropdownOptions() is not explicitly called here because onSnapshot already handles real-time updates.
                     });
                 } else {
                     hideMessageBox();
-                    showMessageBox("Error", "Option not found.", true);
+                    showMessageBox("Error", "Option not found or invalid index.", true);
                 }
             } catch (error) {
                 hideMessageBox();
@@ -717,8 +869,13 @@
         }
 
         // --- Autofail Types Management (Conceptual for now) ---
+        /**
+         * Placeholder function for loading autofail types/rules.
+         */
         async function loadAutofailTypes() {
-             console.log("Autofail Rules Management section loaded (conceptual).");
+            console.log("Autofail Rules Management section loaded (conceptual).");
+            // In a full implementation, this would fetch autofail rules from Firestore
+            // and render them, likely with similar add/edit/delete functionality.
         }
     </script>
 </body>
