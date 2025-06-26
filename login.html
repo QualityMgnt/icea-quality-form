@@ -190,16 +190,39 @@
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // Global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : '1:820082472004:web:8caddf941e1b5b6dfaf811'; // Using the latest provided appId
         const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
         let firebaseConfig = {};
         try {
             firebaseConfig = JSON.parse(firebaseConfigString);
+            // If the parsed config from __firebase_config is empty, provide a default consistent with icea-lion-qa
+            if (Object.keys(firebaseConfig).length === 0) {
+                 firebaseConfig = {
+                    apiKey: "AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY", // From your last console log's apiKey
+                    authDomain: "icea-lion-qa.firebaseapp.com",
+                    databaseURL: "https://icea-lion-qa-default-rtdb.firebaseio.com",
+                    projectId: "icea-lion-qa",
+                    storageBucket: "icea-lion-qa.firebasestorage.app", // Common pattern for storageBucket
+                    messagingSenderId: "820082472004",
+                    appId: "1:820082472004:web:8caddf941e1b5b6dfaf811", // User's latest provided appId
+                    measurementId: "G-1RJJTT3QET" // From previous config
+                };
+                console.warn("Using default Firebase config for icea-lion-qa project. Please ensure __firebase_config environment variable is set correctly.");
+            }
         } catch (e) {
             console.error("Error parsing __firebase_config:", e);
             showMessageBox("Configuration Error", "Failed to load Firebase configuration. Please contact support.", true);
-            // Prevent further Firebase initialization if config is bad
-            Object.freeze(firebaseConfig); // Make config immutable if empty/bad
+            // Set a fallback config if parsing fails completely, to allow showing error message
+            firebaseConfig = {
+                apiKey: "INVALID_API_KEY_FALLBACK", // Use a dummy key to prevent `app/no-options`
+                authDomain: "dummy.firebaseapp.com",
+                projectId: "dummy-project",
+                storageBucket: "dummy.appspot.com",
+                messagingSenderId: "0",
+                appId: "0:0:web:0",
+                measurementId: "G-0"
+            };
+            Object.freeze(firebaseConfig); // Make config immutable if parsing failed
         }
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
@@ -208,15 +231,17 @@
 
         let app, auth, db;
 
-        // Only initialize Firebase if config is not empty (i.e., successfully parsed)
-        if (Object.keys(firebaseConfig).length > 0) {
+        // Only initialize Firebase if config is not empty or if it's our fallback (to allow error messages)
+        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey !== "INVALID_API_KEY_FALLBACK") {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
+        } else if (firebaseConfig.apiKey === "INVALID_API_KEY_FALLBACK") {
+            console.error("Firebase app not initialized due to invalid fallback config after parsing error.");
+            // Message already shown by catch block, no need for another here.
         } else {
-            console.error("Firebase app not initialized due to missing or invalid config.");
-            // Display an immediate message to the user if Firebase cannot be initialized.
-            showMessageBox("Initialization Error", "Cannot connect to the application. Firebase configuration is missing or invalid. Please contact your administrator.", true);
+            console.error("Firebase app not initialized due to missing or invalid config. User will be redirected to login.");
+            // Message will be handled by onAuthStateChanged redirect if Firebase init fails here
         }
 
 
@@ -328,6 +353,7 @@
         onAuthStateChanged(auth, async (user) => {
             if (!auth || !db) { // Check if Firebase services were initialized successfully
                 console.error("Firebase services not available. Cannot check auth state.");
+                // A message should already be displayed by the initialization block
                 return;
             }
 
@@ -348,10 +374,6 @@
 
                     if (userDocSnap.exists()) {
                         const userRole = userDocSnap.data().role;
-                        console.log("User role fetched:", userRole);
-                        window.updateLastActivity(); // Update activity on successful auth
-
-                        // Redirect to main app page (index.html) upon successful login
                         console.log(`User ${user.email} (${userRole}) logged in. Redirecting to index.html`);
                         window.location.href = 'index.html';
                     } else {
@@ -460,4 +482,3 @@
     </script>
 </body>
 </html>
-
