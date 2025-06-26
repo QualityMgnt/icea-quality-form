@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - ICEA LION QA Audit Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+
+        /* ICEALION Branding Colors */
+        .icealion-blue {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .icealion-orange-text {
+            color: #f57c00;
+        }
+
+        /* Error/Message styles */
+        .error-message {
+            color: #dc2626; /* red-700 */
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.5rem; /* mt-2 */
+            text-align: center;
+        }
+
+        /* Specific styles for modal/message box (duplicated for login.html) */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a73e8; /* icealion-blue */
+        }
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .message-box button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .message-box button:hover {
+            background-color: #0d47a1;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1a73e8; /* icealion-blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Styles for the login/access denied section */
+        #accessSection {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Make it full height of the viewport */
+            width: 100%;
+            position: fixed; /* Fix its position to cover everything */
+            top: 0;
+            left: 0;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            z-index: 1000; /* Ensure it's on top */
+        }
+        #accessBox {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        #accessBox h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            color: #1f2937; /* gray-800 */
+        }
+        #accessBox button {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Message Box Overlay for Login UI -->
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="spinner hidden"></div>
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md hidden">OK</button>
+            <div id="messageBoxConfirmButtons" class="flex justify-center space-x-4 hidden">
+                <button id="messageBoxConfirmYesBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">Yes</button>
+                <button id="messageBoxConfirmNoBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login/Access Denied Section -->
+    <div id="accessSection">
+        <div id="accessBox">
+            <h2 id="accessTitle">Login to ICEA LION QA Audit</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="loginEmail" class="block text-sm font-medium text-gray-700 text-left">Email:</label>
+                    <input type="email" id="loginEmail" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
+                </div>
+                <div>
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-700 text-left">Password:</label>
+                    <input type="password" id="loginPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
+                </div>
+                <div id="loginError" class="error-message hidden"></div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Login</button>
+            </form>
+            <p class="mt-4 text-center text-sm text-gray-600">
+                <a href="#" id="forgotPasswordLink" class="text-blue-600 hover:underline">Forgot Password?</a>
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import {
+            getAuth,
+            signInWithEmailAndPassword,
+            onAuthStateChanged,
+            signOut,
+            sendPasswordResetEmail,
+            signInWithCustomToken,
+            signInAnonymously
+        } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import {
+            getFirestore,
+            doc,
+            getDoc
+        } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+        let firebaseConfig = {};
+        try {
+            firebaseConfig = JSON.parse(firebaseConfigString);
+        } catch (e) {
+            console.error("Error parsing __firebase_config:", e);
+            showMessageBox("Configuration Error", "Failed to load Firebase configuration. Please contact support.", true);
+            // Prevent further Firebase initialization if config is bad
+            Object.freeze(firebaseConfig); // Make config immutable if empty/bad
+        }
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Log the parsed config for debugging purposes
+        console.log("Firebase config received (at runtime):", firebaseConfig);
+
+        let app, auth, db;
+
+        // Only initialize Firebase if config is not empty (i.e., successfully parsed)
+        if (Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } else {
+            console.error("Firebase app not initialized due to missing or invalid config.");
+            // Display an immediate message to the user if Firebase cannot be initialized.
+            showMessageBox("Initialization Error", "Cannot connect to the application. Firebase configuration is missing or invalid. Please contact your administrator.", true);
+        }
+
+
+        // --- DOM Elements ---
+        const accessSection = document.getElementById('accessSection');
+        const accessTitle = document.getElementById('accessTitle');
+        const loginForm = document.getElementById('loginForm');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+
+        // --- Message Box Functions (for login.html specific messages) ---
+        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+            const messageBoxTitle = document.getElementById('messageBoxTitle');
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+            const messageBoxConfirmButtons = document.getElementById('messageBoxConfirmButtons');
+
+            messageBoxTitle.textContent = title;
+            messageBoxContent.textContent = message;
+
+            messageBoxOverlay.classList.remove('hidden');
+            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
+            messageBoxConfirmButtons.classList.add('hidden'); // Ensure confirm buttons are hidden
+
+            messageBoxTitle.style.color = isError ? '#dc2626' : '#1a73e8';
+
+            messageBoxCloseBtn.onclick = () => {
+                messageBoxOverlay.classList.add('hidden');
+                if (onClose) onClose();
+            };
+        }
+
+        function hideMessageBox() {
+            document.getElementById('messageBoxOverlay').classList.add('hidden');
+        }
+
+        /**
+         * Displays a custom confirmation box.
+         * @param {string} title - The title of the confirmation box.
+         * @param {string} message - The confirmation message.
+         * @returns {Promise<boolean>} A promise that resolves to true if 'Yes', false if 'No'.
+         */
+        function showConfirmationBox(title, message) {
+            return new Promise((resolve) => {
+                const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+                const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+                const messageBoxTitle = document.getElementById('messageBoxTitle');
+                const messageBoxContent = document.getElementById('messageBoxContent');
+                const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+                const messageBoxConfirmButtons = document.getElementById('messageBoxConfirmButtons');
+                const messageBoxConfirmYesBtn = document.getElementById('messageBoxConfirmYesBtn');
+                const messageBoxConfirmNoBtn = document.getElementById('messageBoxConfirmNoBtn');
+
+                messageBoxTitle.textContent = title;
+                messageBoxContent.textContent = message;
+
+                messageBoxOverlay.classList.remove('hidden');
+                messageBoxSpinner.classList.add('hidden'); // No spinner for confirmation
+                messageBoxCloseBtn.classList.add('hidden'); // No single OK button for confirmation
+                messageBoxConfirmButtons.classList.remove('hidden'); // Show confirm buttons
+
+                messageBoxTitle.style.color = '#1a73e8'; // Confirmation is typically not an error
+
+                const closeAndResolve = (result) => {
+                    messageBoxOverlay.classList.add('hidden');
+                    resolve(result);
+                };
+
+                messageBoxConfirmYesBtn.onclick = () => closeAndResolve(true);
+                messageBoxConfirmNoBtn.onclick = () => closeAndResolve(false);
+            });
+        }
+
+
+        // --- Session Management (for login.html to handle redirections) ---
+        window.checkSessionTimeout = function() {
+            const lastActivity = localStorage.getItem('lastActivity');
+            const loginTime = localStorage.getItem('loginTime');
+            if (lastActivity && loginTime) {
+                const now = new Date().getTime();
+                const eightHours = 8 * 60 * 60 * 1000;
+
+                if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
+                    console.log("Session expired. Logging out.");
+                    localStorage.removeItem('lastActivity');
+                    localStorage.removeItem('loginTime');
+                    sessionStorage.removeItem('loggedIn');
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        window.updateLastActivity = function() {
+            localStorage.setItem('lastActivity', new Date().getTime().toString());
+        };
+
+        document.addEventListener('mousemove', window.updateLastActivity);
+        document.addEventListener('keydown', window.updateLastActivity);
+        document.addEventListener('click', window.updateLastActivity);
+
+        // --- Authentication State Listener (Handles Login Page Logic) ---
+        // This listener will decide whether to show the login form or redirect.
+        onAuthStateChanged(auth, async (user) => {
+            if (!auth || !db) { // Check if Firebase services were initialized successfully
+                console.error("Firebase services not available. Cannot check auth state.");
+                return;
+            }
+
+            if (window.checkSessionTimeout()) {
+                await signOut(auth); // Ensure Firebase session is cleared if timeout detected
+                accessSection.classList.remove('hidden'); // Show login if session expired
+                accessTitle.textContent = "Session Expired";
+                loginError.textContent = "Your session has expired. Please log in again.";
+                loginError.classList.remove('hidden');
+                return;
+            }
+
+            if (user) {
+                // User is authenticated, now check their role in Firestore
+                const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
+                try {
+                    const userDocSnap = await getDoc(userDocRef);
+
+                    if (userDocSnap.exists()) {
+                        const userRole = userDocSnap.data().role;
+                        console.log("User role fetched:", userRole);
+                        window.updateLastActivity(); // Update activity on successful auth
+
+                        // Redirect to main app page (index.html) upon successful login
+                        console.log(`User ${user.email} (${userRole}) logged in. Redirecting to index.html`);
+                        window.location.href = 'index.html';
+                    } else {
+                        // User authenticated with Firebase Auth but no role document found in Firestore
+                        console.warn(`User profile for ${user.email} not found in Firestore. Logging out.`);
+                        await signOut(auth); // Log them out from Firebase Auth
+                        accessSection.classList.remove('hidden');
+                        accessTitle.textContent = "Access Denied";
+                        loginError.textContent = "Your user profile is incomplete or missing. Please contact an administrator.";
+                        loginError.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error("Error fetching user role from Firestore:", error);
+                    await signOut(auth); // Log out in case of Firestore error
+                    accessSection.classList.remove('hidden');
+                    accessTitle.textContent = "Login Error";
+                    loginError.textContent = `Failed to retrieve user profile: ${error.message}. Please try again.`;
+                    loginError.classList.remove('hidden');
+                }
+            } else {
+                // No user logged in, show the login form
+                console.log("Firebase Auth State Changed: No user logged in. Showing login form.");
+                accessSection.classList.remove('hidden'); // Ensure login form is visible
+                accessTitle.textContent = "Login to ICEA LION QA Audit";
+                loginError.classList.add('hidden'); // Hide any previous errors
+            }
+        });
+
+
+        // --- Login Form Submission ---
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.classList.add('hidden');
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+
+            if (!auth) {
+                 showMessageBox("Error", "Firebase Authentication not initialized. Cannot log in.", true);
+                 return;
+            }
+
+
+            showMessageBox("Logging In", "Please wait...", false, true, false);
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // After successful Firebase Auth login, the onAuthStateChanged listener above
+                // will trigger and handle role verification and redirection.
+                hideMessageBox(); // Hide login progress message
+            } catch (error) {
+                hideMessageBox();
+                let errorMessage = "Login failed. Please check your credentials.";
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    errorMessage = "Invalid email or password.";
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = "Invalid email format.";
+                } else {
+                    errorMessage = `Error: ${error.message}`;
+                }
+                loginError.textContent = errorMessage;
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        // --- Forgot Password Link Handler ---
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = loginEmail.value.trim();
+
+            if (!email) {
+                showMessageBox("Email Required", "Please enter your email in the email field above to reset your password.", true);
+                return;
+            }
+
+            if (!auth) {
+                showMessageBox("Error", "Firebase Authentication not initialized. Cannot send reset email.", true);
+                return;
+            }
+
+            showMessageBox("Sending Reset Email", "Please wait...", false, true, false);
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                hideMessageBox();
+                showMessageBox(
+                    "Password Reset",
+                    `A password reset link has been sent to ${email}. Please check your inbox (and spam folder).`,
+                    false, false, true
+                );
+            }
+            catch (error) {
+                hideMessageBox();
+                let errorMessage = "Failed to send password reset email.";
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = "No user found with that email address. Please check the email.";
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = "The email address is not valid.";
+                } else {
+                    errorMessage = `Error: ${error.message}`;
+                }
+                showMessageBox("Password Reset Failed", errorMessage, true, false, true);
+            }
+        });
+    </script>
+</body>
+</html>
+
