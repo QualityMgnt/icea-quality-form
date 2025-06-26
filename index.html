@@ -222,7 +222,7 @@
             background-color: #eff6ff; /* blue-50 */
             font-weight: 600;
             color: #1f2937; /* gray-800 */
-            position: sticky; /* Keep headers visible on scroll */
+            position: sticky;
             top: 0;
             z-index: 10;
         }
@@ -698,15 +698,29 @@
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // Global variables provided by the Canvas environment for Firebase config
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : '1:820082472004:web:8caddf941e1b5b6dfaf811'; // Using the latest provided appId
         const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
         let firebaseConfig = {};
         try {
             firebaseConfig = JSON.parse(firebaseConfigString);
+            // If the parsed config from __firebase_config is empty, provide a default consistent with icea-lion-qa
+            if (Object.keys(firebaseConfig).length === 0) {
+                 firebaseConfig = {
+                    apiKey: "AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY", // From your last console log's apiKey
+                    authDomain: "icea-lion-qa.firebaseapp.com",
+                    databaseURL: "https://icea-lion-qa-default-rtdb.firebaseio.com",
+                    projectId: "icea-lion-qa",
+                    storageBucket: "icea-lion-qa.firebasestorage.app", // Common pattern for storageBucket
+                    messagingSenderId: "820082472004",
+                    appId: "1:820082472004:web:8caddf941e1b5b6dfaf811", // User's latest provided appId
+                    measurementId: "G-1RJJTT3QET" // From previous config
+                };
+                console.warn("Using default Firebase config for icea-lion-qa project. Please ensure __firebase_config environment variable is set correctly.");
+            }
         } catch (e) {
             console.error("Error parsing __firebase_config:", e);
-            // If parsing fails, firebaseConfig remains an empty object, causing initializeApp to fail.
-            // A message box will be shown directly by initializeApp error if it proceeds with empty config.
+            // This error will be caught during initialization, no need to showMessageBox here.
+            // A fallback might be set in the login.html, but for index.html we let it fail for redirection.
         }
 
         // Log the parsed config for debugging purposes to see exactly what Firebase.js receives
@@ -714,14 +728,20 @@
 
         let app, auth, db;
 
-        // Only initialize Firebase if config is not empty (i.e., successfully parsed)
-        if (Object.keys(firebaseConfig).length > 0) {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
+        // Initialize Firebase if config is present and seemingly valid
+        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey && firebaseConfig.projectId) {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            } catch (initError) {
+                console.error("Firebase app initialization failed:", initError);
+                // This error typically leads to the `onAuthStateChanged` failing due to undefined `auth`
+                // and will trigger the redirect to login.
+            }
         } else {
-            console.error("Firebase app not initialized due to missing or invalid config. User will be redirected to login.");
-            // No need for messageBox here, as the onAuthStateChanged will handle redirection.
+            console.error("Firebase app not initialized due to missing or invalid config. Expect redirect to login.");
+            // This path will lead to `auth` being undefined, triggering the redirect below.
         }
 
         // Expose Firebase instances and appId globally for easier access in other scripts
@@ -855,55 +875,58 @@
 
 
         // --- Main Authentication State Listener (Handles Main App UI Display) ---
-        onAuthStateChanged(auth, async (user) => {
-            if (!app || !auth || !db || Object.keys(firebaseConfig).length === 0) { // Check if Firebase services were initialized successfully or config is bad
-                console.error("Firebase services not available in index.html or config invalid. Redirecting to login.");
-                window.location.href = 'login.html'; // Redirect if Firebase not initialized properly
-                return;
-            }
-
-            if (window.checkSessionTimeout()) {
-                await signOut(auth);
-                window.location.href = 'login.html'; // Redirect to login if session expired
-                return;
-            }
-
-            if (user) {
-                // User is authenticated, fetch their role
-                window.currentUserId = user.uid;
-                console.log("Firebase Auth State Changed: User logged in:", user.uid);
-
-                const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
-                try {
-                    const userDocSnap = await getDoc(userDocRef);
-
-                    if (userDocSnap.exists()) {
-                        window.currentUserRole = userDocSnap.data().role;
-                        console.log("User role fetched:", window.currentUserRole);
-                        window.updateLastActivity();
-
-                        initializeAppUI(); // Initialize the main app UI based on role
-                    } else {
-                        console.warn(`User profile for ${user.email} not found in Firestore. Redirecting to login.`);
-                        await signOut(auth);
-                        window.location.href = 'login.html'; // Redirect if no profile found
-                    }
-                } catch (error) {
-                    console.error("Error fetching user role from Firestore:", error);
-                    await signOut(auth);
-                    window.location.href = 'login.html'; // Redirect on Firestore error
+        // This listener will be defined *after* `auth` is potentially initialized.
+        // It's wrapped in a check to ensure `auth` is defined.
+        if (auth) { // Proceed only if Firebase Auth was successfully initialized
+            onAuthStateChanged(auth, async (user) => {
+                if (window.checkSessionTimeout()) {
+                    // Only attempt signOut if auth is initialized, otherwise just redirect
+                    if (auth) await signOut(auth);
+                    window.location.href = 'login.html'; // Redirect to login if session expired
+                    return;
                 }
-            } else {
-                console.log("No user logged in. Redirecting to login.html");
-                window.currentUserId = null;
-                window.currentUserRole = null;
-                sessionStorage.removeItem('loggedIn');
-                localStorage.removeItem('lastActivity');
-                localStorage.removeItem('loginTime');
-                window.location.href = 'login.html'; // Redirect unauthenticated users
-            }
-            window.isAuthReady = true; // Signal that auth state is resolved
-        });
+
+                if (user) {
+                    // User is authenticated, fetch their role
+                    window.currentUserId = user.uid;
+                    console.log("Firebase Auth State Changed: User logged in:", user.uid);
+
+                    const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
+                    try {
+                        const userDocSnap = await getDoc(userDocRef);
+
+                        if (userDocSnap.exists()) {
+                            window.currentUserRole = userDocSnap.data().role;
+                            console.log("User role fetched:", window.currentUserRole);
+                            window.updateLastActivity();
+
+                            initializeAppUI(); // Initialize the main app UI based on role
+                        } else {
+                            console.warn(`User profile for ${user.email} not found in Firestore. Redirecting to login.`);
+                            if (auth) await signOut(auth); // Ensure user is signed out if no profile
+                            window.location.href = 'login.html'; // Redirect if no profile found
+                        }
+                    } catch (error) {
+                        console.error("Error fetching user role from Firestore:", error);
+                        if (auth) await signOut(auth); // Ensure signed out on Firestore error
+                        window.location.href = 'login.html'; // Redirect on Firestore error
+                    }
+                } else {
+                    console.log("No user logged in. Redirecting to login.html");
+                    window.currentUserId = null;
+                    window.currentUserRole = null;
+                    sessionStorage.removeItem('loggedIn');
+                    localStorage.removeItem('lastActivity');
+                    localStorage.removeItem('loginTime');
+                    window.location.href = 'login.html'; // Redirect unauthenticated users
+                }
+                window.isAuthReady = true; // Signal that auth state is resolved
+            });
+        } else {
+            // If auth was not initialized, immediately redirect to login.html
+            console.error("Firebase Auth not available at script execution. Redirecting to login.html.");
+            window.location.href = 'login.html';
+        }
 
 
         // --- GLOBAL DATA STORES ---
@@ -1547,7 +1570,7 @@
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
             lastEvaluationsTableBody.innerHTML = '';
 
-            if (evaluations.length === 0) {
+            if (evaluallength === 0) {
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
                 return;
             }
@@ -1977,7 +2000,7 @@
 
                     window.location.href = mailtoLink;
                     hideMessageBox();
-                    showMessageBox("Email Prepared", "Your email client should open shortly with pre-filled subject and body. Remember to **manually attach the generated PDF** if applicable.", false, false, true);
+                    showMessageBox("Email Prepared", "Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** if applicable.", false, false, true);
 
                 } else {
                     hideMessageBox();
@@ -2598,7 +2621,7 @@
                     }
 
                     pdf.addPage();
-                    const statsImgHeight = statsCanvas.height * imgWidth / canvas.width; // Corrected: use statsCanvas.width
+                    const statsImgHeight = statsCanvas.height * imgWidth / statsCanvas.width;
                     let statsHeightLeft = statsImgHeight;
                     let statsPosition = 0;
                     pdf.addImage(statsImgData, 'JPEG', 0, statsPosition, imgWidth, statsImgHeight, undefined, 'FAST');
