@@ -219,7 +219,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import {
             getAuth,
-            signInWithEmailAndPassword, // Might not be needed here anymore for direct login
             createUserWithEmailAndPassword,
             onAuthStateChanged,
             signOut,
@@ -255,10 +254,13 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Global app ID for collection paths (consistent with index.html)
-        window.appId = firebaseConfig.appId;
+        // Expose Firebase instances globally if needed by other scripts (less likely in admin.html)
+        window.firebaseApp = app;
+        window.auth = auth;
+        window.db = db;
+        window.appId = firebaseConfig.appId; // Always ensure appId is available
 
-        // Firebase Collection Paths (consistent with index.html)
+        // Firebase Collection Paths
         const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
         const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
 
@@ -398,7 +400,10 @@
             accessDeniedSection.classList.remove('hidden');
             accessDeniedTitle.textContent = title;
             accessDeniedMessage.textContent = message;
-            logoutIfLoggedInBtn.classList.add('hidden'); // Hide logout button by default
+            logoutIfLoggedInBtn.classList.add('hidden'); // Hide logout button by default initially
+            if (auth.currentUser) { // If there's an auth user, but they're not admin, offer to log out
+                logoutIfLoggedInBtn.classList.remove('hidden');
+            }
         }
 
         // --- Event Listeners for Access Denied Section ---
@@ -411,7 +416,7 @@
             sessionStorage.removeItem('loggedIn'); // Clear session indicators
             localStorage.removeItem('lastActivity');
             localStorage.removeItem('loginTime');
-            // onAuthStateChanged will detect logout and refresh UI
+            // onAuthStateChanged will detect logout and refresh UI, showing basic "Access Denied"
         });
 
 
@@ -439,7 +444,7 @@
         });
 
         backToAppBtn.addEventListener('click', () => {
-            window.location.href = 'index.html'; // Navigate back to the main app page
+            window.location.href = 'index.html'; // Navigate back to the main app page (evaluation form)
         });
 
         // --- Load Admin Dashboard Data ---
@@ -455,6 +460,11 @@
         }
 
         // --- User Management Functions ---
+        // These constants need to be available in this script's scope
+        const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
+        const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
+
+
         async function loadUsers() {
             userTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Loading users...</td></tr>';
             try {
@@ -553,6 +563,9 @@
             showMessageBox("Adding User", "Creating user account...", false, true, false);
 
             try {
+                // IMPORTANT: In a production environment, user creation by an admin should ideally happen
+                // via a secure Firebase Cloud Function using the Firebase Admin SDK.
+                // This client-side call is for demonstration/prototype simplicity.
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
