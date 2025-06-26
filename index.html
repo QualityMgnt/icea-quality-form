@@ -704,14 +704,16 @@
           measurementId: "G-1RJJTT3QET"
         };
 
-        // Initialize Firebase app once
-        window.firebaseApp = initializeApp(firebaseConfig);
-        window.db = getFirestore(window.firebaseApp);
-        window.auth = getAuth(window.firebaseApp);
+        // Initialize Firebase app ONCE and EXPOSE globally
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // Make config and app ID available globally for other scripts or parts of this script
-        window.firebaseConfig = firebaseConfig; // Explicitly expose config
-        window.appId = firebaseConfig.appId;
+        window.firebaseApp = app; // Expose the app instance
+        window.auth = auth; // Expose auth instance
+        window.db = db;     // Expose db instance
+
+        window.appId = firebaseConfig.appId; // Expose appId
 
         // Expose Firestore methods globally for the second script block
         window.fsCollection = collection;
@@ -726,8 +728,10 @@
         window.getDocs = getDocs;
         window.fsSetDoc = setDoc;
         window.fsGetDoc = getDoc;
-        window.signOut = signOut; // Expose signOut as well
+        window.signOut = signOut;
+        window.sendPasswordResetEmail = sendPasswordResetEmail; // Also expose this for admin.html to use directly
 
+        // Global variables for user state
         window.currentUserId = null;
         window.currentUserRole = null;
         window.isAuthReady = false; // Flag to indicate Firebase auth state is resolved
@@ -932,7 +936,8 @@
                     `A password reset link has been sent to ${email}. Please check your inbox (and spam folder).`,
                     false, false, true
                 );
-            } catch (error) {
+            }
+            catch (error) {
                 hideMessageBox();
                 let errorMessage = "Failed to send password reset email.";
                 if (error.code === 'auth/user-not-found') {
@@ -965,10 +970,12 @@
         const MIN_EVALUATIONS_FOR_GREEN = 10;
 
         // Firebase Collection Paths (using window.appId which is set in the module script)
-        window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/evaluation_records`;
-        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/webhooks`;
-        window.USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
-        window.DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
+        // Ensure these are defined in the module script and exposed, then referenced here.
+        // They are now.
+        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/evaluation_records`;
+        const WEBHOOKS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/webhooks`;
+        const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
+        const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
 
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
@@ -1555,7 +1562,7 @@
 
         async function fetchLastThreeEvaluations(cerName) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
-            if (!window.db || !window.EVALUATION_RECORDS_COLLECTION_PATH) {
+            if (!window.db || !EVALUATION_RECORDS_COLLECTION_PATH) { // Use constants defined here
                 console.error("Firestore not initialized or collection path not defined.");
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Database not ready.</td></tr>';
                 return;
@@ -1564,7 +1571,7 @@
             lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading last evaluations...</td></tr>';
 
             try {
-                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+                const recordsColRef = window.fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH);
                 const q = window.fsQuery(
                     recordsColRef,
                     window.fsWhere('CER Name', '==', cerName),
@@ -1612,12 +1619,12 @@
         }
 
         async function fetchAllDropdownOptions() {
-            if (!window.db || !window.DROPDOWN_OPTIONS_COLLECTION_PATH) {
+            if (!window.db || !DROPDOWN_OPTIONS_COLLECTION_PATH) { // Use constants defined here
                 console.warn("Firestore not ready or DROPDOWN_OPTIONS_COLLECTION_PATH not defined for fetching all dropdowns.");
                 return;
             }
             try {
-                const docSnap = await window.fsGetDoc(window.fsDoc(window.db, window.DROPDOWN_OPTIONS_COLLECTION_PATH, 'options'));
+                const docSnap = await window.fsGetDoc(window.fsDoc(window.db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options'));
                 if (docSnap.exists()) {
                     dynamicDropdownOptions = docSnap.data();
                 } else {
@@ -1704,7 +1711,7 @@
         }
 
         async function fetchMonthlyEvaluationRecords() {
-            if (!window.db || !window.EVALUATION_RECORDS_COLLECTION_PATH) {
+            if (!window.db || !EVALUATION_RECORDS_COLLECTION_PATH) { // Use constants defined here
                 console.error("Firestore not initialized or collection path not defined for monthly stats.");
                 return [];
             }
@@ -1713,7 +1720,7 @@
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
 
-            const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+            const recordsColRef = window.fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH);
             const q = window.fsQuery(
                 recordsColRef,
                 window.fsWhere('submittedAt', '>=', thirtyDaysAgoISO),
@@ -1747,7 +1754,7 @@
 
             records.forEach(record => {
                 const cerName = record['CER Name'];
-                const cerRole = record['CER Role']; // Corrected to use 'CER Role'
+                const cerRole = record['CER Role'];
 
                 if (dataMatrix[cerName]) {
                     if (dataMatrix[cerName][cerRole] !== undefined) {
