@@ -222,7 +222,7 @@
             background-color: #eff6ff; /* blue-50 */
             font-weight: 600;
             color: #1f2937; /* gray-800 */
-            position: sticky;
+            position: sticky; /* Keep headers visible on scroll */
             top: 0;
             z-index: 10;
         }
@@ -392,7 +392,7 @@
     </style>
 </head>
 <body>
-    <!-- Custom Message/Confirmation Box Overlay -->
+    <!-- Message Box Overlay -->
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
         <div class="message-box">
             <div id="messageBoxSpinner" class="spinner hidden"></div>
@@ -403,28 +403,6 @@
                 <button id="messageBoxConfirmYesBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">Yes</button>
                 <button id="messageBoxConfirmNoBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md">No</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Login/Access Denied Section -->
-    <div id="accessSection" class="hidden">
-        <div id="accessBox">
-            <h2 id="accessTitle">Login to ICEA LION QA Audit</h2>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label for="loginEmail" class="block text-sm font-medium text-gray-700 text-left">Email:</label>
-                    <input type="email" id="loginEmail" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
-                </div>
-                <div>
-                    <label for="loginPassword" class="block text-sm font-medium text-gray-700 text-left">Password:</label>
-                    <input type="password" id="loginPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
-                </div>
-                <div id="loginError" class="error-message hidden"></div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Login</button>
-            </form>
-            <p class="mt-4 text-center text-sm text-gray-600">
-                <a href="#" id="forgotPasswordLink" class="text-blue-600 hover:underline">Forgot Password?</a>
-            </p>
         </div>
     </div>
 
@@ -619,8 +597,7 @@
             </div>
         </div>
     </div>
-
-    <!-- Monthly Evaluation Statistics Section -->
+    <!-- Monthly Evaluation Statistics Section - Keep for PDF generation source -->
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="monthlyStatsContainer" style="display: none;">
         <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
             <i class="fas fa-chart-line tile-icon"></i> This Month Evaluation Statistics
@@ -700,12 +677,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import {
             getAuth,
-            signInWithEmailAndPassword,
             onAuthStateChanged,
-            signOut,
-            sendPasswordResetEmail,
-            signInWithCustomToken, // Import signInWithCustomToken
-            signInAnonymously // Import signInAnonymously
+            signOut
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import {
             getFirestore,
@@ -714,17 +687,17 @@
             getDocs,
             deleteDoc,
             doc,
-            onSnapshot, // Import onSnapshot
+            onSnapshot,
             query,
             where,
             orderBy,
             limit,
             setDoc,
             getDoc,
-            updateDoc // Import updateDoc for webhook management
+            updateDoc
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // Initialize Firebase using global variables provided by the Canvas environment
+        // Global variables provided by the Canvas environment for Firebase config
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
         let firebaseConfig = {};
@@ -732,29 +705,32 @@
             firebaseConfig = JSON.parse(firebaseConfigString);
         } catch (e) {
             console.error("Error parsing __firebase_config:", e);
-            console.warn("Falling back to empty Firebase config. Firebase functions may not work.");
+            // If parsing fails, firebaseConfig remains an empty object, causing initializeApp to fail.
+            // A message box will be shown directly by initializeApp error if it proceeds with empty config.
         }
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // --- IMPORTANT DEBUGGING STEP ---
         // Log the parsed config for debugging purposes to see exactly what Firebase.js receives
         console.log("Firebase config received (at runtime):", firebaseConfig);
-        // --- END DEBUGGING STEP ---
 
+        let app, auth, db;
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Only initialize Firebase if config is not empty (i.e., successfully parsed)
+        if (Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } else {
+            console.error("Firebase app not initialized due to missing or invalid config. User will be redirected to login.");
+            // No need for messageBox here, as the onAuthStateChanged will handle redirection.
+        }
 
-        // Expose Firebase instances and appId globally for easier access in other scripts if needed
+        // Expose Firebase instances and appId globally for easier access in other scripts
         window.firebaseApp = app;
         window.auth = auth;
         window.db = db;
-        window.appId = appId; // Ensure window.appId is correctly set
+        window.appId = appId;
 
         // Expose Firestore methods globally for the second script block
-        // (This is kept for compatibility with existing structure, though direct imports
-        // in the second script would be ideal for strict module separation)
         window.fsCollection = collection;
         window.fsOnSnapshot = onSnapshot;
         window.fsAddDoc = addDoc;
@@ -764,37 +740,26 @@
         window.fsWhere = where;
         window.fsOrderBy = orderBy;
         window.fsLimit = limit;
-        window.getDocs = getDocs; // getDocs is specifically needed for non-realtime queries
+        window.getDocs = getDocs;
         window.fsSetDoc = setDoc;
         window.fsGetDoc = getDoc;
-        window.fsUpdateDoc = updateDoc; // Expose updateDoc
+        window.fsUpdateDoc = updateDoc;
         window.signOut = signOut;
-        window.sendPasswordResetEmail = sendPasswordResetEmail; // Expose for Forgot Password
 
         // Global variables for user state
         window.currentUserId = null;
         window.currentUserRole = null;
         window.isAuthReady = false; // Flag to indicate Firebase auth state is resolved
 
-        // --- DOM Elements for Login/Access Section ---
-        const accessSection = document.getElementById('accessSection');
-        const accessTitle = document.getElementById('accessTitle');
-        const loginForm = document.getElementById('loginForm');
-        const loginEmail = document.getElementById('loginEmail');
-        const loginPassword = document.getElementById('loginPassword');
-        const loginError = document.getElementById('loginError');
-        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+        // --- DOM Elements (for main portal) ---
+        const mainNav = document.getElementById('mainNav');
+        const evaluationFormContent = document.getElementById('evaluationFormContent');
+        const databaseContent = document.getElementById('databaseContent');
+        const monthlyStatsContainer = document.getElementById('monthlyStatsContainer');
+        const adminTabNav = document.getElementById('adminTabNav'); // Admin navigation item
+        const logoutBtn = document.getElementById('logoutBtn');
 
-        // --- Message Box Functions (now includes confirmation capability) ---
-        /**
-         * Displays a custom message/alert box.
-         * @param {string} title - The title of the message box.
-         * @param {string} message - The content message.
-         * @param {boolean} [isError=false] - If true, displays title in red.
-         * @param {boolean} [showSpinner=false] - If true, displays a loading spinner.
-         * @param {boolean} [showCloseButton=true] - If true, displays an "OK" button.
-         * @param {function} [onClose=null] - Callback function when "OK" is clicked.
-         */
+        // --- Message Box Functions (for main app messages) ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -804,7 +769,6 @@
             const messageBoxConfirmButtons = document.getElementById('messageBoxConfirmButtons');
 
             messageBoxTitle.textContent = title;
-            // Check if message is HTML for pre-formatted content
             if (typeof message === 'string' && message.startsWith('<pre>')) {
                 messageBoxContent.innerHTML = message;
                 messageBoxContent.classList.add('message-box-content-pre');
@@ -826,12 +790,10 @@
             };
         }
 
-        /**
-         * Displays a custom confirmation box.
-         * @param {string} title - The title of the confirmation box.
-         * @param {string} message - The confirmation message.
-         * @returns {Promise<boolean>} A promise that resolves to true if 'Yes', false if 'No'.
-         */
+        function hideMessageBox() {
+            document.getElementById('messageBoxOverlay').classList.add('hidden');
+        }
+
         function showConfirmationBox(title, message) {
             return new Promise((resolve) => {
                 const messageBoxOverlay = document.getElementById('messageBoxOverlay');
@@ -847,11 +809,11 @@
                 messageBoxContent.textContent = message;
 
                 messageBoxOverlay.classList.remove('hidden');
-                messageBoxSpinner.classList.add('hidden'); // No spinner for confirmation
-                messageBoxCloseBtn.classList.add('hidden'); // No single OK button for confirmation
-                messageBoxConfirmButtons.classList.remove('hidden'); // Show confirm buttons
+                messageBoxSpinner.classList.add('hidden');
+                messageBoxCloseBtn.classList.add('hidden');
+                messageBoxConfirmButtons.classList.remove('hidden');
 
-                messageBoxTitle.style.color = '#1a73e8'; // Confirmation is typically not an error
+                messageBoxTitle.style.color = '#1a73e8';
 
                 const closeAndResolve = (result) => {
                     messageBoxOverlay.classList.add('hidden');
@@ -863,11 +825,8 @@
             });
         }
 
-        function hideMessageBox() {
-            document.getElementById('messageBoxOverlay').classList.add('hidden');
-        }
 
-        // --- Session Management (consistency check only) ---
+        // --- Session Management (for index.html to check session and logout) ---
         window.checkSessionTimeout = function() {
             const lastActivity = localStorage.getItem('lastActivity');
             const loginTime = localStorage.getItem('loginTime');
@@ -894,196 +853,79 @@
         document.addEventListener('keydown', window.updateLastActivity);
         document.addEventListener('click', window.updateLastActivity);
 
-        // --- Main Authentication State Listener (Handles Initial Display and Role-based UI) ---
+
+        // --- Main Authentication State Listener (Handles Main App UI Display) ---
         onAuthStateChanged(auth, async (user) => {
-            // If initialAuthToken is present and no user is currently authenticated, try signing in with it.
-            if (initialAuthToken && !user) {
-                try {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                    // Auth state change listener will be triggered again with the user object
-                    return; // Exit this call to avoid re-processing before signInWithCustomToken completes
-                } catch (error) {
-                    console.error("Error signing in with custom token:", error);
-                    // Fallback to anonymous sign-in if custom token fails (or show access denied)
-                    try {
-                        await signInAnonymously(auth);
-                        console.log("Signed in anonymously due to custom token failure.");
-                    } catch (anonError) {
-                        console.error("Error signing in anonymously:", anonError);
-                        // If even anonymous sign-in fails, show a critical error
-                        showMessageBox("Authentication Error", "Could not sign in. Please try again or contact support.", true, false, true);
-                        return;
-                    }
-                }
+            if (!app || !auth || !db || Object.keys(firebaseConfig).length === 0) { // Check if Firebase services were initialized successfully or config is bad
+                console.error("Firebase services not available in index.html or config invalid. Redirecting to login.");
+                window.location.href = 'login.html'; // Redirect if Firebase not initialized properly
+                return;
             }
 
-            // Check for session timeout only after initial auth attempt (if any)
             if (window.checkSessionTimeout()) {
-                await signOut(auth); // Ensure Firebase session is cleared if timeout detected
-                accessSection.classList.remove('hidden'); // Show login if session expired
-                accessTitle.textContent = "Session Expired";
-                loginError.textContent = "Your session has expired. Please log in again.";
-                loginError.classList.remove('hidden');
+                await signOut(auth);
+                window.location.href = 'login.html'; // Redirect to login if session expired
                 return;
             }
 
             if (user) {
-                // User is authenticated (either via custom token, anonymous, or existing session)
+                // User is authenticated, fetch their role
                 window.currentUserId = user.uid;
                 console.log("Firebase Auth State Changed: User logged in:", user.uid);
 
-                const userDocRef = doc(db, `artifacts/${window.appId}/users/${user.uid}`);
+                const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
                 try {
                     const userDocSnap = await getDoc(userDocRef);
 
                     if (userDocSnap.exists()) {
                         window.currentUserRole = userDocSnap.data().role;
                         console.log("User role fetched:", window.currentUserRole);
-                        window.updateLastActivity(); // Update activity on successful auth
+                        window.updateLastActivity();
 
-                        // Hide login form and show main app content
-                        accessSection.classList.add('hidden');
-                        initializeApp(); // Initialize the main app UI based on role
+                        initializeAppUI(); // Initialize the main app UI based on role
                     } else {
-                        // User authenticated but no profile found (e.g., deleted from Firestore but auth exists)
-                        console.warn(`User profile for ${user.email} not found in Firestore. Logging out.`);
+                        console.warn(`User profile for ${user.email} not found in Firestore. Redirecting to login.`);
                         await signOut(auth);
-                        accessSection.classList.remove('hidden');
-                        accessTitle.textContent = "Access Denied";
-                        loginError.textContent = "Your user profile is incomplete or missing. Please contact an administrator.";
-                        loginError.classList.remove('hidden');
+                        window.location.href = 'login.html'; // Redirect if no profile found
                     }
                 } catch (error) {
                     console.error("Error fetching user role from Firestore:", error);
                     await signOut(auth);
-                    accessSection.classList.remove('hidden');
-                    accessTitle.textContent = "Login Error";
-                    loginError.textContent = `Failed to retrieve user profile: ${error.message}. Please try again.`;
-                    loginError.classList.remove('hidden');
+                    window.location.href = 'login.html'; // Redirect on Firestore error
                 }
             } else {
-                // No user logged in, show the login form
-                console.log("Firebase Auth State Changed: No user logged in. Showing login form.");
+                console.log("No user logged in. Redirecting to login.html");
                 window.currentUserId = null;
                 window.currentUserRole = null;
                 sessionStorage.removeItem('loggedIn');
                 localStorage.removeItem('lastActivity');
                 localStorage.removeItem('loginTime');
-                accessSection.classList.remove('hidden');
-                accessTitle.textContent = "Login to ICEA LION QA Audit";
-                loginError.classList.add('hidden'); // Hide any previous errors
+                window.location.href = 'login.html'; // Redirect unauthenticated users
             }
-            window.isAuthReady = true;
-            document.dispatchEvent(new CustomEvent('firebaseAuthReady')); // Signal that auth state is resolved
+            window.isAuthReady = true; // Signal that auth state is resolved
         });
 
 
-        // --- Login Form Submission ---
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            loginError.classList.add('hidden');
-            const email = loginEmail.value;
-            const password = loginPassword.value;
+        // --- GLOBAL DATA STORES ---
+        let allRecords = [];
+        let allWebhooks = [];
+        let dynamicDropdownOptions = {};
 
-            showMessageBox("Logging In", "Please wait...", false, true, false);
-
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                const userDocRef = doc(db, `artifacts/${window.appId}/users/${user.uid}`);
-                const userDocSnap = await getDoc(userDocRef);
-
-                if (userDocSnap.exists()) {
-                    window.currentUserRole = userDocSnap.data().role;
-                    sessionStorage.setItem('loggedIn', 'true');
-                    localStorage.setItem('loginTime', new Date().getTime().toString());
-
-                    hideMessageBox();
-                    // Successfully logged in, initialize app UI based on role
-                    initializeApp(); // This will show relevant tabs and content
-                } else {
-                    await signOut(auth);
-                    hideMessageBox();
-                    loginError.textContent = "User profile incomplete. Please contact administrator.";
-                    loginError.classList.remove('hidden');
-                }
-
-            } catch (error) {
-                hideMessageBox();
-                let errorMessage = "Login failed. Please check your credentials.";
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                    errorMessage = "Invalid email or password.";
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "Invalid email format.";
-                } else {
-                    errorMessage = `Error: ${error.message}`;
-                }
-                loginError.textContent = errorMessage;
-                loginError.classList.remove('hidden');
-            }
-        });
-
-        // --- Forgot Password Link Handler ---
-        forgotPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const email = loginEmail.value.trim();
-
-            if (!email) {
-                showMessageBox("Email Required", "Please enter your email in the email field above to reset your password.", true);
-                return;
-            }
-
-            showMessageBox("Sending Reset Email", "Please wait...", false, true, false);
-
-            try {
-                await sendPasswordResetEmail(auth, email);
-                hideMessageBox();
-                showMessageBox(
-                    "Password Reset",
-                    `A password reset link has been sent to ${email}. Please check your inbox (and spam folder).`,
-                    false, false, true
-                );
-            }
-            catch (error) {
-                hideMessageBox();
-                let errorMessage = "Failed to send password reset email.";
-                if (error.code === 'auth/user-not-found') {
-                    errorMessage = "No user found with that email address. Please check the email.";
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "The email address is not valid.";
-                } else {
-                    errorMessage = `Error: ${error.message}`;
-                }
-                showMessageBox("Password Reset Failed", errorMessage, true, false, true);
-            }
-        });
-
-    </script>
-    <script>
-        // --- GLOBAL DATA STORES (already defined in module script and exposed via window) ---
-        let allRecords = []; // Stores all evaluation records fetched from Firestore
-        let allWebhooks = []; // Stores all webhook URLs fetched from Firestore
-        let dynamicDropdownOptions = {}; // Stores dropdown options (CER Names, Roles, Reviewers, Autofail Types)
-
-        // Global variables for form calculations
+        // Score Calculation Variables (moved from original script for clarity)
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
         let autofailTriggered = false;
-
         let complianceCurrentPoints = 0;
         let complianceMaxPoints = 0;
+        const MIN_EVALUATIONS_FOR_GREEN = 10;
 
-        const MIN_EVALUATIONS_FOR_GREEN = 10; // Threshold for green color in monthly stats
-
-        // Firebase Collection Paths (using window.appId which is set in the module script)
+        // Firebase Collection Paths (using window.appId)
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/evaluation_records`;
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/webhooks`;
-        const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
+        const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`; // Keep for potential future use or consistency check
         const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
 
-
-        // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
+        // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED, duplicated for now) ---
         const allRolesQuestions = {
             '': { 'CUSTOMER EXPERIENCE': [], 'PROBLEM SOLVING SKILLS': [], 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [] },
             'Outbound Sales': {
@@ -1291,7 +1133,7 @@
             }
         };
 
-        // Audit Form Calculations (functions unchanged)
+        // Audit Form Calculations (functions below are unchanged from original)
         const calculateScore = () => {
             const cerRoleSelect = document.getElementById('cer-role');
             const overallScoreDisplay = document.getElementById('overall-score-display');
@@ -1396,10 +1238,6 @@
             businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
         };
 
-        /**
-         * Renders the questions for a specific CER role.
-         * @param {string} role - The selected CER role.
-         */
         window.renderQuestionsForRole = function(role) {
             const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
             const psQuestionsContainer = document.getElementById('psQuestionsContainer');
@@ -1411,7 +1249,6 @@
                 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
             };
 
-            // Clear existing questions from all containers
             for (const key in questionContainers) {
                 if (questionContainers[key]) {
                     questionContainers[key].innerHTML = '';
@@ -1422,11 +1259,11 @@
 
             if (!roleQuestions) {
                 console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
-                calculateScore(); // Recalculate scores with empty questions
+                calculateScore();
                 return;
             }
 
-            let questionNumber = 1; // Reset question number for each role rendering
+            let questionNumber = 1;
 
             for (const sectionTitle in roleQuestions) {
                 const questions = roleQuestions[sectionTitle];
@@ -1439,11 +1276,10 @@
 
                 questions.forEach(q => {
                     const rowDiv = document.createElement('div');
-                    // Add zebra striping for readability
                     rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
 
                     let iconColorClass;
-                    const iconIndex = (questionNumber - 1) % 4; // Cycle through 4 colors
+                    const iconIndex = (questionNumber - 1) % 4;
                     if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
                     else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
@@ -1471,7 +1307,6 @@
                     `;
                     container.appendChild(rowDiv);
 
-                    // Add event listeners for newly created elements
                     const newSelect = rowDiv.querySelector('.rating-select');
                     if (newSelect) {
                         newSelect.addEventListener('change', calculateScore);
@@ -1483,28 +1318,20 @@
                     questionNumber++;
                 });
             }
-            calculateScore(); // Initial score calculation after rendering questions
+            calculateScore();
         };
 
-        /**
-         * Automatically adjusts the height of a textarea to fit its content.
-         * @param {Event} event - The input event from the textarea.
-         */
         function autoExpandTextarea(event) {
             const textarea = event.target;
-            textarea.style.height = 'auto'; // Reset height to recalculate scrollHeight
-            textarea.style.height = (textarea.scrollHeight) + 'px'; // Set height to scrollHeight
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
         }
 
-        /**
-         * Resets dynamic form fields (ratings, points, remarks) to default values,
-         * but keeps the selected CER role.
-         */
         window.resetFormFieldsButKeepRole = function() {
             const dynamicSelects = document.querySelectorAll('.rating-select');
             dynamicSelects.forEach(selectElement => {
-                selectElement.value = 'Yes'; // Default to 'Yes'
-                selectElement.style.borderColor = ''; // Clear any validation borders
+                selectElement.value = 'Yes';
+                selectElement.style.borderColor = '';
 
                 const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
                 if (rowDiv) {
@@ -1512,23 +1339,20 @@
                     const remarksElement = rowDiv.querySelector('.remarks-textarea');
 
                     if (pointsElement) {
-                        pointsElement.value = 0; // Reset points
-                        pointsElement.readOnly = true; // Make points read-only again
-                        pointsElement.style.backgroundColor = '#e9ecef'; // Default grey background
-                        pointsElement.style.color = '#555'; // Default text color
+                        pointsElement.value = 0;
+                        pointsElement.readOnly = true;
+                        pointsElement.style.backgroundColor = '#e9ecef';
+                        pointsElement.style.color = '#555';
                     }
                     if (remarksElement) {
-                        remarksElement.value = ''; // Clear remarks
-                        remarksElement.style.height = '40px'; // Reset textarea height
+                        remarksElement.value = '';
+                        remarksElement.style.height = '40px';
                     }
                 }
             });
-            calculateScore(); // Recalculate score after reset
+            calculateScore();
         };
 
-        /**
-         * Initializes the evaluation form by setting default dates and populating dropdowns.
-         */
         function initializeEvaluationForm() {
             const evaluationDateInput = document.getElementById('review-date');
             const callDateTimeInput = document.getElementById('call-date-time');
@@ -1538,47 +1362,39 @@
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
 
-            // Set default dates to current date/time
             evaluationDateInput.valueAsDate = new Date();
             const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Adjust for timezone offset
-            callDateTimeInput.value = now.toISOString().slice(0, 16); // Format for datetime-local input
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            callDateTimeInput.value = now.toISOString().slice(0, 16);
 
-            // Reset dropdowns to loading state
             cerNameSelect.innerHTML = '<option value="">Loading CER Names...</option>';
             cerRoleSelect.innerHTML = '<option value="">Loading CER Roles...</option>';
             document.getElementById('reviewer-name').innerHTML = '<option value="">Loading Reviewer Names...</option>';
             autofailTypeSelect.innerHTML = '<option value="">Loading Autofail Types...</option>';
 
-            // Hide autofail description by default
             autofailDescriptionContainer.classList.add('hidden');
             autofailDescriptionInput.value = '';
             autofailDescriptionInput.removeAttribute('required');
             autofailDescriptionInput.style.height = 'auto';
 
-            // Reset reviewer name fields
             document.getElementById('reviewer-name').value = '';
             document.getElementById('other-reviewer-name').classList.add('hidden');
             document.getElementById('other-reviewer-name').value = '';
             document.getElementById('other-reviewer-name').removeAttribute('required');
             document.getElementById('other-reviewer-name').style.borderColor = '';
 
-            // Clear validation borders on top-level required inputs
             const requiredInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
             requiredInputs.forEach(input => {
                 input.style.borderColor = '';
             });
 
-            populateDropdownsFromCache(); // Populate dropdowns using cached data or fetch if empty
+            populateDropdownsFromCache();
 
-            window.renderQuestionsForRole(''); // Render empty questions initially
-            calculateScore(); // Calculate initial score (should be 0%)
+            window.renderQuestionsForRole('');
+            calculateScore();
             document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
         }
 
-        /**
-         * Performs a full reset of the evaluation form, including basic info fields.
-         */
         function resetForm() {
             const contactIdInput = document.getElementById('contact-id');
             const clientNameInput = document.getElementById('client-name');
@@ -1595,13 +1411,11 @@
 
             console.log("Full form reset.");
 
-            // Clear basic info fields
             contactIdInput.value = '';
             clientNameInput.value = '';
             cerNameSelect.value = '';
             cerRoleSelect.value = '';
 
-            // Reset dates to current
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             callDateTimeInput.value = now.toISOString().slice(0, 16);
@@ -1610,43 +1424,34 @@
             durationInput.value = '';
             autofailTypeSelect.value = '';
 
-            // Reset autofail fields
             autofailDescriptionContainer.classList.add('hidden');
             autofailDescriptionInput.value = '';
             autofailDescriptionInput.removeAttribute('required');
             autofailDescriptionInput.style.height = 'auto';
 
-            // Reset reviewer fields
             reviewerNameSelect.value = '';
             otherReviewerNameInput.classList.add('hidden');
             otherReviewerNameInput.value = '';
             otherReviewerNameInput.removeAttribute('required');
             otherReviewerNameInput.style.borderColor = '';
 
-            // Clear validation borders from top-level inputs
             const requiredInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
             requiredInputs.forEach(input => {
                 input.style.borderColor = '';
             });
 
-            window.renderQuestionsForRole(''); // Re-render empty questions
-            calculateScore(); // Recalculate score (should be 0%)
+            window.renderQuestionsForRole('');
+            calculateScore();
             document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
         }
 
-        /**
-         * Validates all mandatory fields in the evaluation form.
-         * @returns {boolean} True if all mandatory fields are filled, false otherwise.
-         */
         function validateAllMandatoryFields() {
             const topLevelInputs = document.querySelectorAll('#evaluationFormContent input[required]:not([type="hidden"]), #evaluationFormContent select[required]');
             let allFieldsValid = true;
 
-            // Validate top-level required fields
             for (const input of topLevelInputs) {
-                // Skip 'other-reviewer-name' if it's hidden, as it's not required in that case
                 if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
-                    input.style.borderColor = ''; // Ensure no red border if hidden
+                    input.style.borderColor = '';
                     continue;
                 }
 
@@ -1658,14 +1463,12 @@
                 }
             }
 
-            // Validate autofail description if an autofail type is selected OR overall score is 0
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionInput = document.getElementById('autofail-description');
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
 
             if (autofailTypeSelect.value !== '' || overallScoreValue === 0) {
-                // If either condition is true, autofail description becomes required
                 autofailDescriptionInput.setAttribute('required', 'required');
                 if (autofailDescriptionInput.value.trim() === '') {
                     autofailDescriptionInput.style.borderColor = 'red';
@@ -1674,15 +1477,13 @@
                     autofailDescriptionInput.style.borderColor = '';
                 }
             } else {
-                // If neither condition is true, autofail description is not required
                 autofailDescriptionInput.removeAttribute('required');
                 autofailDescriptionInput.style.borderColor = '';
             }
 
-            // Validate all dynamic rating selects
             const dynamicRatingSelects = document.querySelectorAll('.rating-select');
             for (const selectElement of dynamicRatingSelects) {
-                if (selectElement.value === '') { // Check if a rating is selected
+                if (selectElement.value === '') {
                     selectElement.style.borderColor = 'red';
                     allFieldsValid = false;
                 } else {
@@ -1690,14 +1491,12 @@
                 }
             }
 
-            // Clear any red borders on remarks textareas
             const remarksTextareas = document.querySelectorAll('.remarks-textarea');
             remarksTextareas.forEach(textarea => {
                 textarea.style.borderColor = '';
             });
 
 
-            // Scroll to the first invalid field if validation fails
             if (!allFieldsValid) {
                 const firstInvalidField = document.querySelector('input[required][value=""], select[required][value=""], .rating-select[value=""][style*="border-color: red"], textarea[required][value=""]');
                 if (firstInvalidField) {
@@ -1708,10 +1507,6 @@
             return allFieldsValid;
         }
 
-        /**
-         * Fetches the last three evaluation records for a given CER name and renders them in a table.
-         * @param {string} cerName - The name of the CER to fetch evaluations for.
-         */
         async function fetchLastThreeEvaluations(cerName) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
             if (!window.db || !EVALUATION_RECORDS_COLLECTION_PATH) {
@@ -1748,13 +1543,9 @@
             }
         }
 
-        /**
-         * Renders the fetched evaluation records into the "Last 3 Evaluations" table.
-         * @param {Array<Object>} evaluations - An array of evaluation record objects.
-         */
         function renderLastThreeEvaluationsTable(evaluations) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
-            lastEvaluationsTableBody.innerHTML = ''; // Clear existing rows
+            lastEvaluationsTableBody.innerHTML = '';
 
             if (evaluations.length === 0) {
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
@@ -1774,10 +1565,6 @@
             });
         }
 
-        /**
-         * Fetches all dynamic dropdown options from Firestore and caches them.
-         * This function uses onSnapshot for real-time updates.
-         */
         async function fetchAllDropdownOptions() {
             if (!window.db || !DROPDOWN_OPTIONS_COLLECTION_PATH) {
                 console.warn("Firestore not ready or DROPDOWN_OPTIONS_COLLECTION_PATH not defined for fetching all dropdowns.");
@@ -1785,32 +1572,27 @@
             }
             const docRef = window.fsDoc(window.db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options');
 
-            // Set up real-time listener for dropdown options
             window.fsOnSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
                     dynamicDropdownOptions = docSnap.data();
                 } else {
                     console.log("No 'options' document found in dropdown_options collection. Initializing empty.");
-                    dynamicDropdownOptions = {}; // Reset if document doesn't exist
+                    dynamicDropdownOptions = {};
                 }
                 console.log("All dynamic dropdown options fetched (real-time update):", dynamicDropdownOptions);
-                populateDropdownsFromCache(); // Re-populate dropdowns on any change
+                populateDropdownsFromCache();
             }, (error) => {
                 console.error("Error fetching all dropdown options (real-time listener):", error);
                 showMessageBox("Error", `Failed to load dropdown options: ${error.message}`, true, false, true);
             });
         }
 
-        /**
-         * Populates the form's dropdowns using the `dynamicDropdownOptions` cache.
-         */
         function populateDropdownsFromCache() {
             const cerNameSelect = document.getElementById('cer-name');
             const cerRoleSelect = document.getElementById('cer-role');
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const autofailTypeSelect = document.getElementById('autofail-type');
 
-            /** Helper to populate a select element */
             function populateSelect(selectElement, optionsArray, defaultText) {
                 selectElement.innerHTML = `<option value="">${defaultText}</option>`;
                 optionsArray.forEach(option => {
@@ -1821,32 +1603,28 @@
                 });
             }
 
-            // Populate CER Names
             if (dynamicDropdownOptions.cerNames && dynamicDropdownOptions.cerNames.length > 0) {
                 populateSelect(cerNameSelect, dynamicDropdownOptions.cerNames, 'Select CER');
             } else {
                 cerNameSelect.innerHTML = '<option value="">No CER Names available</option>';
             }
 
-            // Populate CER Roles
             if (dynamicDropdownOptions.cerRoles && dynamicDropdownOptions.cerRoles.length > 0) {
                 populateSelect(cerRoleSelect, dynamicDropdownOptions.cerRoles, 'Select Role');
             } else {
                 cerRoleSelect.innerHTML = '<option value="">No CER Roles available</option>';
             }
 
-            // Populate Reviewer Names (always include 'Other')
             if (dynamicDropdownOptions.reviewerNames && dynamicDropdownOptions.reviewerNames.length > 0) {
                 const reviewerOptions = [...dynamicDropdownOptions.reviewerNames];
                 if (!reviewerOptions.includes('Other')) {
-                    reviewerOptions.push('Other'); // Ensure 'Other' option is always available
+                    reviewerOptions.push('Other');
                 }
                 populateSelect(reviewerNameSelect, reviewerOptions, 'Select Reviewer');
             } else {
-                populateSelect(reviewerNameSelect, ['Other'], 'Select Reviewer'); // Only 'Other' if no names
+                populateSelect(reviewerNameSelect, ['Other'], 'Select Reviewer');
             }
 
-            // Populate Autofail Types
             if (dynamicDropdownOptions.autofailTypes && dynamicDropdownOptions.autofailTypes.length > 0) {
                 populateSelect(autofailTypeSelect, dynamicDropdownOptions.autofailTypes, 'Select Autofail Type');
             } else {
@@ -1854,37 +1632,29 @@
             }
         }
 
-        /**
-         * Fetches and processes monthly evaluation statistics.
-         */
         async function fetchAndRenderMonthlyStats() {
             const monthlyStatsTableBody = document.getElementById('monthlyStatsTableBody');
             if (monthlyStatsTableBody) {
                 monthlyStatsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading monthly statistics...</td></tr>';
             }
 
-            // Ensure dropdown options are loaded before processing stats
             if (Object.keys(dynamicDropdownOptions).length === 0 || !dynamicDropdownOptions.cerNames || !dynamicDropdownOptions.cerRoles) {
-                console.warn("Dropdown options not fully loaded for monthly stats. Attempting re-fetch.");
-                // Since fetchAllDropdownOptions uses onSnapshot, it might take a moment.
-                // For immediate use here, we'd need to await a one-time fetch or rely on global state.
-                // If they are still missing, the table will show a message.
+                console.warn("Dropdown options not fully loaded for monthly stats. Cannot render stats.");
+                if(monthlyStatsTableBody) {
+                    monthlyStatsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Cannot load monthly statistics: Missing CER Names or Roles.</td></tr>';
+                }
+                return;
             }
 
             const monthlyRecords = await fetchMonthlyEvaluationRecords();
-            // Pass copies of cerNames and cerRoles to avoid modifying the global dynamicDropdownOptions
             const processedData = processMonthlyEvaluationData(
                 monthlyRecords,
-                [...(dynamicDropdownOptions.cerNames || [])], // Ensure a copy is passed
-                [...(dynamicDropdownOptions.cerRoles || [])] // Ensure a copy is passed
+                [...(dynamicDropdownOptions.cerNames || [])],
+                [...(dynamicDropdownOptions.cerRoles || [])]
             );
             renderMonthlyStatsTable(processedData);
         }
 
-        /**
-         * Fetches evaluation records submitted within the last 30 days.
-         * @returns {Promise<Array<Object>>} A promise resolving to an array of monthly records.
-         */
         async function fetchMonthlyEvaluationRecords() {
             if (!window.db || !EVALUATION_RECORDS_COLLECTION_PATH) {
                 console.error("Firestore not initialized or collection path not defined for monthly stats.");
@@ -1893,18 +1663,17 @@
 
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const thirtyDaysAgoISO = thirtyDaysAgo.toISOString(); // Use ISO string for consistent comparison
+            const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
 
             const recordsColRef = window.fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH);
             const q = window.fsQuery(
                 recordsColRef,
-                window.fsWhere('submittedAt', '>=', thirtyDaysAgoISO)
-                // Note: orderBy is commented out as per instructions unless explicitly needed for filtering efficiency.
-                // window.fsOrderBy('submittedAt', 'desc')
+                window.fsWhere('submittedAt', '>=', thirtyDaysAgoISO),
+                window.fsOrderBy('submittedAt', 'desc')
             );
 
             try {
-                const querySnapshot = await window.getDocs(q); // Use getDocs for one-time fetch
+                const querySnapshot = await window.getDocs(q);
                 const monthlyRecords = [];
                 querySnapshot.forEach(doc => {
                     monthlyRecords.push(doc.data());
@@ -1917,78 +1686,51 @@
             }
         }
 
-        /**
-         * Processes raw evaluation records into a structured format for the monthly statistics table.
-         * @param {Array<Object>} records - Array of evaluation record objects.
-         * @param {Array<string>} cerNames - Array of known CER names.
-         * @param {Array<string>} cerRoles - Array of known CER roles.
-         * @returns {Object} Structured data for the table.
-         */
         function processMonthlyEvaluationData(records, cerNames, cerRoles) {
             const dataMatrix = {};
 
-            // Initialize data matrix with 0s for all known CERs and roles
             cerNames.forEach(name => {
                 dataMatrix[name] = {};
                 cerRoles.forEach(role => {
                     dataMatrix[name][role] = 0;
                 });
-                dataMatrix[name]['Total'] = 0; // Initialize total for each CER
+                dataMatrix[name]['Total'] = 0;
             });
 
-            // Populate counts from records
             records.forEach(record => {
                 const cerName = record['CER Name'];
                 const cerRole = record['CER Role'];
 
-                // If CER name is not yet in dataMatrix (e.g., new CER since last dropdown fetch)
-                if (!dataMatrix[cerName]) {
+                if (dataMatrix[cerName]) {
+                    if (dataMatrix[cerName][cerRole] !== undefined) {
+                        dataMatrix[cerName][cerRole]++;
+                    } else {
+                        dataMatrix[cerName][cerRole] = 1;
+                        if (!cerRoles.includes(cerRole)) {
+                            cerRoles.push(cerRole);
+                        }
+                    }
+                    dataMatrix[cerName]['Total']++;
+                } else {
                     dataMatrix[cerName] = {};
-                    // Initialize new CER with existing roles + new role if present
                     cerRoles.forEach(role => {
                         dataMatrix[cerName][role] = 0;
                     });
-                    dataMatrix[cerName]['Total'] = 0;
-                    // Add new CER to the cerNames array to ensure it appears in rows
-                    if (!cerNames.includes(cerName)) {
-                        cerNames.push(cerName);
-                    }
-                }
-
-                // Increment count for specific role
-                if (dataMatrix[cerName][cerRole] !== undefined) {
-                    dataMatrix[cerName][cerRole]++;
-                } else {
-                    // If a new role is found that wasn't in initial cerRoles
                     dataMatrix[cerName][cerRole] = 1;
-                    if (!cerRoles.includes(cerRole)) {
-                        cerRoles.push(cerRole); // Add new role to ensure it appears as a column
-                    }
-                    // Re-initialize all existing CERs for this new role column
-                    for (const name in dataMatrix) {
-                        if (name !== cerName && dataMatrix[name][cerRole] === undefined) {
-                            dataMatrix[name][cerRole] = 0;
-                        }
-                    }
+                    dataMatrix[cerName]['Total'] = 1;
+                    cerNames.push(cerName);
                 }
-                dataMatrix[cerName]['Total']++; // Increment total for this CER
             });
 
-            // Sort roles and names for consistent table rendering
             cerRoles.sort();
             cerNames.sort();
 
-            // Construct column headers: 'CER Name', all roles, 'Total'
             const columnHeaders = ['CER Name', ...cerRoles, 'Total'];
             const rowLabels = cerNames;
 
             return { rowLabels, columnHeaders, dataMatrix };
         }
 
-        /**
-         * Renders the processed monthly statistics data into the HTML table.
-         * @param {Object} data - The structured data from `processMonthlyEvaluationData`.
-         */
         function renderMonthlyStatsTable(data) {
             const monthlyStatsHeader = document.getElementById('monthlyStatsHeader');
             const monthlyStatsTableBody = document.getElementById('monthlyStatsTableBody');
@@ -1998,52 +1740,45 @@
                 return;
             }
 
-            monthlyStatsHeader.innerHTML = ''; // Clear existing headers
-            monthlyStatsTableBody.innerHTML = ''; // Clear existing rows
+            monthlyStatsHeader.innerHTML = '';
+            monthlyStatsTableBody.innerHTML = '';
 
-            // Create table headers
             data.columnHeaders.forEach(header => {
                 const th = document.createElement('th');
                 th.className = 'py-2 px-4 border-b text-center text-sm font-medium text-gray-600';
                 th.textContent = header;
-                if (header === 'CER Name') { // Align CER Name to left
+                if (header === 'CER Name') {
                     th.classList.remove('text-center');
                     th.classList.add('text-left');
                 }
                 monthlyStatsHeader.appendChild(th);
             });
 
-            // Display message if no data rows
             if (data.rowLabels.length === 0) {
                 monthlyStatsTableBody.innerHTML = `<tr><td colspan="${data.columnHeaders.length}" class="py-4 px-4 text-center text-gray-500">No evaluation data for this month.</td></tr>`;
                 return;
             }
 
-            // Populate table rows
             data.rowLabels.forEach(cerName => {
                 const row = monthlyStatsTableBody.insertRow();
                 row.className = 'border-b border-gray-200';
 
-                // CER Name cell
                 const nameCell = row.insertCell();
                 nameCell.className = 'py-2 px-4 text-left';
                 nameCell.textContent = cerName;
 
-                // Counts for each role
-                data.columnHeaders.slice(1, -1).forEach(role => { // Exclude 'CER Name' and 'Total'
+                data.columnHeaders.slice(1, -1).forEach(role => {
                     const countCell = row.insertCell();
                     countCell.className = 'py-2 px-4 text-center';
                     const count = (data.dataMatrix[cerName] && data.dataMatrix[cerName][role] !== undefined) ? data.dataMatrix[cerName][role] : 0;
                     countCell.textContent = count;
                 });
 
-                // Total column
                 const totalCell = row.insertCell();
                 totalCell.className = 'py-2 px-4 text-center';
                 const totalCount = (data.dataMatrix[cerName] && data.dataMatrix[cerName]['Total'] !== undefined) ? data.dataMatrix[cerName]['Total'] : 0;
                 totalCell.textContent = totalCount;
 
-                // Apply conditional styling for total count
                 if (totalCount < MIN_EVALUATIONS_FOR_GREEN) {
                     totalCell.classList.add('total-red');
                 } else {
@@ -2054,12 +1789,9 @@
 
 
         // --- Firestore Data Management for Database Tab ---
-        let unsubscribeRecords = null; // To store the unsubscribe function for real-time records
-        let unsubscribeWebhooks = null; // To store the unsubscribe function for real-time webhooks
+        let unsubscribeRecords = null;
+        let unsubscribeWebhooks = null;
 
-        /**
-         * Loads all evaluation records from Firestore in real-time.
-         */
         async function loadRecords() {
             const recordsTableBody = document.getElementById('recordsTableBody');
             if (!window.db || !EVALUATION_RECORDS_COLLECTION_PATH) {
@@ -2070,23 +1802,21 @@
 
             recordsTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">Loading records...</td></tr>';
 
-            // Unsubscribe from previous listener if exists
             if (unsubscribeRecords) {
                 unsubscribeRecords();
                 unsubscribeRecords = null;
             }
 
             const recordsColRef = window.fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH);
-            const q = window.fsQuery(recordsColRef, window.fsOrderBy('submittedAt', 'desc')); // Order by timestamp
+            const q = window.fsQuery(recordsColRef, window.fsOrderBy('submittedAt', 'desc'));
 
-            // Set up real-time listener for records
             unsubscribeRecords = window.fsOnSnapshot(q, (querySnapshot) => {
-                allRecords = []; // Clear current records
-                recordsTableBody.innerHTML = ''; // Clear table body
+                allRecords = [];
+                recordsTableBody.innerHTML = '';
 
                 if (querySnapshot.empty) {
                     recordsTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td></tr>';
-                    updateDeleteButtonState(); // Disable delete button if no records
+                    updateDeleteButtonState();
                     return;
                 }
 
@@ -2095,20 +1825,16 @@
                     allRecords.push({ id: docSnap.id, ...data });
                 });
                 renderRecordsTable(allRecords);
-                updateDeleteButtonState(); // Update button state after rendering
+                updateDeleteButtonState();
             }, (error) => {
                 console.error("Error fetching records in real-time:", error);
                 recordsTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-red-500">Error loading records: ${error.message}</td></tr>`;
             });
         }
 
-        /**
-         * Renders evaluation records into the database table.
-         * @param {Array<Object>} records - An array of record objects (with `id` property).
-         */
         function renderRecordsTable(records) {
             const recordsTableBody = document.getElementById('recordsTableBody');
-            recordsTableBody.innerHTML = ''; // Clear existing rows
+            recordsTableBody.innerHTML = '';
 
             if (records.length === 0) {
                 recordsTableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No records found.</td></tr>';
@@ -2133,7 +1859,6 @@
                     </td>
                 `;
 
-                // Attach event listeners to buttons
                 row.querySelector('.view-record-btn').addEventListener('click', () => viewRecordDetails(record.id));
                 row.querySelector('.email-record-btn').addEventListener('click', () => emailRecord(record.id));
                 row.querySelector('.download-record-btn').addEventListener('click', () => downloadRecord(record.id));
@@ -2142,9 +1867,6 @@
             });
         }
 
-        /**
-         * Updates the state of the "Delete Selected Records" button based on checkbox selections.
-         */
         function updateDeleteButtonState() {
             const checkedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
@@ -2153,14 +1875,10 @@
             }
         }
 
-        /**
-         * Deletes a single record from Firestore after confirmation.
-         * @param {string} recordId - The ID of the record to delete.
-         */
         async function deleteRecord(recordId) {
             const confirmed = await showConfirmationBox("Confirm Deletion", "Are you sure you want to delete this record? This action cannot be undone.");
             if (!confirmed) {
-                return; // User cancelled
+                return;
             }
 
             showMessageBox("Deleting Record", "Removing record...", false, true, false);
@@ -2168,16 +1886,12 @@
                 await window.fsDeleteDoc(window.fsDoc(window.db, EVALUATION_RECORDS_COLLECTION_PATH, recordId));
                 hideMessageBox();
                 showMessageBox("Success", "Record deleted successfully!", false);
-                // loadRecords() will automatically update the table due to onSnapshot
             } catch (error) {
                 hideMessageBox();
                 showMessageBox("Error", `Failed to delete record: ${error.message}`, true);
             }
         }
 
-        /**
-         * Deletes all selected records from Firestore after confirmation.
-         */
         async function deleteSelectedRecords() {
             const checkedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
             if (checkedCheckboxes.length === 0) {
@@ -2187,7 +1901,7 @@
 
             const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete ${checkedCheckboxes.length} selected record(s)? This action cannot be undone.`);
             if (!confirmed) {
-                return; // User cancelled
+                return;
             }
 
             showMessageBox("Deleting Records", "Removing selected records...", false, true, false);
@@ -2201,17 +1915,12 @@
                 await Promise.all(deletePromises);
                 hideMessageBox();
                 showMessageBox("Success", "Selected records deleted successfully!", false);
-                // loadRecords() will automatically update the table due to onSnapshot
             } catch (error) {
                 hideMessageBox();
                 showMessageBox("Error", `Failed to delete selected records: ${error.message}`, true);
             }
         }
 
-        /**
-         * Displays all details of a selected evaluation record in a message box.
-         * @param {string} recordId - The ID of the record to view.
-         */
         async function viewRecordDetails(recordId) {
             showMessageBox("Loading Record Details", "Fetching record...", false, true, false);
             try {
@@ -2223,7 +1932,6 @@
                     let detailsHtml = '<pre>';
                     for (const key in data) {
                         if (data.hasOwnProperty(key)) {
-                            // Format objects/arrays for better readability
                             if (typeof data[key] === 'object' && data[key] !== null) {
                                 detailsHtml += `${key}: ${JSON.stringify(data[key], null, 2)}\n`;
                             } else {
@@ -2242,10 +1950,6 @@
             }
         }
 
-        /**
-         * Prepares an email with a summary of the record.
-         * @param {string} recordId - The ID of the record to email.
-         */
         async function emailRecord(recordId) {
             showMessageBox("Preparing Email", "Fetching record details for email...", false, true, false);
             try {
@@ -2271,13 +1975,10 @@
 
                     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-                    try {
-                        window.location.href = mailtoLink;
-                        showMessageBox("PDF Generated & Email Prepared", "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** if applicable.", false, false, true);
-                    } catch (e) {
-                        console.error("Failed to open email client:", e);
-                        showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
-                    }
+                    window.location.href = mailtoLink;
+                    hideMessageBox();
+                    showMessageBox("Email Prepared", "Your email client should open shortly with pre-filled subject and body. Remember to **manually attach the generated PDF** if applicable.", false, false, true);
+
                 } else {
                     hideMessageBox();
                     showMessageBox("Error", "Record not found for email preparation.", true);
@@ -2289,10 +1990,6 @@
             }
         }
 
-        /**
-         * Placeholder for downloading a record (e.g., as PDF).
-         * @param {string} recordId - The ID of the record to download.
-         */
         async function downloadRecord(recordId) {
             showMessageBox("Downloading Record", "Initiating download (PDF generation)...", false, true, false);
             try {
@@ -2301,7 +1998,6 @@
 
                 if (recordSnap.exists()) {
                     const data = recordSnap.data();
-                    // Construct a simplified HTML structure to be converted to PDF
                     const pdfContent = `
                         <div style="font-family: 'Inter', sans-serif; padding: 20px; color: #333; font-size: 10px;">
                             <h2 style="color: #1a73e8; text-align: center;">Quality Assessment Report</h2>
@@ -2359,12 +2055,11 @@
                         </div>
                     `;
 
-                    // Create a temporary div to render the content for html2canvas
                     const tempDiv = document.createElement('div');
-                    tempDiv.style.width = '210mm'; // A4 width
-                    tempDiv.style.padding = '10mm'; // Some margin
+                    tempDiv.style.width = '210mm';
+                    tempDiv.style.padding = '10mm';
                     tempDiv.innerHTML = pdfContent;
-                    document.body.appendChild(tempDiv); // Append to body so html2canvas can see it
+                    document.body.appendChild(tempDiv);
 
                     const canvas = await html2canvas(tempDiv, { scale: 2, useCORS: true, logging: false });
                     const imgData = canvas.toDataURL('image/jpeg', 0.9);
@@ -2389,7 +2084,7 @@
 
                     pdf.save(`QA_Report_${data['Contact ID'] || 'N/A'}.pdf`);
 
-                    document.body.removeChild(tempDiv); // Clean up the temporary div
+                    document.body.removeChild(tempDiv);
                     hideMessageBox();
                     showMessageBox("Download Complete", "The evaluation report has been downloaded as a PDF.", false, false, true);
 
@@ -2404,10 +2099,6 @@
             }
         }
 
-        /**
-         * Fetches all webhooks from Firestore and renders them.
-         * This function uses onSnapshot for real-time updates.
-         */
         async function loadWebhooks() {
             const webhookListContainer = document.getElementById('webhookList');
             if (!window.db || !WEBHOOKS_COLLECTION_PATH) {
@@ -2418,18 +2109,17 @@
 
             webhookListContainer.innerHTML = '<p class="text-sm text-gray-500 text-center">Loading webhooks...</p>';
 
-            // Unsubscribe from previous listener if exists
             if (unsubscribeWebhooks) {
                 unsubscribeWebhooks();
                 unsubscribeWebhooks = null;
             }
 
             const webhooksColRef = window.fsCollection(window.db, WEBHOOKS_COLLECTION_PATH);
-            const q = window.fsQuery(webhooksColRef); // No ordering needed for webhooks
+            const q = window.fsQuery(webhooksColRef);
 
             unsubscribeWebhooks = window.fsOnSnapshot(q, (querySnapshot) => {
-                allWebhooks = []; // Clear current webhooks
-                webhookListContainer.innerHTML = ''; // Clear container
+                allWebhooks = [];
+                webhookListContainer.innerHTML = '';
 
                 if (querySnapshot.empty) {
                     webhookListContainer.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
@@ -2438,7 +2128,7 @@
 
                 querySnapshot.forEach(docSnap => {
                     const data = docSnap.data();
-                    allWebhooks.push({ id: docSnap.id, url: data.url }); // Store webhook ID and URL
+                    allWebhooks.push({ id: docSnap.id, url: data.url });
                 });
                 renderWebhookList(allWebhooks);
             }, (error) => {
@@ -2447,13 +2137,9 @@
             });
         }
 
-        /**
-         * Renders the list of webhooks into the HTML container.
-         * @param {Array<Object>} webhooks - An array of webhook objects (with `id` and `url` properties).
-         */
         function renderWebhookList(webhooks) {
             const webhookListContainer = document.getElementById('webhookList');
-            webhookListContainer.innerHTML = ''; // Clear existing list
+            webhookListContainer.innerHTML = '';
 
             if (webhooks.length === 0) {
                 webhookListContainer.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
@@ -2471,14 +2157,10 @@
                 `;
                 webhookListContainer.appendChild(div);
 
-                // Attach event listener to the delete button
                 div.querySelector('.delete-webhook-btn').addEventListener('click', () => deleteWebhook(webhook.id, webhook.url));
             });
         }
 
-        /**
-         * Adds a new webhook URL to Firestore.
-         */
         async function addWebhook() {
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
             const url = newWebhookUrlInput.value.trim();
@@ -2488,7 +2170,6 @@
                 return;
             }
 
-            // Basic URL validation
             try {
                 new URL(url);
             } catch (_) {
@@ -2498,30 +2179,23 @@
 
             showMessageBox("Adding Webhook", "Saving webhook...", false, true, false);
             try {
-                // Add a new document to the webhooks collection
                 await window.fsAddDoc(window.fsCollection(window.db, WEBHOOKS_COLLECTION_PATH), {
                     url: url,
                     createdAt: new Date().toISOString()
                 });
-                newWebhookUrlInput.value = ''; // Clear input field
+                newWebhookUrlInput.value = '';
                 hideMessageBox();
                 showMessageBox("Success", "Webhook added successfully!", false);
-                // loadWebhooks() will automatically update the list due to onSnapshot
             } catch (error) {
                 hideMessageBox();
                 showMessageBox("Error", `Failed to add webhook: ${error.message}`, true);
             }
         }
 
-        /**
-         * Deletes a webhook from Firestore.
-         * @param {string} webhookId - The ID of the webhook document to delete.
-         * @param {string} webhookUrl - The URL of the webhook for confirmation message.
-         */
         async function deleteWebhook(webhookId, webhookUrl) {
             const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete the webhook: ${webhookUrl}? This action cannot be undone.`);
             if (!confirmed) {
-                return; // User cancelled
+                return;
             }
 
             showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
@@ -2529,17 +2203,12 @@
                 await window.fsDeleteDoc(window.fsDoc(window.db, WEBHOOKS_COLLECTION_PATH, webhookId));
                 hideMessageBox();
                 showMessageBox("Success", "Webhook deleted successfully!", false);
-                // loadWebhooks() will automatically update the list due to onSnapshot
             } catch (error) {
                 hideMessageBox();
                 showMessageBox("Error", `Failed to delete webhook: ${error.message}`, true);
             }
         }
 
-        /**
-         * Sends evaluation data to registered webhooks.
-         * @param {Object} formData - The data to send.
-         */
         async function sendToWebhooks(formData) {
             if (allWebhooks.length === 0) {
                 console.log("No webhooks configured. Skipping data send.");
@@ -2553,17 +2222,11 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            // Add any other required headers for the webhook here
                         },
                         body: JSON.stringify(formData),
-                        // Consider 'no-cors' mode if dealing with external APIs without CORS headers,
-                        // but be aware that you won't be able to read the response.
-                        // mode: 'no-cors'
                     });
-                    // For 'no-cors' mode, response.ok will always be true, and status will be 0.
-                    // For 'cors' mode, check response.ok or response.status.
                     console.log(`Webhook ${webhook.url} response:`, response);
-                    if (response.ok || response.type === 'opaque') { // 'opaque' for no-cors success
+                    if (response.ok || response.type === 'opaque') {
                         console.log(`Successfully sent data to webhook: ${webhook.url}`);
                     } else {
                         console.warn(`Failed to send data to webhook: ${webhook.url}. Status: ${response.status}`);
@@ -2573,31 +2236,27 @@
                 }
             });
 
-            await Promise.allSettled(webhookPromises); // Use allSettled to wait for all, even if some fail
+            await Promise.allSettled(webhookPromises);
             console.log("All webhook calls attempted.");
         }
 
-
-        // --- Add Record to Firestore ---
         async function addRecordToFirestore(formData) {
             showMessageBox("Submitting Form", "Saving evaluation record...", false, true, false);
             try {
                 const docRef = await window.fsAddDoc(window.fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH), {
                     ...formData,
-                    submittedAt: new Date().toISOString(), // Add a timestamp
-                    submittedBy: window.currentUserId, // Store the ID of the user who submitted
-                    reviewerEmail: window.auth.currentUser ? window.auth.currentUser.email : 'anonymous' // Store reviewer email
+                    submittedAt: new Date().toISOString(),
+                    submittedBy: window.currentUserId,
+                    reviewerEmail: window.auth.currentUser ? window.auth.currentUser.email : 'anonymous'
                 });
                 console.log("Document written with ID: ", docRef.id);
 
-                // Send data to webhooks after successful Firestore submission
                 await sendToWebhooks(formData);
 
                 hideMessageBox();
                 showMessageBox("Success", "Evaluation record submitted successfully!", false, false, true, () => {
-                    resetForm(); // Reset the entire form after successful submission
+                    resetForm();
                 });
-                // The loadRecords function (due to onSnapshot) will automatically update the database table.
             } catch (e) {
                 hideMessageBox();
                 console.error("Error adding document: ", e);
@@ -2605,120 +2264,82 @@
             }
         }
 
+        // Main Application UI Initialization Function (renamed for clarity)
+        function initializeAppUI() {
+            const userRole = window.currentUserRole;
 
-        // Main Application UI Initialization Function
-        function initializeApp() {
-            const accessSection = document.getElementById('accessSection');
-            const mainNav = document.getElementById('mainNav');
-            const evaluationFormContent = document.getElementById('evaluationFormContent');
-            const databaseContent = document.getElementById('databaseContent');
-            const monthlyStatsContainer = document.getElementById('monthlyStatsContainer');
-            const adminTabNav = document.getElementById('adminTabNav');
+            console.log("Initializing main application UI based on role:", userRole);
 
-            console.log("Initializing main application UI based on role.");
-
-            accessSection.classList.add('hidden'); // Hide the login/access section
             mainNav.style.display = 'flex'; // Show the navigation bar
 
-            // Hide all main content areas initially
             evaluationFormContent.style.display = 'none';
             databaseContent.style.display = 'none';
             monthlyStatsContainer.style.display = 'none';
 
-            // Set all nav tabs to hidden by default, then selectively show them
             document.getElementById('evaluationFormTab').parentElement.style.display = 'none';
             document.getElementById('databaseTab').parentElement.style.display = 'none';
             document.getElementById('reportsTab').parentElement.style.display = 'none';
             document.getElementById('autofailsTab').parentElement.style.display = 'none';
             adminTabNav.style.display = 'none';
 
-            const userRole = window.currentUserRole;
-
             if (userRole === 'CER') {
                 document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
                 document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
-                showTab('evaluationForm'); // Default view
+                showTab('evaluationForm');
             } else if (userRole === 'Supervisor') {
                 document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
                 document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
                 document.getElementById('autofailsTab').parentElement.style.display = 'inline-block';
-                // Supervisors can also view the database tab
                 document.getElementById('databaseTab').parentElement.style.display = 'inline-block';
-                showTab('evaluationForm'); // Default view
+                showTab('evaluationForm');
             } else if (userRole === 'Admin') {
                 document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
                 document.getElementById('databaseTab').parentElement.style.display = 'inline-block';
                 document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
                 document.getElementById('autofailsTab').parentElement.style.display = 'inline-block';
-                adminTabNav.style.display = 'inline-block'; // Show Admin tab
-                showTab('evaluationForm'); // Default view
+                adminTabNav.style.display = 'inline-block';
+                showTab('evaluationForm');
             } else {
-                // If role is null, 'Guest', or unrecognized, explicitly show login form
-                console.warn("User role not recognized or insufficient privileges. Showing login form.");
-                accessSection.classList.remove('hidden');
-                mainNav.style.display = 'none'; // Hide nav
-                accessTitle.textContent = "Access Denied";
-                loginError.textContent = "Your role is not recognized or you don't have sufficient privileges. Please log in with an authorized account.";
-                loginError.classList.remove('hidden');
-                return; // Stop further execution if access denied
+                console.warn("User role not recognized or insufficient privileges. Redirecting to login.html.");
+                window.location.href = 'login.html'; // Unrecognized role, redirect
+                return;
             }
 
             initializeEvaluationForm();
-            // Load dropdowns and webhooks here, as they are needed by multiple tabs
-            fetchAllDropdownOptions(); // This will setup real-time listener for dropdowns
-            loadWebhooks(); // This will setup real-time listener for webhooks
+            fetchAllDropdownOptions();
+            loadWebhooks();
         }
 
-        /**
-         * Handles tab switching in the main navigation.
-         * @param {string} tabName - The name of the tab to show ('evaluationForm', 'database', 'monthlyStats').
-         */
         function showTab(tabName) {
-            // Hide all content containers
             document.getElementById('evaluationFormContent').style.display = 'none';
             document.getElementById('databaseContent').style.display = 'none';
             document.getElementById('monthlyStatsContainer').style.display = 'none';
 
-            // Remove 'active' class from all nav links
             document.querySelectorAll('.main-nav ul li a').forEach(link => {
                 link.classList.remove('active');
             });
 
-            // Show selected content and add 'active' class to its nav link
             if (tabName === 'evaluationForm') {
                 document.getElementById('evaluationFormContent').style.display = 'block';
                 document.getElementById('evaluationFormTab').classList.add('active');
-                // Ensure form is initialized and dropdowns populated
                 initializeEvaluationForm();
             } else if (tabName === 'database') {
                 document.getElementById('databaseContent').style.display = 'block';
                 document.getElementById('databaseTab').classList.add('active');
-                loadRecords(); // Load records when database tab is opened
+                loadRecords();
             } else if (tabName === 'monthlyStats') {
-                // This tab is typically reports.html, but if it were inline
                 document.getElementById('monthlyStatsContainer').style.display = 'block';
-                // Trigger monthly stats fetch and render
                 fetchAndRenderMonthlyStats();
             }
-            // For reports.html and autofails.html, the links simply redirect.
         }
 
-        let tempPdfDisplayElements = []; // Global to keep track of elements replaced for PDF generation
+        let tempPdfDisplayElements = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
-            // Get DOM elements for event listeners
-            const logoutBtn = document.getElementById('logoutBtn');
-            const evaluationFormTab = document.getElementById('evaluationFormTab');
-            const databaseTab = document.getElementById('databaseTab');
-            const reportsTab = document.getElementById('reportsTab');
-            const autofailsTab = document.getElementById('autofailsTab');
-            const adminTab = document.getElementById('adminTab');
-
             const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
             const printEmailBtn = document.getElementById('print-email-btn');
-
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
             const cerRoleSelect = document.getElementById('cer-role');
@@ -2726,51 +2347,46 @@
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
-
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const addWebhookBtn = document.getElementById('addWebhookBtn');
 
-            // --- Attach Event Listeners ---
             logoutBtn.addEventListener('click', async function() {
-                // Clear local storage items related to session management
                 sessionStorage.removeItem('loggedIn');
                 localStorage.removeItem('lastActivity');
                 localStorage.removeItem('loginTime');
                 try {
-                    // Sign out from Firebase Authentication
-                    await window.signOut(window.auth);
+                    await signOut(auth);
                     console.log("Signed out from Firebase.");
                 } catch (error) {
                     console.error("Error signing out:", error);
                 }
-                // The onAuthStateChanged listener will detect no user and show the login form
+                window.location.href = 'login.html'; // Redirect to login page after logout
             });
 
-            if (evaluationFormTab) {
-                evaluationFormTab.addEventListener('click', (e) => { e.preventDefault(); showTab('evaluationForm'); });
+            if (document.getElementById('evaluationFormTab')) {
+                document.getElementById('evaluationFormTab').addEventListener('click', (e) => { e.preventDefault(); showTab('evaluationForm'); });
             }
-            if (databaseTab) {
-                databaseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('database'); });
+            if (document.getElementById('databaseTab')) {
+                document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); showTab('database'); });
             }
-            if (reportsTab) {
-                reportsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
+            if (document.getElementById('reportsTab')) {
+                document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
             }
-            if (autofailsTab) {
-                autofailsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
+            if (document.getElementById('autofailsTab')) {
+                document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
             }
-            if (adminTab) { // This is the navigation to the admin.html page
-                adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
+            if (document.getElementById('adminTab')) {
+                document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
             }
 
-            // Event listeners for database tab functionalities
             if (selectAllRecordsCheckbox) {
                 selectAllRecordsCheckbox.addEventListener('change', () => {
                     const isChecked = selectAllRecordsCheckbox.checked;
                     document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                         checkbox.checked = isChecked;
                     });
-                    updateDeleteButtonState(); // Update button state after checking/unchecking all
+                    updateDeleteButtonState();
                 });
             }
             if (deleteSelectedRecordsBtn) {
@@ -2780,7 +2396,6 @@
                 addWebhookBtn.addEventListener('click', addWebhook);
             }
 
-            // Event listeners for form fields
             autofailTypeSelect.addEventListener('change', () => {
                 if (autofailTypeSelect.value !== '') {
                     autofailDescriptionContainer.classList.remove('hidden');
@@ -2808,22 +2423,21 @@
 
             cerRoleSelect.addEventListener('change', (event) => {
                 const selectedRole = event.target.value;
-                window.renderQuestionsForRole(selectedRole); // Render questions specific to the selected role
-                window.resetFormFieldsButKeepRole(); // Reset scores and remarks for new questions
+                window.renderQuestionsForRole(selectedRole);
+                window.resetFormFieldsButKeepRole();
             });
 
             cerNameSelect.addEventListener('change', (event) => {
                 const selectedCerName = event.target.value;
                 if (selectedCerName) {
-                    fetchLastThreeEvaluations(selectedCerName); // Fetch last 3 evaluations for selected CER
+                    fetchLastThreeEvaluations(selectedCerName);
                 } else {
                     document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
                 }
             });
 
-            // Form submission logic
             submitFormToDBBtn.addEventListener('click', async (event) => {
-                event.preventDefault(); // Prevent default form submission
+                event.preventDefault();
 
                 if (!validateAllMandatoryFields()) {
                     showMessageBox("Validation Error", "Please fill out all mandatory fields before submitting.", true, false, true);
@@ -2831,52 +2445,44 @@
                 }
 
                 const formDataForSubmission = {};
-                // Collect basic information from the form
                 const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
                 basicInfoInputs.forEach(input => {
                     if (input.name) {
                         if (input.type === 'datetime-local' || input.type === 'date') {
                             formDataForSubmission[input.name] = input.value;
                         } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
-                            return; // Do not include if hidden
+                            return;
                         } else {
                             formDataForSubmission[input.name] = input.value.trim();
                         }
                     }
                 });
 
-                // Handle autofail type and description
                 const overallScoreDisplay = document.getElementById('overall-score-display');
                 const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
 
-                // If overall score is 0 and no autofail type is selected, set a default autofail
                 if (overallScoreValue === 0) {
                     if (!autofailTypeSelect.value.trim()) {
                         formDataForSubmission['Auto Fail Type'] = 'Auto-Scored Fail';
-                        // Update UI for display (though it will be reset after submission)
                         autofailTypeSelect.value = 'Auto-Scored Fail';
                     }
                     if (!autofailDescriptionInput.value.trim()) {
                         formDataForSubmission['Autofail Description'] = 'Automatically marked due to 0% overall score.';
-                        // Update UI for display
                         autofailDescriptionInput.value = 'Automatically marked due to 0% overall score.';
                         autofailDescriptionContainer.classList.remove('hidden');
                         autofailDescriptionInput.setAttribute('required', 'required');
                     }
                 } else {
-                    // If not autofail, ensure values are captured as is (could be empty)
                     formDataForSubmission['Auto Fail Type'] = autofailTypeSelect.value.trim();
                     formDataForSubmission['Autofail Description'] = autofailDescriptionInput.value.trim();
                 }
 
-                // Add calculated scores
                 formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
                 formDataForSubmission['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
                 formDataForSubmission['Total Pts.'] = globalTotalPoints;
                 formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
-                formDataForSubmission['Final Score'] = overallScoreDisplay.textContent; // Redundant but kept for consistency with original structure
+                formDataForSubmission['Final Score'] = overallScoreDisplay.textContent;
 
-                // Collect dynamic question ratings, points, and remarks
                 const dynamicSelects = document.querySelectorAll('.rating-select');
                 dynamicSelects.forEach(selectElement => {
                     const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
@@ -2892,10 +2498,9 @@
                         }
                     }
                 });
-                await addRecordToFirestore(formDataForSubmission); // Submit the compiled data to Firestore
+                await addRecordToFirestore(formDataForSubmission);
             });
 
-            // PDF & Email generation logic
             printEmailBtn.addEventListener('click', async () => {
                 if (!validateAllMandatoryFields()) {
                     showMessageBox("Validation Error", "Please fill out all mandatory fields before generating PDF and Email.", true, false, true);
@@ -2903,7 +2508,7 @@
                 }
 
                 const auditFormContent = document.getElementById('evaluationFormContent');
-                const monthlyStatsContainer = document.getElementById('monthlyStatsContainer'); // Ensure this is the correct ID
+                const monthlyStatsContainer = document.getElementById('monthlyStatsContainer');
                 if (!auditFormContent || !monthlyStatsContainer) {
                     console.error('Error: Required containers not found for PDF generation.');
                     showMessageBox("Error", "Could not find all content to generate PDF. Please try again.", true, false, true);
@@ -2914,16 +2519,14 @@
                 const printEmailBtn = document.getElementById('print-email-btn');
                 const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
 
-                // Temporarily replace input elements with static text for PDF rendering
                 const elementsToReplace = document.querySelectorAll('#evaluationFormContent input, #evaluationFormContent select, #evaluationFormContent textarea');
-                tempPdfDisplayElements = []; // Reset array for new capture
+                tempPdfDisplayElements = [];
 
                 elementsToReplace.forEach(originalElement => {
-                    // Skip hidden elements (like 'other-reviewer-name' if not selected)
                     if (originalElement.type === 'hidden' || originalElement.classList.contains('hidden')) return;
 
                     const displayDiv = document.createElement('div');
-                    displayDiv.classList.add('pdf-display-value'); // Apply styling for PDF conversion
+                    displayDiv.classList.add('pdf-display-value');
 
                     let valueToDisplay = '';
                     if (originalElement.tagName === 'SELECT') {
@@ -2935,35 +2538,32 @@
                                 year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
                             });
                         } else {
-                            valueToDisplay = originalElement.value; // Fallback if date is invalid
+                            valueToDisplay = originalElement.value;
                         }
                     } else if (originalElement.type === 'date') {
                         const d = new Date(originalElement.value);
                         if (!isNaN(d.getTime())) {
                             valueToDisplay = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
                         } else {
-                            valueToDisplay = originalElement.value; // Fallback if date is invalid
+                            valueToDisplay = originalElement.value;
                         }
                     } else {
                         valueToDisplay = originalElement.value;
                     }
 
                     displayDiv.textContent = valueToDisplay;
-                    // Copy dimensions for consistent layout in PDF
                     const rect = originalElement.getBoundingClientRect();
                     displayDiv.style.width = rect.width + 'px';
                     displayDiv.style.height = rect.height + 'px';
-                    displayDiv.style.lineHeight = 'normal'; // Prevent line-height issues with copied text
+                    displayDiv.style.lineHeight = 'normal';
 
-                    // Insert the display div after the original element and hide the original
                     originalElement.parentNode.insertBefore(displayDiv, originalElement.nextSibling);
-                    tempPdfDisplayElements.push({ original: originalElement, display: displayDiv }); // Store pair for cleanup
+                    tempPdfDisplayElements.push({ original: originalElement, display: displayDiv });
                     originalElement.style.display = 'none';
                 });
 
-                // Temporarily hide navigation and buttons for clean PDF capture
                 const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
-                const originalDisplays = []; // To store original display styles for restoration
+                const originalDisplays = [];
                 elementsToHide.forEach(el => {
                     if (el) {
                         originalDisplays.push({ el: el, display: el.style.display });
@@ -2971,23 +2571,20 @@
                     }
                 });
 
-                // Make the temporary display elements visible for html2canvas
                 tempPdfDisplayElements.forEach(item => { item.display.style.display = 'block'; });
 
                 try {
-                    // Capture the form content and monthly stats table as canvases
                     const formCanvas = await html2canvas(auditFormContent, { scale: 2, useCORS: true, logging: false });
                     const formImgData = formCanvas.toDataURL('image/jpeg', 0.9);
 
                     const statsCanvas = await html2canvas(monthlyStatsContainer, { scale: 2, useCORS: true, logging: false });
                     const statsImgData = statsCanvas.toDataURL('image/jpeg', 0.9);
 
-                    const imgWidth = 210; // A4 width in mm
-                    const pageHeight = 297; // A4 height in mm
-                    const { jsPDF } = window.jspdf; // Get jsPDF from global window object
-                    const pdf = new jsPDF('p', 'mm', 'a4'); // Initialize PDF
+                    const imgWidth = 210;
+                    const pageHeight = 297;
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
 
-                    // Add form image to PDF, handling multiple pages
                     const formImgHeight = formCanvas.height * imgWidth / formCanvas.width;
                     let formHeightLeft = formImgHeight;
                     let formPosition = 0;
@@ -3000,9 +2597,8 @@
                         formHeightLeft -= pageHeight;
                     }
 
-                    // Add monthly stats image to a new page, handling multiple pages
-                    pdf.addPage(); // Start new content on a new page
-                    const statsImgHeight = statsCanvas.height * imgWidth / statsCanvas.width;
+                    pdf.addPage();
+                    const statsImgHeight = statsCanvas.height * imgWidth / canvas.width; // Corrected: use statsCanvas.width
                     let statsHeightLeft = statsImgHeight;
                     let statsPosition = 0;
                     pdf.addImage(statsImgData, 'JPEG', 0, statsPosition, imgWidth, statsImgHeight, undefined, 'FAST');
@@ -3014,7 +2610,6 @@
                         statsHeightLeft -= pageHeight;
                     }
 
-                    // Get form data for PDF filename and email body
                     const contactIdInput = document.getElementById('contact-id');
                     const cerNameSelect = document.getElementById('cer-name');
                     const evaluationDateInput = document.getElementById('review-date');
@@ -3028,11 +2623,8 @@
                     const overallScoreForPdf = overallFinalPercentageDisplay.textContent || 'N/A';
                     const reviewerNameForEmail = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
 
-
-                    // Save the PDF
                     pdf.save(`QA_Form_${contactIdForPdf}_${cerNameForPdf}_${reviewDateForPdf}.pdf`);
 
-                    // Prepare and open email client
                     const subject = `Quality Assessment Feedback - ${cerNameForPdf} - ${contactIdForPdf}`;
                     const body = `Dear ${cerNameForPdf},\n\n` +
                                  `Please find below a summary of your Quality Assurance Audit Feedback:\n\n` +
@@ -3048,7 +2640,7 @@
 
                     try {
                         window.location.href = mailtoLink;
-                        showMessageBox("PDF Generated & Email Prepared", "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** if applicable.", false, false, true);
+                        showMessageBox("PDF Generated & Email Prepared", "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** before sending.", false, false, true);
                     } catch (e) {
                         console.error("Failed to open email client:", e);
                         showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
@@ -3057,15 +2649,11 @@
                     console.error("Critical Error during PDF generation or mailto attempt:", error);
                     showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
                 } finally {
-                    // Restore original elements and hide temporary ones
                     tempPdfDisplayElements.forEach(item => { item.display.remove(); item.original.style.display = ''; });
-                    tempPdfDisplayElements = []; // Clear the array
+                    tempPdfDisplayElements = [];
                     originalDisplays.forEach(({ el, display }) => { if (el) el.style.display = display; });
                 }
             });
-
-            // The onAuthStateChanged listener at the very top handles initial app initialization.
-            // This DOMContentLoaded block simply attaches event listeners.
         });
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
