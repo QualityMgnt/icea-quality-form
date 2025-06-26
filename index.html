@@ -736,8 +736,11 @@
         }
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // Log the parsed config for debugging purposes
-        console.log("Firebase config received:", firebaseConfig);
+        // --- IMPORTANT DEBUGGING STEP ---
+        // Log the parsed config for debugging purposes to see exactly what Firebase.js receives
+        console.log("Firebase config received (at runtime):", firebaseConfig);
+        // --- END DEBUGGING STEP ---
+
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -2268,11 +2271,13 @@
 
                     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-                    // Attempt to open mail client
-                    window.location.href = mailtoLink;
-                    hideMessageBox();
-                    showMessageBox("Email Prepared", "Your email client should open shortly with pre-filled subject and body. Remember to **manually attach the generated PDF** if applicable.", false, false, true);
-
+                    try {
+                        window.location.href = mailtoLink;
+                        showMessageBox("Email Prepared", "Your email client should open shortly with pre-filled subject and body. Remember to **manually attach the generated PDF** if applicable.", false, false, true);
+                    } catch (e) {
+                        console.error("Failed to open email client:", e);
+                        showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+                    }
                 } else {
                     hideMessageBox();
                     showMessageBox("Error", "Record not found for email preparation.", true);
