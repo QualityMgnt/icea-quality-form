@@ -265,7 +265,7 @@
             createUserWithEmailAndPassword,
             onAuthStateChanged,
             signOut,
-            sendPasswordResetEmail // IMPORTED for Forgot Password
+            sendPasswordResetEmail
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import {
             getFirestore,
@@ -324,7 +324,7 @@
         const registerError = document.getElementById('registerError');
         const showRegisterFormBtn = document.getElementById('showRegisterForm');
         const showLoginFormBtn = document.getElementById('showLoginForm');
-        const forgotPasswordLink = document.getElementById('forgotPasswordLink'); // DOM element for Forgot Password link
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 
         const usersTabBtn = document.getElementById('usersTabBtn');
         const dropdownsTabBtn = document.getElementById('dropdownsTabBtn');
@@ -338,7 +338,7 @@
         const cerNamesList = document.getElementById('cerNamesList');
         const cerRolesList = document.getElementById('cerRolesList');
         const reviewerNamesList = document.getElementById('reviewerNamesList');
-        const autofailTypesList = document.getElementById('autofailTypesList'); // For autofail types dropdown
+        const autofailTypesList = document.getElementById('autofailTypesList');
 
 
         // --- Message Box Functions (copied from index.html for consistency) ---
@@ -400,48 +400,45 @@
         let currentAdminUser = null; // Store current logged-in admin user object
         let currentAdminUserRole = null;
 
-        // This listener ensures the UI is correctly rendered based on auth state after initial load
-        // or any auth state change.
         onAuthStateChanged(auth, async (user) => {
             if (window.checkSessionTimeout()) {
                 await signOut(auth); // Clear any expired Firebase session
-                return; // Prevent further execution if session expired
+                return;
             }
 
             if (user) {
                 const userDocRef = doc(db, USERS_COLLECTION_PATH, user.uid);
                 try {
-                    const userDocSnap = await getDoc(userDocRef); // Use getDoc here
+                    const userDocSnap = await getDoc(userDocRef); // Correctly using getDoc
                     if (userDocSnap.exists()) {
                         const userData = userDocSnap.data();
                         currentAdminUserRole = userData.role;
                         currentAdminUser = user; // Store the user object
                         console.log(`User ${user.email} logged in with role: ${currentAdminUserRole}`);
 
-                        // If logged in as Admin, show dashboard, otherwise redirect to main app
                         if (currentAdminUserRole === 'Admin') {
                             loginSection.classList.add('hidden');
-                            registerSection.classList.add('hidden'); // Ensure register section is hidden
+                            registerSection.classList.add('hidden');
                             adminDashboard.classList.remove('hidden');
-                            loadAdminDashboard(); // Load all admin data
-                            showAdminTab('usersContent'); // Default to Users tab
+                            loadAdminDashboard();
+                            showAdminTab('usersContent');
                         } else {
-                            // NON-ADMIN USER REDIRECTION TO EVALUATION FORM
-                            sessionStorage.setItem('loggedIn', 'true'); // Indicate successful login for main app
-                            localStorage.setItem('loginTime', new Date().getTime().toString()); // Record login time
+                            // Non-admin users are redirected to index.html
+                            sessionStorage.setItem('loggedIn', 'true');
+                            localStorage.setItem('loginTime', new Date().getTime().toString());
                             showMessageBox("Login Successful", "Redirecting to Evaluation Form...", false, false, false);
-                            window.location.href = 'index.html'; // Redirect non-admin users
+                            window.location.href = 'index.html';
                         }
                     } else {
                         console.warn(`User profile for ${user.email} not found in Firestore. Logging out.`);
-                        await signOut(auth); // Log them out from Firebase Auth
+                        await signOut(auth);
                         showMessageBox("Access Denied", "User profile missing. Please contact administrator.", true, false, true, () => {
-                             showLoginForm(); // After message, show login form again
+                            showLoginForm();
                         });
                     }
                 } catch (error) {
                     console.error("Error fetching user role from Firestore:", error);
-                    await signOut(auth); // Log them out on error
+                    await signOut(auth);
                     showMessageBox("Error", `Failed to retrieve user profile: ${error.message}. Please try again.`, true, false, true, () => {
                         showLoginForm();
                     });
@@ -450,12 +447,10 @@
                 currentAdminUser = null;
                 currentAdminUserRole = null;
                 console.log("No user logged in to admin portal.");
-                // Ensure login/register forms are visible if no one is logged in
                 showLoginForm();
-                adminDashboard.classList.add('hidden'); // Ensure dashboard is hidden
+                adminDashboard.classList.add('hidden');
             }
         });
-
 
         // --- Login/Register Form Toggles ---
         function showLoginForm() {
@@ -485,7 +480,7 @@
         // --- Forgot Password Link Handler ---
         forgotPasswordLink.addEventListener('click', async (e) => {
             e.preventDefault();
-            const email = loginEmail.value.trim(); // Use email from login field if available
+            const email = loginEmail.value.trim();
 
             if (!email) {
                 showMessageBox("Email Required", "Please enter your email in the login field to reset your password.", true);
@@ -519,56 +514,53 @@
         // --- Login Form Submission ---
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            loginError.classList.add('hidden'); // Hide any previous errors
+            loginError.classList.add('hidden');
             const email = loginEmail.value;
             const password = loginPassword.value;
 
-            showMessageBox("Logging In", "Please wait...", false, true, false); // Show loading spinner
+            showMessageBox("Logging In", "Please wait...", false, true, false);
 
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Fetch user role immediately after successful login from Firestore
                 const userDocRef = doc(db, USERS_COLLECTION_PATH, user.uid);
-                const userDocSnap = await getDoc(userDocRef); // FIX: getDoc is now imported
+                const userDocSnap = await getDoc(userDocRef);
 
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    currentAdminUserRole = userData.role; // Update global role
-                    currentAdminUser = user; // Store user object
-                    sessionStorage.setItem('loggedIn', 'true'); // Mark session as logged in
-                    localStorage.setItem('loginTime', new Date().getTime().toString()); // Record login time
+                    currentAdminUserRole = userData.role;
+                    currentAdminUser = user;
+                    sessionStorage.setItem('loggedIn', 'true');
+                    localStorage.setItem('loginTime', new Date().getTime().toString());
 
                     if (currentAdminUserRole === 'Admin') {
                         hideMessageBox();
                         loginSection.classList.add('hidden');
                         adminDashboard.classList.remove('hidden');
-                        loadAdminDashboard(); // Fetch data for dashboard
-                        showAdminTab('usersContent'); // Default to Users tab after admin login
+                        loadAdminDashboard();
+                        showAdminTab('usersContent');
                     } else {
-                        // NON-ADMIN USER REDIRECTION TO EVALUATION FORM
                         hideMessageBox();
                         showMessageBox("Login Successful", "Redirecting to Evaluation Form...", false, false, false);
-                        window.location.href = 'index.html'; // Redirect non-admin users
+                        window.location.href = 'index.html';
                     }
                 } else {
-                    // User authenticated with Firebase Auth but no role document found in Firestore
-                    await signOut(auth); // Log them out from Firebase Auth
+                    await signOut(auth);
                     hideMessageBox();
                     loginError.textContent = "User profile incomplete. Please contact administrator.";
                     loginError.classList.remove('hidden');
                 }
 
             } catch (error) {
-                hideMessageBox(); // Hide spinner
+                hideMessageBox();
                 let errorMessage = "Login failed. Please check your credentials.";
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                     errorMessage = "Invalid email or password.";
                 } else if (error.code === 'auth/invalid-email') {
                     errorMessage = "Invalid email format.";
                 } else {
-                    errorMessage = `Error: ${error.message}`; // Catch other Firebase errors
+                    errorMessage = `Error: ${error.message}`;
                 }
                 loginError.textContent = errorMessage;
                 loginError.classList.remove('hidden');
@@ -576,12 +568,10 @@
         });
 
         // --- Register Form Submission (Admins only after initial login) ---
-        // This form is intended for an already logged-in Admin to create new users.
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             registerError.classList.add('hidden');
 
-            // Ensure only an Admin can use this registration form
             if (currentAdminUserRole !== 'Admin') {
                 registerError.textContent = "Access Denied: Only administrators can register new users.";
                 registerError.classList.remove('hidden');
@@ -601,13 +591,9 @@
             showMessageBox("Registering User", "Please wait...", false, true, false);
 
             try {
-                // Creates user in Firebase Authentication. Note: For robust production apps,
-                // user creation by admin is often done via Firebase Admin SDK (Node.js backend)
-                // which handles creating users without needing their password on the client-side.
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Store user's role in Firestore after creation
                 await setDoc(doc(db, USERS_COLLECTION_PATH, user.uid), {
                     email: user.email,
                     role: role,
@@ -616,8 +602,8 @@
 
                 hideMessageBox();
                 showMessageBox("Success", `New user ${email} registered as ${role}!`, false, false, true, () => {
-                    registerForm.reset(); // Clear the form
-                    loadUsers(); // Refresh the user list in the dashboard
+                    registerForm.reset();
+                    loadUsers();
                 });
 
             } catch (error) {
@@ -641,7 +627,6 @@
             document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
 
             document.getElementById(tabId).classList.remove('hidden');
-            // Ensure the correct button gets the 'active' class
             if (tabId === 'usersContent') usersTabBtn.classList.add('active');
             else if (tabId === 'dropdownsContent') dropdownsTabBtn.classList.add('active');
             else if (tabId === 'autofailsContent') autofailsTabBtn.classList.add('active');
@@ -653,20 +638,17 @@
         
         logoutAdminBtn.addEventListener('click', async () => {
             await signOut(auth);
-            sessionStorage.removeItem('loggedIn'); // Clear session
-            localStorage.removeItem('lastActivity'); // Clear activity
-            localStorage.removeItem('loginTime'); // Clear login time
-            window.location.href = 'admin.html'; // Redirect to login page after logout
+            sessionStorage.removeItem('loggedIn');
+            localStorage.removeItem('lastActivity');
+            localStorage.removeItem('loginTime');
+            window.location.href = 'admin.html';
         });
 
         // --- Load Admin Dashboard Data ---
         async function loadAdminDashboard() {
-            // This function is only called if currentAdminUserRole is 'Admin'
-            // no need for additional role check here.
             showMessageBox("Loading Admin Data", "Fetching user data and configurations...", false, true, false);
             try {
-                // Ensure initial fetch of dropdown options to avoid errors if not loaded before user clicks tab
-                await Promise.all([loadUsers(), loadDropdownOptions()]); // Removed loadAutofailTypes for now as it's just conceptual text
+                await Promise.all([loadUsers(), loadDropdownOptions()]);
                 hideMessageBox();
             } catch (error) {
                 hideMessageBox();
@@ -680,7 +662,7 @@
             try {
                 const q = query(collection(db, USERS_COLLECTION_PATH));
                 const querySnapshot = await getDocs(q);
-                userTableBody.innerHTML = ''; // Clear loading message
+                userTableBody.innerHTML = '';
 
                 if (querySnapshot.empty) {
                     userTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">No users found.</td></tr>';
@@ -704,7 +686,6 @@
                             <button class="delete-user-btn bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded-md" data-user-id="${userId}">Delete</button>
                         </td>
                     `;
-                    // Attach event listeners to dynamically created elements
                     row.querySelector('.user-role-select').addEventListener('change', (e) => updateRole(userId, e.target.value));
                     row.querySelector('.delete-user-btn').addEventListener('click', (e) => deleteUser(userId, userData.email));
                 });
@@ -715,14 +696,13 @@
         }
 
         async function updateRole(userId, newRole) {
-            // Prevent an admin from demoting themselves
             if (currentAdminUser && currentAdminUser.uid === userId && newRole !== 'Admin') {
                 showMessageBox("Action Blocked", "You cannot demote your own admin role. Please ask another admin to change your role.", true);
-                loadUsers(); // Revert selection by reloading users
+                loadUsers();
                 return;
             }
             if (!confirm(`Are you sure you want to change the role of user ${userId} to ${newRole}?`)) {
-                loadUsers(); // Revert selection if cancelled
+                loadUsers();
                 return;
             }
             showMessageBox("Updating Role", "Updating user role...", false, true, false);
@@ -739,7 +719,6 @@
         }
 
         async function deleteUser(userId, userEmail) {
-            // Prevent an admin from deleting themselves
             if (currentAdminUser && currentAdminUser.uid === userId) {
                 showMessageBox("Action Blocked", "You cannot delete your own user account from here.", true);
                 return;
@@ -749,14 +728,10 @@
             }
             showMessageBox("Deleting User", "Deleting user...", false, true, false);
             try {
-                // Delete user document from Firestore
                 await deleteDoc(doc(db, USERS_COLLECTION_PATH, userId));
-                // NOTE: Deleting the actual user from Firebase Authentication requires
-                // calling `admin.auth().deleteUser(uid)` from a secure backend (e.g., Firebase Cloud Function).
-                // Client-side JavaScript cannot directly delete other users from Firebase Auth.
                 hideMessageBox();
                 showMessageBox("Success", `User ${userEmail} document deleted from Firestore! (Manual Firebase Authentication user deletion may be required.)`, false);
-                loadUsers(); // Refresh user list
+                loadUsers();
             } catch (error) {
                 hideMessageBox();
                 showMessageBox("Error", `Failed to delete user: ${error.message}`, true);
@@ -780,13 +755,9 @@
             showMessageBox("Adding User", "Creating user account...", false, true, false);
 
             try {
-                // Client-side user creation in Firebase Authentication.
-                // Firebase security rules should be configured to prevent non-admins
-                // from creating users if this form is ever accessed by non-admins.
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Store user's role in Firestore after creation
                 await setDoc(doc(db, USERS_COLLECTION_PATH, user.uid), {
                     email: user.email,
                     role: role,
@@ -795,8 +766,8 @@
 
                 hideMessageBox();
                 showMessageBox("Success", `New user ${email} registered as ${role}!`, false, false, true, () => {
-                    addNewUserForm.reset(); // Clear the form
-                    loadUsers(); // Refresh the user list in the dashboard
+                    addNewUserForm.reset();
+                    loadUsers();
                 });
 
             } catch (error) {
@@ -816,14 +787,9 @@
 
 
         // --- Dropdown Options Management Functions ---
-        // These functions manage options stored in a single Firestore document 'options'
-        // within the DROPDOWN_OPTIONS_COLLECTION_PATH.
-        // E.g., 'options' document might look like: { cerNames: [], cerRoles: [], reviewerNames: [], autofailTypes: [] }
         async function loadDropdownOptions() {
-            // Note: Removed the showMessageBox during loading of dropdown options within loadAdminDashboard()
-            // to avoid nested message boxes when dashboard loads.
             try {
-                const docSnap = await getDoc(doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options')); // Assuming one document stores all options
+                const docSnap = await getDoc(doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options'));
                 const data = docSnap.exists() ? docSnap.data() : {};
 
                 renderDropdownList(data.cerNames || [], cerNamesList, 'cerNames');
@@ -838,7 +804,7 @@
         }
 
         function renderDropdownList(optionsArray, containerElement, type) {
-            containerElement.innerHTML = ''; // Clear existing list
+            containerElement.innerHTML = '';
             if (optionsArray.length === 0) {
                 containerElement.innerHTML = `<p class="text-gray-500 text-sm">No ${type} defined yet.</p>`;
                 return;
@@ -852,7 +818,6 @@
                 `;
                 containerElement.appendChild(div);
             });
-            // Attach event listeners to dynamically created elements
             containerElement.querySelectorAll('.delete-option-btn').forEach(btn => {
                 btn.addEventListener('click', deleteDropdownOption);
             });
@@ -863,7 +828,7 @@
         });
 
         async function addDropdownOption(e) {
-            const type = e.target.dataset.type; // e.g., 'cerNames', 'cerRoles'
+            const type = e.target.dataset.type;
             let inputElement;
             if (type === 'cerNames') inputElement = document.getElementById('newCerName');
             else if (type === 'cerRoles') inputElement = document.getElementById('newCerRole');
@@ -891,13 +856,12 @@
                 }
 
                 optionsArray.push(newValue);
-                // Update specific field in the document without overwriting others
                 await updateDoc(docRef, { [type]: optionsArray });
 
                 hideMessageBox();
                 showMessageBox("Success", `${newValue} added to ${type}!`, false, false, true, () => {
                     inputElement.value = '';
-                    loadDropdownOptions(); // Refresh all dropdown lists
+                    loadDropdownOptions();
                 });
             } catch (error) {
                 hideMessageBox();
@@ -926,7 +890,7 @@
 
                     hideMessageBox();
                     showMessageBox("Success", "Option deleted successfully!", false, false, true, () => {
-                        loadDropdownOptions(); // Refresh all dropdown lists
+                        loadDropdownOptions();
                     });
                 } else {
                     hideMessageBox();
@@ -939,20 +903,20 @@
         }
 
         // --- Autofail Types Management (Conceptual for now) ---
-        // This function is called but currently just logs a message.
-        // In a full implementation, you'd add logic here to fetch, display,
-        // and allow editing of detailed autofail rules if they are more than just types.
         async function loadAutofailTypes() {
              console.log("Autofail Rules Management section loaded (conceptual).");
         }
 
         // --- Initial Page Load Setup ---
-        // This onAuthStateChanged handles the initial display based on session status
-        // and prevents flashing of login/dashboard before Firebase confirms auth state.
-        // It's the primary entry point for displaying UI after page load.
-        // The main onAuthStateChanged listener at the very top of the script handles all logic.
-        // No specific additional setup is needed here, as the top-level listener already dictates
-        // what's shown based on auth state and role.
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // The primary onAuthStateChanged listener at the very top handles
+                // fetching the role and displaying the correct UI.
+            } else {
+                showLoginForm();
+                adminDashboard.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
