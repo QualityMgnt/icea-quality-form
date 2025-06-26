@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evaluation Form - ICEA LION GROUP</title>
+    <title>ICEA LION QA Audit Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -353,6 +353,42 @@
             color: #065f46; /* green-700 */
             font-weight: bold;
         }
+        /* Styles for the login/access denied section */
+        #accessSection {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Make it full height of the viewport */
+            width: 100%;
+            position: fixed; /* Fix its position to cover everything */
+            top: 0;
+            left: 0;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            z-index: 1000; /* Ensure it's on top */
+        }
+        #accessBox {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        #accessBox h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            color: #1f2937; /* gray-800 */
+        }
+        #accessBox button {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -365,7 +401,26 @@
         </div>
     </div>
 
-    <div id="loginPage" style="display: none;"></div>
+    <div id="accessSection" class="hidden">
+        <div id="accessBox">
+            <h2 id="accessTitle">Login to ICEA LION QA Audit</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="loginEmail" class="block text-sm font-medium text-gray-700 text-left">Email:</label>
+                    <input type="email" id="loginEmail" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
+                </div>
+                <div>
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-700 text-left">Password:</label>
+                    <input type="password" id="loginPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
+                </div>
+                <div id="loginError" class="error-message hidden"></div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Login</button>
+            </form>
+            <p class="mt-4 text-center text-sm text-gray-600">
+                <a href="#" id="forgotPasswordLink" class="text-blue-600 hover:underline">Forgot Password?</a>
+            </p>
+        </div>
+    </div>
 
     <nav class="main-nav" id="mainNav" style="display: none;">
         <ul>
@@ -555,7 +610,8 @@
                 </table>
             </div>
         </div>
-    </div> <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="monthlyStatsContainer">
+    </div>
+    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="monthlyStatsContainer" style="display: none;">
         <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
             <i class="fas fa-chart-line tile-icon"></i> This Month Evaluation Statistics
         </div>
@@ -573,7 +629,6 @@
             </table>
         </div>
     </div>
-
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
@@ -635,7 +690,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -648,10 +703,7 @@
           measurementId: "G-1RJJTT3QET"
         };
 
-        // Make appId globally accessible
-        window.appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        window.appId = firebaseConfig.appId;
 
         window.firebaseApp = initializeApp(firebaseConfig);
         window.db = getFirestore(window.firebaseApp);
@@ -673,304 +725,18 @@
 
         window.currentUserId = null;
         window.currentUserRole = null;
-        window.isAuthReady = false;
+        window.isAuthReady = false; // Flag to indicate Firebase auth state is resolved
 
-        window.checkSessionTimeout = function() {
-            const lastActivity = localStorage.getItem('lastActivity');
-            const loginTime = localStorage.getItem('loginTime');
-            if (lastActivity && loginTime) {
-                const now = new Date().getTime();
-                const eightHours = 8 * 60 * 60 * 1000;
+        // --- DOM Elements for Login/Access Section ---
+        const accessSection = document.getElementById('accessSection');
+        const accessTitle = document.getElementById('accessTitle');
+        const loginForm = document.getElementById('loginForm');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 
-                if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
-                    console.log("Session expired. Logging out.");
-                    localStorage.removeItem('lastActivity');
-                    localStorage.removeItem('loginTime');
-                    sessionStorage.removeItem('loggedIn');
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        window.updateLastActivity = function() {
-            localStorage.setItem('lastActivity', new Date().getTime().toString());
-        };
-
-        document.addEventListener('mousemove', window.updateLastActivity);
-        document.addEventListener('keydown', window.updateLastActivity);
-        document.addEventListener('click', window.updateLastActivity);
-
-        onAuthStateChanged(window.auth, async (user) => {
-            if (user) {
-                if (window.checkSessionTimeout()) {
-                    await signOut(window.auth);
-                    return;
-                }
-
-                window.currentUserId = user.uid;
-                console.log("Firebase Auth State Changed: User logged in:", user.uid);
-
-                const userDocRef = window.fsDoc(window.db, `artifacts/${window.appId}/users/${user.uid}`);
-                const userDocSnap = await window.fsGetDoc(userDocRef);
-
-                if (userDocSnap.exists()) {
-                    window.currentUserRole = userDocSnap.data().role;
-                    console.log("User role fetched:", window.currentUserRole);
-                } else {
-                    window.currentUserRole = 'Guest';
-                    console.log("User profile not found in Firestore, defaulting to Guest.");
-                }
-                window.updateLastActivity();
-
-            } else {
-                console.log("Firebase Auth State Changed: No user logged in.");
-                window.currentUserId = null;
-                window.currentUserRole = null;
-                sessionStorage.removeItem('loggedIn');
-                localStorage.removeItem('lastActivity');
-                localStorage.removeItem('loginTime');
-            }
-            window.isAuthReady = true;
-            document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
-        });
-
-        // Use window.appId here
-        window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/evaluation_records`;
-        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/webhooks`;
-        window.USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
-        window.DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
-
-    </script>
-    <script>
-        // --- GLOBAL DATA STORES ---
-        let allRecords = [];
-        let allWebhooks = [];
-        let dynamicDropdownOptions = {};
-
-        window.unsubscribeRecords = null;
-        window.unsubscribeWebhooks = null;
-
-        // --- GLOBAL SCORE VARIABLES (Used by calculateScore) ---
-        let globalTotalPoints = 0;
-        let globalMaxPossiblePoints = 0;
-        let autofailTriggered = false;
-
-        let complianceCurrentPoints = 0;
-        let complianceMaxPoints = 0;
-
-        // NEW CONSTANT: Minimum evaluations for total column to be green
-        const MIN_EVALUATIONS_FOR_GREEN = 10;
-
-        // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
-        const allRolesQuestions = {
-            '': { 'CUSTOMER EXPERIENCE': [], 'PROBLEM SOLVING SKILLS': [], 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [] },
-            'Outbound Sales': {
-                'CUSTOMER EXPERIENCE': [
-                    { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6, required: true },
-                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 8, required: true },
-                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 6, required: true },
-                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 8, required: true },
-                    { desc: 'Was the CER able to build rapport?', weightage: 8, required: true }
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 6, required: true },
-                    { desc: "Was the CER's focus solely on the Customer?", weightage: 7, required: true },
-                    { desc: 'Did the CER demonstrate strong Product Knowledge?', weightage: 10, required: true },
-                    { desc: 'Did the CER document all action items & follow-up? (Autofail)', weightage: 6, autofail: true, required: true },
-                    { desc: 'Was the CER able to sell to the customer?', weightage: 10, required: true }
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { desc: 'Did the CER log call information correctly? (Data capture)', weightage: 10, autofail: true, required: true },
-                    { desc: 'Did the CER adhere to Company Policies & Procedures?(Autofail)', weightage: 5, autofail: true, required: true },
-                    { desc: 'Did the CER Comply with industry and legal requirements?', weightage: 5, required: true },
-                    { desc: 'Was the CER able to identify and opportunity for Upselling & Cross-Selling?', weightage: 5, required: true, hasNA: true } /* Added hasNA:true */
-                ]
-            },
-            'Social Media': {
-                'CUSTOMER EXPERIENCE': [
-                    { desc: 'Did the CER provide proper branding and personalize the Interaction?', weightage: 5, required: true },
-                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the interaction session?', weightage: 6, required: true },
-                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
-                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 7, required: true },
-                    { desc: 'Did the CER keep the customer informed?(TAT, dead air)', weightage: 5, required: true }
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9, required: true },
-                    { desc: 'Did the CER do proper research and check all related tools required?(Due diligence)', weightage: 7, required: true },
-                    { desc: 'Did the CER show ownership and respond within the set turnaround time? (10 mins)', weightage: 6, required: true },
-                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true, required: true },
-                    { desc: 'Did the CER avoid risk behavior? (interaction avoidance/ZTP)', weightage: 8, required: true }
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { desc: 'Did the CER log ticket information correctly?(Data capture)', weightage: 6, autofail: true, required: true },
-                    { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true, required: true },
-                    { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 10, required: true },
-                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true } /* Added hasNA:true */
-                ]
-            },
-            'Live Chat': {
-                'CUSTOMER EXPERIENCE': [
-                    { desc: 'Did the CER provide proper branding and personalize the conversation?', weightage: 5, required: true },
-                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the conversation session?', weightage: 7, required: true },
-                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
-                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6, required: true },
-                    { desc: 'Did the CER keep the customer informed?(Dead Air-Average Response Time 1 min, TAT, )', weightage: 5, required: true }
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9, required: true },
-                    { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7, required: true },
-                    { desc: 'Did the CER show ownership and respond within the set turnaround time? (10 Secs)', weightage: 6, required: true },
-                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true, required: true },
-                    { desc: 'Did the CER avoid risk behavior? (conversation avoidance/ZTP)', weightage: 8, required: true }
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { desc: 'Did the CER log ticket information correctly?(Data Capture)', weightage: 6, autofail: true, required: true },
-                    { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true, required: true },
-                    { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 9, required: true },
-                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true } /* Added hasNA:true */
-                ]
-            },
-            'Inbound': {
-                'CUSTOMER EXPERIENCE': [
-                    { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6, required: true },
-                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 6, required: true },
-                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 8, required: true },
-                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 4, required: true },
-                    { desc: 'Did the CER keep the caller informed?(Dead air/Hold/TAT)', weightage: 6, required: true }
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 6, required: true },
-                    { desc: 'Did the CER do proper research and check all related tools required? (fact finding)', weightage: 7, required: true },
-                    { desc: 'Did the CER show ownership and actively listen?', weightage: 9, required: true },
-                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 10, autofail: true, required: true },
-                    { desc: 'Did the CER avoid risk behavior? (Call avoidance/ZTP)', weightage: 7, required: true }
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { desc: 'Did the CER log call information correctly?(Data capture)', weightage: 10, autofail: true, required: true },
-                    { desc: 'Did the CER properly authenticate the caller?(KYC)', weightage: 6, autofail: true, required: true },
-                    { desc: 'Did the CER provide complete and accurate information? (Customer education)', weightage: 9, required: true },
-                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true } /* Added hasNA:true */
-                ]
-            },
-            'Email': {
-                'CUSTOMER EXPERIENCE': [
-                    { desc: 'Did the CER provide proper branding and personalize the email?', weightage: 5, required: true },
-                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the interaction?', weightage: 7, required: true },
-                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
-                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6, required: true },
-                    { desc: 'Did the CER keep the customer informed?', weightage: 5, required: true }
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { desc: 'Did the CER call to ask effective probing questions to ensure accurate diagnosis?', weightage: 9, required: true },
-                    { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7, required: true },
-                    { desc: 'Did the CER show ownership and respond within the set turnaround time?(8 hours)', weightage: 6, required: true },
-                    { desc: 'Was the CER able to position all possible options to the customer?', weightage: 13, autofail: true, required: true },
-                    { desc: 'Did the CER avoid risk behavior? (Call avoidance/ZTP)', weightage: 8, required: true }
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { desc: 'Did the CER log ticket information correctly?', weightage: 6, autofail: true, required: true },
-                    { desc: 'Did the CER properly authenticate the writer?', weightage: 8, autofail: true, required: true },
-                    { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 9, required: true },
-                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true } /* Added hasNA:true */
-                ]
-            },
-            'Digital troubleshooting': {
-                'CUSTOMER EXPERIENCE': [
-                    { desc: 'Did the Agent provide proper branding and personalize the call?', weightage: 6, required: true },
-                    { desc: 'Did the Agent demonstrate confidence and business etiquette althroughout the call session?', weightage: 6, required: true },
-                    { desc: 'Did the Agent express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
-                    { desc: 'Did the Agent convey his/her thoughts in an understandable clear and concise manner?', weightage: 7, required: true },
-                    { desc: 'Did the Agent keep the caller informed?', weightage: 5, required: true }
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { desc: 'Did the Agent ask effective probing questions to ensure accurate diagnosis?', weightage: 5.5, required: true },
-                    { desc: 'Did the Agent do proper research and check all related tools required?', weightage: 11, required: true },
-                    { desc: 'Did the Agent show ownership and actively listen?', weightage: 6, required: true },
-                    { desc: 'Was the Agent able to position all possible options to the customer?', weightage: 10.5, autofail: true, required: true },
-                    { desc: 'Did the agent avoid risk behavior? (Call avoidance/ZTP)', weightage: 7, required: true }
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { desc: 'Did the Agent log call information correctly?', weightage: 7, autofail: true, required: true },
-                    { desc: 'Did the Agent properly authenticate the caller?', weightage: 8, autofail: true, required: true },
-                    { desc: 'Did the Agent provide complete and accurate information?', weightage: 9, required: true },
-                    { desc: 'Did the Agent identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true } /* Added hasNA:true */
-                ]
-            },
-            'SMS': {
-                'CUSTOMER EXPERIENCE': [
-                    { desc: 'Did the CER provide proper branding and personalize the conversation?', weightage: 5, required: true },
-                    { desc: 'Did the CER demonstrate confidence and business etiquette all throughout the conversation session?', weightage: 7, required: true },
-                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
-                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6, required: true },
-                    { desc: 'Did the CER keep the customer informed?(Dead air, TAT)', weightage: 5, required: true }
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9, required: true },
-                    { desc: 'Did the CER do proper research and check all related tools required?(fact finding)', weightage: 7, required: true },
-                    { desc: 'Did the CER show ownership and respond within the set turnaround time?(5 mins)', weightage: 6, required: true },
-                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true, required: true },
-                    { desc: 'Did the CER avoid risk behavior? (conversation avoidance/ZTP)', weightage: 8, required: true }
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { desc: 'Did the CER log ticket information correctly?(Data capture)', weightage: 6, autofail: true, required: true },
-                    { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true, required: true },
-                    { desc: 'Did the CER provide complete and accurate information? (Customer education)', weightage: 9, required: true },
-                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true } /* Added hasNA:true */
-                ]
-            },
-            'NPS outbound': {
-                'CUSTOMER EXPERIENCE': [
-                    { desc: 'Did the Agent provide proper branding and personalize the call?', weightage: 6, required: true },
-                    { desc: 'Did the Agent demonstrate confidence and business etiquette althroughout the call session?', weightage: 6, required: true },
-                    { desc: 'Did the Agent express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
-                    { desc: 'Did the Agent convey his/her thoughts in an understandable clear and concise manner?', weightage: 7, required: true },
-                    { desc: 'Did the Agent keep the caller informed?', weightage: 5, required: true }
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { desc: 'Did the Agent ask effective probing questions to ensure accurate diagnosis?', weightage: 8, required: true },
-                    { desc: 'Did the Agent do proper research and check all related tools required?', weightage: 7, required: true },
-                    { desc: 'Did the Agent show ownership and actively listen?', weightage: 6, required: true },
-                    { desc: 'Was the Agent able to position all possible options to the customer? Create a ticket where necessary', weightage: 11, autofail: true, required: true },
-                    { desc: 'Did the agent avoid risk behavior? (Call avoidance/ZTP)', weightage: 7, required: true }
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { desc: 'Did the Agent log call information correctly?', weightage: 7, autofail: true, required: true },
-                    { desc: 'Did the Agent confirm the feedback from the customer and put it vebatim on the survey form?', weightage: 10, autofail: true, required: true },
-                    { desc: 'Did the Agent provide complete and accurate information?', weightage: 9, required: true },
-                    { desc: 'Did the Agent identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true } /* Added hasNA:true */
-                ]
-            },
-            'Onboarding outbound': {
-                'CUSTOMER EXPERIENCE': [
-                    { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6, required: true },
-                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 7, required: true },
-                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 6, required: true },
-                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6, required: true },
-                    { desc: 'Was the CER able to build rapport?', weightage: 8, required: true }
-                ],
-                'PROBLEM SOLVING SKILLS': [
-                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 5, required: true },
-                    { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7, required: true },
-                    { desc: 'Did the CER demonstrate strong Product and Process Knowledge?', weightage: 10, required: true },
-                    { desc: 'Was the CER able to meet the call objective? (FCR)', weightage: 10, autofail: true, required: true },
-                    { desc: 'Did the CER document all action items & follow-up?', weightage: 8, required: true }
-                ],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
-                    { desc: 'Did the CER log call information correctly?', weightage: 10, autofail: true, required: true },
-                    { desc: 'Did the CER adhere to Company Policies & Procedures?', weightage: 5, autofail: true, required: true },
-                    { desc: 'Did the CER Comply with industry and legal requirements?', weightage: 5, required: true },
-                    { desc: 'Was the CER able to identify and opportunity for Upselling & Cross-Selling?', weightage: 7, required: true, hasNA: true } /* Added hasNA:true */
-                ]
-            },
-            'Reviewed case handling': {
-                'CUSTOMER EXPERIENCE': [],
-                'PROBLEM SOLVING SKILLS': [],
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': []
-            }
-        };
-
-        // --- Message Box Functions ---
+        // --- Message Box Functions (already present, ensuring consistency) ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -1004,469 +770,406 @@
         }
 
         function hideMessageBox() {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            messageBoxOverlay.classList.add('hidden');
+            document.getElementById('messageBoxOverlay').classList.add('hidden');
         }
 
-        // UI Tab Switching Logic
-        function showTab(tabName) {
-            const evaluationFormTab = document.getElementById('evaluationFormTab');
-            const databaseTab = document.getElementById('databaseTab');
-            const evaluationFormContent = document.getElementById('evaluationFormContent');
-            const databaseContent = document.getElementById('databaseContent');
-            const monthlyStatsContainer = document.getElementById('monthlyStatsContainer'); // Get the monthly stats container
+        // --- Session Management (consistency check only) ---
+        window.checkSessionTimeout = function() {
+            const lastActivity = localStorage.getItem('lastActivity');
+            const loginTime = localStorage.getItem('loginTime');
+            if (lastActivity && loginTime) {
+                const now = new Date().getTime();
+                const eightHours = 8 * 60 * 60 * 1000;
 
-            console.log("showTab called with:", tabName);
-
-            evaluationFormTab.classList.remove('active');
-            databaseTab.classList.remove('active');
-
-            evaluationFormContent.style.display = 'none';
-            databaseContent.style.display = 'none';
-            monthlyStatsContainer.style.display = 'none'; // Hide monthly stats by default
-
-            if (tabName === 'evaluationForm') {
-                evaluationFormTab.classList.add('active');
-                evaluationFormContent.style.display = 'block';
-                monthlyStatsContainer.style.display = 'block'; // Show monthly stats when evaluation form is active
-                fetchAndRenderMonthlyStats(); // Refresh stats when switching to this tab
-            } else if (tabName === 'database') {
-                databaseTab.classList.add('active');
-                databaseContent.style.display = 'block';
-                if (window.db && window.currentUserId) {
-                    fetchRecordsAndWebhooks();
-                } else {
-                    showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
+                if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
+                    console.log("Session expired. Logging out.");
+                    localStorage.removeItem('lastActivity');
+                    localStorage.removeItem('loginTime');
+                    sessionStorage.removeItem('loggedIn');
+                    return true;
                 }
             }
-        }
+            return false;
+        };
 
-        // Firestore Data Handling Functions
+        window.updateLastActivity = function() {
+            localStorage.setItem('lastActivity', new Date().getTime().toString());
+        };
+
+        document.addEventListener('mousemove', window.updateLastActivity);
+        document.addEventListener('keydown', window.updateLastActivity);
+        document.addEventListener('click', window.updateLastActivity);
+
+        // --- Main Authentication State Listener (Handles Initial Display and Role-based UI) ---
+        onAuthStateChanged(window.auth, async (user) => {
+            if (window.checkSessionTimeout()) {
+                await signOut(window.auth); // Ensure Firebase session is cleared if timeout detected
+                accessSection.classList.remove('hidden'); // Show login if session expired
+                accessTitle.textContent = "Session Expired";
+                loginError.textContent = "Your session has expired. Please log in again.";
+                loginError.classList.remove('hidden');
+                return;
+            }
+
+            if (user) {
+                window.currentUserId = user.uid;
+                console.log("Firebase Auth State Changed: User logged in:", user.uid);
+
+                const userDocRef = window.fsDoc(window.db, `artifacts/${window.appId}/users/${user.uid}`);
+                try {
+                    const userDocSnap = await window.fsGetDoc(userDocRef);
+
+                    if (userDocSnap.exists()) {
+                        window.currentUserRole = userDocSnap.data().role;
+                        console.log("User role fetched:", window.currentUserRole);
+                        window.updateLastActivity(); // Update activity on successful auth
+
+                        // Hide login form and show main app content
+                        accessSection.classList.add('hidden');
+                        initializeApp(); // Initialize the main app UI based on role
+                    } else {
+                        // User authenticated but no profile found (unlikely if registered via admin)
+                        console.warn(`User profile for ${user.email} not found in Firestore. Logging out.`);
+                        await signOut(window.auth);
+                        accessSection.classList.remove('hidden');
+                        accessTitle.textContent = "Access Denied";
+                        loginError.textContent = "Your user profile is incomplete. Please contact an administrator.";
+                        loginError.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error("Error fetching user role from Firestore:", error);
+                    await signOut(window.auth);
+                    accessSection.classList.remove('hidden');
+                    accessTitle.textContent = "Login Error";
+                    loginError.textContent = `Failed to retrieve user profile: ${error.message}. Please try again.`;
+                    loginError.classList.remove('hidden');
+                }
+            } else {
+                // No user logged in, show the login form
+                console.log("Firebase Auth State Changed: No user logged in. Showing login form.");
+                window.currentUserId = null;
+                window.currentUserRole = null;
+                sessionStorage.removeItem('loggedIn');
+                localStorage.removeItem('lastActivity');
+                localStorage.removeItem('loginTime');
+                accessSection.classList.remove('hidden');
+                accessTitle.textContent = "Login to ICEA LION QA Audit";
+                loginError.classList.add('hidden'); // Hide any previous errors
+            }
+            window.isAuthReady = true;
+            document.dispatchEvent(new CustomEvent('firebaseAuthReady')); // Signal that auth state is resolved
+        });
+
+
+        // --- Login Form Submission ---
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.classList.add('hidden');
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+
+            showMessageBox("Logging In", "Please wait...", false, true, false);
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
+                const user = userCredential.user;
+
+                const userDocRef = window.fsDoc(window.db, `artifacts/${window.appId}/users/${user.uid}`);
+                const userDocSnap = await window.fsGetDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    window.currentUserRole = userDocSnap.data().role;
+                    sessionStorage.setItem('loggedIn', 'true');
+                    localStorage.setItem('loginTime', new Date().getTime().toString());
+
+                    hideMessageBox();
+                    // Successfully logged in, initialize app UI based on role
+                    initializeApp(); // This will show relevant tabs and content
+                } else {
+                    await signOut(window.auth);
+                    hideMessageBox();
+                    loginError.textContent = "User profile incomplete. Please contact administrator.";
+                    loginError.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                hideMessageBox();
+                let errorMessage = "Login failed. Please check your credentials.";
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    errorMessage = "Invalid email or password.";
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = "Invalid email format.";
+                } else {
+                    errorMessage = `Error: ${error.message}`;
+                }
+                loginError.textContent = errorMessage;
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        // --- Forgot Password Link Handler ---
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = loginEmail.value.trim();
+
+            if (!email) {
+                showMessageBox("Email Required", "Please enter your email in the email field above to reset your password.", true);
+                return;
+            }
+
+            showMessageBox("Sending Reset Email", "Please wait...", false, true, false);
+
+            try {
+                await sendPasswordResetEmail(window.auth, email);
+                hideMessageBox();
+                showMessageBox(
+                    "Password Reset",
+                    `A password reset link has been sent to ${email}. Please check your inbox (and spam folder).`,
+                    false, false, true
+                );
+            } catch (error) {
+                hideMessageBox();
+                let errorMessage = "Failed to send password reset email.";
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = "No user found with that email address. Please check the email.";
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = "The email address is not valid.";
+                } else {
+                    errorMessage = `Error: ${error.message}`;
+                }
+                showMessageBox("Password Reset Failed", errorMessage, true, false, true);
+            }
+        });
+
+    </script>
+    <script>
+        // --- GLOBAL DATA STORES (Repeated for clarity, but already defined in the module script scope for Firebase imports) ---
+        // These can be considered part of the main script's global scope now.
+        let allRecords = [];
+        let allWebhooks = [];
+        let dynamicDropdownOptions = {};
+
         window.unsubscribeRecords = null;
         window.unsubscribeWebhooks = null;
 
-        /**
-         * Fetches records and webhooks from Firestore in real-time.
-         */
-        async function fetchRecordsAndWebhooks() {
-            const recordsTableBody = document.getElementById('recordsTableBody');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const addWebhookBtn = document.getElementById('addWebhookBtn');
-            const webhookList = document.getElementById('webhookList');
+        let globalTotalPoints = 0;
+        let globalMaxPossiblePoints = 0;
+        let autofailTriggered = false;
 
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return;
+        let complianceCurrentPoints = 0;
+        let complianceMaxPoints = 0;
+
+        const MIN_EVALUATIONS_FOR_GREEN = 10;
+
+        // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
+        const allRolesQuestions = {
+            '': { 'CUSTOMER EXPERIENCE': [], 'PROBLEM SOLVING SKILLS': [], 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [] },
+            'Outbound Sales': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6, required: true },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 8, required: true },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 6, required: true },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 8, required: true },
+                    { desc: 'Was the CER able to build rapport?', weightage: 8, required: true }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 6, required: true },
+                    { desc: "Was the CER's focus solely on the Customer?", weightage: 7, required: true },
+                    { desc: 'Did the CER demonstrate strong Product Knowledge?', weightage: 10, required: true },
+                    { desc: 'Did the CER document all action items & follow-up? (Autofail)', weightage: 6, autofail: true, required: true },
+                    { desc: 'Was the CER able to sell to the customer?', weightage: 10, required: true }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log call information correctly? (Data capture)', weightage: 10, autofail: true, required: true },
+                    { desc: 'Did the CER adhere to Company Policies & Procedures?(Autofail)', weightage: 5, autofail: true, required: true },
+                    { desc: 'Did the CER Comply with industry and legal requirements?', weightage: 5, required: true },
+                    { desc: 'Was the CER able to identify and opportunity for Upselling & Cross-Selling?', weightage: 5, required: true, hasNA: true }
+                ]
+            },
+            'Social Media': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the Interaction?', weightage: 5, required: true },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the interaction session?', weightage: 6, required: true },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 7, required: true },
+                    { desc: 'Did the CER keep the customer informed?(TAT, dead air)', weightage: 5, required: true }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9, required: true },
+                    { desc: 'Did the CER do proper research and check all related tools required?(Due diligence)', weightage: 7, required: true },
+                    { desc: 'Did the CER show ownership and respond within the set turnaround time? (10 mins)', weightage: 6, required: true },
+                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true, required: true },
+                    { desc: 'Did the CER avoid risk behavior? (interaction avoidance/ZTP)', weightage: 8, required: true }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log ticket information correctly?(Data capture)', weightage: 6, autofail: true, required: true },
+                    { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true, required: true },
+                    { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 10, required: true },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true }
+                ]
+            },
+            'Live Chat': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the conversation?', weightage: 5, required: true },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the conversation session?', weightage: 7, required: true },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6, required: true },
+                    { desc: 'Did the CER keep the customer informed?(Dead Air-Average Response Time 1 min, TAT, )', weightage: 5, required: true }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9, required: true },
+                    { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7, required: true },
+                    { desc: 'Did the CER show ownership and respond within the set turnaround time? (10 Secs)', weightage: 6, required: true },
+                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true, required: true },
+                    { desc: 'Did the CER avoid risk behavior? (conversation avoidance/ZTP)', weightage: 8, required: true }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log ticket information correctly?(Data Capture)', weightage: 6, autofail: true, required: true },
+                    { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true, required: true },
+                    { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 9, required: true },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true }
+                ]
+            },
+            'Inbound': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6, required: true },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 6, required: true },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 8, required: true },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 4, required: true },
+                    { desc: 'Did the CER keep the caller informed?(Dead air/Hold/TAT)', weightage: 6, required: true }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 6, required: true },
+                    { desc: 'Did the CER do proper research and check all related tools required? (fact finding)', weightage: 7, required: true },
+                    { desc: 'Did the CER show ownership and actively listen?', weightage: 9, required: true },
+                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 10, autofail: true, required: true },
+                    { desc: 'Did the CER avoid risk behavior? (Call avoidance/ZTP)', weightage: 7, required: true }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log call information correctly?(Data capture)', weightage: 10, autofail: true, required: true },
+                    { desc: 'Did the CER properly authenticate the caller?(KYC)', weightage: 6, autofail: true, required: true },
+                    { desc: 'Did the CER provide complete and accurate information? (Customer education)', weightage: 9, required: true },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true }
+                ]
+            },
+            'Email': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the email?', weightage: 5, required: true },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the interaction?', weightage: 7, required: true },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6, required: true },
+                    { desc: 'Did the CER keep the customer informed?', weightage: 5, required: true }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER call to ask effective probing questions to ensure accurate diagnosis?', weightage: 9, required: true },
+                    { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7, required: true },
+                    { desc: 'Did the CER show ownership and respond within the set turnaround time?(8 hours)', weightage: 6, required: true },
+                    { desc: 'Was the CER able to position all possible options to the customer?', weightage: 13, autofail: true, required: true },
+                    { desc: 'Did the CER avoid risk behavior? (Call avoidance/ZTP)', weightage: 8, required: true }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log ticket information correctly?', weightage: 6, autofail: true, required: true },
+                    { desc: 'Did the CER properly authenticate the writer?', weightage: 8, autofail: true, required: true },
+                    { desc: 'Did the CER provide complete and accurate information?(Customer education)', weightage: 9, required: true },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true }
+                ]
+            },
+            'Digital troubleshooting': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the Agent provide proper branding and personalize the call?', weightage: 6, required: true },
+                    { desc: 'Did the Agent demonstrate confidence and business etiquette althroughout the call session?', weightage: 6, required: true },
+                    { desc: 'Did the Agent express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
+                    { desc: 'Did the Agent convey his/her thoughts in an understandable clear and concise manner?', weightage: 7, required: true },
+                    { desc: 'Did the Agent keep the caller informed?', weightage: 5, required: true }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the Agent ask effective probing questions to ensure accurate diagnosis?', weightage: 5.5, required: true },
+                    { desc: 'Did the Agent do proper research and check all related tools required?', weightage: 11, required: true },
+                    { desc: 'Did the Agent show ownership and actively listen?', weightage: 6, required: true },
+                    { desc: 'Was the Agent able to position all possible options to the customer?', weightage: 10.5, autofail: true, required: true },
+                    { desc: 'Did the agent avoid risk behavior? (Call avoidance/ZTP)', weightage: 7, required: true }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the Agent log call information correctly?', weightage: 7, autofail: true, required: true },
+                    { desc: 'Did the Agent properly authenticate the caller?', weightage: 8, autofail: true, required: true },
+                    { desc: 'Did the Agent provide complete and accurate information?', weightage: 9, required: true },
+                    { desc: 'Did the Agent identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true }
+                ]
+            },
+            'SMS': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the conversation?', weightage: 5, required: true },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette all throughout the conversation session?', weightage: 7, required: true },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6, required: true },
+                    { desc: 'Did the CER keep the customer informed?(Dead air, TAT)', weightage: 5, required: true }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 9, required: true },
+                    { desc: 'Did the CER do proper research and check all related tools required?(fact finding)', weightage: 7, required: true },
+                    { desc: 'Did the CER show ownership and respond within the set turnaround time?(5 mins)', weightage: 6, required: true },
+                    { desc: 'Was the CER able to position all possible options to the customer?(FCR)', weightage: 13, autofail: true, required: true },
+                    { desc: 'Did the CER avoid risk behavior? (conversation avoidance/ZTP)', weightage: 8, required: true }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log ticket information correctly?(Data capture)', weightage: 6, autofail: true, required: true },
+                    { desc: 'Did the CER properly authenticate the customer?(KYC)', weightage: 8, autofail: true, required: true },
+                    { desc: 'Did the CER provide complete and accurate information? (Customer education)', weightage: 9, required: true },
+                    { desc: 'Did the CER identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true }
+                ]
+            },
+            'NPS outbound': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the Agent provide proper branding and personalize the call?', weightage: 6, required: true },
+                    { desc: 'Did the Agent demonstrate confidence and business etiquette althroughout the call session?', weightage: 6, required: true },
+                    { desc: 'Did the Agent express a sincere acknowledgement/empathy statement when applicable?', weightage: 7, required: true },
+                    { desc: 'Did the Agent convey his/her thoughts in an understandable clear and concise manner?', weightage: 7, required: true },
+                    { desc: 'Did the Agent keep the caller informed?', weightage: 5, required: true }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the Agent ask effective probing questions to ensure accurate diagnosis?', weightage: 8, required: true },
+                    { desc: 'Did the Agent do proper research and check all related tools required?', weightage: 7, required: true },
+                    { desc: 'Did the Agent show ownership and actively listen?', weightage: 6, required: true },
+                    { desc: 'Was the Agent able to position all possible options to the customer? Create a ticket where necessary', weightage: 11, autofail: true, required: true },
+                    { desc: 'Did the agent avoid risk behavior? (Call avoidance/ZTP)', weightage: 7, required: true }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the Agent log call information correctly?', weightage: 7, autofail: true, required: true },
+                    { desc: 'Did the Agent confirm the feedback from the customer and put it vebatim on the survey form?', weightage: 10, autofail: true, required: true },
+                    { desc: 'Did the Agent provide complete and accurate information?', weightage: 9, required: true },
+                    { desc: 'Did the Agent identify an opportunity to upsell/cross sell a product?', weightage: 5, required: true, hasNA: true }
+                ]
+            },
+            'Onboarding outbound': {
+                'CUSTOMER EXPERIENCE': [
+                    { desc: 'Did the CER provide proper branding and personalize the call?', weightage: 6, required: true },
+                    { desc: 'Did the CER demonstrate confidence and business etiquette althroughout the call session?', weightage: 7, required: true },
+                    { desc: 'Did the CER express a sincere acknowledgement/empathy statement when applicable?', weightage: 6, required: true },
+                    { desc: 'Did the CER convey his/her thoughts in an understandable clear and concise manner?', weightage: 6, required: true },
+                    { desc: 'Was the CER able to build rapport?', weightage: 8, required: true }
+                ],
+                'PROBLEM SOLVING SKILLS': [
+                    { desc: 'Did the CER ask effective probing questions to ensure accurate diagnosis?', weightage: 5, required: true },
+                    { desc: 'Did the CER do proper research and check all related tools required?', weightage: 7, required: true },
+                    { desc: 'Did the CER demonstrate strong Product and Process Knowledge?', weightage: 10, required: true },
+                    { desc: 'Was the CER able to meet the call objective? (FCR)', weightage: 10, autofail: true, required: true },
+                    { desc: 'Did the CER document all action items & follow-up?', weightage: 8, required: true }
+                ],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [
+                    { desc: 'Did the CER log call information correctly?', weightage: 10, autofail: true, required: true },
+                    { desc: 'Did the CER adhere to Company Policies & Procedures?', weightage: 5, autofail: true, required: true },
+                    { desc: 'Did the CER Comply with industry and legal requirements?', weightage: 5, required: true },
+                    { desc: 'Was the CER able to identify and opportunity for Upselling & Cross-Selling?', weightage: 7, required: true, hasNA: true }
+                ]
+            },
+            'Reviewed case handling': {
+                'CUSTOMER EXPERIENCE': [],
+                'PROBLEM SOLVING SKILLS': [],
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': []
             }
-            if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
-                console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
-                showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
-                return;
-            }
+        };
 
-            showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
-
-            try {
-                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
-                window.unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => {
-                    allRecords = [];
-                    snapshot.forEach(doc => {
-                        allRecords.push({ id: doc.id, ...doc.data() });
-                    });
-                    console.log("Records updated:", allRecords.length, "records.");
-                    renderRecordsTable(allRecords);
-                    hideMessageBox();
-                }, (error) => {
-                    console.error("Error listening to records:", error);
-                    showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
-                });
-
-                const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH);
-                window.unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => {
-                    allWebhooks = [];
-                    snapshot.forEach(doc => {
-                        allWebhooks.push({ id: doc.id, ...doc.data() });
-                    });
-                    console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
-                    renderWebhookList(allWebhooks);
-                    hideMessageBox();
-                }, (error) => {
-                    console.error("Error listening to webhooks:", error);
-                    showMessageBox("Error Loading Webhooks", `Could not load webhooks: ${error.message}`, true, false, true);
-                });
-
-            } catch (error) {
-                console.error("Error setting up Firestore listeners:", error);
-                showMessageBox("Initialization Error", `Failed to setup database listeners: ${error.message}`, true, false, true);
-            }
-        }
-
-        /**
-         * Renders the records table with data.
-         * @param {Array<Object>} records - An array of record objects.
-         */
-        function renderRecordsTable(records) {
-            const recordsTableBody = document.getElementById('recordsTableBody');
-            recordsTableBody.innerHTML = '';
-
-            if (records.length === 0) {
-                recordsTableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td></tr>';
-                return;
-            }
-
-            records.forEach(record => {
-                const row = recordsTableBody.insertRow();
-                row.innerHTML = `
-                    <td><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>
-                    <td>${record.submittedAt ? new Date(record.submittedAt).toLocaleString() : 'N/A'}</td>
-                    <td>${record['Contact ID'] || 'N/A'}</td>
-                    <td>${record['Client Name'] || 'N/A'}</td>
-                    <td>${record['CER Name'] || 'N/A'}</td>
-                    <td>${record['Overall Score'] || 'N/A'}</td>
-                    <td class="actions">
-                        <button class="view-record-btn bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-md" data-record-id="${record.id}">View</button>
-                    </td>
-                    <td>
-                        <button class="email-record-btn bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-md" data-record-id="${record.id}">Email</button>
-                    </td>
-                    <td>
-                        <button class="download-record-btn bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md" data-record-id="${record.id}">Download</button>
-                    </td>
-                `;
-            });
-
-            document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', updateDeleteButtonState);
-            });
-
-            document.querySelectorAll('.view-record-btn').forEach(button => {
-                button.addEventListener('click', (e) => viewRecordDetails(e.target.dataset.recordId));
-            });
-            document.querySelectorAll('.email-record-btn').forEach(button => {
-                button.addEventListener('click', (e) => sendRecordEmail(e.target.dataset.recordId));
-            });
-            document.querySelectorAll('.download-record-btn').forEach(button => {
-                button.addEventListener('click', (e) => downloadRecordData(e.target.dataset.recordId));
-            });
-            updateDeleteButtonState();
-        }
-
-        /**
-         * Renders the list of webhooks.
-         * @param {Array<Object>} webhooks - An array of webhook objects.
-         */
-        function renderWebhookList(webhooks) {
-            const webhookList = document.getElementById('webhookList');
-            webhookList.innerHTML = '';
-
-            if (webhooks.length === 0) {
-                webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
-                return;
-            }
-
-            webhooks.forEach(webhook => {
-                const webhookDiv = document.createElement('div');
-                webhookDiv.className = 'flex justify-between items-center bg-f0f9ff p-2 rounded-md mb-2';
-                webhookDiv.innerHTML = `
-                    <span>${webhook.url}</span>
-                    <button class="delete-webhook-btn bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-xs" data-webhook-id="${webhook.id}">Delete</button>
-                `;
-                webhookList.appendChild(webhookDiv);
-            });
-
-            document.querySelectorAll('.delete-webhook-btn').forEach(button => {
-                button.addEventListener('click', (e) => deleteWebhook(e.target.dataset.webhookId));
-            });
-        }
-
-        /**
-         * Updates the state of the "Delete Selected" button based on checkbox selections.
-         */
-        function updateDeleteButtonState() {
-            const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-            deleteSelectedRecordsBtn.disabled = selectedCheckboxes.length === 0;
-        }
-
-        /**
-         * Adds a new evaluation record to Firestore.
-         */
-        async function addRecordToFirestore(recordData) {
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return false;
-            }
-            if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
-                console.error("Firestore collection path for records is not defined.");
-                showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
-                return false;
-            }
-
-            showMessageBox("Submitting", "Saving record to database...", false, true, false);
-            try {
-                const docRef = await window.fsAddDoc(window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH), {
-                    ...recordData,
-                    submittedAt: new Date().toISOString() // Add a server timestamp
-                });
-                console.log("Record written with ID:", docRef.id);
-                showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
-                    window.resetForm();
-                    sendDataToWebhooks(recordData);
-                    fetchAndRenderMonthlyStats(); // Refresh monthly stats after submission
-                });
-                return true;
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                showMessageBox("Submission Failed", `Error saving data: ${e.message}`, true, false, true);
-                return false;
-            }
-        }
-
-        /**
-         * Deletes selected records from Firestore.
-         */
-        async function deleteSelectedRecords() {
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return;
-            }
-            if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
-                console.error("Firestore collection path for records is not defined for deletion.");
-                showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
-                return;
-            }
-
-            const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-            const recordIdsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
-
-            if (recordIdsToDelete.length === 0) {
-                showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true);
-                return;
-            }
-
-            // Using browser's native confirm dialog for simplicity in delete operation
-            if (!confirm(`Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`)) {
-                return; // User cancelled
-            }
-
-
-            showMessageBox("Deleting", "Deleting selected records...", false, true, false);
-            try {
-                const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, id)));
-                await Promise.all(deletePromises);
-                console.log("Selected records deleted successfully.");
-                showMessageBox("Success", "Selected records deleted.", false, false, true, () => {
-                    fetchAndRenderMonthlyStats(); // Refresh monthly stats after deletion
-                });
-                selectAllRecordsCheckbox.checked = false;
-                updateDeleteButtonState();
-            } catch (e) {
-                console.error("Error deleting documents: ", e);
-                showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
-            } finally {
-                // message box will be hidden by showMessageBox in success/failure, no explicit hide here needed.
-            }
-        }
-
-        /**
-         * Adds a new webhook URL to Firestore.
-         */
-        async function addWebhook() {
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return;
-            }
-            if (!window.WEBHOOKS_COLLECTION_PATH) {
-                console.error("Firestore collection path for webhooks is not defined.");
-                showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
-                return;
-            }
-
-            const webhookUrl = newWebhookUrlInput.value.trim();
-            if (!webhookUrl) {
-                showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
-                return;
-            }
-            if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
-                showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
-                return;
-            }
-            if (allWebhooks.some(hook => hook.url === webhookUrl)) {
-                showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
-                newWebhookUrlInput.value = '';
-                return;
-            }
-
-            showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
-            try {
-                await window.fsAddDoc(window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
-                newWebhookUrlInput.value = '';
-                showMessageBox("Success", "Webhook added successfully!", false, false, true);
-            } catch (e) {
-                console.error("Error adding webhook: ", e);
-                showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true);
-            }
-        }
-
-        /**
-         * Deletes a specific webhook from Firestore.
-         */
-        async function deleteWebhook(webhookId) {
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return;
-            }
-            if (!window.WEBHOOKS_COLLECTION_PATH) {
-                console.error("Firestore collection path for webhooks is not defined for deletion.");
-                showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
-                return;
-            }
-            showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
-            try {
-                await window.fsDeleteDoc(window.fsDoc(window.db, window.WEBHOOKS_COLLECTION_PATH, webhookId));
-                showMessageBox("Success", "Webhook deleted successfully!", false, false, true);
-            } catch (e) {
-                console.error("Error deleting webhook: ", e);
-                showMessageBox("Failed to Delete Webhook", `Error: ${e.message}`, true, false, true);
-            }
-        }
-
-        /**
-         * Sends record data to all configured webhooks.
-         */
-        async function sendDataToWebhooks(recordData) {
-            if (allWebhooks.length === 0) {
-                console.log("No webhooks configured. Skipping webhook dispatch.");
-                return;
-            }
-            console.log(`Sending data to ${allWebhooks.length} webhook(s)...`);
-            const webhookPromises = allWebhooks.map(async (webhook) => {
-                try {
-                    const response = await fetch(webhook.url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(recordData)
-                    });
-                    const result = await response.text();
-                    console.log(`Webhook to ${webhook.url} response:`, response.status, result);
-                    if (!response.ok) {
-                        console.error(`Webhook to ${webhook.url} failed: ${response.status} - ${result}`);
-                    }
-                } catch (error) {
-                    console.error(`Error sending to webhook ${webhook.url}:`, error);
-                }
-            });
-            await Promise.allSettled(webhookPromises);
-            console.log("All webhook dispatches attempted.");
-        }
-
-        /**
-         * Displays full details of a selected record in a modal.
-         */
-        function viewRecordDetails(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found.", true, false, true);
-                return;
-            }
-
-            let detailsHtml = '<pre>';
-            for (const key in record) {
-                if (record.hasOwnProperty(key)) {
-                    let value = record[key];
-                    if (key === 'submittedAt' && value) {
-                        value = new Date(value).toLocaleString();
-                    }
-                    detailsHtml += `<b>${key}:</b> ${JSON.stringify(value, null, 2).replace(/"/g, '')}\n`;
-                }
-            }
-            detailsHtml += '</pre>';
-
-            showMessageBox("Record Details", detailsHtml, false, false, true);
-        }
-
-        /**
-         * Sends the selected record's summary via email.
-         */
-        function sendRecordEmail(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found for email.", true, false, true);
-                return;
-            }
-
-            const contactId = record['Contact ID'] || 'N/A';
-            const cerName = record['CER Name'] || 'N/A';
-            const overallScore = record['Overall Score'] || 'N/A';
-            const evaluationDate = record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'N/A';
-
-            const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
-            const body = `Dear ${cerName},\n\n` +
-                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                     `Contact ID: ${contactId}\n` +
-                                     `CER Name: ${cerName}\n` +
-                                     `Overall Score: ${overallScore}\n` +
-                                     `Evaluation Date: ${evaluationDate}\n\n` +
-                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                     `Kind Regards,\nQuality Evaluation Team`;
-
-
-            const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-            try {
-                window.location.href = mailtoLink;
-                // INFORM THE USER ABOUT MANUAL ATTACHMENT
-                showMessageBox(
-                    "PDF Generated & Email Prepared",
-                    "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** before sending.",
-                    false, // Not an error
-                    false, // No spinner
-                    true // Show close button
-                );
-            } catch (e) {
-                console.error("Failed to open email client:", e);
-                showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
-            }
-        }
-
-        /**
-         * Downloads the selected record's data as a JSON file.
-         */
-        function downloadRecordData(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found for download.", true, false, true);
-                return;
-            }
-
-            const filename = `record_${record.id}_${record['Contact ID'] || 'unknown'}.json`;
-            const dataStr = JSON.stringify(record, null, 2);
-
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            showMessageBox("Download Complete", `Record '${filename}' downloaded successfully.`, false, false, true);
-        }
-
-
-        // Audit Form Calculations
+        // Audit Form Calculations (functions unchanged)
         const calculateScore = () => {
             const cerRoleSelect = document.getElementById('cer-role');
             const overallScoreDisplay = document.getElementById('overall-score-display');
@@ -1531,16 +1234,15 @@
                 globalTotalPoints += currentPoints;
                 globalMaxPossiblePoints += weightage;
 
-                const currentRole = cerRoleSelect.value;
+                const currentRole = document.getElementById('cer-role').value; // Get current role dynamically
                 if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
                     const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
                     if (complianceQuestions.includes(questionText)) {
                         if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
                             complianceCurrentPoints += weightage;
                         }
-                        // Only add to max possible points if a valid rating (Yes/No/N/A) is selected
                         if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) {
-                             complianceMaxPoints += weightage;
+                               complianceMaxPoints += weightage;
                         }
                     }
                 }
@@ -1571,9 +1273,7 @@
 
         };
 
-        // Dynamic Question Rendering (moved to top-level to ensure availability)
         window.renderQuestionsForRole = function(role) {
-            const cerRoleSelect = document.getElementById('cer-role');
             const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
             const psQuestionsContainer = document.getElementById('psQuestionsContainer');
             const caQuestionsContainer = document.getElementById('caQuestionsContainer');
@@ -1603,7 +1303,7 @@
             let questionNumber = 1;
 
             for (const sectionTitle in roleQuestions) {
-                const questions = roleQuestions[sectionTitle]; // CORRECTED: using roleQuestions, not roleRoles
+                const questions = roleQuestions[sectionTitle];
                 const container = questionContainers[sectionTitle];
 
                 if (!container) {
@@ -1656,20 +1356,15 @@
                 });
             }
             calculateScore();
-        }; // Exposed globally
+        };
 
-        // NEW FUNCTION: Auto-expand textarea
         function autoExpandTextarea(event) {
             const textarea = event.target;
-            textarea.style.height = 'auto'; // Reset height to recalculate
-            textarea.style.height = (textarea.scrollHeight) + 'px'; // Set height to scrollHeight
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
         }
 
         window.resetFormFieldsButKeepRole = function() {
-            const cerRoleSelect = document.getElementById('cer-role');
-
-            console.log("Resetting question fields only.");
-
             const dynamicSelects = document.querySelectorAll('.rating-select');
             dynamicSelects.forEach(selectElement => {
                 selectElement.value = 'Yes';
@@ -1688,14 +1383,13 @@
                     }
                     if (remarksElement) {
                         remarksElement.value = '';
-                        remarksElement.style.height = '40px'; // Reset height to min-height (same as other inputs)
+                        remarksElement.style.height = '40px';
                     }
                 }
             });
             calculateScore();
-        }; // Exposed globally
+        };
 
-        // Audit Form Initialization and Reset
         function initializeEvaluationForm() {
             const evaluationDateInput = document.getElementById('review-date');
             const callDateTimeInput = document.getElementById('call-date-time');
@@ -1704,7 +1398,6 @@
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
-
 
             evaluationDateInput.valueAsDate = new Date();
             const now = new Date();
@@ -1716,11 +1409,10 @@
             document.getElementById('reviewer-name').innerHTML = '<option value="">Loading Reviewer Names...</option>';
             autofailTypeSelect.innerHTML = '<option value="">Loading Autofail Types...</option>';
 
-
             autofailDescriptionContainer.classList.add('hidden');
             autofailDescriptionInput.value = '';
             autofailDescriptionInput.removeAttribute('required');
-            autofailDescriptionInput.style.height = 'auto'; // Reset height
+            autofailDescriptionInput.style.height = 'auto';
 
             document.getElementById('reviewer-name').value = '';
             document.getElementById('other-reviewer-name').classList.add('hidden');
@@ -1735,7 +1427,7 @@
 
             populateDropdownsFromCache();
 
-            window.renderQuestionsForRole(''); // Call globally exposed function
+            window.renderQuestionsForRole('');
             calculateScore();
             document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
         }
@@ -1753,7 +1445,6 @@
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
-
 
             console.log("Full form reset.");
 
@@ -1773,7 +1464,7 @@
             autofailDescriptionContainer.classList.add('hidden');
             autofailDescriptionInput.value = '';
             autofailDescriptionInput.removeAttribute('required');
-            autofailDescriptionInput.style.height = 'auto'; // Reset height
+            autofailDescriptionInput.style.height = 'auto';
 
             reviewerNameSelect.value = '';
             otherReviewerNameInput.classList.add('hidden');
@@ -1786,22 +1477,16 @@
                 input.style.borderColor = '';
             });
 
-            window.renderQuestionsForRole(''); // Call globally exposed function
+            window.renderQuestionsForRole('');
             calculateScore();
             document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
         }
 
-
-        // Function to validate all mandatory fields
         function validateAllMandatoryFields() {
-            // UPDATED SELECTOR FOR MORE ROBUSTNESS
             const topLevelInputs = document.querySelectorAll('#evaluationFormContent input[required]:not([type="hidden"]), #evaluationFormContent select[required]');
             let allFieldsValid = true;
 
             for (const input of topLevelInputs) {
-                // The check for 'other-reviewer-name' and 'hidden' class is less critical now
-                // because the :not([type="hidden"]) in the selector handles it,
-                // but keeping it here for clarity/future changes is fine.
                 if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
                     input.style.borderColor = '';
                     continue;
@@ -1820,7 +1505,6 @@
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
 
-            // Logic to set/unset required for autofail description
             if (autofailTypeSelect.value !== '' || overallScoreValue === 0) {
                 autofailDescriptionInput.setAttribute('required', 'required');
                 if (autofailDescriptionInput.value.trim() === '') {
@@ -1831,15 +1515,12 @@
                 }
             } else {
                 autofailDescriptionInput.removeAttribute('required');
-                autofailDescriptionInput.style.borderColor = ''; // Ensure border is cleared when not required
+                autofailDescriptionInput.style.borderColor = '';
             }
 
             const dynamicRatingSelects = document.querySelectorAll('.rating-select');
             for (const selectElement of dynamicRatingSelects) {
-                // This logic is for dynamically generated rating selects
-                // and checks if they are empty, assuming 'None' (empty string) is not allowed
-                // (which you've removed, so this correctly validates that a choice is made)
-                if (selectElement.value === '') { // Checks if "Yes", "No", or "N/A" has been selected
+                if (selectElement.value === '') {
                     selectElement.style.borderColor = 'red';
                     allFieldsValid = false;
                 } else {
@@ -1849,8 +1530,6 @@
 
             const remarksTextareas = document.querySelectorAll('.remarks-textarea');
             remarksTextareas.forEach(textarea => {
-                // Remarks textareas are not strictly required unless part of autofail,
-                // but this ensures their border is reset.
                 textarea.style.borderColor = '';
             });
 
@@ -1864,8 +1543,6 @@
             return allFieldsValid;
         }
 
-
-        // NEW FUNCTION: Fetch Last 3 Evaluations for a CER
         async function fetchLastThreeEvaluations(cerName) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
             if (!window.db || !window.EVALUATION_RECORDS_COLLECTION_PATH) {
@@ -1902,7 +1579,6 @@
             }
         }
 
-        // NEW FUNCTION: Render Last 3 Evaluations Table
         function renderLastThreeEvaluationsTable(evaluations) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
             lastEvaluationsTableBody.innerHTML = '';
@@ -1925,22 +1601,19 @@
             });
         }
 
-
-        /**
-         * Fetches all dropdown options from Firestore and stores them globally.
-         */
         async function fetchAllDropdownOptions() {
             if (!window.db || !window.DROPDOWN_OPTIONS_COLLECTION_PATH) {
                 console.warn("Firestore not ready or DROPDOWN_OPTIONS_COLLECTION_PATH not defined for fetching all dropdowns.");
                 return;
             }
             try {
-                const querySnapshot = await window.getDocs(window.fsCollection(window.db, window.DROPDOWN_OPTIONS_COLLECTION_PATH));
-                querySnapshot.forEach(doc => {
-                    if (doc.exists() && doc.data().options) {
-                        dynamicDropdownOptions[doc.id] = doc.data().options;
-                    }
-                });
+                const docSnap = await window.fsGetDoc(window.fsDoc(window.db, window.DROPDOWN_OPTIONS_COLLECTION_PATH, 'options'));
+                if (docSnap.exists()) {
+                    dynamicDropdownOptions = docSnap.data();
+                } else {
+                    console.log("No 'options' document found in dropdown_options collection.");
+                    dynamicDropdownOptions = {};
+                }
                 console.log("All dynamic dropdown options fetched:", dynamicDropdownOptions);
                 populateDropdownsFromCache();
             }
@@ -1949,9 +1622,6 @@
             }
         }
 
-        /**
-         * Populates the HTML select elements using the globally stored dynamicDropdownOptions.
-         */
         function populateDropdownsFromCache() {
             const cerNameSelect = document.getElementById('cer-name');
             const cerRoleSelect = document.getElementById('cer-role');
@@ -1968,19 +1638,19 @@
                 });
             }
 
-            if (dynamicDropdownOptions.cerNames) {
+            if (dynamicDropdownOptions.cerNames && dynamicDropdownOptions.cerNames.length > 0) {
                 populateSelect(cerNameSelect, dynamicDropdownOptions.cerNames, 'Select CER');
             } else {
                 cerNameSelect.innerHTML = '<option value="">No CER Names available</option>';
             }
 
-            if (dynamicDropdownOptions.cerRoles) {
+            if (dynamicDropdownOptions.cerRoles && dynamicDropdownOptions.cerRoles.length > 0) {
                 populateSelect(cerRoleSelect, dynamicDropdownOptions.cerRoles, 'Select Role');
             } else {
                 cerRoleSelect.innerHTML = '<option value="">No CER Roles available</option>';
             }
 
-            if (dynamicDropdownOptions.reviewerNames) {
+            if (dynamicDropdownOptions.reviewerNames && dynamicDropdownOptions.reviewerNames.length > 0) {
                 const reviewerOptions = [...dynamicDropdownOptions.reviewerNames];
                 if (!reviewerOptions.includes('Other')) {
                     reviewerOptions.push('Other');
@@ -1990,43 +1660,39 @@
                 populateSelect(reviewerNameSelect, ['Other'], 'Select Reviewer');
             }
 
-            if (dynamicDropdownOptions.autofailTypes) {
+            if (dynamicDropdownOptions.autofailTypes && dynamicDropdownOptions.autofailTypes.length > 0) {
                 populateSelect(autofailTypeSelect, dynamicDropdownOptions.autofailTypes, 'Select Autofail Type');
             } else {
                 autofailTypeSelect.innerHTML = '<option value="">No Autofail Types available</option>';
             }
         }
 
-        /**
-         * Fetches evaluation data for the last 30 days, processes it, and renders the monthly statistics table.
-         */
         async function fetchAndRenderMonthlyStats() {
             const monthlyStatsTableBody = document.getElementById('monthlyStatsTableBody');
             if (monthlyStatsTableBody) {
-                monthlyStatsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading monthly statistics...</td></tr>'; // Reset message
+                monthlyStatsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading monthly statistics...</td></tr>';
             }
 
-
-            if (!dynamicDropdownOptions.cerNames || !dynamicDropdownOptions.cerRoles) {
-                console.warn("CER Names or Roles not yet loaded for monthly stats. Retrying...");
-                // If dropdowns aren't ready, wait for them to be populated
-                setTimeout(fetchAndRenderMonthlyStats, 500); // Retry after 0.5 seconds
-                return;
+            if (Object.keys(dynamicDropdownOptions).length === 0 || !dynamicDropdownOptions.cerNames || !dynamicDropdownOptions.cerRoles) {
+                await fetchAllDropdownOptions();
+                if (Object.keys(dynamicDropdownOptions).length === 0 || !dynamicDropdownOptions.cerNames || !dynamicDropdownOptions.cerRoles) {
+                    console.warn("CER Names or Roles still not loaded for monthly stats after fetch. Cannot render stats.");
+                    if(monthlyStatsTableBody) {
+                        monthlyStatsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Cannot load monthly statistics: Missing CER Names or Roles.</td></tr>';
+                    }
+                    return;
+                }
             }
 
             const monthlyRecords = await fetchMonthlyEvaluationRecords();
             const processedData = processMonthlyEvaluationData(
                 monthlyRecords,
-                dynamicDropdownOptions.cerNames,
-                dynamicDropdownOptions.cerRoles
+                [...dynamicDropdownOptions.cerNames || []],
+                [...dynamicDropdownOptions.cerRoles || []]
             );
             renderMonthlyStatsTable(processedData);
         }
 
-        /**
-         * Fetches all evaluation records submitted within the last 30 days.
-         * @returns {Promise<Array<Object>>} A promise that resolves to an array of relevant records.
-         */
         async function fetchMonthlyEvaluationRecords() {
             if (!window.db || !window.EVALUATION_RECORDS_COLLECTION_PATH) {
                 console.error("Firestore not initialized or collection path not defined for monthly stats.");
@@ -2058,69 +1724,51 @@
             }
         }
 
-        /**
-         * Processes raw evaluation data into a matrix suitable for display.
-         * @param {Array<Object>} records - An array of evaluation record objects.
-         * @param {Array<string>} cerNames - An array of all possible CER names.
-         * @param {Array<string>} cerRoles - An array of all possible CER roles (column headers).
-         * @returns {Object} An object containing rowLabels, columnHeaders, and dataMatrix.
-         */
         function processMonthlyEvaluationData(records, cerNames, cerRoles) {
-            const dataMatrix = {}; // cerName -> { role1: count, role2: count, ..., Total: count }
+            const dataMatrix = {};
 
-            // Initialize matrix with all CER names and roles
             cerNames.forEach(name => {
                 dataMatrix[name] = {};
                 cerRoles.forEach(role => {
                     dataMatrix[name][role] = 0;
                 });
-                dataMatrix[name]['Total'] = 0; // Initialize Total for each CER Name
+                dataMatrix[name]['Total'] = 0;
             });
 
-            // Populate matrix with counts from records
             records.forEach(record => {
                 const cerName = record['CER Name'];
-                const cerRole = record['CER Role'];
+                const cerRole = record = record['CER Role'];
 
-                // Ensure the CER Name and Role exist in our initialized matrix
                 if (dataMatrix[cerName]) {
                     if (dataMatrix[cerName][cerRole] !== undefined) {
                         dataMatrix[cerName][cerRole]++;
                     } else {
-                        // If a role exists in data but not in dropdowns, add it dynamically
                         dataMatrix[cerName][cerRole] = 1;
-                        // Also add it to cerRoles if it's new, so it appears as a column
                         if (!cerRoles.includes(cerRole)) {
                             cerRoles.push(cerRole);
                         }
                     }
-                    dataMatrix[cerName]['Total']++; // Increment total for the CER Name
+                    dataMatrix[cerName]['Total']++;
                 } else {
-                    // If a CER Name exists in data but not in dropdowns, add it dynamically
                     dataMatrix[cerName] = {};
                     cerRoles.forEach(role => {
                         dataMatrix[cerName][role] = 0;
                     });
                     dataMatrix[cerName][cerRole] = 1;
                     dataMatrix[cerName]['Total'] = 1;
-                    cerNames.push(cerName); // Add to cerNames so it gets rendered
+                    cerNames.push(cerName);
                 }
             });
 
-            // Re-sort cerRoles and cerNames in case new ones were added dynamically
             cerRoles.sort();
             cerNames.sort();
 
-            const columnHeaders = ['CER Name', ...cerRoles, 'Total']; // Ensure 'Total' is the last column
-            const rowLabels = cerNames; // Already sorted
+            const columnHeaders = ['CER Name', ...cerRoles, 'Total'];
+            const rowLabels = cerNames;
 
             return { rowLabels, columnHeaders, dataMatrix };
         }
 
-        /**
-         * Renders the monthly evaluation statistics table.
-         * @param {Object} data - The processed data from processMonthlyEvaluationData.
-         */
         function renderMonthlyStatsTable(data) {
             const monthlyStatsHeader = document.getElementById('monthlyStatsHeader');
             const monthlyStatsTableBody = document.getElementById('monthlyStatsTableBody');
@@ -2133,12 +1781,10 @@
             monthlyStatsHeader.innerHTML = '';
             monthlyStatsTableBody.innerHTML = '';
 
-            // Render table headers
             data.columnHeaders.forEach(header => {
                 const th = document.createElement('th');
                 th.className = 'py-2 px-4 border-b text-center text-sm font-medium text-gray-600';
                 th.textContent = header;
-                // Align "CER Name" to left, others center
                 if (header === 'CER Name') {
                     th.classList.remove('text-center');
                     th.classList.add('text-left');
@@ -2146,7 +1792,6 @@
                 monthlyStatsHeader.appendChild(th);
             });
 
-            // Render table rows
             if (data.rowLabels.length === 0) {
                 monthlyStatsTableBody.innerHTML = `<tr><td colspan="${data.columnHeaders.length}" class="py-4 px-4 text-center text-gray-500">No evaluation data for this month.</td></tr>`;
                 return;
@@ -2156,19 +1801,16 @@
                 const row = monthlyStatsTableBody.insertRow();
                 row.className = 'border-b border-gray-200';
 
-                // CER Name column (aligned left)
                 const nameCell = row.insertCell();
                 nameCell.className = 'py-2 px-4 text-left';
                 nameCell.textContent = cerName;
 
-                // Role-wise counts (aligned center) - Iterate through all roles from `data.columnHeaders` excluding first and last
                 data.columnHeaders.slice(1, -1).forEach(role => {
                     const countCell = row.insertCell();
                     countCell.className = 'py-2 px-4 text-center';
                     countCell.textContent = (data.dataMatrix[cerName] && data.dataMatrix[cerName][role] !== undefined) ? data.dataMatrix[cerName][role] : 0;
                 });
 
-                // Total column with conditional coloring (aligned center)
                 const totalCell = row.insertCell();
                 totalCell.className = 'py-2 px-4 text-center';
                 const totalCount = (data.dataMatrix[cerName] && data.dataMatrix[cerName]['Total'] !== undefined) ? data.dataMatrix[cerName]['Total'] : 0;
@@ -2182,122 +1824,99 @@
             });
         }
 
-
-        // Main Application Initialization Function
+        // Main Application UI Initialization Function
         function initializeApp() {
-            const loginPage = document.getElementById('loginPage');
+            const accessSection = document.getElementById('accessSection');
             const mainNav = document.getElementById('mainNav');
             const evaluationFormContent = document.getElementById('evaluationFormContent');
             const databaseContent = document.getElementById('databaseContent');
-            const monthlyStatsContainer = document.getElementById('monthlyStatsContainer'); // Get the monthly stats container
+            const monthlyStatsContainer = document.getElementById('monthlyStatsContainer');
             const adminTabNav = document.getElementById('adminTabNav');
 
-            console.log("Initializing main application.");
-            const isLoggedIn = sessionStorage.getItem('loggedIn');
+            console.log("Initializing main application UI based on role.");
 
-            if (!isLoggedIn || window.checkSessionTimeout()) {
-                window.location.href = 'admin.html';
-                return;
-            }
+            accessSection.classList.add('hidden'); // Hide the login/access section
+            mainNav.style.display = 'flex'; // Show the navigation bar
 
-            loginPage.style.display = 'none';
-            mainNav.style.display = 'flex';
-            evaluationFormContent.style.display = 'block'; // Default to evaluation form
+            // Hide all main content areas initially
+            evaluationFormContent.style.display = 'none';
             databaseContent.style.display = 'none';
-            monthlyStatsContainer.style.display = 'block'; // Show monthly stats by default with evaluation form
+            monthlyStatsContainer.style.display = 'none';
 
-            const userRole = window.currentUserRole;
-            const evaluationFormTab = document.getElementById('evaluationFormTab');
-            const databaseTab = document.getElementById('databaseTab');
-            const reportsTab = document.getElementById('reportsTab');
-            const autofailsTab = document.getElementById('autofailsTab');
-            const adminTab = document.getElementById('adminTab');
-
-            // Hide all navigation tabs by default (they'll be shown based on role)
-            evaluationFormTab.parentElement.style.display = 'none';
-            databaseTab.parentElement.style.display = 'none';
-            reportsTab.parentElement.style.display = 'none';
-            autofailsTab.parentElement.style.display = 'none';
+            // Set all nav tabs to hidden by default, then selectively show them
+            document.getElementById('evaluationFormTab').parentElement.style.display = 'none';
+            document.getElementById('databaseTab').parentElement.style.display = 'none';
+            document.getElementById('reportsTab').parentElement.style.display = 'none';
+            document.getElementById('autofailsTab').parentElement.style.display = 'none';
             adminTabNav.style.display = 'none';
 
-            // Show tabs based on user role and set default view
+            const userRole = window.currentUserRole;
+
             if (userRole === 'CER') {
-                evaluationFormTab.parentElement.style.display = 'inline-block';
-                reportsTab.parentElement.style.display = 'inline-block';
-                showTab('evaluationForm');
+                document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
+                document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
+                showTab('evaluationForm'); // Default view
             } else if (userRole === 'Supervisor') {
-                evaluationFormTab.parentElement.style.display = 'inline-block';
-                reportsTab.parentElement.style.display = 'inline-block';
-                autofailsTab.parentElement.style.display = 'inline-block';
-                showTab('evaluationForm');
+                document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
+                document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
+                document.getElementById('autofailsTab').parentElement.style.display = 'inline-block';
+                showTab('evaluationForm'); // Default view
             } else if (userRole === 'Admin') {
-                evaluationFormTab.parentElement.style.display = 'inline-block';
-                databaseTab.parentElement.style.display = 'inline-block';
-                reportsTab.parentElement.style.display = 'inline-block';
-                autofailsTab.parentElement.style.display = 'inline-block';
-                adminTabNav.style.display = 'inline-block';
-                showTab('evaluationForm'); // Explicitly show Evaluation Form for Admin
+                document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
+                document.getElementById('databaseTab').parentElement.style.display = 'inline-block';
+                document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
+                document.getElementById('autofailsTab').parentElement.style.display = 'inline-block';
+                adminTabNav.style.display = 'inline-block'; // Show Admin tab
+                showTab('evaluationForm'); // Default view
             } else {
-                showMessageBox("Access Denied", "Your role is not recognized. Please contact an administrator.", true, false, true, () => {
-                    window.location.href = 'admin.html';
+                // If role is null, 'Guest', or unrecognized, redirect to login (this is handled by onAuthStateChanged as well)
+                showMessageBox("Access Denied", "Your role is not recognized or you don't have sufficient privileges. Please contact an administrator.", true, false, true, () => {
+                    window.location.href = 'index.html'; // Stay on index.html and show login
                 });
+                return; // Stop further execution if access denied
             }
 
-            initializeEvaluationForm();
-            fetchAllDropdownOptions();
-            fetchAndRenderMonthlyStats(); // Call here on app initialization
+            initializeEvaluationForm(); // Initialize form fields and questions
+            // fetchAndRenderMonthlyStats() is called within showTab('evaluationForm')
+            // or when the firebaseAuthReady event fires.
         }
 
-        // Array to store references to generated display elements for cleanup
         let tempPdfDisplayElements = [];
 
-        // --- DOMContentLoaded Listener (attaches event handlers, makes initial calls) ---
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
+            // Check session timeout early
             if (window.checkSessionTimeout()) {
-                return;
+                // If session expired, the onAuthStateChanged listener will handle redirecting to login.
+                // No need for immediate return here, let onAuthStateChanged flow.
+                console.log("Session expired on DOMContentLoaded.");
             }
 
-            let db = window.db;
-            let auth = window.auth;
-            let currentUserId = window.currentUserId;
-            let isAuthReady = window.isAuthReady;
-
-            const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-            const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-
-
+            // Get DOM elements for event listeners
+            const logoutBtn = document.getElementById('logoutBtn');
             const evaluationFormTab = document.getElementById('evaluationFormTab');
             const databaseTab = document.getElementById('databaseTab');
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
 
-
-            const logoutBtn = document.getElementById('logoutBtn');
-
             const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
             const printEmailBtn = document.getElementById('print-email-btn');
-            const assessmentForm = document.getElementById('assessment-form');
 
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
-
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
 
-
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
             const addWebhookBtn = document.getElementById('addWebhookBtn');
 
-
+            // --- Attach Event Listeners ---
             logoutBtn.addEventListener('click', async function() {
                 sessionStorage.removeItem('loggedIn');
                 localStorage.removeItem('lastActivity');
@@ -2308,62 +1927,28 @@
                 } catch (error) {
                     console.error("Error signing out:", error);
                 }
-                window.location.href = 'admin.html';
+                // After logout, implicitly the onAuthStateChanged will detect no user and show login form
+                // No explicit redirect needed here.
             });
 
             if (evaluationFormTab) {
-                evaluationFormTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    console.log("Evaluation Form Tab CLICKED!");
-                    showTab('evaluationForm');
-                });
-            } else {
-                console.error("Evaluation Form Tab element not found!");
+                evaluationFormTab.addEventListener('click', (e) => { e.preventDefault(); showTab('evaluationForm'); });
             }
-
             if (databaseTab) {
-                databaseTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    console.log("Database Tab CLICKED!");
-                    showTab('database');
-                    // Monthly stats won't be visible on the database tab, no need to explicitly fetch here
-                    // fetchAndRenderMonthlyStats(); // Removed as it's for evaluation form tab
-                });
-            } else {
-                console.error("Database Tab element not found!");
+                databaseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('database'); });
             }
-
             if (reportsTab) {
-                reportsTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    console.log("Reports Tab CLICKED!");
-                    window.location.href = 'reports.html';
-                });
-            } else {
-                console.error("Reports Tab element not found!");
+                reportsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
             }
-
             if (autofailsTab) {
-                autofailsTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    console.log("Autofails Tab CLICKED!");
-                    window.location.href = 'autofails.html';
-                });
-            } else {
-                console.error("Autofails Tab element not found!");
+                autofailsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
             }
-
-            if (adminTab) {
-                    adminTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    console.log("Admin Tab CLICKED!");
-                    window.location.href = 'admin.html';
-                });
+            if (adminTab) { // This is the navigation to the admin.html page
+                adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
             }
-
 
             if (selectAllRecordsCheckbox) {
-                    selectAllRecordsCheckbox.addEventListener('change', () => {
+                selectAllRecordsCheckbox.addEventListener('change', () => {
                     const isChecked = selectAllRecordsCheckbox.checked;
                     document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                         checkbox.checked = isChecked;
@@ -2371,8 +1956,6 @@
                     updateDeleteButtonState();
                 });
             }
-
-
             if (deleteSelectedRecordsBtn) {
                 deleteSelectedRecordsBtn.addEventListener('click', deleteSelectedRecords);
             }
@@ -2384,17 +1967,14 @@
                 if (autofailTypeSelect.value !== '') {
                     autofailDescriptionContainer.classList.remove('hidden');
                     autofailDescriptionInput.setAttribute('required', 'required');
-                    // Immediately trigger auto-expand for autofail description if content is pre-filled
                     autoExpandTextarea({ target: autofailDescriptionInput });
                 } else {
                     autofailDescriptionContainer.classList.add('hidden');
                     autofailDescriptionInput.value = '';
                     autofailDescriptionInput.removeAttribute('required');
-                    autofailDescriptionInput.style.borderColor = '';
-                    autofailDescriptionInput.style.height = 'auto'; // Reset height
+                    autofailDescriptionInput.style.height = 'auto';
                 }
             });
-
 
             reviewerNameSelect.addEventListener('change', () => {
                 if (reviewerNameSelect.value === 'Other') {
@@ -2410,8 +1990,8 @@
 
             cerRoleSelect.addEventListener('change', (event) => {
                 const selectedRole = event.target.value;
-                window.renderQuestionsForRole(selectedRole); // Call globally exposed function
-                window.resetFormFieldsButKeepRole(); // Call globally exposed function
+                window.renderQuestionsForRole(selectedRole);
+                window.resetFormFieldsButKeepRole();
             });
 
             cerNameSelect.addEventListener('change', (event) => {
@@ -2423,16 +2003,12 @@
                 }
             });
 
-
             submitFormToDBBtn.addEventListener('click', async (event) => {
                 event.preventDefault();
-                console.log("Submit to Database button clicked.");
-
                 if (!validateAllMandatoryFields()) {
                     showMessageBox("Validation Error", "Please fill out all mandatory fields before submitting.", true, false, true);
                     return;
                 }
-
                 const formDataForSubmission = {};
                 const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
                 basicInfoInputs.forEach(input => {
@@ -2487,22 +2063,17 @@
                         }
                     }
                 });
-                console.log("Collected Data for Submission:", formDataForSubmission);
-
                 await addRecordToFirestore(formDataForSubmission);
             });
 
-
             printEmailBtn.addEventListener('click', async () => {
-                console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
-
                 if (!validateAllMandatoryFields()) {
                     showMessageBox("Validation Error", "Please fill out all mandatory fields before generating PDF and Email.", true, false, true);
                     return;
                 }
 
                 const auditFormContent = document.getElementById('evaluationFormContent');
-                const monthlyStatsContainer = document.getElementById('monthlyStatsContainer'); // Get the monthly stats container
+                const monthlyStatsContainer = document.getElementById('monthlyStatsContainer');
                 if (!auditFormContent || !monthlyStatsContainer) {
                     console.error('Error: Required containers not found for PDF generation.');
                     showMessageBox("Error", "Could not find all content to generate PDF. Please try again.", true, false, true);
@@ -2513,69 +2084,49 @@
                 const printEmailBtn = document.getElementById('print-email-btn');
                 const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
 
-                // --- PDF CAPTURE PREPARATION: Replace inputs/selects with static text for capture ---
-                // This section now applies to evaluationFormContent only, as monthlyStatsContainer has no inputs
                 const elementsToReplace = document.querySelectorAll('#evaluationFormContent input, #evaluationFormContent select, #evaluationFormContent textarea');
-                tempPdfDisplayElements = []; // Reset array for current capture
+                tempPdfDisplayElements = [];
 
                 elementsToReplace.forEach(originalElement => {
-                    // Skip hidden inputs and elements that are hidden by class
                     if (originalElement.type === 'hidden' || originalElement.classList.contains('hidden')) return;
 
                     const displayDiv = document.createElement('div');
-                    displayDiv.classList.add('pdf-display-value'); // Apply styling for PDF readability
+                    displayDiv.classList.add('pdf-display-value');
 
                     let valueToDisplay = '';
                     if (originalElement.tagName === 'SELECT') {
-                        // For select elements, get the text of the selected option
                         valueToDisplay = originalElement.options[originalElement.selectedIndex]?.textContent || '';
                     } else if (originalElement.type === 'datetime-local') {
-                           // Format datetime-local for better readability in PDF
                         const dt = new Date(originalElement.value);
-                        // Check for valid date to avoid "Invalid Date"
                         if (!isNaN(dt.getTime())) {
                             valueToDisplay = dt.toLocaleString(undefined, {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: true
+                                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
                             });
                         } else {
-                            valueToDisplay = originalElement.value; // Fallback to raw value if invalid
+                            valueToDisplay = originalElement.value;
                         }
                     } else if (originalElement.type === 'date') {
                         const d = new Date(originalElement.value);
-                        // Check for valid date to avoid "Invalid Date"
                         if (!isNaN(d.getTime())) {
-                            valueToDisplay = d.toLocaleDateString(undefined, {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                            });
+                            valueToDisplay = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
                         } else {
-                            valueToDisplay = originalElement.value; // Fallback to raw value if invalid
+                            valueToDisplay = originalElement.value;
                         }
-                    }
-                    else {
+                    } else {
                         valueToDisplay = originalElement.value;
                     }
 
                     displayDiv.textContent = valueToDisplay;
-                    // Copy dimensions and position from original for accurate capture
                     const rect = originalElement.getBoundingClientRect();
                     displayDiv.style.width = rect.width + 'px';
                     displayDiv.style.height = rect.height + 'px';
-                    displayDiv.style.lineHeight = 'normal'; // Allow text wrapping within the div
+                    displayDiv.style.lineHeight = 'normal';
 
                     originalElement.parentNode.insertBefore(displayDiv, originalElement.nextSibling);
                     tempPdfDisplayElements.push({ original: originalElement, display: displayDiv });
-
-                    originalElement.style.display = 'none'; // Hide the original input
+                    originalElement.style.display = 'none';
                 });
 
-                // Temporarily hide elements not meant for PDF capture, including the main nav and buttons
                 const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
                 const originalDisplays = [];
                 elementsToHide.forEach(el => {
@@ -2585,44 +2136,25 @@
                     }
                 });
 
-                // Make the temporary display elements visible
-                tempPdfDisplayElements.forEach(item => {
-                    item.display.style.display = 'block';
-                });
-
-                console.log("Elements prepared for PDF capture.");
+                tempPdfDisplayElements.forEach(item => { item.display.style.display = 'block'; });
 
                 try {
-                    // Capture Evaluation Form content
-                    const formCanvas = await html2canvas(auditFormContent, {
-                        scale: 2,
-                        useCORS: true,
-                        logging: false
-                    });
+                    const formCanvas = await html2canvas(auditFormContent, { scale: 2, useCORS: true, logging: false });
                     const formImgData = formCanvas.toDataURL('image/jpeg', 0.9);
 
-                    // Capture Monthly Stats content
-                    const statsCanvas = await html2canvas(monthlyStatsContainer, {
-                        scale: 2,
-                        useCORS: true,
-                        logging: false
-                    });
+                    const statsCanvas = await html2canvas(monthlyStatsContainer, { scale: 2, useCORS: true, logging: false });
                     const statsImgData = statsCanvas.toDataURL('image/jpeg', 0.9);
 
-                    const imgWidth = 210; // A4 width in mm
-                    const pageHeight = 297; // A4 height in mm
-
+                    const imgWidth = 210;
+                    const pageHeight = 297;
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF('p', 'mm', 'a4');
 
-                    // Add Evaluation Form to PDF
                     const formImgHeight = formCanvas.height * imgWidth / formCanvas.width;
                     let formHeightLeft = formImgHeight;
                     let formPosition = 0;
-
                     pdf.addImage(formImgData, 'JPEG', 0, formPosition, imgWidth, formImgHeight, undefined, 'FAST');
                     formHeightLeft -= pageHeight;
-
                     while (formHeightLeft > -1) {
                         formPosition = formHeightLeft - formImgHeight;
                         pdf.addPage();
@@ -2630,23 +2162,18 @@
                         formHeightLeft -= pageHeight;
                     }
 
-                    // Add Monthly Stats to PDF (on a new page)
-                    pdf.addPage(); // Start the statistics on a new page
+                    pdf.addPage();
                     const statsImgHeight = statsCanvas.height * imgWidth / statsCanvas.width;
                     let statsHeightLeft = statsImgHeight;
                     let statsPosition = 0;
-
                     pdf.addImage(statsImgData, 'JPEG', 0, statsPosition, imgWidth, statsImgHeight, undefined, 'FAST');
                     statsHeightLeft -= pageHeight;
-
                     while (statsHeightLeft > -1) {
                         statsPosition = statsHeightLeft - statsImgHeight;
                         pdf.addPage();
                         pdf.addImage(statsImgData, 'JPEG', 0, statsPosition, imgWidth, statsImgHeight, undefined, 'FAST');
                         statsHeightLeft -= pageHeight;
                     }
-
-                    console.log("PDF images added.");
 
                     const contactIdInput = document.getElementById('contact-id');
                     const cerNameSelect = document.getElementById('cer-name');
@@ -2658,7 +2185,6 @@
                     const reviewDateForPdf = evaluationDateInput.value || 'N/A';
 
                     pdf.save(`QA_Form_${contactIdForPdf}_${cerNameForPdf}_${reviewDateForPdf}.pdf`);
-                    console.log("PDF saved.");
 
                     const cerNameVal = cerNameSelect.value;
                     const contactIdVal = contactIdInput.value;
@@ -2668,27 +2194,19 @@
 
                     const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
                     const body = `Dear ${cerNameVal},\n\n` +
-                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                     `Contact ID: ${contactIdVal}\n` +
-                                     `CER Name: ${cerNameVal}\n` +
-                                     `Overall Score: ${overallScoreVal}\n` +
-                                     `Evaluation Date: ${evaluationDateVal}\n\n` +
-                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                     `Kind Regards,\nQuality Evaluation Team`;
-
+                                        `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                        `Contact ID: ${contactIdVal}\n` +
+                                        `CER Name: ${cerNameVal}\n` +
+                                        `Overall Score: ${overallScoreVal}\n` +
+                                        `Evaluation Date: ${evaluationDateVal}\n\n` +
+                                        `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                        `Kind Regards,\nQuality Evaluation Team`;
 
                     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
                     try {
                         window.location.href = mailtoLink;
-                        // INFORM THE USER ABOUT MANUAL ATTACHMENT
-                        showMessageBox(
-                            "PDF Generated & Email Prepared",
-                            "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** before sending.",
-                            false, // Not an error
-                            false, // No spinner
-                            true // Show close button
-                        );
+                        showMessageBox("PDF Generated & Email Prepared", "The PDF has been downloaded to your device. Your email client should open shortly with pre-filled subject and body. Please remember to **manually attach the generated PDF** before sending.", false, false, true);
                     } catch (e) {
                         console.error("Failed to open email client:", e);
                         showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
@@ -2697,62 +2215,21 @@
                     console.error("Critical Error during PDF generation or mailto attempt:", error);
                     showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
                 } finally {
-                    // --- PDF CAPTURE CLEANUP: Revert changes ---
-                    tempPdfDisplayElements.forEach(item => {
-                        item.display.remove(); // Remove the temporary display element
-                        item.original.style.display = ''; // Show the original input
-                    });
-                    tempPdfDisplayElements = []; // Clear the array
-
-                    // Restore other UI elements
-                    originalDisplays.forEach(({ el, display }) => {
-                        if (el) el.style.display = display;
-                    });
-                    console.log("Elements restored.");
+                    tempPdfDisplayElements.forEach(item => { item.display.remove(); item.original.style.display = ''; });
+                    tempPdfDisplayElements = [];
+                    originalDisplays.forEach(({ el, display }) => { if (el) el.style.display = display; });
                 }
             });
 
-
-            document.addEventListener('firebaseAuthReady', () => {
-                let db = window.db;
-                let auth = window.auth;
-                let currentUserId = window.currentUserId;
-                let isAuthReady = window.isAuthReady;
-
-                // Use window.appId here
-                const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-                const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH;
-                const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
-
-                console.log("Firebase Auth is ready. Current User ID:", currentUserId);
-                initializeApp(); // This already calls fetchAndRenderMonthlyStats indirectly
-                if (sessionStorage.getItem('loggedIn') === 'true') {
-                    fetchRecordsAndWebhooks();
-                    fetchAndRenderMonthlyStats(); // Ensure monthly stats are loaded after auth
-                }
-            });
-
-            if (document.readyState === 'complete' && window.isAuthReady !== null) {
-                let db = window.db;
-                let auth = window.auth;
-                let currentUserId = window.currentUserId;
-                let isAuthReady = window.isAuthReady;
-
-                // Use window.appId here
-                const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-                const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                const USERS_COLLECTION_PATH = window.USERS_COLLECTION_PATH;
-                const DROPDOWN_OPTIONS_COLLECTION_PATH = window.DROPDOWN_OPTIONS_COLLECTION_PATH;
-
-                console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
+            // This ensures initializeApp is called only once Firebase auth state is ready
+            // If Firebase is already ready on DOMContentLoaded, call it immediately.
+            // Otherwise, it will be called by the 'firebaseAuthReady' event listener.
+            if (window.isAuthReady) {
                 initializeApp();
-                if (sessionStorage.getItem('loggedIn') === 'true') {
-                    fetchRecordsAndWebhooks();
-                    fetchAndRenderMonthlyStats(); // Call here too for immediate display
-                }
+                // We don't call fetchRecordsAndWebhooks and fetchAndRenderMonthlyStats directly here anymore
+                // because initializeApp and showTab('evaluationForm') handle it.
             } else {
-                console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
+                // If not ready, the onAuthStateChanged listener above will eventually call initializeApp.
             }
         });
     </script>
