@@ -179,9 +179,9 @@
             signInWithEmailAndPassword,
             onAuthStateChanged,
             signOut,
-            sendPasswordResetEmail,
-            signInWithCustomToken,
-            signInAnonymously
+            sendPasswordResetEmail
+            // signInWithCustomToken, // Not needed with direct embedding
+            // signInAnonymously     // Not needed with direct embedding
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import {
             getFirestore,
@@ -189,60 +189,31 @@
             getDoc
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // Global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : '1:820082472004:web:8caddf941e1b5b6dfaf811'; // Using the latest provided appId
-        const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
-        let firebaseConfig = {};
-        try {
-            firebaseConfig = JSON.parse(firebaseConfigString);
-            // If the parsed config from __firebase_config is empty, provide a default consistent with icea-lion-qa
-            if (Object.keys(firebaseConfig).length === 0) {
-                 firebaseConfig = {
-                    apiKey: "AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY", // From your last console log's apiKey
-                    authDomain: "icea-lion-qa.firebaseapp.com",
-                    databaseURL: "https://icea-lion-qa-default-rtdb.firebaseio.com",
-                    projectId: "icea-lion-qa",
-                    storageBucket: "icea-lion-qa.firebasestorage.app", // Common pattern for storageBucket
-                    messagingSenderId: "820082472004",
-                    appId: "1:820082472004:web:8caddf941e1b5b6dfaf811", // User's latest provided appId
-                    measurementId: "G-1RJJTT3QET" // From previous config
-                };
-                console.warn("Using default Firebase config for icea-lion-qa project. Please ensure __firebase_config environment variable is set correctly.");
-            }
-        } catch (e) {
-            console.error("Error parsing __firebase_config:", e);
-            showMessageBox("Configuration Error", "Failed to load Firebase configuration. Please contact support.", true);
-            // Set a fallback config if parsing fails completely, to allow showing error message
-            firebaseConfig = {
-                apiKey: "INVALID_API_KEY_FALLBACK", // Use a dummy key to prevent `app/no-options`
-                authDomain: "dummy.firebaseapp.com",
-                projectId: "dummy-project",
-                storageBucket: "dummy.appspot.com",
-                messagingSenderId: "0",
-                appId: "0:0:web:0",
-                measurementId: "G-0"
-            };
-            Object.freeze(firebaseConfig); // Make config immutable if parsing failed
-        }
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // Hardcoded Firebase Configuration for GitHub/local hosting
+        // IMPORTANT: For production with sensitive data, use environment variables or a backend.
+        const firebaseConfig = {
+            apiKey: "AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY", // Your provided API key
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            databaseURL: "https://icea-lion-qa-default-rtdb.firebaseio.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app", // Your provided storageBucket
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b6dfaf811", // Your provided appId
+            measurementId: "G-1RJJTT3QET" // Your provided measurementId
+        };
 
-        // Log the parsed config for debugging purposes
-        console.log("Firebase config received (at runtime):", firebaseConfig);
+        // Log the hardcoded config for verification
+        console.log("Firebase config (hardcoded in login.html):", firebaseConfig);
 
-        let app, auth, db;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // Only initialize Firebase if config is not empty or if it's our fallback (to allow error messages)
-        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey !== "INVALID_API_KEY_FALLBACK") {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } else if (firebaseConfig.apiKey === "INVALID_API_KEY_FALLBACK") {
-            console.error("Firebase app not initialized due to invalid fallback config after parsing error.");
-            // Message already shown by catch block, no need for another here.
-        } else {
-            console.error("Firebase app not initialized due to missing or invalid config. User will be redirected to login.");
-            // Message will be handled by onAuthStateChanged redirect if Firebase init fails here
-        }
+        // Expose Firebase instances for index.html if needed (though it will re-initialize them)
+        window.firebaseApp = app;
+        window.auth = auth;
+        window.db = db;
+        window.appId = firebaseConfig.appId; // Use appId directly from hardcoded config
 
 
         // --- DOM Elements ---
@@ -283,19 +254,13 @@
             document.getElementById('messageBoxOverlay').classList.add('hidden');
         }
 
-        /**
-         * Displays a custom confirmation box.
-         * @param {string} title - The title of the confirmation box.
-         * @param {string} message - The confirmation message.
-         * @returns {Promise<boolean>} A promise that resolves to true if 'Yes', false if 'No'.
-         */
         function showConfirmationBox(title, message) {
             return new Promise((resolve) => {
                 const messageBoxOverlay = document.getElementById('messageBoxOverlay');
                 const messageBoxSpinner = document.getElementById('messageBoxSpinner');
                 const messageBoxTitle = document.getElementById('messageBoxTitle');
                 const messageBoxContent = document.getElementById('messageBoxContent');
-                const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+                const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn'); // This ID is fine, only used locally
                 const messageBoxConfirmButtons = document.getElementById('messageBoxConfirmButtons');
                 const messageBoxConfirmYesBtn = document.getElementById('messageBoxConfirmYesBtn');
                 const messageBoxConfirmNoBtn = document.getElementById('messageBoxConfirmNoBtn');
@@ -351,9 +316,9 @@
         // --- Authentication State Listener (Handles Login Page Logic) ---
         // This listener will decide whether to show the login form or redirect.
         onAuthStateChanged(auth, async (user) => {
-            if (!auth || !db) { // Check if Firebase services were initialized successfully
-                console.error("Firebase services not available. Cannot check auth state.");
-                // A message should already be displayed by the initialization block
+            if (!auth || !db) { // Firebase initialization failed (e.g., bad hardcoded config)
+                console.error("Firebase services not available. Cannot check auth state. Initialization likely failed.");
+                // Error message already shown by initialization block.
                 return;
             }
 
@@ -368,7 +333,7 @@
 
             if (user) {
                 // User is authenticated, now check their role in Firestore
-                const userDocRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
+                const userDocRef = doc(db, `artifacts/${firebaseConfig.appId}/users/${user.uid}`); // Use firebaseConfig.appId directly
                 try {
                     const userDocSnap = await getDoc(userDocRef);
 
@@ -420,8 +385,6 @@
 
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
                 // After successful Firebase Auth login, the onAuthStateChanged listener above
                 // will trigger and handle role verification and redirection.
                 hideMessageBox(); // Hide login progress message
