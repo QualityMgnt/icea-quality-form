@@ -575,7 +575,7 @@
                     </tbody>
                 </table>
                 <div class="flex items-center justify-between w-full mt-4">
-                    <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION%0AGROUP" alt="ICEALION Logo" class="h-12 rounded-md">
+                    <img src="assets/images/icealion_logo.png" alt="ICEALION Logo" class="h-12 rounded-md">
                     <div class="flex space-x-4">
                         <button type="button" id="print-email-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             PDF & Email
@@ -693,8 +693,9 @@
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
+        // Define firebaseConfig once at the top
         const firebaseConfig = {
-          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", // !!! REPLACE THIS !!!
           authDomain: "icea-lion-qa.firebaseapp.com",
           projectId: "icea-lion-qa",
           storageBucket: "icea-lion-qa.firebasestorage.app",
@@ -703,12 +704,16 @@
           measurementId: "G-1RJJTT3QET"
         };
 
-        window.appId = firebaseConfig.appId;
-
+        // Initialize Firebase app once
         window.firebaseApp = initializeApp(firebaseConfig);
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
 
+        // Make config and app ID available globally for other scripts or parts of this script
+        window.firebaseConfig = firebaseConfig; // Explicitly expose config
+        window.appId = firebaseConfig.appId;
+
+        // Expose Firestore methods globally for the second script block
         window.fsCollection = collection;
         window.fsOnSnapshot = onSnapshot;
         window.fsAddDoc = addDoc;
@@ -721,13 +726,13 @@
         window.getDocs = getDocs;
         window.fsSetDoc = setDoc;
         window.fsGetDoc = getDoc;
-        window.signOut = signOut;
+        window.signOut = signOut; // Expose signOut as well
 
         window.currentUserId = null;
         window.currentUserRole = null;
         window.isAuthReady = false; // Flag to indicate Firebase auth state is resolved
 
-        // --- DOM Elements for Login/Access Section ---
+        // --- DOM Elements for Login/Access Section (Defined here for the module scope) ---
         const accessSection = document.getElementById('accessSection');
         const accessTitle = document.getElementById('accessTitle');
         const loginForm = document.getElementById('loginForm');
@@ -943,14 +948,12 @@
 
     </script>
     <script>
-        // --- GLOBAL DATA STORES (Repeated for clarity, but already defined in the module script scope for Firebase imports) ---
-        // These can be considered part of the main script's global scope now.
+        // --- GLOBAL DATA STORES (already defined in module script and exposed via window) ---
         let allRecords = [];
         let allWebhooks = [];
         let dynamicDropdownOptions = {};
 
-        window.unsubscribeRecords = null;
-        window.unsubscribeWebhooks = null;
+        // window.unsubscribeRecords and window.unsubscribeWebhooks are globally available now.
 
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
@@ -960,6 +963,13 @@
         let complianceMaxPoints = 0;
 
         const MIN_EVALUATIONS_FOR_GREEN = 10;
+
+        // Firebase Collection Paths (using window.appId which is set in the module script)
+        window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/evaluation_records`;
+        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/webhooks`;
+        window.USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
+        window.DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
+
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
         const allRolesQuestions = {
@@ -1737,7 +1747,7 @@
 
             records.forEach(record => {
                 const cerName = record['CER Name'];
-                const cerRole = record = record['CER Role'];
+                const cerRole = record['CER Role']; // Corrected to use 'CER Role'
 
                 if (dataMatrix[cerName]) {
                     if (dataMatrix[cerName][cerRole] !== undefined) {
@@ -1869,29 +1879,23 @@
                 adminTabNav.style.display = 'inline-block'; // Show Admin tab
                 showTab('evaluationForm'); // Default view
             } else {
-                // If role is null, 'Guest', or unrecognized, redirect to login (this is handled by onAuthStateChanged as well)
-                showMessageBox("Access Denied", "Your role is not recognized or you don't have sufficient privileges. Please contact an administrator.", true, false, true, () => {
-                    window.location.href = 'index.html'; // Stay on index.html and show login
-                });
+                // If role is null, 'Guest', or unrecognized, explicitly show login form
+                console.warn("User role not recognized or insufficient privileges. Showing login form.");
+                accessSection.classList.remove('hidden');
+                mainNav.style.display = 'none'; // Hide nav
+                accessTitle.textContent = "Access Denied";
+                loginError.textContent = "Your role is not recognized or you don't have sufficient privileges. Please log in with an authorized account.";
+                loginError.classList.remove('hidden');
                 return; // Stop further execution if access denied
             }
 
-            initializeEvaluationForm(); // Initialize form fields and questions
-            // fetchAndRenderMonthlyStats() is called within showTab('evaluationForm')
-            // or when the firebaseAuthReady event fires.
+            initializeEvaluationForm();
         }
 
         let tempPdfDisplayElements = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
-
-            // Check session timeout early
-            if (window.checkSessionTimeout()) {
-                // If session expired, the onAuthStateChanged listener will handle redirecting to login.
-                // No need for immediate return here, let onAuthStateChanged flow.
-                console.log("Session expired on DOMContentLoaded.");
-            }
 
             // Get DOM elements for event listeners
             const logoutBtn = document.getElementById('logoutBtn');
@@ -1927,8 +1931,7 @@
                 } catch (error) {
                     console.error("Error signing out:", error);
                 }
-                // After logout, implicitly the onAuthStateChanged will detect no user and show login form
-                // No explicit redirect needed here.
+                // onAuthStateChanged will detect no user and show login form
             });
 
             if (evaluationFormTab) {
@@ -2221,16 +2224,8 @@
                 }
             });
 
-            // This ensures initializeApp is called only once Firebase auth state is ready
-            // If Firebase is already ready on DOMContentLoaded, call it immediately.
-            // Otherwise, it will be called by the 'firebaseAuthReady' event listener.
-            if (window.isAuthReady) {
-                initializeApp();
-                // We don't call fetchRecordsAndWebhooks and fetchAndRenderMonthlyStats directly here anymore
-                // because initializeApp and showTab('evaluationForm') handle it.
-            } else {
-                // If not ready, the onAuthStateChanged listener above will eventually call initializeApp.
-            }
+            // The onAuthStateChanged listener at the very top handles initial app initialization.
+            // This DOMContentLoaded block simply attaches event listeners.
         });
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
