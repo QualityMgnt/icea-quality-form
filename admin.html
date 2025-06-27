@@ -12,7 +12,7 @@
         body {
             font-family: 'Inter', sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column; /* Changed to column to stack nav and content */
             align-items: center;
             min-height: 100vh;
             background-color: #f3f4f6;
@@ -92,9 +92,43 @@
             border-radius: 0.375rem;
             margin-bottom: 0.5rem;
         }
-        /* Hide access denied section and related buttons */
+        /* Hide access denied section (already removed login) */
         #accessDeniedSection {
             display: none !important;
+        }
+
+        /* Main Navigation Bar Styles (copied from index.html for consistency) */
+        .main-nav {
+            width: 100%;
+            background-color: #0d47a1; /* Dark blue */
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .main-nav ul {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .main-nav ul li {
+            margin-right: 1.5rem;
+            display: inline-block; /* Ensure all list items are visible by default */
+        }
+        .main-nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            transition: background-color 0.3s ease;
+        }
+        .main-nav ul li a:hover,
+        .main-nav ul li a.active {
+            background-color: #f7b32d; /* Yellow for hover/active */
         }
     </style>
 </head>
@@ -113,6 +147,16 @@
         </div>
     </div>
 
+    <nav class="main-nav" id="mainNav">
+        <ul>
+            <li><a href="index.html" id="evaluationFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+            <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+            <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+            <li id="adminTabNav"><a href="admin.html" id="adminTab" class="active"><i class="fas fa-user-cog"></i> Admin</a></li>
+        </ul>
+        </nav>
+
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl p-8 mt-8 mb-8">
         <div class="icealion-blue p-4 flex items-center justify-between mb-6">
             <div class="text-2xl font-semibold">ICEA LION QA Audit Admin Portal</div>
@@ -124,8 +168,7 @@
                 <button id="usersTabBtn" class="tab-button active">User Management</button>
                 <button id="dropdownsTabBtn" class="tab-button">Dropdown Options</button>
                 <button id="autofailsTabBtn" class="tab-button">Autofail Types</button>
-                <button id="backToAppBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md ml-auto">Back to App</button>
-            </div>
+                </div>
 
             <div id="usersContent" class="tab-content">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Users</h3>
@@ -228,9 +271,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import {
-            // Removed getAuth, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously
-        } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        // Removed Firebase Auth imports
         import {
             getFirestore,
             collection,
@@ -246,7 +287,7 @@
             getDoc
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // Initialize Firebase using global variables provided by the Canvas environment (or fallback to hardcoded)
+        // Initialize Firebase using hardcoded config
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", // Your provided API key
             authDomain: "icea-lion-qa.firebaseapp.com",
@@ -257,33 +298,29 @@
             measurementId: "G-1RJJTT3QET"
         };
 
-        const appId = firebaseConfig.appId; // Always use appId from config
+        const appId = firebaseConfig.appId;
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Expose Firebase instances and appId globally for easier access
+        // Expose Firebase instances and appId globally
         window.firebaseApp = app;
         window.db = db;
         window.appId = appId;
 
-        // Firebase Collection Paths using the dynamic appId
+        // Firebase Collection Paths
         const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
         const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
 
-        // --- DOM Elements (removed accessDenied-related elements) ---
-        // const accessDeniedSection = document.getElementById('accessDeniedSection');
-        // const accessDeniedTitle = document.getElementById('accessDeniedTitle');
-        // const accessDeniedMessage = document.getElementById('accessDeniedMessage');
-        // const goToLoginBtn = document.getElementById('goToLoginBtn');
-        // const logoutIfLoggedInBtn = document.getElementById('logoutIfLoggedInBtn');
-
+        // --- DOM Elements ---
+        // Removed accessDeniedSection and its child elements
         const adminDashboard = document.getElementById('adminDashboard');
 
         const usersTabBtn = document.getElementById('usersTabBtn');
         const dropdownsTabBtn = document.getElementById('dropdownsTabBtn');
         const autofailsTabBtn = document.getElementById('autofailsTabBtn');
-        // const logoutAdminBtn = document.getElementById('logoutAdminBtn'); // Removed
-        const backToAppBtn = document.getElementById('backToAppBtn');
+        // Removed logoutAdminBtn
+        // Removed backToAppBtn (as main nav handles this)
+        const mainNav = document.getElementById('mainNav'); // Get reference to the new main nav
 
         const userTableBody = document.getElementById('userTableBody');
         const addNewUserForm = document.getElementById('addNewUserForm');
@@ -295,15 +332,6 @@
         const autofailTypesList = document.getElementById('autofailTypesList');
 
         // --- Message Box Functions (unchanged) ---
-        /**
-         * Displays a custom message/alert box.
-         * @param {string} title - The title of the message box.
-         * @param {string} message - The content message.
-         * @param {boolean} [isError=false] - If true, displays title in red.
-         * @param {boolean} [showSpinner=false] - If true, displays a loading spinner.
-         * @param {boolean} [showCloseButton=true] - If true, displays an "OK" button.
-         * @param {function} [onClose=null] - Callback function when "OK" is clicked.
-         */
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -318,7 +346,7 @@
             messageBoxOverlay.classList.remove('hidden');
             messageBoxSpinner.classList.toggle('hidden', !showSpinner);
             messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
-            messageBoxConfirmButtons.classList.add('hidden'); // Ensure confirm buttons are hidden
+            messageBoxConfirmButtons.classList.add('hidden');
 
             messageBoxTitle.style.color = isError ? '#dc2626' : '#1a73e8';
 
@@ -328,12 +356,6 @@
             };
         }
 
-        /**
-         * Displays a custom confirmation box.
-         * @param {string} title - The title of the confirmation box.
-         * @param {string} message - The confirmation message.
-         * @returns {Promise<boolean>} A promise that resolves to true if 'Yes', false if 'No'.
-         */
         function showConfirmationBox(title, message) {
             return new Promise((resolve) => {
                 const messageBoxOverlay = document.getElementById('messageBoxOverlay');
@@ -349,11 +371,11 @@
                 messageBoxContent.textContent = message;
 
                 messageBoxOverlay.classList.remove('hidden');
-                messageBoxSpinner.classList.add('hidden'); // No spinner for confirmation
-                messageBoxCloseBtn.classList.add('hidden'); // No single OK button for confirmation
-                messageBoxConfirmButtons.classList.remove('hidden'); // Show confirm buttons
+                messageBoxSpinner.classList.add('hidden');
+                messageBoxCloseBtn.classList.add('hidden');
+                messageBoxConfirmButtons.classList.remove('hidden');
 
-                messageBoxTitle.style.color = '#1a73e8'; // Confirmation is typically not an error
+                messageBoxTitle.style.color = '#1a73e8';
 
                 const closeAndResolve = (result) => {
                     messageBoxOverlay.classList.add('hidden');
@@ -370,86 +392,52 @@
         }
 
         // --- Session Management (Removed for public access) ---
-        // window.checkSessionTimeout = function() { /* ... */ };
-        // window.updateLastActivity = function() { /* ... */ };
-        // document.addEventListener('mousemove', window.updateLastActivity);
-        // document.addEventListener('keydown', window.updateLastActivity);
-        // document.addEventListener('click', window.updateLastActivity);
-
-        // --- Authentication State Listener (Removed for public access) ---
-        // onAuthStateChanged(auth, async (user) => { /* ... */ });
-
-        // Function to display the access denied message (No longer needed, but kept as a placeholder if re-introduced)
-        // function displayAccessDenied(title, message) {
-        //     adminDashboard.classList.add('hidden');
-        //     accessDeniedSection.classList.remove('hidden');
-        //     accessDeniedTitle.textContent = title;
-        //     accessDeniedMessage.textContent = message;
-        //     logoutIfLoggedInBtn.classList.add('hidden');
-        // }
 
         // --- Event Listeners for Access Denied Section (Removed) ---
-        // goToLoginBtn.addEventListener('click', () => { /* ... */ });
-        // logoutIfLoggedInBtn.addEventListener('click', async () => { /* ... */ });
-
 
         // --- Admin Dashboard Tabs Logic ---
-        /**
-         * Shows the specified admin tab content and activates its corresponding button.
-         * @param {string} tabId - The ID of the tab content to show (e.g., 'usersContent').
-         */
         function showAdminTab(tabId) {
-            // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-            // Deactivate all tab buttons
             document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
 
-            // Show the selected tab content
             document.getElementById(tabId).classList.remove('hidden');
-            // Activate the corresponding tab button
             if (tabId === 'usersContent') usersTabBtn.classList.add('active');
             else if (tabId === 'dropdownsContent') dropdownsTabBtn.classList.add('active');
             else if (tabId === 'autofailsContent') autofailsTabBtn.classList.add('active');
         }
 
-        // Add event listeners for tab buttons
         usersTabBtn.addEventListener('click', () => showAdminTab('usersContent'));
         dropdownsTabBtn.addEventListener('click', () => showAdminTab('dropdownsContent'));
         autofailsTabBtn.addEventListener('click', () => showAdminTab('autofailsContent'));
         
-        // Removed event listener for admin logout button
+        // Removed logoutAdminBtn and backToAppBtn listeners from here as they are now handled by main nav
 
-        // Event listener for "Back to App" button
-        backToAppBtn.addEventListener('click', () => {
-            window.location.href = 'index.html'; // Navigate back to the main app page (evaluation form)
-        });
+        // Event listeners for the main navigation (copied from index.html logic)
+        document.getElementById('evaluationFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
+        document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; }); // Note: Hash changes on same page need to be handled in index.html
+        document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
+        document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
+        // The adminTab is already the current page, so no redirect needed for it.
+
 
         // --- Load Admin Dashboard Data ---
-        /**
-         * Loads all necessary data for the admin dashboard (users and dropdown options).
-         */
         async function loadAdminDashboard() {
             showMessageBox("Loading Admin Data", "Fetching user data and configurations...", false, true, false);
             try {
                 await Promise.all([loadUsers(), loadDropdownOptions()]);
-                hideMessageBox(); // Hide loading message on success
+                hideMessageBox();
             } catch (error) {
-                hideMessageBox(); // Hide loading message on error
+                hideMessageBox();
                 showMessageBox("Error Loading Data", `Failed to load admin data: ${error.message}`, true);
             }
         }
 
         // --- User Management Functions ---
-        /**
-         * Loads and displays all user data in the user management table.
-         * This function listens for real-time updates using onSnapshot for user data.
-         */
         async function loadUsers() {
             userTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Loading users...</td></tr>';
             
-            // Set up real-time listener for users collection
             onSnapshot(collection(db, USERS_COLLECTION_PATH), (querySnapshot) => {
-                userTableBody.innerHTML = ''; // Clear existing rows
+                userTableBody.innerHTML = '';
 
                 if (querySnapshot.empty) {
                     userTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">No users found.</td></tr>';
@@ -473,33 +461,19 @@
                             <button class="delete-user-btn bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded-md" data-user-id="${userId}" data-user-email="${userData.email}">Delete</button>
                         </td>
                     `;
-                    // Attach event listeners to dynamically created elements
                     row.querySelector('.user-role-select').addEventListener('change', (e) => updateRole(userId, e.target.value));
                     row.querySelector('.delete-user-btn').addEventListener('click', (e) => deleteUser(userId, userData.email));
                 });
             }, (error) => {
-                // Error callback for onSnapshot
                 console.error("Error setting up real-time user listener:", error);
                 userTableBody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-red-500">Error loading users: ${error.message}</td></tr>`;
             });
         }
 
-        /**
-         * Updates the role of a specified user in Firestore.
-         * Replaces confirm() with showConfirmationBox().
-         * @param {string} userId - The ID of the user to update.
-         * @param {string} newRole - The new role for the user.
-         */
         async function updateRole(userId, newRole) {
-            // In a public facing app, this logic might need a server-side check.
-            // For now, we'll allow role changes, but user creation requires Firebase Auth.
-            // Removed self-demotion check as there's no "currentAdminUser" from auth.
-
-            // Show confirmation dialog before proceeding
             const confirmed = await showConfirmationBox("Confirm Role Change", `Are you sure you want to change the role of user ${userId} to ${newRole}?`);
             if (!confirmed) {
-                // Reload users to revert the dropdown selection in the UI if user cancels
-                loadUsers();
+                loadUsers(); // Revert UI if canceled
                 return;
             }
 
@@ -509,24 +483,13 @@
                 await updateDoc(userDocRef, { role: newRole });
                 hideMessageBox();
                 showMessageBox("Success", "User role updated successfully!", false);
-                // loadUsers() is not explicitly called here because onSnapshot already handles real-time updates.
             } catch (error) {
                 hideMessageBox();
                 showMessageBox("Error", `Failed to update role: ${error.message}`, true);
             }
         }
 
-        /**
-         * Deletes a user's profile document from Firestore.
-         * Replaces confirm() with showConfirmationBox().
-         * @param {string} userId - The ID of the user document to delete.
-         * @param {string} userEmail - The email of the user for display in messages.
-         */
         async function deleteUser(userId, userEmail) {
-            // In a public facing app, this logic might need a server-side check.
-            // Removed self-deletion check as there's no "currentAdminUser" from auth.
-
-            // Show confirmation dialog before proceeding
             const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete user ${userEmail}? This action cannot be undone and will NOT delete the Firebase Authentication user (if one exists).`);
             if (!confirmed) {
                 return;
@@ -537,7 +500,6 @@
                 await deleteDoc(doc(db, USERS_COLLECTION_PATH, userId));
                 hideMessageBox();
                 showMessageBox("Success", `User ${userEmail} document deleted from Firestore! (Manual Firebase Authentication user deletion may be required.)`, false);
-                // loadUsers() is not explicitly called here because onSnapshot already handles real-time updates.
             } catch (error) {
                 hideMessageBox();
                 showMessageBox("Error", `Failed to delete user: ${error.message}`, true);
@@ -547,9 +509,9 @@
         // --- Add New User Form Submission ---
         addNewUserForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            addNewUserError.classList.add('hidden'); // Hide previous errors
+            addNewUserError.classList.add('hidden');
             const email = document.getElementById('newEmail').value;
-            const password = document.getElementById('newPassword').value;
+            const password = document.getElementById('newPassword').value; // Password won't create a real auth user
             const role = document.getElementById('newUserRole').value;
 
             if (!role) {
@@ -561,22 +523,9 @@
             showMessageBox("Adding User", "Creating user profile...", false, true, false);
 
             try {
-                // IMPORTANT: Since Firebase Auth is removed from the frontend,
-                // this will ONLY create a Firestore profile document.
-                // It will NOT create a Firebase Authentication user account.
-                // To create an actual Firebase Auth user from an admin page,
-                // you would typically need a Firebase Cloud Function or a secure backend.
-                // For a truly public-facing app without authentication, you might remove
-                // the email/password fields and simply rely on creating a profile doc.
-                // For now, it creates a profile doc assuming Firebase Auth users are managed elsewhere.
+                // Generate a dummy user ID for the Firestore profile
+                const dummyUserId = "public_admin_added_" + Date.now();
 
-                // Simulate a user ID if no real Firebase Auth user is being created
-                // You might generate a UUID here or use a dummy ID.
-                // If you want to connect to *existing* Firebase Auth users, you'd need
-                // to enable Firebase Auth on this page and use its features securely.
-                const dummyUserId = "public_admin_added_" + Date.now(); // Simple dummy ID for demonstration
-
-                // Create a user profile document in Firestore
                 await setDoc(doc(db, USERS_COLLECTION_PATH, dummyUserId), {
                     email: email,
                     role: role,
@@ -585,14 +534,12 @@
 
                 hideMessageBox();
                 showMessageBox("Success", `New user profile for ${email} registered as ${role}!`, false, false, true, () => {
-                    addNewUserForm.reset(); // Clear the form
-                    // loadUsers() is not explicitly called here because onSnapshot already handles real-time updates.
+                    addNewUserForm.reset();
                 });
 
             } catch (error) {
                 hideMessageBox();
-                let errorMessage = "Failed to add user profile.";
-                errorMessage = `Error: ${error.message}`; // Fallback to generic message
+                let errorMessage = `Error: ${error.message}`;
                 addNewUserError.textContent = errorMessage;
                 addNewUserError.classList.remove('hidden');
             }
@@ -600,14 +547,9 @@
 
 
         // --- Dropdown Options Management Functions (unchanged) ---
-        /**
-         * Loads and displays dropdown options from Firestore.
-         * Uses onSnapshot for real-time updates to dropdown options.
-         */
         async function loadDropdownOptions() {
             const docRef = doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options');
             
-            // Set up real-time listener for the 'options' document
             onSnapshot(docRef, (docSnap) => {
                 const data = docSnap.exists() ? docSnap.data() : {};
 
@@ -616,20 +558,13 @@
                 renderDropdownList(data.reviewerNames || [], reviewerNamesList, 'reviewerNames');
                 renderDropdownList(data.autofailTypes || [], autofailTypesList, 'autofailTypes');
             }, (error) => {
-                // Error callback for onSnapshot
                 console.error("Error setting up real-time dropdown options listener:", error);
                 showMessageBox("Error", `Failed to load dropdown options: ${error.message}`, true);
             });
         }
 
-        /**
-         * Renders a list of dropdown options into a specified HTML container.
-         * @param {Array<string>} optionsArray - An array of strings representing the options.
-         * @param {HTMLElement} containerElement - The HTML element where options will be rendered.
-         * @param {string} type - The type of dropdown (e.g., 'cerNames', 'cerRoles').
-         */
         function renderDropdownList(optionsArray, containerElement, type) {
-            containerElement.innerHTML = ''; // Clear existing content
+            containerElement.innerHTML = '';
             if (optionsArray.length === 0) {
                 containerElement.innerHTML = `<p class="text-gray-500 text-sm">No ${type.replace(/([A-Z])/g, ' $1').toLowerCase()} defined yet.</p>`;
                 return;
@@ -643,31 +578,24 @@
                 `;
                 containerElement.appendChild(div);
             });
-            // Attach event listeners to newly created delete buttons
-            containerElement.querySelectorAll('.delete-option-btn').forEach(btn => {
+            document.querySelectorAll('.delete-option-btn').forEach(btn => {
                 btn.addEventListener('click', deleteDropdownOption);
             });
         }
 
-        // Attach event listeners to all "Add Option" buttons
         document.querySelectorAll('.add-option-btn').forEach(button => {
             button.addEventListener('click', addDropdownOption);
         });
 
-        /**
-         * Adds a new dropdown option to Firestore.
-         * @param {Event} e - The click event from the add button.
-         */
         async function addDropdownOption(e) {
-            const type = e.target.dataset.type; // Get the type from data-type attribute
+            const type = e.target.dataset.type;
             let inputElement;
-            // Determine which input element to use based on the type
             if (type === 'cerNames') inputElement = document.getElementById('newCerName');
             else if (type === 'cerRoles') inputElement = document.getElementById('newCerRole');
             else if (type === 'reviewerNames') inputElement = document.getElementById('newReviewerName');
             else if (type === 'autofailTypes') inputElement = document.getElementById('newAutofailType');
 
-            const newValue = inputElement.value.trim(); // Get and trim the new value
+            const newValue = inputElement.value.trim();
             if (!newValue) {
                 showMessageBox("Input Required", `Please enter a value for ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}.`, true);
                 return;
@@ -678,25 +606,21 @@
                 const docRef = doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options');
                 const docSnap = await getDoc(docRef);
                 const currentOptions = docSnap.exists() ? docSnap.data() : {};
-                // Get the array for the specific type, or initialize as empty if not present
                 const optionsArray = currentOptions[type] || [];
 
-                // Check for duplicates
                 if (optionsArray.includes(newValue)) {
                     hideMessageBox();
                     showMessageBox("Duplicate", `'${newValue}' already exists in ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}.`, false);
-                    inputElement.value = ''; // Clear input field
+                    inputElement.value = '';
                     return;
                 }
 
-                optionsArray.push(newValue); // Add the new value
-                // Update the document in Firestore with the modified array
+                optionsArray.push(newValue);
                 await updateDoc(docRef, { [type]: optionsArray });
 
                 hideMessageBox();
                 showMessageBox("Success", `'${newValue}' added to ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}!`, false, false, true, () => {
-                    inputElement.value = ''; // Clear input after successful add
-                    // loadDropdownOptions() is not explicitly called here because onSnapshot already handles real-time updates.
+                    inputElement.value = '';
                 });
             } catch (error) {
                 hideMessageBox();
@@ -704,16 +628,10 @@
             }
         }
 
-        /**
-         * Deletes a dropdown option from Firestore.
-         * Replaces confirm() with showConfirmationBox().
-         * @param {Event} e - The click event from the delete button.
-         */
         async function deleteDropdownOption(e) {
-            const index = parseInt(e.target.dataset.index); // Get the index of the option to delete
-            const type = e.target.dataset.type; // Get the type of dropdown
+            const index = parseInt(e.target.dataset.index);
+            const type = e.target.dataset.type;
 
-            // Show confirmation dialog before proceeding
             const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete this option from ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}?`);
             if (!confirmed) {
                 return;
@@ -727,13 +645,11 @@
                 const optionsArray = currentOptions[type] || [];
 
                 if (index > -1 && index < optionsArray.length) {
-                    optionsArray.splice(index, 1); // Remove the option at the specified index
-                    await updateDoc(docRef, { [type]: optionsArray }); // Update Firestore
+                    optionsArray.splice(index, 1);
+                    await updateDoc(docRef, { [type]: optionsArray });
 
                     hideMessageBox();
-                    showMessageBox("Success", "Option deleted successfully!", false, false, true, () => {
-                        // loadDropdownOptions() is not explicitly called here because onSnapshot already handles real-time updates.
-                    });
+                    showMessageBox("Success", "Option deleted successfully!", false, false, true);
                 } else {
                     hideMessageBox();
                     showMessageBox("Error", "Option not found or invalid index.", true);
@@ -745,30 +661,25 @@
         }
 
         // --- Autofail Types Management (Conceptual for now) ---
-        /**
-         * Placeholder function for loading autofail types/rules.
-         */
         async function loadAutofailTypes() {
             console.log("Autofail Rules Management section loaded (conceptual).");
-            // In a full implementation, this would fetch autofail rules from Firestore
-            // and render them, likely with similar add/edit/delete functionality.
         }
 
         // --- Initial Load Logic for Admin Page (No Login Required) ---
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("Admin DOM fully loaded and parsed. Initializing for public access.");
+            console.log("Admin DOM fully loaded and parsed. Initializing for public access with main nav.");
 
-            // Always show the admin dashboard content immediately
+            // Ensure the main navigation is visible
+            mainNav.style.display = 'flex';
+            
+            // Always show the admin dashboard content
             adminDashboard.classList.remove('hidden');
 
             // Load all necessary admin data
             loadAdminDashboard();
             
-            // Set initial active tab
+            // Set initial active tab within admin section
             showAdminTab('usersContent');
-
-            // The backToAppBtn is the only remaining button on the tab bar that performs navigation away.
-            // Its event listener is already defined above.
         });
     </script>
 </body>
