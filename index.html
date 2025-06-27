@@ -311,7 +311,7 @@
                 <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
             </div>
 
-            <form id="loginForm" class="p-8 space-y-6"> <!-- Removed method="post" as JS handles submission -->
+            <form id="loginForm" class="p-8 space-y-6">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                     <input type="text" id="username" name="username"
@@ -666,7 +666,7 @@
         };
 
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? initialAuthToken : null; // Ensure this uses local 'initialAuthToken'
 
         // Initialize Firebase App and Services ONCE at the top level of the module
         let app;
@@ -696,13 +696,13 @@
         };
         let cerNameEmailsMap = {};
 
-        let unsubscribeRecords = null;
-        let unsubscribeWebhooks = null;
-        let unsubscribeDropdowns = null; // Single listener for dropdowns document
+        let unsubscribeRecords = null; // Declared with let
+        let unsubscribeWebhooks = null; // Declared with let
+        let unsubscribeDropdowns = null; // Declared with let
 
-        let currentUserRole = null; // To store the role of the logged-in user
+        let currentUserRole = null;
         let currentUserId = null;
-        let isAuthReady = false; // Flag to indicate if Firebase Auth state has been determined
+        let isAuthReady = false;
 
         let loggedInUserName = "Quality Evaluation Team"; // Default, will be used in Share Response
 
@@ -1022,10 +1022,7 @@
         }
 
         // Firestore Data Handling Functions
-        // `let` declarations at the top of this module are fine.
-        let unsubscribeRecords = null;
-        let unsubscribeWebhooks = null;
-        let unsubscribeDropdowns = null;
+        // `let` declarations are at the top of this module for correct scoping.
 
         /**
          * Fetches records and webhooks from Firestore in real-time.
@@ -1137,8 +1134,6 @@
                 }
             }, (error) => {
                 console.error("Error listening to dropdown data:", error);
-                // The rules now allow public read, so this should ideally not be a permission error
-                // unless the document itself isn't readable due to a different rule or path issue.
             });
         }
 
@@ -1553,9 +1548,9 @@
                     lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
                 } else {
                     querySnapshot.forEach(doc => {
-                        evaluables.push(doc.data());
+                        evaluations.push(doc.data());
                     });
-                    renderLastThreeEvaluationsTable(evaluables);
+                    renderLastThreeEvaluationsTable(evaluations);
                 }
             } catch (error) {
                 console.error("Error fetching last 3 evaluations:", error);
@@ -1714,44 +1709,7 @@
         }
 
 
-        // Main Application Initialization Function (controls overall display)
-        function initializeAppDisplay() {
-            const loginPage = document.getElementById('loginPage');
-            const mainNav = document.getElementById('mainNav');
-            const auditFormContent = document.getElementById('auditFormContent');
-            const databaseContent = document.getElementById('databaseContent');
-            const shareResponseContent = document.getElementById('shareResponseContent');
-
-            console.log("Initializing main application display.");
-
-            // Check Firebase Auth's current user state (most reliable)
-            const user = auth.currentUser;
-            const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
-
-            if (user && isLoggedInFromSession === 'true') {
-                loginPage.style.display = 'none';
-                mainNav.style.display = 'block';
-                // Show the tab that was active or default to 'auditForm'
-                const activeHash = window.location.hash.substring(1); // Get hash from URL
-                if (activeHash === 'database') {
-                    showTab('database');
-                } else if (activeHash === 'shareResponse') {
-                    showTab('shareResponse');
-                } else {
-                    showTab('auditForm'); // Default to audit form
-                }
-            } else {
-                // If not logged in or session is invalid, show login page
-                loginPage.style.display = 'flex';
-                mainNav.style.display = 'none';
-                auditFormContent.style.display = 'none';
-                databaseContent.style.display = 'none';
-                shareResponseContent.style.display = 'none';
-            }
-        }
-
-
-        // --- DOMContentLoaded Listener (attaches event handlers, makes initial calls) ---
+        // Initial setup on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
@@ -1809,7 +1767,7 @@
                         const userDocSnap = await getDocs(query(collection(db, USERS_PROFILE_COLLECTION_PATH), where('uid', '==', user.uid)));
                         if (!userDocSnap.empty) {
                             currentUserRole = userDocSnap.docs[0].data().role;
-                            loggedInUserName = userDocSnap.docs[0].data().email || user.email || "Quality Evaluation Team";
+                            loggedInUserName = userDocSnap.docs[0].data().email || user.email || "Quality Evaluation Team"; // Use user's email as name
                             console.log("User role (index.html):", currentUserRole);
                             console.log("Logged in user name:", loggedInUserName);
                         } else {
@@ -1824,9 +1782,9 @@
                     }
                 } else {
                     console.log("Firebase Auth State Changed (index.html): No user logged in.");
-                    currentUserId = null;
-                    currentUserRole = null;
-                    loggedInUserName = "Quality Evaluation Team";
+                    currentUserId = null; // Clear global UID
+                    currentUserRole = null; // Clear global role
+                    loggedInUserName = "Quality Evaluation Team"; // Reset name
                     sessionStorage.removeItem('loggedIn'); // Clear session storage if Firebase reports no user
 
                     // If no user, try anonymous sign-in to allow public reads (if rules permit)
