@@ -136,7 +136,6 @@
     </style>
 </head>
 <body>
-    <!-- Message Box Overlay for Login UI -->
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
         <div class="message-box">
             <div id="messageBoxSpinner" class="spinner hidden"></div>
@@ -150,14 +149,13 @@
         </div>
     </div>
 
-    <!-- Login/Access Denied Section -->
     <div id="accessSection">
         <div id="accessBox">
             <h2 id="accessTitle">Login to ICEA LION QA Audit</h2>
             <form id="loginForm" class="space-y-4">
                 <div>
-                    <label for="loginEmail" class="block text-sm font-medium text-gray-700 text-left">Email:</label>
-                    <input type="email" id="loginEmail" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
+                    <label for="loginEmail" class="block text-sm font-medium text-gray-700 text-left">Username:</label>
+                    <input type="text" id="loginEmail" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
                 </div>
                 <div>
                     <label for="loginPassword" class="block text-sm font-medium text-gray-700 text-left">Password:</label>
@@ -167,62 +165,33 @@
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Login</button>
             </form>
             <p class="mt-4 text-center text-sm text-gray-600">
-                <a href="#" id="forgotPasswordLink" class="text-blue-600 hover:underline">Forgot Password?</a>
-            </p>
+                </p>
         </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import {
-            getAuth,
-            signInWithEmailAndPassword,
-            onAuthStateChanged,
-            signOut,
-            sendPasswordResetEmail
-            // signInWithCustomToken, // Not needed with direct embedding
-            // signInAnonymously     // Not needed with direct embedding
-        } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import {
-            getFirestore,
-            doc,
-            getDoc
-        } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        // NO FIREBASE IMPORTS NEEDED
+        // import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        // import {
+        //     getAuth,
+        //     signInWithEmailAndPassword,
+        //     onAuthStateChanged,
+        //     signOut,
+        //     sendPasswordResetEmail
+        // } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        // import {
+        //     getFirestore,
+        //     doc,
+        //     getDoc
+        // } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // Hardcoded Firebase Configuration for GitHub/local hosting
-        // IMPORTANT: For production with sensitive data, use environment variables or a backend.
-        const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", // Your provided API key
-            authDomain: "icea-lion-qa.firebaseapp.com",
-            databaseURL: "https://icea-lion-qa-default-rtdb.firebaseio.com",
-            projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app", // Your provided storageBucket
-            messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b6dfaf811", // Your provided appId
-            measurementId: "G-1RJJTT3QET" // Your provided measurementId
-        };
+        // Removed hardcoded Firebase config
+        // const firebaseConfig = { ... };
 
-        // Log the hardcoded config for verification
-        console.log("DEBUG: Firebase config (hardcoded in login.html):", firebaseConfig);
+        // Removed Firebase app, auth, db variables
+        // let app, auth, db;
 
-        let app, auth, db;
-
-        // Only initialize Firebase if config is present and seemingly valid
-        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey && firebaseConfig.projectId) {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                console.log("DEBUG: Firebase app initialized successfully in login.html.");
-            } catch (initError) {
-                console.error("ERROR: Firebase app initialization failed in login.html:", initError);
-                showMessageBox("Initialization Error", `Failed to initialize Firebase: ${initError.message}. Please check your console and Firebase project settings.`, true);
-            }
-        } else {
-            console.error("ERROR: Firebase config is missing or invalid. App cannot proceed.");
-            showMessageBox("Configuration Error", "Firebase configuration is missing or invalid. Please contact your administrator.", true);
-        }
-
+        // Removed Firebase initialization logic
 
         // --- DOM Elements ---
         const accessSection = document.getElementById('accessSection');
@@ -231,9 +200,9 @@
         const loginEmail = document.getElementById('loginEmail');
         const loginPassword = document.getElementById('loginPassword');
         const loginError = document.getElementById('loginError');
-        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+        // const forgotPasswordLink = document.getElementById('forgotPasswordLink'); // Removed from DOM and script
 
-        // --- Message Box Functions (for login.html specific messages) ---
+        // --- Message Box Functions (unchanged, still useful for UI feedback) ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -268,7 +237,7 @@
                 const messageBoxSpinner = document.getElementById('messageBoxSpinner');
                 const messageBoxTitle = document.getElementById('messageBoxTitle');
                 const messageBoxContent = document.getElementById('messageBoxContent');
-                const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn'); // This ID is fine, only used locally
+                const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
                 const messageBoxConfirmButtons = document.getElementById('messageBoxConfirmButtons');
                 const messageBoxConfirmYesBtn = document.getElementById('messageBoxConfirmYesBtn');
                 const messageBoxConfirmNoBtn = document.getElementById('messageBoxConfirmNoBtn');
@@ -293,100 +262,42 @@
             });
         }
 
+        // --- Session Management (simplified, just redirect based on sessionStorage) ---
+        // We no longer rely on Firebase's onAuthStateChanged directly for display logic.
+        // The checkSessionTimeout and updateLastActivity can be removed if not needed for custom timeouts.
+        // For static login, we'll just check if 'loggedIn' is true.
 
-        // --- Session Management (for login.html to handle redirections) ---
         window.checkSessionTimeout = function() {
-            const lastActivity = localStorage.getItem('lastActivity');
-            const loginTime = localStorage.getItem('loginTime');
-            if (lastActivity && loginTime) {
-                const now = new Date().getTime();
-                const eightHours = 8 * 60 * 60 * 1000;
-
-                if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
-                    console.log("Session expired. Logging out.");
-                    localStorage.removeItem('lastActivity');
-                    localStorage.removeItem('loginTime');
-                    sessionStorage.removeItem('loggedIn');
-                    return true;
-                }
-            }
-            return false;
+            // Since we are moving away from Firebase Auth for login,
+            // we can remove this or simplify it further.
+            // For a simple static login, we might not need a complex timeout.
+            // For now, let's keep it minimal and just check if loggedIn is true.
+            return sessionStorage.getItem('loggedIn') !== 'true'; // If not true, consider session expired.
         };
 
         window.updateLastActivity = function() {
-            localStorage.setItem('lastActivity', new Date().getTime().toString());
+            // Not strictly necessary for static login unless you want an idle timeout feature.
+            // If you keep this, you'd need to set a 'lastActivity' in localStorage in the login success.
+            // For now, let's just make it a no-op or remove its event listeners.
         };
 
-        document.addEventListener('mousemove', window.updateLastActivity);
-        document.addEventListener('keydown', window.updateLastActivity);
-        document.addEventListener('click', window.updateLastActivity);
+        // Removed activity listeners if no longer needed for session timeout.
+        // document.addEventListener('mousemove', window.updateLastActivity);
+        // document.addEventListener('keydown', window.updateLastActivity);
+        // document.addEventListener('click', window.updateLastActivity);
 
-        // --- Authentication State Listener (Handles Login Page Logic) ---
-        // This listener will decide whether to show the login form or redirect.
-        // It's wrapped in a check to ensure 'auth' is defined before calling onAuthStateChanged
-        if (auth) { // Only proceed if Firebase Auth was successfully initialized
-            onAuthStateChanged(auth, async (user) => {
-                console.log("DEBUG: onAuthStateChanged triggered in login.html. User:", user ? user.email : "none");
 
-                if (window.checkSessionTimeout()) {
-                    console.log("DEBUG: Session timeout detected.");
-                    await signOut(auth); // Ensure Firebase session is cleared if timeout detected
-                    accessSection.classList.remove('hidden'); // Show login if session expired
-                    accessTitle.textContent = "Session Expired";
-                    loginError.textContent = "Your session has expired. Please log in again.";
-                    loginError.classList.remove('hidden');
-                    return;
-                }
-
-                if (user) {
-                    // User is authenticated, now check their role in Firestore
-                    console.log(`DEBUG: User authenticated with UID: ${user.uid}`);
-                    const userDocRef = doc(db, `artifacts/${firebaseConfig.appId}/users/${user.uid}`); // Use firebaseConfig.appId directly
-                    console.log(`DEBUG: Attempting to fetch user doc from path: artifacts/${firebaseConfig.appId}/users/${user.uid}`);
-
-                    try {
-                        const userDocSnap = await getDoc(userDocRef);
-                        console.log(`DEBUG: userDocSnap.exists(): ${userDocSnap.exists()}`);
-
-                        if (userDocSnap.exists()) {
-                            const userData = userDocSnap.data();
-                            const userRole = userData.role;
-                            console.log(`DEBUG: User data found. Role: ${userRole}, Data:`, userData);
-
-                            // You can add more specific role checks here if needed before redirecting,
-                            // but for now, any existing profile means successful "login" from this page's perspective.
-                            console.log(`User ${user.email} (${userRole}) logged in. Redirecting to index.html`);
-                            window.location.href = 'index.html';
-                        } else {
-                            // User authenticated with Firebase Auth but no role document found in Firestore
-                            console.warn(`WARN: User profile for ${user.email} not found in Firestore. Logging out.`);
-                            await signOut(auth); // Log them out from Firebase Auth
-                            accessSection.classList.remove('hidden');
-                            accessTitle.textContent = "Access Denied";
-                            loginError.textContent = "Your user profile is incomplete or missing. Please contact an administrator.";
-                            loginError.classList.remove('hidden');
-                        }
-                    } catch (error) {
-                        console.error("ERROR: Error fetching user role from Firestore:", error);
-                        // If it's a network issue (offline) from the previous error,
-                        // this catch block will be hit and log the FirebaseError.
-                        await signOut(auth); // Log out in case of Firestore error
-                        accessSection.classList.remove('hidden');
-                        accessTitle.textContent = "Login Error";
-                        loginError.textContent = `Failed to retrieve user profile: ${error.message}. Please try again.`;
-                        loginError.classList.remove('hidden');
-                    }
-                } else {
-                    // No user logged in, show the login form
-                    console.log("DEBUG: No user logged in. Showing login form.");
-                    accessSection.classList.remove('hidden'); // Ensure login form is visible
-                    accessTitle.textContent = "Login to ICEA LION QA Audit";
-                    loginError.classList.add('hidden'); // Hide any previous errors
-                }
-            });
+        // --- Authentication Logic for Static Credentials ---
+        // This runs immediately to check if already "logged in" via sessionStorage.
+        // No Firebase onAuthStateChanged needed.
+        if (sessionStorage.getItem('loggedIn') === 'true') {
+            console.log("DEBUG: Already logged in based on sessionStorage. Redirecting to index.html");
+            window.location.href = 'index.html';
         } else {
-            console.error("CRITICAL: Firebase Auth not available at script execution due to config issues. Login flow cannot proceed.");
-            showMessageBox("Initialization Error", "Firebase services could not be initialized. Please check console for details and ensure your Firebase project is configured correctly.", true, false, true);
+            console.log("DEBUG: Not logged in. Showing login form.");
+            accessSection.classList.remove('hidden'); // Ensure login form is visible
+            accessTitle.textContent = "Login to ICEA LION QA Audit";
+            loginError.classList.add('hidden'); // Hide any previous errors
         }
 
 
@@ -394,82 +305,42 @@
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             loginError.classList.add('hidden');
-            const email = loginEmail.value;
+
+            const username = loginEmail.value;
             const password = loginPassword.value;
 
-            if (!auth) {
-                 showMessageBox("Error", "Firebase Authentication not initialized. Cannot log in.", true);
-                 return;
-            }
+            // Define your static credentials
+            const CORRECT_USERNAME = "password"; // As requested: Username 'password'
+            const CORRECT_PASSWORD = "password"; // As requested: Password 'password'
 
+            showMessageBox("Logging In", "Verifying credentials...", false, true, false);
 
-            showMessageBox("Logging In", "Please wait...", false, true, false);
+            // Simulate a network request delay (optional, for UX)
+            await new Promise(resolve => setTimeout(500, resolve));
 
-            try {
-                console.log("DEBUG: Attempting signInWithEmailAndPassword for:", email);
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                console.log("DEBUG: signInWithEmailAndPassword successful for UID:", userCredential.user.uid);
-                // After successful Firebase Auth login, the onAuthStateChanged listener above
-                // will trigger and handle role verification and redirection.
-                hideMessageBox(); // Hide login progress message
-            } catch (error) {
+            if (username === CORRECT_USERNAME && password === CORRECT_PASSWORD) {
                 hideMessageBox();
-                console.error("ERROR: Login failed:", error);
-                let errorMessage = "Login failed. Please check your credentials.";
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                    errorMessage = "Invalid email or password.";
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "Invalid email format.";
-                } else {
-                    errorMessage = `Error: ${error.message}`;
-                }
+                sessionStorage.setItem('loggedIn', 'true'); // Mark as logged in
+                // Optionally store a dummy user ID or role if index.html relies on it
+                // window.currentUserId = "static_user";
+                // window.currentUserRole = "Admin"; // Assign a default role for testing
+                console.log("DEBUG: Static login successful. Redirecting to index.html");
+                window.location.href = 'index.html';
+            } else {
+                hideMessageBox();
+                let errorMessage = "Invalid username or password.";
                 loginError.textContent = errorMessage;
                 loginError.classList.remove('hidden');
             }
         });
 
-        // --- Forgot Password Link Handler ---
-        forgotPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const email = loginEmail.value.trim();
-
-            if (!email) {
-                showMessageBox("Email Required", "Please enter your email in the email field above to reset your password.", true);
-                return;
-            }
-
-            if (!auth) {
-                showMessageBox("Error", "Firebase Authentication not initialized. Cannot send reset email.", true);
-                return;
-            }
-
-            showMessageBox("Sending Reset Email", "Please wait...", false, true, false);
-
-            try {
-                console.log("DEBUG: Attempting sendPasswordResetEmail for:", email);
-                await sendPasswordResetEmail(auth, email);
-                console.log("DEBUG: Password reset email sent.");
-                hideMessageBox();
-                showMessageBox(
-                    "Password Reset",
-                    `A password reset link has been sent to ${email}. Please check your inbox (and spam folder).`,
-                    false, false, true
-                );
-            }
-            catch (error) {
-                hideMessageBox();
-                console.error("ERROR: Password reset failed:", error);
-                let errorMessage = "Failed to send password reset email.";
-                if (error.code === 'auth/user-not-found') {
-                    errorMessage = "No user found with that email address. Please check the email.";
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "The email address is not valid.";
-                } else {
-                    errorMessage = `Error: ${error.message}`;
-                }
-                showMessageBox("Password Reset Failed", errorMessage, true, false, true);
-            }
-        });
+        // --- Removed Forgot Password Link Handler ---
+        // if (forgotPasswordLink) {
+        //     forgotPasswordLink.addEventListener('click', async (e) => {
+        //         e.preventDefault();
+        //         showMessageBox("Feature Unavailable", "Password reset is not available for static login. Please contact support.", true);
+        //     });
+        // }
     </script>
 </body>
 </html>
