@@ -666,17 +666,17 @@
         };
 
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? initialAuthToken : null; // Ensure this uses local 'initialAuthToken'
+        const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null) ? __initial_auth_token : null; // Use the provided token if available, else null
 
         // Initialize Firebase App and Services ONCE at the top level of the module
-        let app;
+        let appInstance; // Use 'appInstance' to avoid conflict with global 'app' in some environments if not careful
         if (!getApps().length) { // Check if no Firebase apps have been initialized yet
-            app = initializeApp(firebaseConfig);
+            appInstance = initializeApp(firebaseConfig);
         } else {
-            app = getApp(); // Get the default app if it already exists
+            appInstance = getApp(); // Get the default app if it already exists
         }
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        const auth = getAuth(appInstance);
+        const db = getFirestore(appInstance);
 
         // Define Firebase Collection Paths (using const as they don't change)
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
@@ -696,13 +696,13 @@
         };
         let cerNameEmailsMap = {};
 
-        let unsubscribeRecords = null; // Declared with let
-        let unsubscribeWebhooks = null; // Declared with let
-        let unsubscribeDropdowns = null; // Declared with let
+        let unsubscribeRecords = null;
+        let unsubscribeWebhooks = null;
+        let unsubscribeDropdowns = null; // Single listener for dropdowns document
 
-        let currentUserRole = null;
+        let currentUserRole = null; // To store the role of the logged-in user
         let currentUserId = null;
-        let isAuthReady = false;
+        let isAuthReady = false; // Flag to indicate if Firebase Auth state has been determined
 
         let loggedInUserName = "Quality Evaluation Team"; // Default, will be used in Share Response
 
@@ -1764,20 +1764,26 @@
                     // Fetch user role from Firestore profile
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                     try {
-                        const userDocSnap = await getDocs(query(collection(db, USERS_PROFILE_COLLECTION_PATH), where('uid', '==', user.uid)));
-                        if (!userDocSnap.empty) {
-                            currentUserRole = userDocSnap.docs[0].data().role;
-                            loggedInUserName = userDocSnap.docs[0].data().email || user.email || "Quality Evaluation Team"; // Use user's email as name
+                        const userDocSnap = await getDoc(userProfileDocRef); // Use getDoc directly as per rules
+                        if (userDocSnap.exists()) {
+                            currentUserRole = userDocSnap.data().role;
+                            loggedInUserName = userDocSnap.data().email || user.email || "Quality Evaluation Team"; // Use user's email as name
                             console.log("User role (index.html):", currentUserRole);
                             console.log("Logged in user name:", loggedInUserName);
                         } else {
-                            currentUserRole = 'agent'; // Default to 'agent' if no specific role is set
-                            console.warn("User profile not found for UID:", user.uid, ". Defaulting to 'agent' role.");
+                            // If no profile, try to get custom claims (if set via Cloud Functions)
+                            const idTokenResult = await user.getIdTokenResult(true); // Force token refresh
+                            if (idTokenResult.claims.role) {
+                                currentUserRole = idTokenResult.claims.role;
+                            } else {
+                                currentUserRole = 'Guest'; // Default if neither profile nor claims
+                            }
+                            console.warn("User profile not found in Firestore. Checking claims, defaulting to Guest role if not found. UID:", user.uid);
                             loggedInUserName = user.email || "Quality Evaluation Team";
                         }
                     } catch (error) {
                         console.error("Error fetching user role (index.html):", error);
-                        currentUserRole = 'agent'; // Default to 'agent' on error
+                        currentUserRole = 'Guest'; // Default to 'Guest' on error
                         loggedInUserName = user.email || "Quality Evaluation Team";
                     }
                 } else {
@@ -1791,7 +1797,7 @@
                     try {
                         await signInAnonymously(auth);
                         currentUserId = auth.currentUser.uid;
-                        currentUserRole = 'anonymous'; // Assign anonymous role
+                        currentUserRole = 'anonymous'; // Assign anonymous role for publicly accessible data
                         console.log("Signed in anonymously (index.html):", currentUserId);
                     } catch (anonError) {
                         console.error("Error signing in anonymously (index.html):", anonError);
@@ -1813,24 +1819,25 @@
             // --- Login Button Click Listener (REPLACING form submit listener) ---
             if (loginButton) { // Ensure button exists before attaching listener
                 loginButton.addEventListener('click', async function(event) {
-                    event.preventDefault(); // Crucial for preventing default form submission
+                    // No event.preventDefault() needed here if type="button", but keeping it is harmless.
                     loginMessage.classList.add('hidden');
 
                     const enteredUsername = usernameInput.value;
                     const enteredPassword = passwordInput.value;
 
                     try {
+                        // Authenticate with Firebase Email/Password
                         const userCredential = await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
-                        sessionStorage.setItem('loggedIn', 'true');
+                        sessionStorage.setItem('loggedIn', 'true'); // Set session storage flag
                         window.location.reload(); // Reload to trigger onAuthStateChanged and page init
                     } catch (error) {
                         console.error("Firebase Login Error:", error);
                         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                             loginMessage.textContent = 'Invalid email or password.';
                         } else if (error.code === 'auth/invalid-email') {
-                            loginMessage.textContent = 'Please enter a valid email address.';
+                             loginMessage.textContent = 'Please enter a valid email address.';
                         } else if (error.code === 'auth/too-many-requests') {
-                            loginMessage.textContent = 'Too many login attempts. Please try again later.';
+                             loginMessage.textContent = 'Too many login attempts. Please try again later.';
                         }
                         else {
                             loginMessage.textContent = `Login failed: ${error.message}`;
@@ -1872,73 +1879,87 @@
                 });
             }
 
+            // Moved the functions and attached listeners outside the `if` blocks for better hoisting
+            // These functions are now defined globally within this module scope.
+
+            // Function declarations for event handlers (hoisted to top of script execution)
+            // They need to be defined before they are called within `DOMContentLoaded` block.
+            function updateDeleteButtonState() {
+                const deleteSelectedRecordsBtnElement = document.getElementById('deleteSelectedRecordsBtn');
+                if (deleteSelectedRecordsBtnElement) { // Ensure element exists
+                    const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
+                    deleteSelectedRecordsBtnElement.disabled = checkedCount === 0;
+                }
+            }
+
+            async function deleteSelectedRecords() {
+                const messageBoxContentElement = document.getElementById('messageBoxContent');
+                if (!db || !currentUserId) { showMessageBox("Error", "Database not ready. Please log in first.", true, false, true); return; }
+                if (!EVALUATION_RECORDS_COLLECTION_PATH) { console.error("Firestore collection path for records is not defined."); showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true); return; }
+
+                const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+                const recordIdsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
+
+                if (recordIdsToDelete.length === 0) { showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true); return; }
+
+                const originalMessageBoxContentHTML = messageBoxContentElement.innerHTML;
+                showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
+
+                const confirmBtn = document.createElement('button');
+                confirmBtn.textContent = 'Delete';
+                confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+                confirmBtn.onclick = async () => {
+                    hideMessageBox();
+                    showMessageBox("Deleting", "Deleting selected records...", false, true, false);
+                    try {
+                        const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(db, EVALUATION_RECORDS_COLLECTION_PATH, id)));
+                        await Promise.all(deletePromises);
+                        showMessageBox("Success", "Selected records deleted.", false, false, true);
+                        if (document.getElementById('selectAllRecordsCheckbox')) { document.getElementById('selectAllRecordsCheckbox').checked = false; }
+                        updateDeleteButtonState();
+                    } catch (e) {
+                        console.error("Error deleting documents: ", e);
+                        showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
+                    } finally {
+                        messageBoxContentElement.innerHTML = originalMessageBoxContentHTML;
+                    }
+                };
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+                cancelBtn.onclick = () => { hideMessageBox(); messageBoxContentElement.innerHTML = originalMessageBoxContentHTML; };
+                messageBoxContentElement.innerHTML = '';
+                messageBoxContentElement.appendChild(confirmBtn);
+                messageBoxContentElement.appendChild(cancelBtn);
+                document.getElementById('messageBoxCloseBtn').classList.add('hidden');
+            }
+
+            async function addWebhook() {
+                const newWebhookUrlInputElement = document.getElementById('newWebhookUrlInput');
+                if (!db || !currentUserId) { showMessageBox("Error", "Database not ready. Please log in first.", true, false, true); return; }
+                if (!WEBHOOKS_COLLECTION_PATH) { console.error("Firestore collection path for webhooks is not defined."); showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true); return; }
+
+                const webhookUrl = newWebhookUrlInputElement.value.trim();
+                if (!webhookUrl || (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://'))) { showMessageBox("Invalid URL", "Please enter a valid webhook URL (http:// or https://).", true, false, true); return; }
+                if (allWebhooks.some(hook => hook.url === webhookUrl)) { showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true); newWebhookUrlInputElement.value = ''; return; }
+
+                showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
+                try {
+                    await addDoc(collection(db, WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
+                    newWebhookUrlInputElement.value = '';
+                    showMessageBox("Success", "Webhook added successfully!", false, false, true);
+                } catch (e) { console.error("Error adding webhook: ", e); showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true); }
+            }
+
+
+            // Attach event listeners to elements that are guaranteed to exist at DOMContentLoaded
             if (deleteSelectedRecordsBtn) { deleteSelectedRecordsBtn.addEventListener('click', deleteSelectedRecords); }
             if (addWebhookBtn) { addWebhookBtn.addEventListener('click', addWebhook); }
-
-            if (autofailTypeSelect) {
-                autofailTypeSelect.addEventListener('change', () => {
-                    if (autofailTypeSelect.value !== '') {
-                        autofailDescriptionContainer.classList.remove('hidden');
-                        autofailDescriptionInput.setAttribute('required', 'required');
-                    } else {
-                        autofailDescriptionContainer.classList.add('hidden');
-                        autofailDescriptionInput.value = '';
-                        autofailDescriptionInput.removeAttribute('required');
-                        autofailDescriptionInput.style.borderColor = '';
-                    }
-                });
-            }
-
-            if (reviewerNameSelect) {
-                reviewerNameSelect.addEventListener('change', () => {
-                    if (reviewerNameSelect.value === 'Other') {
-                        otherReviewerNameInput.classList.remove('hidden');
-                        otherReviewerNameInput.setAttribute('required', 'required');
-                    } else {
-                        otherReviewerNameInput.classList.add('hidden');
-                        otherReviewerNameInput.value = '';
-                        otherReviewerNameInput.removeAttribute('required');
-                        otherReviewerNameInput.style.borderColor = '';
-                    }
-                });
-            }
-
-            if (cerRoleSelect) {
-                cerRoleSelect.addEventListener('change', (event) => {
-                    const selectedRole = event.target.value;
-                    renderQuestionsForRole(selectedRole);
-                    resetFormFieldsButKeepRole();
-                });
-            }
-
-            if (cerNameSelect) {
-                cerNameSelect.addEventListener('change', (event) => {
-                    const selectedCerName = event.target.value;
-                    const cerEmail = cerNameEmailsMap[selectedCerName] || '';
-                    cerEmailInput.value = cerEmail;
-
-                    if (selectedCerName) {
-                        fetchLastThreeEvaluations(selectedCerName);
-                    } else {
-                        document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
-                    }
-                });
-            }
-
-            if (selectRecordToShare) {
-                selectRecordToShare.addEventListener('change', (event) => {
-                    const selectedRecordId = event.target.value;
-                    populateShareEmailFields(selectedRecordId);
-                });
-            }
-
-            if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', sendShareResponseEmail); }
-            if (submitFormToDBBtn) { submitFormToDBBtn.addEventListener('click', submitFormToDB); }
 
 
             // Helper function for submit (to avoid duplicating large form collection logic)
             async function submitFormToDB(event) {
-                event.preventDefault(); // Ensure this is also prevented here just in case
+                event.preventDefault();
                 console.log("Submit to Database button clicked.");
 
                 if (!validateAllMandatoryFields()) {
@@ -1963,7 +1984,6 @@
                         }
                     }
                 });
-
 
                 const overallScoreDisplay = document.getElementById('overall-score-display');
                 const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
