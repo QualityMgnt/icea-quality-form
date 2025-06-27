@@ -311,7 +311,7 @@
                 <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
             </div>
 
-            <form id="loginForm" class="p-8 space-y-6">
+            <form id="loginForm" class="p-8 space-y-6" method="post"> <!-- Ensure method is post and preventDefault -->
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                     <input type="text" id="username" name="username"
@@ -645,12 +645,13 @@
 
 
     <script type="module">
-        // Firebase Imports
+        // Firebase Imports (all imports here)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // --- Your Web App's Firebase Configuration ---
+
+        // --- Firebase Configuration ---
         const firebaseConfig = {
           apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
           authDomain: "icea-lion-qa.firebaseapp.com",
@@ -664,33 +665,17 @@
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // Initialize Firebase App and Services ONCE
+        // Initialize Firebase App and Services ONCE at the top level of the module
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Expose Firebase services and functions globally via window object
-        // This makes them accessible to other parts of your script without re-importing
-        window.firebaseApp = app;
-        window.auth = auth;
-        window.db = db;
-        window.fsCollection = collection;
-        window.fsOnSnapshot = onSnapshot;
-        window.fsAddDoc = addDoc;
-        window.fsDeleteDoc = deleteDoc;
-        window.fsDoc = doc;
-        window.fsQuery = query;
-        window.fsWhere = where;
-        window.fsOrderBy = orderBy;
-        window.fsLimit = limit;
-        window.getDocs = getDocs;
-        window.fsUpdateDoc = updateDoc;
+        // Define Firebase Collection Paths
+        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
+        const DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`; // Path to user profiles for roles
 
-        // Define Firestore Collection Paths
-        window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
-        window.DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
-        window.USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`; // Path to user profiles for roles
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
         let allRecords = [];
@@ -711,7 +696,7 @@
         let currentUserId = null;
         let isAuthReady = false;
 
-        let loggedInUserName = "Quality Evaluation Team"; // Default, could be updated on login
+        let loggedInUserName = "Quality Evaluation Team"; // Default, will be used in Share Response
 
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
@@ -998,7 +983,7 @@
             } else if (tabName === 'database') {
                 databaseTab.classList.add('active');
                 databaseContent.style.display = 'block';
-                if (window.db && window.currentUserId) {
+                if (db && currentUserId) { // Use local scope db and currentUserId
                     fetchRecordsAndWebhooks();
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
@@ -1006,7 +991,7 @@
             } else if (tabName === 'shareResponse') {
                 shareResponseTab.classList.add('active');
                 shareResponseContent.style.display = 'block';
-                if (window.db && window.currentUserId) {
+                if (db && currentUserId) { // Use local scope db and currentUserId
                     populateShareResponseDropdown();
                 } else {
                     showMessageBox("Share Response Not Ready", "Waiting for authentication to load records for sharing.", false, true, false);
@@ -1044,12 +1029,12 @@
             const addWebhookBtn = document.getElementById('addWebhookBtn');
             const webhookList = document.getElementById('webhookList');
 
-            if (!window.db || !window.currentUserId) {
+            if (!db || !currentUserId) { // Use local scope db and currentUserId
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
                 return;
             }
 
-            if (!window.EVALUATION_RECORDS_COLLECTION_PATH || !window.WEBHOOKS_COLLECTION_PATH) {
+            if (!EVALUATION_RECORDS_COLLECTION_PATH || !WEBHOOKS_COLLECTION_PATH) { // Use local constants
                 console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
                 return;
@@ -1061,8 +1046,8 @@
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
             try {
-                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
-                unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => {
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH); // Use local db, collection
+                unsubscribeRecords = onSnapshot(recordsColRef, (snapshot) => { // Use local onSnapshot
                     allRecords = [];
                     snapshot.forEach(doc => {
                         allRecords.push({ id: doc.id, ...doc.data() });
@@ -1075,8 +1060,8 @@
                     showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
                 });
 
-                const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH);
-                unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => {
+                const webhooksColRef = collection(db, WEBHOOKS_COLLECTION_PATH); // Use local db, collection
+                unsubscribeWebhooks = onSnapshot(webhooksColRef, (snapshot) => { // Use local onSnapshot
                     allWebhooks = [];
                     snapshot.forEach(doc => {
                         allWebhooks.push({ id: doc.id, ...doc.data() });
@@ -1097,22 +1082,22 @@
 
         // Function to fetch and populate dropdown options from Firestore
         async function fetchDropdownOptionsData() {
-            if (!window.db) {
+            if (!db) { // Use local db
                 console.warn("Firestore not ready for fetching dropdowns.");
                 return;
             }
-            if (!window.DROPDOWN_DATA_COLLECTION_PATH) {
+            if (!DROPDOWN_DATA_COLLECTION_PATH) { // Use local constant
                 console.error("Dropdowns collection path is not defined.");
                 return;
             }
 
-            const dropdownDocRef = window.fsDoc(window.db, window.DROPDOWN_DATA_COLLECTION_PATH, 'general_options');
+            const dropdownDocRef = doc(db, DROPDOWN_DATA_COLLECTION_PATH, 'general_options'); // Use local db, doc
 
             if (unsubscribeDropdowns) {
                 unsubscribeDropdowns(); // Unsubscribe previous listener if exists
             }
 
-            unsubscribeDropdowns = window.fsOnSnapshot(dropdownDocRef, (docSnap) => {
+            unsubscribeDropdowns = onSnapshot(dropdownDocRef, (docSnap) => { // Use local onSnapshot
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     dropdownOptions.cerNames = data.cerNames || [];
@@ -1537,7 +1522,7 @@
         // NEW FUNCTION: Fetch Last 3 Evaluations for a CER
         async function fetchLastThreeEvaluations(cerName) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
-            if (!window.db || !window.currentUserId) {
+            if (!db || !currentUserId) { // Use local db, currentUserId
                 console.error("Firestore not initialized or collection path not defined.");
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Database not ready.</td></tr>';
                 return;
@@ -1546,14 +1531,14 @@
             lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading last evaluations...</td></tr>';
 
             try {
-                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
-                const q = window.fsQuery(
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH); // Use local db, collection
+                const q = query(
                     recordsColRef,
-                    window.fsWhere('CER Name', '==', cerName),
-                    window.fsOrderBy('submittedAt', 'desc'),
-                    window.fsLimit(3)
+                    where('CER Name', '==', cerName),
+                    orderBy('submittedAt', 'desc'),
+                    limit(3)
                 );
-                const querySnapshot = await window.getDocs(q);
+                const querySnapshot = await getDocs(q); // Use local getDocs
 
                 const evaluations = [];
                 if (querySnapshot.empty) {
@@ -1603,15 +1588,15 @@
             const selectRecordToShare = document.getElementById('select-record-to-share');
             selectRecordToShare.innerHTML = '<option value="">-- Loading Records --</option>';
 
-            if (!window.db || !window.currentUserId) {
+            if (!db || !currentUserId) { // Use local db, currentUserId
                 selectRecordToShare.innerHTML = '<option value="">-- Database not ready --</option>';
                 console.error("Firestore not initialized for populating share response dropdown.");
                 return;
             }
 
             try {
-                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
-                const querySnapshot = await window.getDocs(recordsColRef);
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH); // Use local db, collection
+                const querySnapshot = await getDocs(recordsColRef); // Use local getDocs
 
                 selectRecordToShare.innerHTML = '<option value="">-- Select a Record --</option>';
 
@@ -1750,6 +1735,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
+            // Get UI elements (within DOMContentLoaded to ensure they exist)
             const loginForm = document.getElementById('loginForm');
             const loginMessage = document.getElementById('loginMessage');
             const usernameInput = document.getElementById('username');
@@ -1788,89 +1774,131 @@
             const sendShareEmailBtn = document.getElementById('sendShareEmailBtn');
 
 
-            // --- EVENT LISTENERS ---
+            // --- Firebase Authentication State Listener (Centralized) ---
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUserId = user.uid; // Update global variable
+                    console.log("Firebase Auth State Changed: User logged in:", currentUserId);
+
+                    // Fetch user role from Firestore profile
+                    const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+                    try {
+                        const userDocSnap = await getDocs(query(collection(db, USERS_PROFILE_COLLECTION_PATH), where('uid', '==', user.uid)));
+                        // Correctly retrieve user role from a direct document fetch or query
+                        if (!userDocSnap.empty) {
+                            currentUserRole = userDocSnap.docs[0].data().role;
+                            console.log("User role fetched:", currentUserRole);
+                        } else {
+                            // Fallback if user profile document is not found, check custom claims (if set via Cloud Functions)
+                            const idTokenResult = await user.getIdTokenResult(true); // Force token refresh
+                            if (idTokenResult.claims.role) {
+                                currentUserRole = idTokenResult.claims.role;
+                            } else {
+                                currentUserRole = 'Guest'; // Default if neither profile nor claims
+                            }
+                            console.warn("User profile not found in Firestore. Checking claims, defaulting to Guest role if not found. UID:", user.uid);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching user role:", error);
+                        currentUserRole = 'Guest';
+                    }
+                } else {
+                    console.log("Firebase Auth State Changed: No user logged in.");
+                    currentUserId = null; // Clear global UID
+                    currentUserRole = null; // Clear global role
+                }
+                isAuthReady = true; // Set auth ready flag
+                // Dispatch a custom event after auth state and role are determined
+                document.dispatchEvent(new CustomEvent('appAuthReady'));
+            });
+
+
+            // --- Event Listeners and Initial App Logic (triggered after auth is ready) ---
+
+            document.addEventListener('appAuthReady', () => {
+                // If not logged in (user is null or session is gone), show login page
+                if (!auth.currentUser || sessionStorage.getItem('loggedIn') !== 'true') {
+                    loginPage.style.display = 'flex';
+                    mainNav.style.display = 'none';
+                    auditFormContent.style.display = 'none';
+                    databaseContent.style.display = 'none';
+                    shareResponseContent.style.display = 'none';
+                } else {
+                    // User is authenticated, proceed with main app initialization
+                    loginPage.style.display = 'none';
+                    mainNav.style.display = 'block';
+                    showTab('auditForm'); // Show default tab
+                    initializeAuditForm(); // Initialize form with dropdowns etc.
+                    fetchRecordsAndWebhooks(); // Start fetching records and webhooks
+                }
+            });
+
+            // Fallback for immediate initialization if DOM is already ready and auth state already determined
+            if (document.readyState === 'complete' && isAuthReady) {
+                 document.dispatchEvent(new CustomEvent('appAuthReady'));
+            } else {
+                 // If not ready, explicitly hide content and show login until auth is confirmed
+                 auditFormContent.style.display = 'none';
+                 databaseContent.style.display = 'none';
+                 shareResponseContent.style.display = 'none';
+                 mainNav.style.display = 'none';
+                 loginPage.style.display = 'flex'; // Show login until appAuthReady fires
+            }
+
+
+            // --- Login Form Submission ---
             loginForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
+                event.preventDefault(); // Prevent default form submission (important for not exposing credentials)
                 loginMessage.classList.add('hidden');
 
                 const enteredUsername = usernameInput.value;
                 const enteredPassword = passwordInput.value;
 
-                // Authenticate with Firebase Email/Password
                 try {
+                    // Authenticate with Firebase Email/Password
                     const userCredential = await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
+                    // If login is successful, set the session storage flag
                     sessionStorage.setItem('loggedIn', 'true');
-                    window.location.reload(); // Reload to trigger onAuthStateChanged and page init
+                    window.location.reload(); // Reload to trigger onAuthStateChanged and full page initialization
                 } catch (error) {
                     console.error("Firebase Login Error:", error);
                     if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                         loginMessage.textContent = 'Invalid email or password.';
                     } else if (error.code === 'auth/invalid-email') {
-                         loginMessage.textContent = 'Please enter a valid email address.';
+                        loginMessage.textContent = 'Please enter a valid email address.';
                     } else if (error.code === 'auth/too-many-requests') {
-                         loginMessage.textContent = 'Too many login attempts. Please try again later.';
-                    }
-                    else {
+                        loginMessage.textContent = 'Too many login attempts. Please try again later.';
+                    } else {
                         loginMessage.textContent = `Login failed: ${error.message}`;
                     }
                     loginMessage.classList.remove('hidden');
                 }
             });
 
+            // --- Logout Button ---
             logoutBtn.addEventListener('click', async function() {
-                sessionStorage.removeItem('loggedIn');
+                sessionStorage.removeItem('loggedIn'); // Clear custom session storage flag
                 if (unsubscribeRecords) unsubscribeRecords();
                 if (unsubscribeWebhooks) unsubscribeWebhooks();
                 if (unsubscribeDropdowns) unsubscribeDropdowns(); // Unsubscribe dropdown listener
-                await signOut(auth); // Sign out from Firebase Auth
-                window.location.reload();
+                await signOut(auth); // Sign out from Firebase Authentication
+                window.location.reload(); // Reload the page to show login screen
             });
 
-            auditFormTab.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log("Audit Form Tab CLICKED!");
-                showTab('auditForm');
-            });
+            // --- Navigation Tabs (External Pages) ---
+            auditFormTab.addEventListener('click', (e) => { e.preventDefault(); showTab('auditForm'); });
+            databaseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('database'); });
+            reportsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = reportsTab.href; });
+            autofailsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = autofailsTab.href; });
+            adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = adminTab.href; });
+            shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); });
+            usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = usersTab.href; });
 
-            databaseTab.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log("Database Tab CLICKED!");
-                showTab('database');
-            });
 
-            reportsTab.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log("Reports Tab CLICKED!");
-                window.location.href = reportsTab.href;
-            });
-
-            autofailsTab.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log("Autofails Tab CLICKED!");
-                window.location.href = autofailsTab.href;
-            });
-
-            adminTab.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log("Admin Tab CLICKED!");
-                window.location.href = adminTab.href;
-            });
-
-            shareResponseTab.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log("Share Response Tab CLICKED!");
-                showTab('shareResponse');
-            });
-
-            usersTab.addEventListener('click', (e) => {
-                e.preventDefault();
-                console.log("Users Tab CLICKED!");
-                window.location.href = usersTab.href;
-            });
-
-            if (selectAllRecordsCheckbox) {
-                 selectAllRecordsCheckbox.addEventListener('change', () => {
-                    const isChecked = selectAllRecordsCheckbox.checked;
+            // --- Form Specific Event Listeners (ensure elements exist before attaching) ---
+            if (document.getElementById('selectAllRecordsCheckbox')) {
+                document.getElementById('selectAllRecordsCheckbox').addEventListener('change', () => {
+                    const isChecked = document.getElementById('selectAllRecordsCheckbox').checked;
                     document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                         checkbox.checked = isChecked;
                     });
@@ -1878,65 +1906,72 @@
                 });
             }
 
-            if (deleteSelectedRecordsBtn) {
-                deleteSelectedRecordsBtn.addEventListener('click', deleteSelectedRecords);
+            if (deleteSelectedRecordsBtn) { deleteSelectedRecordsBtn.addEventListener('click', deleteSelectedRecords); }
+            if (addWebhookBtn) { addWebhookBtn.addEventListener('click', addWebhook); }
+
+            if (autofailTypeSelect) {
+                autofailTypeSelect.addEventListener('change', () => {
+                    if (autofailTypeSelect.value !== '') {
+                        autofailDescriptionContainer.classList.remove('hidden');
+                        autofailDescriptionInput.setAttribute('required', 'required');
+                    } else {
+                        autofailDescriptionContainer.classList.add('hidden');
+                        autofailDescriptionInput.value = '';
+                        autofailDescriptionInput.removeAttribute('required');
+                        autofailDescriptionInput.style.borderColor = '';
+                    }
+                });
             }
-            if (addWebhookBtn) {
-                addWebhookBtn.addEventListener('click', addWebhook);
+
+            if (reviewerNameSelect) {
+                reviewerNameSelect.addEventListener('change', () => {
+                    if (reviewerNameSelect.value === 'Other') {
+                        otherReviewerNameInput.classList.remove('hidden');
+                        otherReviewerNameInput.setAttribute('required', 'required');
+                    } else {
+                        otherReviewerNameInput.classList.add('hidden');
+                        otherReviewerNameInput.value = '';
+                        otherReviewerNameInput.removeAttribute('required');
+                        otherReviewerNameInput.style.borderColor = '';
+                    }
+                });
             }
 
-            autofailTypeSelect.addEventListener('change', () => {
-                if (autofailTypeSelect.value !== '') {
-                    autofailDescriptionContainer.classList.remove('hidden');
-                    autofailDescriptionInput.setAttribute('required', 'required');
-                } else {
-                    autofailDescriptionContainer.classList.add('hidden');
-                    autofailDescriptionInput.value = '';
-                    autofailDescriptionInput.removeAttribute('required');
-                    autofailDescriptionInput.style.borderColor = '';
-                }
-            });
+            if (cerRoleSelect) {
+                cerRoleSelect.addEventListener('change', (event) => {
+                    const selectedRole = event.target.value;
+                    renderQuestionsForRole(selectedRole);
+                    resetFormFieldsButKeepRole();
+                });
+            }
 
-            reviewerNameSelect.addEventListener('change', () => {
-                if (reviewerNameSelect.value === 'Other') {
-                    otherReviewerNameInput.classList.remove('hidden');
-                    otherReviewerNameInput.setAttribute('required', 'required');
-                } else {
-                    otherReviewerNameInput.classList.add('hidden');
-                    otherReviewerNameInput.value = '';
-                    otherReviewerNameInput.removeAttribute('required');
-                    otherReviewerNameInput.style.borderColor = '';
-                }
-            });
+            if (cerNameSelect) {
+                cerNameSelect.addEventListener('change', (event) => {
+                    const selectedCerName = event.target.value;
+                    const cerEmail = cerNameEmailsMap[selectedCerName] || '';
+                    cerEmailInput.value = cerEmail;
 
-            cerRoleSelect.addEventListener('change', (event) => {
-                const selectedRole = event.target.value;
-                renderQuestionsForRole(selectedRole);
-                resetFormFieldsButKeepRole();
-            });
+                    if (selectedCerName) {
+                        fetchLastThreeEvaluations(selectedCerName);
+                    } else {
+                        document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
+                    }
+                });
+            }
 
-            cerNameSelect.addEventListener('change', (event) => {
-                const selectedCerName = event.target.value;
-                const cerEmail = cerNameEmailsMap[selectedCerName] || '';
-                cerEmailInput.value = cerEmail;
+            if (selectRecordToShare) {
+                selectRecordToShare.addEventListener('change', (event) => {
+                    const selectedRecordId = event.target.value;
+                    populateShareEmailFields(selectedRecordId);
+                });
+            }
 
-                if (selectedCerName) {
-                    fetchLastThreeEvaluations(selectedCerName);
-                } else {
-                    document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
-                }
-            });
+            if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', sendShareResponseEmail); }
+            if (submitFormToDBBtn) { submitFormToDBBtn.addEventListener('click', submitFormToDB); }
 
-            selectRecordToShare.addEventListener('change', (event) => {
-                const selectedRecordId = event.target.value;
-                populateShareEmailFields(selectedRecordId);
-            });
 
-            sendShareEmailBtn.addEventListener('click', () => {
-                sendShareResponseEmail();
-            });
-
-            submitFormToDBBtn.addEventListener('click', async (event) => {
+            // Helper function for submit (to avoid duplicating large form collection logic)
+            async function submitFormToDB(event) {
                 event.preventDefault();
                 console.log("Submit to Database button clicked.");
 
@@ -1962,7 +1997,6 @@
                         }
                     }
                 });
-
 
                 const overallScoreDisplay = document.getElementById('overall-score-display');
                 const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
@@ -2007,134 +2041,113 @@
                 console.log("Collected Data for Submission:", formDataForSubmission);
 
                 await addRecordToFirestore(formDataForSubmission);
-            });
+            }
 
+            // PDF & Email Button
+            if (printEmailBtn) {
+                printEmailBtn.addEventListener('click', async () => {
+                    console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
 
-            printEmailBtn.addEventListener('click', async () => {
-                console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
-
-                if (!validateAllMandatoryFields()) {
-                    showMessageBox("Validation Error", "Please fill out all mandatory fields before generating PDF and Email.", true, false, true);
-                    return;
-                }
-
-                const auditFormContent = document.getElementById('auditFormContent');
-                if (!auditFormContent) {
-                    console.error('Error: Form container not found for PDF generation.');
-                    showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
-                    return;
-                }
-
-                const mainNav = document.getElementById('mainNav');
-                const printEmailBtn = document.getElementById('print-email-btn');
-                const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-                const contactIdInput = document.getElementById('contact-id');
-                const cerNameSelect = document.getElementById('cer-name');
-                const cerEmailInput = document.getElementById('cer-email');
-                const evaluationDateInput = document.getElementById('review-date');
-                const reviewerNameSelect = document.getElementById('reviewer-name');
-                const otherReviewerNameInput = document.getElementById('other-reviewer-name');
-
-
-                const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
-                const originalDisplays = [];
-                elementsToHide.forEach(el => {
-                    if (el) {
-                        originalDisplays.push({ el: el, display: el.style.display });
-                        el.style.display = 'none';
+                    if (!validateAllMandatoryFields()) {
+                        showMessageBox("Validation Error", "Please fill out all mandatory fields before generating PDF and Email.", true, false, true);
+                        return;
                     }
-                });
-                console.log("Elements hidden for PDF capture.");
 
-                try {
-                    const canvas = await html2canvas(auditFormContent, {
-                        scale: 2,
-                        useCORS: true,
-                        logging: false
+                    const auditFormContent = document.getElementById('auditFormContent');
+                    if (!auditFormContent) {
+                        console.error('Error: Form container not found for PDF generation.');
+                        showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
+                        return;
+                    }
+
+                    const mainNav = document.getElementById('mainNav');
+                    const printEmailBtn = document.getElementById('print-email-btn');
+                    const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
+                    const contactIdInput = document.getElementById('contact-id');
+                    const cerNameSelect = document.getElementById('cer-name');
+                    const cerEmailInput = document.getElementById('cer-email');
+                    const evaluationDateInput = document.getElementById('review-date');
+                    const reviewerNameSelect = document.getElementById('reviewer-name');
+                    const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+
+
+                    const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
+                    const originalDisplays = [];
+                    elementsToHide.forEach(el => {
+                        if (el) {
+                            originalDisplays.push({ el: el, display: el.style.display });
+                            el.style.display = 'none';
+                        }
                     });
-                    console.log("html2canvas capture complete.");
-
-                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
-                    const imgWidth = 210;
-                    const pageHeight = 297;
-                    const imgHeight = canvas.height * imgWidth / canvas.width;
-                    let heightLeft = imgHeight;
-
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    console.log("jsPDF initialized.");
-
-                    let position = 0;
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                    heightLeft -= pageHeight;
-
-                    while (heightLeft > -1) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                        heightLeft -= pageHeight;
-                    }
-                    pdf.save(`QA_Form_${contactIdInput.value || 'N/A'}_${cerNameSelect.value || 'N/A'}_${evaluationDateInput.value || 'N/A'}.pdf`);
-                    console.log("PDF saved.");
-
-                    const cerNameVal = cerNameSelect.value;
-                    const contactIdVal = contactIdInput.value;
-                    const evaluationDateVal = evaluationDateInput.value;
-                    const overallScoreVal = overallFinalPercentageDisplay.textContent;
-                    const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
-                    const cerEmailVal = cerEmailInput.value;
-
-                    const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
-                    const body = `Dear ${cerNameVal},\n\n` +
-                                 `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                 `Contact ID: ${contactIdVal}\n` +
-                                 `CER Name: ${cerNameVal}\n` +
-                                 `Overall Score: ${overallScoreVal}\n` +
-                                 `Evaluation Date: ${evaluationDateVal}\n\n` +
-                                 `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                 `Kind Regards,\nQuality Evaluation Team`;
-
-                    const mailtoLink = `mailto:${encodeURIComponent(cerEmailVal)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    console.log("Elements hidden for PDF capture.");
 
                     try {
-                        window.location.href = mailtoLink;
-                        showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please attach the PDF manually and send the email.", false, false, true);
-                    } catch (e) {
-                        console.error("Failed to open email client:", e);
-                        showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+                        const canvas = await html2canvas(auditFormContent, {
+                            scale: 2,
+                            useCORS: true,
+                            logging: false
+                        });
+                        console.log("html2canvas capture complete.");
+
+                        const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                        const imgWidth = 210;
+                        const pageHeight = 297;
+                        const imgHeight = canvas.height * imgWidth / canvas.width;
+                        let heightLeft = imgHeight;
+
+                        const { jsPDF } = window.jspdf;
+                        const pdf = new jsPDF('p', 'mm', 'a4');
+                        console.log("jsPDF initialized.");
+
+                        let position = 0;
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                        heightLeft -= pageHeight;
+
+                        while (heightLeft > -1) {
+                            position = heightLeft - imgHeight;
+                            pdf.addPage();
+                            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                            heightLeft -= pageHeight;
+                        }
+                        pdf.save(`QA_Form_${contactIdInput.value || 'N/A'}_${cerNameSelect.value || 'N/A'}_${evaluationDateInput.value || 'N/A'}.pdf`);
+                        console.log("PDF saved.");
+
+                        const cerNameVal = cerNameSelect.value;
+                        const contactIdVal = contactIdInput.value;
+                        const evaluationDateVal = evaluationDateInput.value;
+                        const overallScoreVal = document.getElementById('overall-final-percentage-display').textContent; // Use corrected ID
+                        const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
+                        const cerEmailVal = cerEmailInput.value;
+
+                        const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
+                        const body = `Dear ${cerNameVal},\n\n` +
+                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                     `Contact ID: ${contactIdVal}\n` +
+                                     `CER Name: ${cerNameVal}\n` +
+                                     `Overall Score: ${overallScoreVal}\n` +
+                                     `Evaluation Date: ${evaluationDateVal}\n\n` +
+                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                     `Kind Regards,\nQuality Evaluation Team`;
+
+                        const mailtoLink = `mailto:${encodeURIComponent(cerEmailVal)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                        try {
+                            window.location.href = mailtoLink;
+                            showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please attach the PDF manually and send the email.", false, false, true);
+                        } catch (e) {
+                            console.error("Failed to open email client:", e);
+                            showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+                        }
+                    } catch (error) {
+                        console.error("Critical Error during PDF generation or mailto attempt:", error);
+                        showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
+                    } finally {
+                        originalDisplays.forEach(({ el, display }) => {
+                            if (el) el.style.display = display;
+                        });
+                        console.log("Elements restored.");
                     }
-                } catch (error) {
-                    console.error("Critical Error during PDF generation or mailto attempt:", error);
-                    showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
-                } finally {
-                    originalDisplays.forEach(({ el, display }) => {
-                        if (el) el.style.display = display;
-                    });
-                    console.log("Elements restored.");
-                }
-            });
-
-
-            // Initial trigger for app setup after DOM is ready
-            document.addEventListener('firebaseAuthReady', () => {
-                // Fetch and populate all dropdowns first
-                fetchDropdownOptionsData();
-                initializeApp(); // Then initialize the app, which will show audit form and use populated dropdowns
-
-                if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks();
-                }
-            });
-
-            // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
-            if (document.readyState === 'complete' && window.isAuthReady !== null) {
-                fetchDropdownOptionsData();
-                initializeApp();
-                if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks();
-                }
-            } else {
-                console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
+                });
             }
         });
     </script>
