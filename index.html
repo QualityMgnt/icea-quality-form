@@ -666,14 +666,14 @@
         };
 
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-        const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null) ? __initial_auth_token : null; // Use the provided token if available, else null
+        const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null) ? __initial_auth_token : null;
 
         // Initialize Firebase App and Services ONCE at the top level of the module
-        let appInstance; // Use 'appInstance' to avoid conflict with global 'app' in some environments if not careful
-        if (!getApps().length) { // Check if no Firebase apps have been initialized yet
+        let appInstance;
+        if (!getApps().length) {
             appInstance = initializeApp(firebaseConfig);
         } else {
-            appInstance = getApp(); // Get the default app if it already exists
+            appInstance = getApp();
         }
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
@@ -682,10 +682,10 @@
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         const DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
-        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`; // Path to user profiles for roles
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
 
-        // --- GLOBAL DATA STORES & STATE VARIABLES ---
+        // --- GLOBAL DATA STORES & STATE VARIABLES (declared with let for reassignability) ---
         let allRecords = [];
         let allWebhooks = [];
         let dropdownOptions = {
@@ -698,13 +698,13 @@
 
         let unsubscribeRecords = null;
         let unsubscribeWebhooks = null;
-        let unsubscribeDropdowns = null; // Single listener for dropdowns document
+        let unsubscribeDropdowns = null;
 
-        let currentUserRole = null; // To store the role of the logged-in user
+        let currentUserRole = null;
         let currentUserId = null;
-        let isAuthReady = false; // Flag to indicate if Firebase Auth state has been determined
+        let isAuthReady = false;
 
-        let loggedInUserName = "Quality Evaluation Team"; // Default, will be used in Share Response
+        let loggedInUserName = "Quality Evaluation Team";
 
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
@@ -1709,7 +1709,44 @@
         }
 
 
-        // Initial setup on DOMContentLoaded
+        // Main Application Initialization Function (controls overall display)
+        function initializeAppDisplay() {
+            const loginPage = document.getElementById('loginPage');
+            const mainNav = document.getElementById('mainNav');
+            const auditFormContent = document.getElementById('auditFormContent');
+            const databaseContent = document.getElementById('databaseContent');
+            const shareResponseContent = document.getElementById('shareResponseContent');
+
+            console.log("Initializing main application display.");
+
+            // Check Firebase Auth's current user state (most reliable)
+            const user = auth.currentUser;
+            const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
+
+            if (user && isLoggedInFromSession === 'true') { // Check both session flag and actual Firebase user
+                loginPage.style.display = 'none';
+                mainNav.style.display = 'block';
+                // Show the tab that was active or default to 'auditForm'
+                const activeHash = window.location.hash.substring(1); // Get hash from URL
+                if (activeHash === 'database') {
+                    showTab('database');
+                } else if (activeHash === 'shareResponse') {
+                    showTab('shareResponse');
+                } else {
+                    showTab('auditForm'); // Default to audit form
+                }
+            } else {
+                // If not logged in or session is invalid, show login page
+                loginPage.style.display = 'flex';
+                mainNav.style.display = 'none';
+                auditFormContent.style.display = 'none';
+                databaseContent.style.display = 'none';
+                shareResponseContent.style.display = 'none';
+            }
+        }
+
+
+        // --- DOMContentLoaded Listener (attaches event handlers, makes initial calls) ---
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
@@ -1764,7 +1801,7 @@
                     // Fetch user role from Firestore profile
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                     try {
-                        const userDocSnap = await getDoc(userProfileDocRef); // Use getDoc directly as per rules
+                        const userDocSnap = await getDoc(userProfileDocRef); // Use getDoc directly
                         if (userDocSnap.exists()) {
                             currentUserRole = userDocSnap.data().role;
                             loggedInUserName = userDocSnap.data().email || user.email || "Quality Evaluation Team"; // Use user's email as name
@@ -1826,7 +1863,6 @@
                     const enteredPassword = passwordInput.value;
 
                     try {
-                        // Authenticate with Firebase Email/Password
                         const userCredential = await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
                         sessionStorage.setItem('loggedIn', 'true'); // Set session storage flag
                         window.location.reload(); // Reload to trigger onAuthStateChanged and page init
@@ -1959,7 +1995,7 @@
 
             // Helper function for submit (to avoid duplicating large form collection logic)
             async function submitFormToDB(event) {
-                event.preventDefault();
+                event.preventDefault(); // Ensure this is also prevented here just in case
                 console.log("Submit to Database button clicked.");
 
                 if (!validateAllMandatoryFields()) {
@@ -1984,6 +2020,7 @@
                         }
                     }
                 });
+
 
                 const overallScoreDisplay = document.getElementById('overall-score-display');
                 const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
