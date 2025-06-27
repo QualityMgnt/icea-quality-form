@@ -92,11 +92,14 @@
             border-radius: 0.375rem;
             margin-bottom: 0.5rem;
         }
+        /* Hide access denied section and related buttons */
+        #accessDeniedSection {
+            display: none !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
 
-    <!-- Custom Message/Confirmation Box Overlay -->
     <div id="messageBoxOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm mx-auto">
             <div id="messageBoxSpinner" class="spinner hidden"></div>
@@ -111,34 +114,25 @@
     </div>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl p-8 mt-8 mb-8">
-        <!-- Header Section -->
         <div class="icealion-blue p-4 flex items-center justify-between mb-6">
             <div class="text-2xl font-semibold">ICEA LION QA Audit Admin Portal</div>
             <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
         </div>
 
-        <!-- Access Denied Section -->
-        <div id="accessDeniedSection" class="w-full max-w-md mx-auto hidden">
-            <h2 class="text-2xl font-bold text-gray-800 text-center mb-6" id="accessDeniedTitle">Access Denied</h2>
-            <p id="accessDeniedMessage" class="text-gray-700 text-center mb-4">You must be logged in as an administrator to access this page.</p>
-            <button id="goToLoginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Go to Login</button>
-            <button id="logoutIfLoggedInBtn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md mt-2 hidden">Logout</button>
-        </div>
-
-        <!-- Admin Dashboard Section -->
-        <div id="adminDashboard" class="hidden">
-            <!-- Tab Navigation -->
+        <div id="adminDashboard">
             <div class="flex space-x-2 border-b border-gray-200 mb-6">
                 <button id="usersTabBtn" class="tab-button active">User Management</button>
                 <button id="dropdownsTabBtn" class="tab-button">Dropdown Options</button>
                 <button id="autofailsTabBtn" class="tab-button">Autofail Types</button>
-                <button id="logoutAdminBtn" class="ml-auto bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md">Logout</button>
-                <button id="backToAppBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md ml-2">Back to App</button>
+                <button id="backToAppBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md ml-auto">Back to App</button>
             </div>
 
-            <!-- User Management Content -->
             <div id="usersContent" class="tab-content">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Users</h3>
+                <p class="text-red-500 text-sm mb-4">
+                    NOTE: User creation/deletion in this public version only affects their Firestore profile.
+                    Actual Firebase Authentication user accounts must be managed directly in the Firebase Console.
+                </p>
                 <div class="overflow-x-auto">
                     <table class="min-w-full bg-white user-table rounded-lg overflow-hidden">
                         <thead>
@@ -170,7 +164,6 @@
                 </div>
             </div>
 
-            <!-- Dropdown Options Content -->
             <div id="dropdownsContent" class="tab-content hidden">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Dropdown Options</h3>
 
@@ -203,7 +196,6 @@
                 </div>
             </div>
 
-            <!-- Autofail Types Content (Conceptual) -->
             <div id="autofailsContent" class="tab-content hidden">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Autofail Rules</h3>
                 <p class="text-gray-600 mb-4">
@@ -237,12 +229,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import {
-            getAuth,
-            createUserWithEmailAndPassword,
-            onAuthStateChanged,
-            signOut,
-            signInWithCustomToken, // Import signInWithCustomToken
-            signInAnonymously // Import signInAnonymously
+            // Removed getAuth, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import {
             getFirestore,
@@ -259,38 +246,43 @@
             getDoc
         } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // Initialize Firebase using global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // Initialize Firebase using global variables provided by the Canvas environment (or fallback to hardcoded)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", // Your provided API key
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+            measurementId: "G-1RJJTT3QET"
+        };
 
+        const appId = firebaseConfig.appId; // Always use appId from config
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Expose Firebase instances and appId globally for easier access in other scripts if needed
+        // Expose Firebase instances and appId globally for easier access
         window.firebaseApp = app;
-        window.auth = auth;
         window.db = db;
-        window.appId = appId; // Ensure window.appId is correctly set
+        window.appId = appId;
 
         // Firebase Collection Paths using the dynamic appId
         const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
         const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
 
-        // --- DOM Elements ---
-        const accessDeniedSection = document.getElementById('accessDeniedSection');
-        const accessDeniedTitle = document.getElementById('accessDeniedTitle');
-        const accessDeniedMessage = document.getElementById('accessDeniedMessage');
-        const goToLoginBtn = document.getElementById('goToLoginBtn');
-        const logoutIfLoggedInBtn = document.getElementById('logoutIfLoggedInBtn');
+        // --- DOM Elements (removed accessDenied-related elements) ---
+        // const accessDeniedSection = document.getElementById('accessDeniedSection');
+        // const accessDeniedTitle = document.getElementById('accessDeniedTitle');
+        // const accessDeniedMessage = document.getElementById('accessDeniedMessage');
+        // const goToLoginBtn = document.getElementById('goToLoginBtn');
+        // const logoutIfLoggedInBtn = document.getElementById('logoutIfLoggedInBtn');
 
         const adminDashboard = document.getElementById('adminDashboard');
 
         const usersTabBtn = document.getElementById('usersTabBtn');
         const dropdownsTabBtn = document.getElementById('dropdownsTabBtn');
         const autofailsTabBtn = document.getElementById('autofailsTabBtn');
-        const logoutAdminBtn = document.getElementById('logoutAdminBtn');
+        // const logoutAdminBtn = document.getElementById('logoutAdminBtn'); // Removed
         const backToAppBtn = document.getElementById('backToAppBtn');
 
         const userTableBody = document.getElementById('userTableBody');
@@ -302,7 +294,7 @@
         const reviewerNamesList = document.getElementById('reviewerNamesList');
         const autofailTypesList = document.getElementById('autofailTypesList');
 
-        // --- Message Box Functions ---
+        // --- Message Box Functions (unchanged) ---
         /**
          * Displays a custom message/alert box.
          * @param {string} title - The title of the message box.
@@ -377,133 +369,28 @@
             document.getElementById('messageBoxOverlay').classList.add('hidden');
         }
 
-        // --- Session Management (consistent with index.html) ---
-        window.checkSessionTimeout = function() {
-            const lastActivity = localStorage.getItem('lastActivity');
-            const loginTime = localStorage.getItem('loginTime');
-            if (lastActivity && loginTime) {
-                const now = new Date().getTime();
-                const eightHours = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+        // --- Session Management (Removed for public access) ---
+        // window.checkSessionTimeout = function() { /* ... */ };
+        // window.updateLastActivity = function() { /* ... */ };
+        // document.addEventListener('mousemove', window.updateLastActivity);
+        // document.addEventListener('keydown', window.updateLastActivity);
+        // document.addEventListener('click', window.updateLastActivity);
 
-                // Check if last activity or total login time exceeds 8 hours
-                if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
-                    console.log("Session expired. Logging out.");
-                    localStorage.removeItem('lastActivity');
-                    localStorage.removeItem('loginTime');
-                    sessionStorage.removeItem('loggedIn');
-                    return true; // Session expired
-                }
-            }
-            return false; // Session still active
-        };
+        // --- Authentication State Listener (Removed for public access) ---
+        // onAuthStateChanged(auth, async (user) => { /* ... */ });
 
-        window.updateLastActivity = function() {
-            localStorage.setItem('lastActivity', new Date().getTime().toString());
-        };
+        // Function to display the access denied message (No longer needed, but kept as a placeholder if re-introduced)
+        // function displayAccessDenied(title, message) {
+        //     adminDashboard.classList.add('hidden');
+        //     accessDeniedSection.classList.remove('hidden');
+        //     accessDeniedTitle.textContent = title;
+        //     accessDeniedMessage.textContent = message;
+        //     logoutIfLoggedInBtn.classList.add('hidden');
+        // }
 
-        // Add event listeners to update last activity on user interaction
-        document.addEventListener('mousemove', window.updateLastActivity);
-        document.addEventListener('keydown', window.updateLastActivity);
-        document.addEventListener('click', window.updateLastActivity);
-
-
-        // --- Auth State Listener for Admin Page ---
-        let currentAdminUser = null; // Store current logged-in user object from Firebase Auth
-        let currentAdminUserRole = null; // Store the role fetched from Firestore
-
-        onAuthStateChanged(auth, async (user) => {
-            // If initialAuthToken is present and no user is currently authenticated, try signing in with it.
-            if (initialAuthToken && !user) {
-                try {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                    // Auth state change listener will be triggered again with the user object
-                    return; // Exit this call to avoid re-processing before signInWithCustomToken completes
-                } catch (error) {
-                    console.error("Error signing in with custom token:", error);
-                    // Fallback to anonymous sign-in if custom token fails (or show access denied)
-                    try {
-                        await signInAnonymously(auth);
-                        console.log("Signed in anonymously due to custom token failure.");
-                    } catch (anonError) {
-                        console.error("Error signing in anonymously:", anonError);
-                        displayAccessDenied("Authentication Error", "Could not sign in. Please try again.");
-                        return;
-                    }
-                }
-            }
-
-            // Check for session timeout only after initial auth attempt (if any)
-            if (window.checkSessionTimeout()) {
-                await signOut(auth); // Clear any expired Firebase session
-                displayAccessDenied("Session Expired", "Your session has expired. Please log in again.");
-                return;
-            }
-
-            if (user) {
-                // User is authenticated (either via custom token, anonymous, or existing session)
-                const userDocRef = doc(db, USERS_COLLECTION_PATH, user.uid);
-                try {
-                    const userDocSnap = await getDoc(userDocRef);
-
-                    if (userDocSnap.exists()) {
-                        const userData = userDocSnap.data();
-                        currentAdminUserRole = userData.role;
-                        currentAdminUser = user; // Store the authenticated user object
-
-                        console.log(`User ${user.email} logged in with role: ${currentAdminUserRole} on admin.html`);
-
-                        if (currentAdminUserRole === 'Admin') {
-                            accessDeniedSection.classList.add('hidden'); // Hide access denied message
-                            adminDashboard.classList.remove('hidden'); // Show dashboard
-                            loadAdminDashboard(); // Load all admin-specific data
-                            showAdminTab('usersContent'); // Default to Users tab
-                        } else {
-                            // User is logged in, but not an Admin.
-                            displayAccessDenied("Unauthorized Access", "You do not have administrative privileges to view this page.");
-                            logoutIfLoggedInBtn.classList.remove('hidden'); // Show logout option
-                        }
-                    } else {
-                        // User authenticated with Firebase Auth but no role document found in Firestore
-                        console.warn(`User profile for ${user.email} not found in Firestore. Logging out.`);
-                        await signOut(auth); // Log them out from Firebase Auth
-                        displayAccessDenied("Access Denied", "User profile missing. Please contact administrator.");
-                    }
-                } catch (error) {
-                    console.error("Error fetching user role from Firestore:", error);
-                    await signOut(auth); // Log out in case of Firestore error
-                    displayAccessDenied("Error", `Failed to verify your role: ${error.message}. Please try again.`);
-                }
-            } else {
-                // No user logged in or after logout. Display access denied message.
-                console.log("No user logged in to admin portal.");
-                displayAccessDenied("Access Denied", "You must be logged in as an administrator to access this page.");
-            }
-        });
-
-        // Function to display the access denied message
-        function displayAccessDenied(title, message) {
-            adminDashboard.classList.add('hidden'); // Ensure dashboard is hidden
-            accessDeniedSection.classList.remove('hidden'); // Show access denied section
-            accessDeniedTitle.textContent = title;
-            accessDeniedMessage.textContent = message;
-            logoutIfLoggedInBtn.classList.add('hidden'); // Hide logout button by default initially
-            if (auth.currentUser) { // If there's an auth user, but they're not admin, offer to log out
-                logoutIfLoggedInBtn.classList.remove('hidden');
-            }
-        }
-
-        // --- Event Listeners for Access Denied Section ---
-        goToLoginBtn.addEventListener('click', () => {
-            window.location.href = 'index.html'; // Redirect to the universal login page
-        });
-
-        logoutIfLoggedInBtn.addEventListener('click', async () => {
-            await signOut(auth); // Perform Firebase logout
-            sessionStorage.removeItem('loggedIn'); // Clear session indicators
-            localStorage.removeItem('lastActivity');
-            localStorage.removeItem('loginTime');
-            // onAuthStateChanged will detect logout and refresh UI, showing basic "Access Denied"
-        });
+        // --- Event Listeners for Access Denied Section (Removed) ---
+        // goToLoginBtn.addEventListener('click', () => { /* ... */ });
+        // logoutIfLoggedInBtn.addEventListener('click', async () => { /* ... */ });
 
 
         // --- Admin Dashboard Tabs Logic ---
@@ -530,14 +417,7 @@
         dropdownsTabBtn.addEventListener('click', () => showAdminTab('dropdownsContent'));
         autofailsTabBtn.addEventListener('click', () => showAdminTab('autofailsContent'));
         
-        // Event listener for admin logout button
-        logoutAdminBtn.addEventListener('click', async () => {
-            await signOut(auth);
-            sessionStorage.removeItem('loggedIn');
-            localStorage.removeItem('lastActivity');
-            localStorage.removeItem('loginTime');
-            window.location.href = 'index.html'; // Redirect to the main login page after admin logout
-        });
+        // Removed event listener for admin logout button
 
         // Event listener for "Back to App" button
         backToAppBtn.addEventListener('click', () => {
@@ -611,13 +491,9 @@
          * @param {string} newRole - The new role for the user.
          */
         async function updateRole(userId, newRole) {
-            // Prevent an admin from demoting their own role
-            if (currentAdminUser && currentAdminUser.uid === userId && newRole !== 'Admin') {
-                showMessageBox("Action Blocked", "You cannot demote your own admin role. Please ask another admin to change your role.", true);
-                // Reload users to revert the dropdown selection in the UI
-                loadUsers();
-                return;
-            }
+            // In a public facing app, this logic might need a server-side check.
+            // For now, we'll allow role changes, but user creation requires Firebase Auth.
+            // Removed self-demotion check as there's no "currentAdminUser" from auth.
 
             // Show confirmation dialog before proceeding
             const confirmed = await showConfirmationBox("Confirm Role Change", `Are you sure you want to change the role of user ${userId} to ${newRole}?`);
@@ -647,14 +523,11 @@
          * @param {string} userEmail - The email of the user for display in messages.
          */
         async function deleteUser(userId, userEmail) {
-            // Prevent an admin from deleting their own account
-            if (currentAdminUser && currentAdminUser.uid === userId) {
-                showMessageBox("Action Blocked", "You cannot delete your own user account from here.", true);
-                return;
-            }
+            // In a public facing app, this logic might need a server-side check.
+            // Removed self-deletion check as there's no "currentAdminUser" from auth.
 
             // Show confirmation dialog before proceeding
-            const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete user ${userEmail}? This action cannot be undone and will not delete the Firebase Authentication user.`);
+            const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete user ${userEmail}? This action cannot be undone and will NOT delete the Firebase Authentication user (if one exists).`);
             if (!confirmed) {
                 return;
             }
@@ -685,46 +558,48 @@
                 return;
             }
 
-            showMessageBox("Adding User", "Creating user account...", false, true, false);
+            showMessageBox("Adding User", "Creating user profile...", false, true, false);
 
             try {
-                // IMPORTANT: In a production environment, user creation by an admin should ideally happen
-                // via a secure Firebase Cloud Function using the Firebase Admin SDK.
-                // This client-side call is for demonstration/prototype simplicity and assumes appropriate
-                // Firebase Security Rules for `create` on the 'users' collection are in place.
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
+                // IMPORTANT: Since Firebase Auth is removed from the frontend,
+                // this will ONLY create a Firestore profile document.
+                // It will NOT create a Firebase Authentication user account.
+                // To create an actual Firebase Auth user from an admin page,
+                // you would typically need a Firebase Cloud Function or a secure backend.
+                // For a truly public-facing app without authentication, you might remove
+                // the email/password fields and simply rely on creating a profile doc.
+                // For now, it creates a profile doc assuming Firebase Auth users are managed elsewhere.
+
+                // Simulate a user ID if no real Firebase Auth user is being created
+                // You might generate a UUID here or use a dummy ID.
+                // If you want to connect to *existing* Firebase Auth users, you'd need
+                // to enable Firebase Auth on this page and use its features securely.
+                const dummyUserId = "public_admin_added_" + Date.now(); // Simple dummy ID for demonstration
 
                 // Create a user profile document in Firestore
-                await setDoc(doc(db, USERS_COLLECTION_PATH, user.uid), {
-                    email: user.email,
+                await setDoc(doc(db, USERS_COLLECTION_PATH, dummyUserId), {
+                    email: email,
                     role: role,
                     createdAt: new Date().toISOString()
                 });
 
                 hideMessageBox();
-                showMessageBox("Success", `New user ${email} registered as ${role}!`, false, false, true, () => {
+                showMessageBox("Success", `New user profile for ${email} registered as ${role}!`, false, false, true, () => {
                     addNewUserForm.reset(); // Clear the form
                     // loadUsers() is not explicitly called here because onSnapshot already handles real-time updates.
                 });
 
             } catch (error) {
                 hideMessageBox();
-                let errorMessage = "Failed to add user.";
-                if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = "This email is already in use. Please use a different email.";
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = "Password is too weak (minimum 6 characters required).";
-                } else if (error.message) {
-                    errorMessage = `Error: ${error.message}`;
-                }
+                let errorMessage = "Failed to add user profile.";
+                errorMessage = `Error: ${error.message}`; // Fallback to generic message
                 addNewUserError.textContent = errorMessage;
                 addNewUserError.classList.remove('hidden');
             }
         });
 
 
-        // --- Dropdown Options Management Functions ---
+        // --- Dropdown Options Management Functions (unchanged) ---
         /**
          * Loads and displays dropdown options from Firestore.
          * Uses onSnapshot for real-time updates to dropdown options.
@@ -741,6 +616,7 @@
                 renderDropdownList(data.reviewerNames || [], reviewerNamesList, 'reviewerNames');
                 renderDropdownList(data.autofailTypes || [], autofailTypesList, 'autofailTypes');
             }, (error) => {
+                // Error callback for onSnapshot
                 console.error("Error setting up real-time dropdown options listener:", error);
                 showMessageBox("Error", `Failed to load dropdown options: ${error.message}`, true);
             });
@@ -877,6 +753,23 @@
             // In a full implementation, this would fetch autofail rules from Firestore
             // and render them, likely with similar add/edit/delete functionality.
         }
+
+        // --- Initial Load Logic for Admin Page (No Login Required) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Admin DOM fully loaded and parsed. Initializing for public access.");
+
+            // Always show the admin dashboard content immediately
+            adminDashboard.classList.remove('hidden');
+
+            // Load all necessary admin data
+            loadAdminDashboard();
+            
+            // Set initial active tab
+            showAdminTab('usersContent');
+
+            // The backToAppBtn is the only remaining button on the tab bar that performs navigation away.
+            // Its event listener is already defined above.
+        });
     </script>
 </body>
 </html>
