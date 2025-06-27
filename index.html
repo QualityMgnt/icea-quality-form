@@ -648,10 +648,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script type="module">
-        // Firebase Imports
+        // Firebase Imports (all imports here)
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        // Import all necessary Firestore functions
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
 
@@ -671,22 +670,22 @@
 
         // Initialize Firebase App and Services ONCE at the top level of the module
         let appInstance;
-        if (!getApps().length) { // Check if no Firebase apps have been initialized yet
+        if (!getApps().length) {
             appInstance = initializeApp(firebaseConfig);
         } else {
-            appInstance = getApp(); // Get the default app if it already exists
+            appInstance = getApp();
         }
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
 
-        // Define Firebase Collection Paths
+        // Define Firebase Collection Paths (using const as they don't change)
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         const DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
 
-        // --- GLOBAL DATA STORES & STATE VARIABLES ---
+        // --- GLOBAL DATA STORES & STATE VARIABLES (declared with let for reassignability) ---
         let allRecords = [];
         let allWebhooks = [];
         let dropdownOptions = {
@@ -697,9 +696,9 @@
         };
         let cerNameEmailsMap = {};
 
-        let unsubscribeRecords = null; // Used for cleanup
-        let unsubscribeWebhooks = null; // Used for cleanup
-        let unsubscribeDropdowns = null; // Used for cleanup
+        let unsubscribeRecords = null;
+        let unsubscribeWebhooks = null;
+        let unsubscribeDropdowns = null;
 
         let currentUserRole = null;
         let currentUserId = null;
@@ -1023,7 +1022,7 @@
         }
 
         // Firestore Data Handling Functions
-        // Unsubscribe functions are defined at the top of the module.
+        // `let` declarations are at the top of this module for correct scoping.
 
         /**
          * Fetches records and webhooks from Firestore in real-time.
@@ -1844,6 +1843,7 @@
                     }
                 }
                 isAuthReady = true; // Mark auth as ready
+                // Now that auth state and role are determined, initialize the UI
                 initializeAppDisplay(); // Call the renamed initialization function
                 fetchDropdownOptionsData(); // Start listening to dropdowns after auth is ready
                 // If already logged in when page loads, fetch records for database tab
@@ -1884,7 +1884,7 @@
             }
 
 
-            // --- Other Event Listeners (ensure elements exist before attaching) ---
+            // --- Other Event Listeners (ensuring elements exist) ---
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async function() {
                     sessionStorage.removeItem('loggedIn');
@@ -1919,6 +1919,7 @@
             // These functions are now defined globally within this module scope.
 
             // Function declarations for event handlers (hoisted to top of script execution)
+            // They need to be defined before they are called within `DOMContentLoaded` block.
             function updateDeleteButtonState() {
                 const deleteSelectedRecordsBtnElement = document.getElementById('deleteSelectedRecordsBtn');
                 if (deleteSelectedRecordsBtnElement) { // Ensure element exists
@@ -1983,4 +1984,196 @@
                     await addDoc(collection(db, WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
                     newWebhookUrlInputElement.value = '';
                     showMessageBox("Success", "Webhook added successfully!", false, false, true);
+                } catch (e) { console.error("Error adding webhook: ", e); showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true); }
+            }
+
+
+            // Attach event listeners to elements that are guaranteed to exist at DOMContentLoaded
+            if (deleteSelectedRecordsBtn) { deleteSelectedRecordsBtn.addEventListener('click', deleteSelectedRecords); }
+            if (addWebhookBtn) { addWebhookBtn.addEventListener('click', addWebhook); }
+
+
+            // Helper function for submit (to avoid duplicating large form collection logic)
+            async function submitFormToDB(event) {
+                event.preventDefault(); // Ensure this is also prevented here just in case
+                console.log("Submit to Database button clicked.");
+
+                if (!validateAllMandatoryFields()) {
+                    showMessageBox("Validation Error", "Please fill out all mandatory fields before submitting.", true, false, true);
+                    return;
                 }
+
+                const formDataForSubmission = {};
+                const generalInputs = document.querySelectorAll('#auditFormContent .form-grid-input, #autofailDescriptionContainer textarea');
+
+                generalInputs.forEach(input => {
+                    if (input.name) {
+                        if (input.type === 'datetime-local' || input.type === 'date') {
+                            formDataForSubmission[input.name] = input.value;
+                        } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
+                            return;
+                        } else if (input.id === 'autofail-description' && autofailTypeSelect.value === '') {
+                            return;
+                        }
+                        else {
+                            formDataForSubmission[input.name] = input.value.trim();
+                        }
+                    }
+                });
+
+
+                const overallScoreDisplay = document.getElementById('overall-score-display');
+                const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
+
+                if (overallScoreValue === 0) {
+                    if (!autofailTypeSelect.value.trim()) {
+                        formDataForSubmission['Auto Fail Type'] = 'Auto-Scored Fail';
+                        autofailTypeSelect.value = 'Auto-Scored Fail';
+                    }
+                    if (!autofailDescriptionInput.value.trim()) {
+                        formDataForSubmission['Autofail Description'] = 'Automatically marked due to 0% overall score.';
+                        autofailDescriptionInput.value = 'Automatically marked due to 0% overall score.';
+                        autofailDescriptionContainer.classList.remove('hidden');
+                        autofailDescriptionInput.setAttribute('required', 'required');
+                    }
+                } else {
+                    formDataForSubmission['Auto Fail Type'] = autofailTypeSelect.value.trim();
+                    formDataForSubmission['Autofail Description'] = autofailDescriptionInput.value.trim();
+                }
+
+                formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
+                formDataForSubmission['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
+                formDataForSubmission['Total Pts.'] = globalTotalPoints;
+                formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
+                formDataForSubmission['Final Score'] = overallScoreDisplay.textContent;
+
+                const dynamicSelects = document.querySelectorAll('.rating-select');
+                dynamicSelects.forEach(selectElement => {
+                    const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                    if (rowDiv) {
+                        const pointsElement = rowDiv.querySelector('.points-input');
+                        const remarksElement = rowDiv.querySelector('.remarks-textarea');
+                        formDataForSubmission[selectElement.name] = selectElement.value;
+                        if (pointsElement) {
+                            formDataForSubmission[pointsElement.name] = pointsElement.value;
+                        }
+                        if (remarksElement) {
+                            formDataForSubmission[remarksElement.name] = remarksElement.value.trim();
+                        }
+                    }
+                });
+                console.log("Collected Data for Submission:", formDataForSubmission);
+
+                await addRecordToFirestore(formDataForSubmission);
+            }
+
+            // PDF & Email Button
+            if (printEmailBtn) {
+                printEmailBtn.addEventListener('click', async () => {
+                    console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
+
+                    if (!validateAllMandatoryFields()) {
+                        showMessageBox("Validation Error", "Please fill out all mandatory fields before generating PDF and Email.", true, false, true);
+                        return;
+                    }
+
+                    const auditFormContent = document.getElementById('auditFormContent');
+                    if (!auditFormContent) {
+                        console.error('Error: Form container not found for PDF generation.');
+                        showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
+                        return;
+                    }
+
+                    const mainNav = document.getElementById('mainNav');
+                    const printEmailBtn = document.getElementById('print-email-btn');
+                    const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
+                    const contactIdInput = document.getElementById('contact-id');
+                    const cerNameSelect = document.getElementById('cer-name');
+                    const cerEmailInput = document.getElementById('cer-email');
+                    const evaluationDateInput = document.getElementById('review-date');
+                    const reviewerNameSelect = document.getElementById('reviewer-name');
+                    const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+
+
+                    const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
+                    const originalDisplays = [];
+                    elementsToHide.forEach(el => {
+                        if (el) {
+                            originalDisplays.push({ el: el, display: el.style.display });
+                            el.style.display = 'none';
+                        }
+                    });
+                    console.log("Elements hidden for PDF capture.");
+
+                    try {
+                        const canvas = await html2canvas(auditFormContent, {
+                            scale: 2,
+                            useCORS: true,
+                            logging: false
+                        });
+                        console.log("html2canvas capture complete.");
+
+                        const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                        const imgWidth = 210;
+                        const pageHeight = 297;
+                        const imgHeight = canvas.height * imgWidth / canvas.width;
+                        let heightLeft = imgHeight;
+
+                        const { jsPDF } = window.jspdf;
+                        const pdf = new jsPDF('p', 'mm', 'a4');
+                        console.log("jsPDF initialized.");
+
+                        let position = 0;
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                        heightLeft -= pageHeight;
+
+                        while (heightLeft > -1) {
+                            position = heightLeft - imgHeight;
+                            pdf.addPage();
+                            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+                            heightLeft -= pageHeight;
+                        }
+                        pdf.save(`QA_Form_${contactIdInput.value || 'N/A'}_${cerNameSelect.value || 'N/A'}_${evaluationDateInput.value || 'N/A'}.pdf`);
+                        console.log("PDF saved.");
+
+                        const cerNameVal = cerNameSelect.value;
+                        const contactIdVal = contactIdInput.value;
+                        const evaluationDateVal = evaluationDateInput.value;
+                        const overallScoreVal = document.getElementById('overall-final-percentage-display').textContent;
+                        const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
+                        const cerEmailVal = cerEmailInput.value;
+
+                        const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
+                        const body = `Dear ${cerNameVal},\n\n` +
+                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                     `Contact ID: ${contactIdVal}\n` +
+                                     `CER Name: ${cerNameVal}\n` +
+                                     `Overall Score: ${overallScoreVal}\n` +
+                                     `Evaluation Date: ${evaluationDateVal}\n\n` +
+                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                     `Kind Regards,\nQuality Evaluation Team`;
+
+                        const mailtoLink = `mailto:${encodeURIComponent(cerEmailVal)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                        try {
+                            window.location.href = mailtoLink;
+                            showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please attach the PDF manually and send the email.", false, false, true);
+                        } catch (e) {
+                            console.error("Failed to open email client:", e);
+                            showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+                        }
+                    } catch (error) {
+                        console.error("Critical Error during PDF generation or mailto attempt:", error);
+                        showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
+                    } finally {
+                        originalDisplays.forEach(({ el, display }) => {
+                            if (el) el.style.display = display;
+                        });
+                        console.log("Elements restored.");
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
