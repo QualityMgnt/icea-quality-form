@@ -392,7 +392,6 @@
     </style>
 </head>
 <body>
-    <!-- Message Box Overlay -->
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
         <div class="message-box">
             <div id="messageBoxSpinner" class="spinner hidden"></div>
@@ -406,7 +405,6 @@
         </div>
     </div>
 
-    <!-- Main Navigation Bar -->
     <nav class="main-nav" id="mainNav" style="display: none;">
         <ul>
             <li><a href="#" id="evaluationFormTab" class="active"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
@@ -418,7 +416,6 @@
         <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
 
-    <!-- Evaluation Form Content Section -->
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="evaluationFormContent" style="display: none;">
         <div class="icealion-blue p-4 flex items-center justify-between">
             <div class="text-xl font-semibold">Quality Assessment Form - ICEALION GROUP Contact Centre</div>
@@ -571,7 +568,7 @@
                         </button>
                     </div>
                 </div>
-            </div>
+        </div>
 
         <div class="p-6">
             <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
@@ -597,7 +594,6 @@
             </div>
         </div>
     </div>
-    <!-- Monthly Evaluation Statistics Section - Keep for PDF generation source -->
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="monthlyStatsContainer" style="display: none;">
         <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
             <i class="fas fa-chart-line tile-icon"></i> This Month Evaluation Statistics
@@ -617,7 +613,6 @@
         </div>
     </div>
 
-    <!-- Database Records Section -->
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
             Database Records
@@ -832,45 +827,13 @@
         }
 
 
-        // --- Session Management (for index.html to check session and logout) ---
-        window.checkSessionTimeout = function() {
-            const lastActivity = localStorage.getItem('lastActivity');
-            const loginTime = localStorage.getItem('loginTime');
-            if (lastActivity && loginTime) {
-                const now = new Date().getTime();
-                const eightHours = 8 * 60 * 60 * 1000;
-
-                if ((now - parseInt(lastActivity) > eightHours) || (now - parseInt(loginTime) > eightHours)) {
-                    console.log("Session expired. Logging out.");
-                    localStorage.removeItem('lastActivity');
-                    localStorage.removeItem('loginTime');
-                    sessionStorage.removeItem('loggedIn');
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        window.updateLastActivity = function() {
-            localStorage.setItem('lastActivity', new Date().getTime().toString());
-        };
-
-        document.addEventListener('mousemove', window.updateLastActivity);
-        document.addEventListener('keydown', window.updateLastActivity);
-        document.addEventListener('click', window.updateLastActivity);
-
-
         // --- Main Authentication State Listener (Handles Main App UI Display) ---
         // This listener will be defined *after* `auth` is potentially initialized.
         // It's wrapped in a check to ensure `auth` is defined.
         if (auth) { // Proceed only if Firebase Auth was successfully initialized
             onAuthStateChanged(auth, async (user) => {
-                if (window.checkSessionTimeout()) {
-                    // Only attempt signOut if auth is initialized, otherwise just redirect
-                    if (auth) await signOut(auth);
-                    window.location.href = 'login.html'; // Redirect to login if session expired
-                    return;
-                }
+                // No more localStorage checks for lastActivity or loginTime here.
+                // Firebase's onAuthStateChanged directly reflects the authentication status.
 
                 if (user) {
                     // User is authenticated, fetch their role
@@ -884,7 +847,7 @@
                         if (userDocSnap.exists()) {
                             window.currentUserRole = userDocSnap.data().role;
                             console.log("User role fetched:", window.currentUserRole);
-                            window.updateLastActivity();
+                            // No need to update localStorage 'lastActivity' here if not using it for session timeout
 
                             initializeAppUI(); // Initialize the main app UI based on role
                         } else {
@@ -901,9 +864,11 @@
                     console.log("No user logged in. Redirecting to login.html");
                     window.currentUserId = null;
                     window.currentUserRole = null;
-                    sessionStorage.removeItem('loggedIn');
-                    localStorage.removeItem('lastActivity');
-                    localStorage.removeItem('loginTime');
+                    // Clean up any remaining localStorage items related to session if they exist
+                    // though they should ideally be handled by login.html or signout
+                    // localStorage.removeItem('lastActivity'); // REMOVE THIS LINE
+                    // localStorage.removeItem('loginTime');    // REMOVE THIS LINE
+                    sessionStorage.removeItem('loggedIn'); // Keep this if login.html checks sessionStorage for a quick redirect
                     window.location.href = 'login.html'; // Redirect unauthenticated users
                 }
                 window.isAuthReady = true; // Signal that auth state is resolved
@@ -1556,7 +1521,7 @@
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
             lastEvaluationsTableBody.innerHTML = '';
 
-            if (evaluallength === 0) {
+            if (evaluations.length === 0) { // Corrected the typo 'evaluallength' to 'evaluations.length'
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
                 return;
             }
@@ -1658,8 +1623,9 @@
             const monthlyRecords = await fetchMonthlyEvaluationRecords();
             const processedData = processMonthlyEvaluationData(
                 monthlyRecords,
-                [...(dynamicDropdownOptions.cerNames || [])],
-                [...(dynamicDropdownOptions.cerRoles || [])]
+                // Ensure these arrays are available for processing
+                dynamicDropdownOptions.cerNames || [],
+                dynamicDropdownOptions.cerRoles || []
             );
             renderMonthlyStatsTable(processedData);
         }
@@ -1698,6 +1664,7 @@
         function processMonthlyEvaluationData(records, cerNames, cerRoles) {
             const dataMatrix = {};
 
+            // Initialize dataMatrix with all known CER names and roles
             cerNames.forEach(name => {
                 dataMatrix[name] = {};
                 cerRoles.forEach(role => {
@@ -1706,39 +1673,43 @@
                 dataMatrix[name]['Total'] = 0;
             });
 
+            // Process records and populate dataMatrix
             records.forEach(record => {
                 const cerName = record['CER Name'];
                 const cerRole = record['CER Role'];
 
-                if (dataMatrix[cerName]) {
-                    if (dataMatrix[cerName][cerRole] !== undefined) {
-                        dataMatrix[cerName][cerRole]++;
-                    } else {
-                        dataMatrix[cerName][cerRole] = 1;
-                        if (!cerRoles.includes(cerRole)) {
-                            cerRoles.push(cerRole);
-                        }
-                    }
-                    dataMatrix[cerName]['Total']++;
-                } else {
+                // Ensure cerName exists in the matrix or add it dynamically if it's a new name
+                if (!dataMatrix[cerName]) {
                     dataMatrix[cerName] = {};
-                    cerRoles.forEach(role => {
+                    cerRoles.forEach(role => { // Initialize roles for the new CER name
                         dataMatrix[cerName][role] = 0;
                     });
-                    dataMatrix[cerName][cerRole] = 1;
-                    dataMatrix[cerName]['Total'] = 1;
-                    cerNames.push(cerName);
+                    dataMatrix[cerName]['Total'] = 0;
                 }
+
+                // Increment count for the specific role and overall total
+                if (dataMatrix[cerName][cerRole] !== undefined) {
+                    dataMatrix[cerName][cerRole]++;
+                } else {
+                    // Handle cases where a record has a role not initially in cerRoles (e.g., newly added role)
+                    dataMatrix[cerName][cerRole] = 1;
+                    if (!cerRoles.includes(cerRole)) {
+                        cerRoles.push(cerRole); // Add new role to the list for headers
+                        cerRoles.sort(); // Keep sorted
+                    }
+                }
+                dataMatrix[cerName]['Total']++;
             });
 
-            cerRoles.sort();
+            // Re-sort cerNames in case new ones were added during processing
             cerNames.sort();
 
             const columnHeaders = ['CER Name', ...cerRoles, 'Total'];
-            const rowLabels = cerNames;
+            const rowLabels = cerNames; // Use the potentially updated list of cerNames
 
             return { rowLabels, columnHeaders, dataMatrix };
         }
+
 
         function renderMonthlyStatsTable(data) {
             const monthlyStatsHeader = document.getElementById('monthlyStatsHeader');
@@ -1776,7 +1747,8 @@
                 nameCell.className = 'py-2 px-4 text-left';
                 nameCell.textContent = cerName;
 
-                data.columnHeaders.slice(1, -1).forEach(role => {
+                // Iterate through dynamic roles
+                data.columnHeaders.slice(1, -1).forEach(role => { // Exclude 'CER Name' and 'Total'
                     const countCell = row.insertCell();
                     countCell.className = 'py-2 px-4 text-center';
                     const count = (data.dataMatrix[cerName] && data.dataMatrix[cerName][role] !== undefined) ? data.dataMatrix[cerName][role] : 0;
@@ -2361,9 +2333,9 @@
             const addWebhookBtn = document.getElementById('addWebhookBtn');
 
             logoutBtn.addEventListener('click', async function() {
-                sessionStorage.removeItem('loggedIn');
-                localStorage.removeItem('lastActivity');
-                localStorage.removeItem('loginTime');
+                sessionStorage.removeItem('loggedIn'); // Keep this if login.html checks sessionStorage for a quick redirect
+                // REMOVE localStorage.removeItem('lastActivity');
+                // REMOVE localStorage.removeItem('loginTime');
                 try {
                     await signOut(auth);
                     console.log("Signed out from Firebase.");
