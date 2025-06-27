@@ -13,11 +13,12 @@
         /* Base styles */
         body {
             font-family: 'Inter', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            display: flex; /* Changed from column to row for sidebar layout */
+            align-items: flex-start; /* Align items to the start (top) */
             min-height: 100vh;
             background-color: #f3f4f6; /* bg-gray-100 */
+            margin: 0; /* Remove default body margin */
+            padding: 0; /* Remove default body padding */
         }
 
         /* ICEALION Branding Colors */
@@ -59,48 +60,89 @@
 
         /* Navigation styles */
         .main-nav {
-            width: 100%;
-            background-color: #1a73e8;
-            color: white;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            /* Removed previous styles that made it a top horizontal bar */
+            width: auto; /* Width will be determined by sidebar */
+            background-color: transparent; /* Main nav itself won't have a background */
+            color: inherit;
+            padding: 0;
+            display: block; /* No longer a flex container at this level */
+            box-shadow: none;
+            height: 100vh; /* Ensure it takes full viewport height */
+            position: fixed; /* Fix the sidebar to the left */
+            top: 0;
+            left: 0;
+            z-index: 100; /* Ensure it stays on top */
         }
-        .main-nav ul {
+
+        .sidebar {
+            width: 250px; /* Fixed width for the sidebar as seen in the image */
+            background-color: #1a73e8; /* ICEALION blue background */
+            color: white;
+            padding: 1rem 0; /* Vertical padding, no horizontal padding as links have it */
+            height: 100%; /* Take full height of the main-nav (which is 100vh) */
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
             display: flex;
+            flex-direction: column; /* Stack items vertically */
+            justify-content: space-between; /* Push logout to bottom if inside sidebar */
+        }
+
+        .sidebar ul {
             list-style: none;
             margin: 0;
             padding: 0;
+            flex-grow: 1; /* Allows the list to grow and push logout down */
         }
-        .main-nav ul li {
-            margin-right: 1.5rem;
+        .sidebar ul li {
+            margin-right: 0; /* No horizontal margin for vertical list */
+            margin-bottom: 0.5rem; /* Space between vertical list items */
         }
-        .main-nav ul li a {
+        .sidebar ul li a {
             color: white;
             text-decoration: none;
             font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem; /* rounded-md */
+            padding: 0.75rem 1.5rem; /* More padding for larger clickable area */
+            display: block; /* Make the whole area clickable */
+            border-radius: 0; /* No rounded corners for full-width links */
             transition: background-color 0.3s ease;
+            display: flex; /* Align icon and text */
+            align-items: center;
+            gap: 0.75rem; /* Space between icon and text */
         }
-        .main-nav ul li a:hover,
-        .main-nav ul li a.active {
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
             background-color: #0d47a1; /* A darker blue for hover/active */
         }
+
+        /* Logout button specific styling within the sidebar context */
         .logout-button {
             background-color: #f57c00; /* icealion-orange */
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem; /* rounded-md */
+            padding: 0.75rem 1.5rem; /* Increased padding */
+            border-radius: 0.375rem;
             font-weight: 600;
             cursor: pointer;
             border: none;
             transition: background-color 0.3s ease;
+            margin: 1rem 1.5rem; /* Margin within the sidebar for placement */
+            width: calc(100% - 3rem); /* Adjust width for padding */
+            text-align: center;
         }
         .logout-button:hover {
-            background-color: #e65100; /* darker orange */
+            background-color: #e65100;
+        }
+
+        /* Adjust main content containers to account for the sidebar width */
+        .container.mx-auto {
+            margin-left: 250px; /* Push content to the right by sidebar width */
+            width: calc(100% - 250px); /* Adjust width to fill remaining space */
+            max-width: none; /* Remove max-width constraint for full flexibility */
+            border-radius: 0; /* Remove rounded corners if you want it flush with the sidebar */
+            min-height: 100vh; /* Ensure main content pushes body height */
+        }
+        /* Adjust the login container position if it's still absolute, otherwise it might be behind the sidebar */
+        .login-container {
+            left: 250px; /* Adjust if it's supposed to sit next to the sidebar */
+            width: calc(100% - 250px);
         }
 
         /* Specific styles for modal/message box */
@@ -301,17 +343,16 @@
     </div>
 
     <nav class="main-nav" id="mainNav" style="display: none;">
-        
-<ul>
-            <li><a href="#" id="auditFormTab" class="active"><i class="fas fa-file-alt"></i> Audit Form</a></li>
-            <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-            <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
-            <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-            <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li> </ul>
-
-
-        
-        <button id="logoutBtn" class="logout-button">Logout</button>
+        <div class="sidebar">
+            <ul>
+                <li><a href="#" id="auditFormTab" class="active"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button">Logout</button>
+        </div>
     </nav>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="auditFormContent" style="display: none;">
@@ -392,14 +433,13 @@
                     <option value="KYC">KYC</option>
                     <option value="Data Capture">Data Capture</option>
                     <option value="Follow-up & action items">Follow-up & action items</option>
+                    <option value="Auto-Scored Fail">Auto-Scored Fail</option>
                 </select>
             </div>
-            <!-- NEW AUTOFAL DESCRIPTION FIELD -->
             <div id="autofailDescriptionContainer" class="hidden">
                 <label for="autofail-description" class="block text-sm font-medium text-gray-700">Autofail Description</label>
                 <textarea id="autofail-description" name="Autofail Description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" placeholder="Provide details about the autofail"></textarea>
             </div>
-            <!-- END NEW AUTOFAL DESCRIPTION FIELD -->
             <div>
                 <label for="review-date" class="block text-sm font-medium text-gray-700">Evaluation Date</label>
                 <input type="date" id="review-date" name="Evaluation Date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
@@ -424,7 +464,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="cxQuestionsContainer">
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -441,7 +481,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="psQuestionsContainer">
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -458,7 +498,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="caQuestionsContainer">
-                        </div>
+                    </div>
                 </div>
             </div>
         </form>
@@ -505,9 +545,8 @@
                         </button>
                     </div>
                 </div>
-            </div>
+        </div>
 
-        <!-- NEW SECTION FOR LAST 3 EVALUATIONS - MOVED TO END -->
         <div class="p-6">
             <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
                 <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
@@ -531,8 +570,7 @@
                 </table>
             </div>
         </div>
-        <!-- END NEW SECTION -->
-    </div>
+        </div>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="databaseContent" style="display: none;">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
@@ -559,7 +597,6 @@
                             <th>CER Name</th>
                             <th>Overall Score</th>
                             <th class="w-24">Actions</th>
-                            <!-- NEW HEADERS FOR ADDITIONAL ACTIONS -->
                             <th>View</th>
                             <th>Email</th>
                             <th>Download</th>
@@ -674,7 +711,7 @@
 
         // Define collection paths here, where appId is definitively available
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`; 
+        window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         
     </script>
     <script>
@@ -683,8 +720,8 @@
         let allWebhooks = []; // Webhooks fetched from Firestore for display
 
         // Removed 'let' declaration here to prevent redeclaration error
-        window.unsubscribeRecords = null; 
-        window.unsubscribeWebhooks = null; 
+        window.unsubscribeRecords = null;
+        window.unsubscribeWebhooks = null;
 
         // --- GLOBAL SCORE VARIABLES (Used by calculateScore) ---
         let globalTotalPoints = 0;
@@ -954,6 +991,10 @@
             // Deactivate all tabs
             auditFormTab.classList.remove('active');
             databaseTab.classList.remove('active');
+            document.getElementById('reportsTab').classList.remove('active'); // Added to ensure correct active state
+            document.getElementById('autofailsTab').classList.remove('active'); // Added
+            document.getElementById('adminTab').classList.remove('active'); // Added
+
 
             // Hide all content sections
             auditFormContent.style.display = 'none';
@@ -972,6 +1013,14 @@
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
+            } else if (tabName === 'reports') {
+                document.getElementById('reportsTab').classList.add('active');
+                // For external links, you might want to prevent default and navigate or show a message.
+                // For this example, it's left to external navigation for simplicity.
+            } else if (tabName === 'autofails') {
+                document.getElementById('autofailsTab').classList.add('active');
+            } else if (tabName === 'admin') {
+                document.getElementById('adminTab').classList.add('active');
             }
         }
 
@@ -986,7 +1035,7 @@
          */
         async function fetchRecordsAndWebhooks() {
             // Get elements inside the function to ensure DOM is loaded and current
-            const recordsTableBody = document.getElementById('recordsTableBody'); 
+            const recordsTableBody = document.getElementById('recordsTableBody');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
@@ -1006,16 +1055,16 @@
             }
             
             // Unsubscribe previous listeners to prevent duplicates if function called multiple times
-            if (window.unsubscribeRecords) window.unsubscribeRecords(); 
-            if (window.unsubscribeWebhooks) window.unsubscribeWebhooks(); 
+            if (window.unsubscribeRecords) window.unsubscribeRecords();
+            if (window.unsubscribeWebhooks) window.unsubscribeWebhooks();
             
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
             try {
-                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH); 
-                window.unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => { 
+                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+                window.unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => {
                     allRecords = []; // Use global allRecords
-                    snapshot.forEach(doc => { 
+                    snapshot.forEach(doc => {
                         allRecords.push({ id: doc.id, ...doc.data() });
                     });
                     console.log("Records updated:", allRecords.length, "records.");
@@ -1026,10 +1075,10 @@
                     showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
                 });
 
-                const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH); 
-                window.unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => { 
+                const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH);
+                window.unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => {
                     allWebhooks = []; // Use global allWebhooks
-                    snapshot.forEach(doc => { 
+                    snapshot.forEach(doc => {
                         allWebhooks.push({ id: doc.id, ...doc.data() });
                     });
                     console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
@@ -1062,7 +1111,7 @@
 
             showMessageBox("Submitting", "Saving record to database...", false, true, false);
             try {
-                const docRef = await window.fsAddDoc(window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH), { 
+                const docRef = await window.fsAddDoc(window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH), {
                     ...recordData,
                     submittedAt: new Date().toISOString() // Add a server timestamp
                 });
@@ -1085,8 +1134,8 @@
         async function deleteSelectedRecords() {
             // Get elements inside the function to ensure DOM is loaded and current
             const messageBoxContent = document.getElementById('messageBoxContent');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); 
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox'); 
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
 
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1155,7 +1204,7 @@
          */
         async function addWebhook() {
             // Get elements inside the function to ensure DOM is loaded and current
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); 
+            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
 
             if (!window.db || !window.currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1369,7 +1418,7 @@
                     confirmBtn.onclick = async () => {
                         hideMessageBox();
                         showMessageBox("Deleting", "Deleting webhook...", false, true, false);
-                        await deleteWebhook(webhookId); 
+                        await deleteWebhook(webhookId);
                         hideMessageBox();
                     };
                     const cancelBtn = document.createElement('button');
@@ -1436,13 +1485,13 @@
             // Custom Subject and Body as requested
             const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
-                         `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                         `Contact ID: ${contactId}\n` +
-                         `CER Name: ${cerName}\n` +
-                         `Overall Score: ${overallScore}\n` +
-                         `Evaluation Date: ${evaluationDate}\n\n` +
-                         `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                         `Kind Regards,\nQuality Evaluation Team`;
+                                 `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                 `Contact ID: ${contactId}\n` +
+                                 `CER Name: ${cerName}\n` +
+                                 `Overall Score: ${overallScore}\n` +
+                                 `Evaluation Date: ${evaluationDate}\n\n` +
+                                 `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                 `Kind Regards,\nQuality Evaluation Team`;
 
             const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
@@ -1927,21 +1976,21 @@
             const loginPage = document.getElementById('loginPage');
             const mainNav = document.getElementById('mainNav');
             const auditFormContent = document.getElementById('auditFormContent');
-            const databaseContent = document.getElementById('databaseContent'); 
+            const databaseContent = document.getElementById('databaseContent');
 
             console.log("Initializing main application.");
             const isLoggedIn = sessionStorage.getItem('loggedIn');
 
             if (isLoggedIn === 'true') {
                 loginPage.style.display = 'none';
-                mainNav.style.display = 'flex';
+                mainNav.style.display = 'block'; // Changed to block for sidebar
                 showTab('auditForm'); // Show audit form by default
                 initializeAuditForm();
             } else {
                 loginPage.style.display = 'flex';
                 mainNav.style.display = 'none';
                 auditFormContent.style.display = 'none';
-                databaseContent.style.display = 'none'; 
+                databaseContent.style.display = 'none';
             }
         }
 
@@ -1951,10 +2000,10 @@
             console.log("DOM fully loaded and parsed. Main script starting.");
 
             // --- Get Firebase objects and functions from window ---
-            let db = window.db; 
+            let db = window.db;
             let auth = window.auth;
             let currentUserId = window.currentUserId;
-            let isAuthReady = window.isAuthReady; 
+            let isAuthReady = window.isAuthReady;
 
 
             // Collection paths are now accessed directly from window, defined in module script
@@ -1971,6 +2020,10 @@
             const auditFormTab = document.getElementById('auditFormTab');
             const databaseTab = document.getElementById('databaseTab');
             const logoutBtn = document.getElementById('logoutBtn');
+            const reportsTab = document.getElementById('reportsTab');
+            const autofailsTab = document.getElementById('autofailsTab');
+            const adminTab = document.getElementById('adminTab');
+
 
             const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
             const printEmailBtn = document.getElementById('print-email-btn');
@@ -2003,7 +2056,7 @@
 
                 if (usernameInput.value === CORRECT_USERNAME && passwordInput.value === CORRECT_PASSWORD) {
                     sessionStorage.setItem('loggedIn', 'true');
-                    initializeApp(); 
+                    initializeApp();
                 } else {
                     loginMessage.textContent = 'Invalid Username or Password. Please try again.';
                     loginMessage.classList.remove('hidden');
@@ -2013,25 +2066,47 @@
             logoutBtn.addEventListener('click', function() {
                 sessionStorage.removeItem('loggedIn');
                 // Unsubscribe Firestore listeners on logout to prevent memory leaks
-                if (window.unsubscribeRecords) window.unsubscribeRecords(); 
-                if (window.unsubscribeWebhooks) window.unsubscribeWebhooks(); 
+                if (window.unsubscribeRecords) window.unsubscribeRecords();
+                if (window.unsubscribeWebhooks) window.unsubscribeWebhooks();
                 window.location.reload(); // Reload to show login page
             });
 
             // Added click listeners for navigation tabs
             auditFormTab.addEventListener('click', (e) => {
-                e.preventDefault(); 
+                e.preventDefault();
                 console.log("Audit Form Tab CLICKED!");
                 showTab('auditForm');
             });
 
             databaseTab.addEventListener('click', (e) => {
-                e.preventDefault(); 
+                e.preventDefault();
                 console.log("Database Tab CLICKED!");
                 showTab('database');
             });
 
-            // Event listeners for database actions 
+            reportsTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log("Reports Tab CLICKED!");
+                showTab('reports');
+                window.location.href = reportsTab.href; // Navigate to external page
+            });
+
+            autofailsTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log("Autofails Tab CLICKED!");
+                showTab('autofails');
+                window.location.href = autofailsTab.href; // Navigate to external page
+            });
+
+            adminTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log("Admin Tab CLICKED!");
+                showTab('admin');
+                window.location.href = adminTab.href; // Navigate to external page
+            });
+
+
+            // Event listeners for database actions
             // These event listeners now correctly reference the functions in the main script scope.
             if (selectAllRecordsCheckbox) { // Check if element exists before adding listener
                  selectAllRecordsCheckbox.addEventListener('change', () => {
@@ -2079,8 +2154,8 @@
 
             cerRoleSelect.addEventListener('change', (event) => {
                 const selectedRole = event.target.value;
-                renderQuestionsForRole(selectedRole); 
-                resetFormFieldsButKeepRole(); 
+                renderQuestionsForRole(selectedRole);
+                resetFormFieldsButKeepRole();
             });
 
             cerNameSelect.addEventListener('change', (event) => {
@@ -2093,7 +2168,7 @@
             });
 
 
-            submitFormToDBBtn.addEventListener('click', async (event) => { 
+            submitFormToDBBtn.addEventListener('click', async (event) => {
                 event.preventDefault();
                 console.log("Submit to Database button clicked.");
 
@@ -2126,7 +2201,7 @@
                     if (!autofailTypeSelect.value.trim()) {
                         formDataForSubmission['Auto Fail Type'] = 'Auto-Scored Fail';
                         // Ensure the dropdown itself reflects this change for immediate visual feedback
-                        autofailTypeSelect.value = 'Auto-Scored Fail'; 
+                        autofailTypeSelect.value = 'Auto-Scored Fail';
                         // If 'Auto-Scored Fail' isn't an option, you might need to add it or pick an existing one.
                         // For now, it will just set the data field.
                     }
@@ -2166,7 +2241,7 @@
                 });
                 console.log("Collected Data for Submission:", formDataForSubmission);
 
-                await addRecordToFirestore(formDataForSubmission); 
+                await addRecordToFirestore(formDataForSubmission);
             });
 
 
@@ -2244,7 +2319,7 @@
                     const cerNameVal = cerNameSelect.value;
                     const contactIdVal = contactIdInput.value;
                     const evaluationDateVal = evaluationDateInput.value;
-                    const overallScoreVal = overallFinalPercentageDisplay.textContent; 
+                    const overallScoreVal = overallFinalPercentageDisplay.textContent;
                     const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
 
                     // Custom Subject and Body as requested
@@ -2285,7 +2360,7 @@
             // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
                 // These variables are now available and correctly referenced
-                let db = window.db; 
+                let db = window.db;
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
@@ -2295,17 +2370,17 @@
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
                 
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
-                initializeApp(); 
+                initializeApp();
 
                 // If already logged in, fetch initial records
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks(); 
+                   fetchRecordsAndWebhooks();
                 }
             });
 
             // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
-            if (document.readyState === 'complete' && window.isAuthReady !== null) { 
-                let db = window.db; 
+            if (document.readyState === 'complete' && window.isAuthReady !== null) {
+                let db = window.db;
                 let auth = window.auth;
                 let currentUserId = window.currentUserId;
                 let isAuthReady = window.isAuthReady;
@@ -2314,9 +2389,9 @@
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
 
                 console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
-                initializeApp(); 
+                initializeApp();
                 if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks(); 
+                   fetchRecordsAndWebhooks();
                 }
             } else {
                 console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
