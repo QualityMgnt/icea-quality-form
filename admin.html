@@ -3,37 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - ICEA LION GROUP</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Admin Panel - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="style.css">
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
+        /* Base styles */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5;
+            display: flex; /* Changed from column to row for sidebar layout */
+            align-items: flex-start; /* Align items to the start (top) */
+            min-height: 100vh;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            margin: 0; /* Remove default body margin */
+            padding: 0; /* Remove default body padding */
+        }
+
+        /* ICEALION Branding Colors */
+        .icealion-blue {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .icealion-orange-text {
+            color: #f57c00;
+        }
+
+        /* Error/Message styles */
+        .error-message {
+            color: #dc2626; /* red-700 */
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.5rem; /* mt-2 */
+            text-align: center;
+        }
+        .success-message {
+            color: #10b981; /* green-500 */
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        /* Navigation styles (consistent sidebar) */
+        .main-nav {
+            width: auto;
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            display: block;
+            box-shadow: none;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .sidebar {
+            width: 125px; /* Half width */
+            background-color: #1a73e8;
+            color: white;
+            padding: 1rem 0;
+            height: 100%;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
+            justify-content: space-between;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            margin: 0;
             padding: 0;
+            flex-grow: 1;
+        }
+        .sidebar ul li {
+            margin-right: 0;
+            margin-bottom: 0.5rem;
+        }
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.75rem 0.5rem; /* Adjusted padding */
+            display: block;
+            border-radius: 0;
+            transition: background-color 0.3s ease;
+            display: flex;
+            flex-direction: column; /* Stack icon and text */
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem; /* Smaller font */
+            text-align: center;
+        }
+        .sidebar ul li a .fas {
+            margin-bottom: 0.25rem;
+            font-size: 1.2rem;
         }
 
-        /* Adjustments for admin container relative to body flow */
-        body > .admin-container {
-            margin-top: 20px;
-            margin-bottom: 20px;
-            padding-left: 20px;
-            padding-right: 20px;
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: #0d47a1;
         }
 
-        /* Basic form/section styling for admin page */
+        .logout-button {
+            background-color: #f57c00;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
+        }
+        .logout-button:hover {
+            background-color: #e65100;
+        }
+
+        /* Main content area for admin.html */
+        .main-content {
+            margin-left: 125px; /* Matches sidebar width */
+            width: calc(100% - 125px); /* Fills remaining space */
+            padding: 1.5rem;
+            min-height: 100vh;
+            box-sizing: border-box; /* Include padding in width */
+        }
+        .admin-container {
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            max-width: 900px; /* Limit width of admin content */
+            margin: 0 auto; /* Center it */
+        }
+
+        /* Login Container (re-used for this page) */
+        .login-container {
+            position: absolute; /* Changed to absolute to float over main content */
+            top: 0;
+            left: 125px; /* Shift by sidebar width */
+            width: calc(100% - 125px); /* Take remaining width */
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(243, 244, 246, 0.9); /* Opaque background */
+            z-index: 1000; /* Ensure it's on top */
+        }
+
+        /* Admin section styling */
         .admin-section {
             background-color: #fff;
             border-radius: 8px;
@@ -41,7 +162,6 @@
             padding: 24px;
             margin-bottom: 24px;
             width: 100%;
-            max-width: 800px;
         }
 
         .admin-section h2 {
@@ -65,7 +185,7 @@
         }
 
         .form-group-admin input[type="text"],
-        .form-group-admin input[type="password"],
+        .form-group-admin input[type="email"], /* Added for email field */
         .form-group-admin select {
             width: 100%;
             padding: 10px 12px;
@@ -76,7 +196,7 @@
         }
 
         .form-group-admin input[type="text"]:focus,
-        .form-group-admin input[type="password"]:focus,
+        .form-group-admin input[type="email"]:focus,
         .form-group-admin select:focus {
             outline: none;
             border-color: #4299e1;
@@ -131,24 +251,36 @@
         }
 
         .current-items-list {
-            list-style: disc;
-            padding-left: 20px;
+            list-style: none; /* Removed default disc */
+            padding: 0;
             margin-top: 10px;
             max-height: 200px;
             overflow-y: auto;
             border: 1px solid #eee;
-            padding-top: 10px;
-            padding-bottom: 10px;
+            padding-top: 5px;
+            padding-bottom: 5px;
             border-radius: 5px;
         }
         .current-items-list li {
-            padding: 5px 0;
+            padding: 8px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+        .current-items-list li:last-child {
+            border-bottom: none;
         }
         .current-items-list li:nth-child(even) {
             background-color: #f7fafc;
+        }
+        .current-items-list li.selected {
+            background-color: #bfdbfe; /* blue-200 */
+            font-weight: 600;
+        }
+        .current-items-list li .item-text {
+            flex-grow: 1;
         }
         .current-items-list li button {
             margin-left: 10px;
@@ -157,19 +289,26 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center">
-    <!-- Navigation Menu -->
+<body>
+    <!-- Main Navigation / Sidebar -->
     <nav class="main-nav" id="mainNav">
-        <ul>
-            <li><a href="index.html"><i class="fas fa-file-alt"></i> Audit Form</a></li>
-            <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
-            <li><a href="admin.html" class="active"><i class="fas fa-cog"></i> Admin</a></li>
-        </ul>
-        <button id="logoutBtn" class="logout-button">Logout</button>
+        <div class="sidebar">
+            <ul>
+                <!-- Ensure these paths are correct relative to admin.html -->
+                <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
+                <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html" id="adminTab" class="active"><i class="fas fa-user-cog"></i> Admin</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button">Logout</button>
+        </div>
     </nav>
 
     <!-- Login Page (re-used from index.html) -->
-    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage" style="display: none;">
+    <div class="login-container" id="loginPage" style="display: none;">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
                 <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
@@ -178,17 +317,17 @@
             <form id="loginForm" class="p-8 space-y-6">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="username" name="username" 
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" 
+                    <input type="text" id="username" name="username"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
                            required placeholder="Enter your username">
                 </div>
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" name="password" 
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" 
+                    <input type="password" id="password" name="password"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
                            required placeholder="Enter your password">
                 </div>
-                <button type="submit" 
+                <button type="submit"
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                     Login
                 </button>
@@ -197,107 +336,125 @@
         </div>
     </div>
 
-    <!-- Admin Content (Initially Hidden) -->
-    <div class="admin-container w-full max-w-6xl p-4" id="adminContent" style="display: none;">
-        <h1 class="text-3xl font-bold text-center text-blue-800 mb-8">Admin Panel</h1>
+    <!-- Main Content Area for Admin -->
+    <div class="main-content" id="adminContent">
+        <div class="admin-container">
+            <div class="icealion-blue p-4 text-xl font-semibold text-center">
+                Admin Panel - Dropdown Management
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-6">
+                    Use this section to manage the dynamic dropdown options that appear on the Quality Assessment Form.
+                </p>
 
-        <!-- Dropdown Management Section -->
-        <div class="admin-section">
-            <h2>Manage Form Dropdowns</h2>
-            <div class="form-group-admin">
-                <label for="dropdownTypeSelect">Select Dropdown:</label>
-                <select id="dropdownTypeSelect" class="block w-full">
-                    <option value="">Select a dropdown to manage</option>
-                    <option value="cerNames">CER Names</option>
-                    <option value="cerRoles">CER Roles</option>
-                    <option value="reviewerNames">Reviewer Names</option>
-                    <option value="autofailTypes">Autofail Types</option>
-                </select>
-            </div>
+                <!-- Dropdown Type Selection -->
+                <div class="admin-section mb-6">
+                    <h2>Select Dropdown Type</h2>
+                    <div class="form-group-admin">
+                        <label for="dropdownTypeSelect">Choose a dropdown to manage:</label>
+                        <select id="dropdownTypeSelect" class="block w-full">
+                            <option value="">-- Select a dropdown type --</option>
+                            <option value="cerNames">CER Names</option>
+                            <option value="cerRoles">CER Roles</option>
+                            <option value="reviewerNames">Reviewer Names</option>
+                            <option value="autofailTypes">Autofail Types</option>
+                        </select>
+                    </div>
+                </div>
 
-            <div class="form-group-admin" id="dropdownValueInputGroup" style="display: none;">
-                <label for="dropdownValue">Current Values:</label>
-                <ul id="currentDropdownItems" class="current-items-list">
-                    <!-- Dynamic list of current items -->
-                </ul>
-                <input type="text" id="newDropdownValue" placeholder="Enter new value to add/remove">
-                <button class="admin-btn admin-btn-primary" id="addDropdownValueBtn">Add Value</button>
-                <button class="admin-btn admin-btn-danger" id="removeDropdownValueBtn">Remove Selected</button>
-                <div id="dropdownMessage" class="admin-message hidden"></div>
-            </div>
-        </div>
+                <!-- Manage Values Section -->
+                <div class="admin-section" id="manageDropdownValuesSection" style="display: none;">
+                    <h2 id="currentDropdownTitle">Manage Items</h2>
+                    <div class="form-group-admin">
+                        <label>Current Items:</label>
+                        <ul id="currentDropdownItems" class="current-items-list">
+                            <!-- Dynamically populated list -->
+                            <li>No items loaded. Select a dropdown type.</li>
+                        </ul>
+                    </div>
 
-        <!-- User Management Section -->
-        <div class="admin-section">
-            <h2>User Management</h2>
-            <div class="form-group-admin">
-                <label for="newUsername">Username:</label>
-                <input type="text" id="newUsername" placeholder="Enter new username">
-            </div>
-            <div class="form-group-admin">
-                <label for="newPassword">Password:</label>
-                <input type="password" id="newPassword" placeholder="Enter password">
-            </div>
-             <div class="form-group-admin">
-                <label for="newUserRole">Role:</label>
-                <select id="newUserRole" class="block w-full">
-                    <option value="User">User</option>
-                    <option value="Admin">Admin</option>
-                </select>
-            </div>
-            <button class="admin-btn admin-btn-primary" id="createUserBtn">Create User</button>
-            <div id="userMessage" class="admin-message hidden"></div>
+                    <div class="form-group-admin mt-4">
+                        <label for="newDropdownValue">Add New Item:</label>
+                        <input type="text" id="newDropdownValue" placeholder="Enter new item name">
+                        <input type="email" id="newDropdownEmail" class="mt-2" placeholder="Enter email (for CER Names only)" style="display: none;">
+                    </div>
 
-            <h3 class="text-lg font-semibold text-gray-700 mt-6 mb-3">Existing Users:</h3>
-            <ul id="existingUsersList" class="current-items-list">
-                <!-- Dynamic list of users -->
-            </ul>
+                    <button class="admin-btn admin-btn-primary" id="addDropdownValueBtn">Add Item</button>
+                    <button class="admin-btn admin-btn-danger ml-2" id="removeDropdownValueBtn">Remove Selected Items</button>
+                    <div id="dropdownMessage" class="admin-message hidden"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // **IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL**
-            const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
+    <!-- Firebase SDK (for Firestore and Auth) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-            // Login elements (shared with index.html)
+        // --- Your Web App's Firebase Configuration ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+          authDomain: "icea-lion-qa.firebaseapp.com",
+          projectId: "icea-lion-qa",
+          storageBucket: "icea-lion-qa.firebasestorage.app",
+          messagingSenderId: "820082472004",
+          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+          measurementId: "G-1RJJTT3QET"
+        };
+
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Not directly used here for sign-in, but kept for consistency
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Define the Firestore path for dropdown options
+        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
+
+        // Global variable to store current dropdown data
+        let currentDropdownData = {
+            cerNames: [],
+            cerRoles: [],
+            reviewerNames: [],
+            autofailTypes: []
+        };
+        let unsubscribeDropdownListener = null; // To manage the real-time listener
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // UI Elements
             const loginPage = document.getElementById('loginPage');
             const loginForm = document.getElementById('loginForm');
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
             const loginMessage = document.getElementById('loginMessage');
 
-            // Admin Page elements
             const adminContent = document.getElementById('adminContent');
-            const mainNav = document.getElementById('mainNav'); // Navigation bar
-            const logoutBtn = document.getElementById('logoutBtn'); // Logout button
+            const mainNav = document.getElementById('mainNav');
+            const logoutBtn = document.getElementById('logoutBtn');
 
-            // Dropdown management elements
             const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
-            const dropdownValueInputGroup = document.getElementById('dropdownValueInputGroup');
+            const manageDropdownValuesSection = document.getElementById('manageDropdownValuesSection');
+            const currentDropdownTitle = document.getElementById('currentDropdownTitle');
             const currentDropdownItems = document.getElementById('currentDropdownItems');
             const newDropdownValueInput = document.getElementById('newDropdownValue');
+            const newDropdownEmailInput = document.getElementById('newDropdownEmail'); // For CER email
             const addDropdownValueBtn = document.getElementById('addDropdownValueBtn');
             const removeDropdownValueBtn = document.getElementById('removeDropdownValueBtn');
             const dropdownMessage = document.getElementById('dropdownMessage');
 
-            // User management elements
-            const newUsernameInput = document.getElementById('newUsername');
-            const newPasswordInput = document.getElementById('newPassword');
-            const newUserRoleSelect = document.getElementById('newUserRole');
-            const createUserBtn = document.getElementById('createUserBtn');
-            const userMessage = document.getElementById('userMessage');
-            const existingUsersList = document.getElementById('existingUsersList');
+            let currentSelectedDropdownType = '';
 
             // --- Utility Functions ---
             const showMessage = (element, message, type) => {
                 element.textContent = message;
                 element.classList.remove('hidden', 'success', 'error');
                 element.classList.add(type);
-                setTimeout(() => { element.classList.add('hidden'); }, 3000);
+                setTimeout(() => { element.classList.add('hidden'); }, 3000); // Hide after 3 seconds
             };
 
-            // --- Login/Authentication Logic ---
             const showLoginErrorMessage = (message) => {
                 loginMessage.textContent = message;
                 loginMessage.classList.remove('hidden');
@@ -308,260 +465,245 @@
                 loginMessage.textContent = '';
             };
 
-            // Authenticate user via Apps Script
+            // --- Authentication Logic ---
             loginForm.addEventListener('submit', function(event) {
                 event.preventDefault();
                 hideLoginErrorMessage();
 
-                const username = usernameInput.value;
-                const password = passwordInput.value;
+                const CORRECT_USERNAME = 'Supervisor'; // Hardcoded for this demo
+                const CORRECT_PASSWORD = 'Supervisor'; // Hardcoded for this demo
 
-                fetch(`${googleAppsScriptURL}?action=authenticate&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'SUCCESS' && data.authenticated) {
-                            sessionStorage.setItem('loggedIn', 'true');
-                            // Now that login is handled here, reload to show admin content
-                            window.location.reload(); 
-                        } else {
-                            showLoginErrorMessage('Invalid username or password.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Login Error:', error);
-                        showLoginErrorMessage('An error occurred during login. Please try again.');
-                    });
+                if (usernameInput.value === CORRECT_USERNAME && passwordInput.value === CORRECT_PASSWORD) {
+                    sessionStorage.setItem('loggedIn', 'true');
+                    window.location.reload(); // Reload the page to show main content
+                } else {
+                    showLoginErrorMessage('Invalid Username or Password. Please try again.');
+                }
             });
 
             // Initial check for login status
-            const isLoggedIn = sessionStorage.getItem('loggedIn');
-            if (isLoggedIn === 'true') {
-                loginPage.style.display = 'none'; // Hide login page
-                adminContent.style.display = 'block'; // Show admin content
-                mainNav.style.display = 'flex'; // Show navigation
-                fetchAndRenderUsers(); // Load users on admin page load
-            } else {
-                loginPage.style.display = 'flex'; // Show login
-                adminContent.style.display = 'none'; // Hide admin content
-                mainNav.style.display = 'none'; // Hide navigation
+            const initializeAdminPage = () => {
+                const isLoggedIn = sessionStorage.getItem('loggedIn');
+                if (isLoggedIn === 'true') {
+                    loginPage.style.display = 'none';
+                    mainNav.style.display = 'block';
+                    adminContent.style.display = 'block';
+                    // Highlight the current tab
+                    document.querySelectorAll('.sidebar ul li a').forEach(link => {
+                        link.classList.remove('active');
+                        if (link.href.includes('admin.html')) { // Check for admin.html
+                            link.classList.add('active');
+                        }
+                    });
+                    // Start listening to dropdown changes from Firestore
+                    setupDropdownsListener();
+                } else {
+                    loginPage.style.display = 'flex';
+                    mainNav.style.display = 'none';
+                    adminContent.style.display = 'none';
+                }
+            };
+
+            // Setup real-time listener for dropdown options
+            const setupDropdownsListener = () => {
+                if (unsubscribeDropdownListener) {
+                    unsubscribeDropdownListener(); // Unsubscribe previous listener if exists
+                }
+
+                unsubscribeDropdownListener = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
+                    if (docSnap.exists()) {
+                        currentDropdownData = docSnap.data();
+                        console.log("Dropdown data updated from Firestore:", currentDropdownData);
+                    } else {
+                        console.log("Dropdown options document does not exist. Initializing with empty arrays.");
+                        currentDropdownData = {
+                            cerNames: [],
+                            cerRoles: [],
+                            reviewerNames: [],
+                            autofailTypes: []
+                        };
+                        // Optionally create the document if it doesn't exist on first load
+                        updateDoc(DROPDOWN_DATA_DOC_REF, currentDropdownData, { merge: true })
+                            .catch(e => console.error("Error creating initial dropdowns document:", e));
+                    }
+                    renderCurrentDropdownItems(); // Re-render the list based on updated data
+                }, (error) => {
+                    console.error("Error listening to dropdown data:", error);
+                    showMessage(dropdownMessage, "Error loading dropdown data. Please check console.", 'error');
+                });
+            };
+
+            // Call initializer on Firebase Auth Ready (ensures Firebase is set up)
+            document.addEventListener('firebaseAuthReadyUsersPage', initializeAdminPage); // Using usersPage event as a general auth ready for other HTML files.
+
+            // Fallback for fast loads where auth might be ready before DOMContentLoaded
+            if (document.readyState === 'complete' && window.isAuthReady !== null) {
+                initializeAdminPage();
             }
 
-            // Logout functionality
-            logoutBtn.addEventListener('click', function() {
-                sessionStorage.removeItem('loggedIn');
-                window.location.href = 'index.html'; // Redirect to login page
+            // --- Logout Functionality ---
+            logoutBtn.addEventListener('click', async () => {
+                try {
+                    await signOut(auth); // Sign out from Firebase Auth
+                    sessionStorage.removeItem('loggedIn'); // Clear custom login state
+                    if (unsubscribeDropdownListener) {
+                        unsubscribeDropdownListener(); // Unsubscribe Firestore listener on logout
+                    }
+                    window.location.href = 'index.html'; // Redirect to main login page
+                } catch (error) {
+                    console.error("Error signing out:", error);
+                    showMessage(dropdownMessage, `Error signing out: ${error.message}`, 'error');
+                }
             });
 
 
             // --- Dropdown Management Logic ---
-            let currentSelectedDropdownType = ''; // To store which dropdown is currently selected
 
-            dropdownTypeSelect.addEventListener('change', async function() {
+            dropdownTypeSelect.addEventListener('change', function() {
                 currentSelectedDropdownType = this.value;
-                currentDropdownItems.innerHTML = ''; // Clear previous list
-                dropdownValueInputGroup.style.display = 'none';
-                dropdownMessage.classList.add('hidden');
+                dropdownMessage.classList.add('hidden'); // Clear messages
 
                 if (currentSelectedDropdownType) {
-                    await fetchAndRenderDropdownOptions(currentSelectedDropdownType);
-                    dropdownValueInputGroup.style.display = 'block';
+                    manageDropdownValuesSection.style.display = 'block';
+                    currentDropdownTitle.textContent = `Manage ${this.options[this.selectedIndex].text}`;
+
+                    // Show/hide email input based on selected dropdown
+                    if (currentSelectedDropdownType === 'cerNames') {
+                        newDropdownEmailInput.style.display = 'block';
+                        newDropdownEmailInput.setAttribute('required', 'required');
+                        newDropdownValueInput.placeholder = "Enter CER Name";
+                    } else {
+                        newDropdownEmailInput.style.display = 'none';
+                        newDropdownEmailInput.removeAttribute('required');
+                        newDropdownEmailInput.value = ''; // Clear email input
+                        newDropdownValueInput.placeholder = "Enter new value";
+                    }
+                    renderCurrentDropdownItems();
+                } else {
+                    manageDropdownValuesSection.style.display = 'none';
+                    currentDropdownItems.innerHTML = '<li>No items loaded. Select a dropdown type.</li>';
                 }
             });
 
-            async function fetchAndRenderDropdownOptions(type) {
-                currentDropdownItems.innerHTML = '<li>Loading...</li>';
-                try {
-                    const response = await fetch(`${googleAppsScriptURL}?action=getDropdownOptions&type=${type}`);
-                    const data = await response.json();
-                    
-                    currentDropdownItems.innerHTML = ''; // Clear loading message
+            function renderCurrentDropdownItems() {
+                currentDropdownItems.innerHTML = ''; // Clear existing list
+                const items = currentDropdownData[currentSelectedDropdownType] || [];
 
-                    if (data.status === 'SUCCESS' && data.options) {
-                        if (data.options.length === 0) {
-                            currentDropdownItems.innerHTML = '<li>No items found.</li>';
-                        } else {
-                            data.options.forEach(item => {
-                                const li = document.createElement('li');
-                                li.textContent = item;
-                                // Allow selection for removal (simple click for now)
-                                li.addEventListener('click', () => {
-                                    li.classList.toggle('bg-blue-200'); // Highlight selected item
-                                });
-                                currentDropdownItems.appendChild(li);
-                            });
-                        }
-                    } else {
-                        showMessage(dropdownMessage, `Error fetching options: ${data.message || 'Unknown error'}`, 'error');
-                        currentDropdownItems.innerHTML = '<li>Failed to load items.</li>';
-                    }
-                } catch (error) {
-                    console.error('Fetch dropdown options error:', error);
-                    showMessage(dropdownMessage, 'Network error fetching options.', 'error');
-                    currentDropdownItems.innerHTML = '<li>Network error.</li>';
+                if (items.length === 0) {
+                    currentDropdownItems.innerHTML = '<li>No items added yet.</li>';
+                    return;
                 }
+
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    let displayText = item;
+                    let valueToStore = item; // Default for non-CER names
+
+                    if (currentSelectedDropdownType === 'cerNames' && typeof item === 'object' && item.name) {
+                        displayText = `${item.name} (${item.email || 'No Email'})`;
+                        valueToStore = item; // Store the full object for removal
+                    }
+
+                    li.innerHTML = `<span class="item-text">${displayText}</span>`;
+                    li.dataset.value = JSON.stringify(valueToStore); // Store the actual value for removal
+
+                    li.addEventListener('click', () => {
+                        li.classList.toggle('selected');
+                    });
+                    currentDropdownItems.appendChild(li);
+                });
             }
 
             addDropdownValueBtn.addEventListener('click', async function() {
-                const newValue = newDropdownValueInput.value.trim();
+                const newItemValue = newDropdownValueInput.value.trim();
+                let itemToAdd;
+
                 if (!currentSelectedDropdownType) {
                     showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
                     return;
                 }
-                if (!newValue) {
-                    showMessage(dropdownMessage, 'Value cannot be empty.', 'error');
+                if (!newItemValue) {
+                    showMessage(dropdownMessage, 'Item name cannot be empty.', 'error');
                     return;
                 }
 
-                try {
-                    const response = await fetch(googleAppsScriptURL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'addDropdownOption', type: currentSelectedDropdownType, value: newValue })
-                    });
-                    const data = await response.json();
-                    if (data.status === 'SUCCESS') {
-                        showMessage(dropdownMessage, 'Value added successfully!', 'success');
-                        newDropdownValueInput.value = '';
-                        await fetchAndRenderDropdownOptions(currentSelectedDropdownType); // Refresh list
-                    } else {
-                        showMessage(dropdownMessage, `Failed to add value: ${data.message}`, 'error');
+                if (currentSelectedDropdownType === 'cerNames') {
+                    const newEmailValue = newDropdownEmailInput.value.trim();
+                    if (!newEmailValue) {
+                         showMessage(dropdownMessage, 'Email is required for CER Names.', 'error');
+                         return;
                     }
+                    itemToAdd = { name: newItemValue, email: newEmailValue };
+                    // Check for duplicate CER Name
+                    const isDuplicate = currentDropdownData.cerNames.some(cer => typeof cer === 'object' && cer.name === newItemValue);
+                    if (isDuplicate) {
+                        showMessage(dropdownMessage, 'CER Name already exists.', 'error');
+                        return;
+                    }
+                } else {
+                    itemToAdd = newItemValue;
+                     // Check for duplicate string entry
+                    const isDuplicate = currentDropdownData[currentSelectedDropdownType].includes(newItemValue);
+                    if (isDuplicate) {
+                        showMessage(dropdownMessage, 'This item already exists.', 'error');
+                        return;
+                    }
+                }
+
+                try {
+                    // Use arrayUnion to add the new item to the specific array field in Firestore
+                    const updateData = {
+                        [currentSelectedDropdownType]: arrayUnion(itemToAdd)
+                    };
+                    await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
+                    showMessage(dropdownMessage, 'Item added successfully!', 'success');
+                    newDropdownValueInput.value = '';
+                    newDropdownEmailInput.value = ''; // Clear email input
                 } catch (error) {
-                    console.error('Add dropdown value error:', error);
-                    showMessage(dropdownMessage, 'Network error adding value.', 'error');
+                    console.error("Error adding dropdown item:", error);
+                    showMessage(dropdownMessage, `Failed to add item: ${error.message}`, 'error');
                 }
             });
 
             removeDropdownValueBtn.addEventListener('click', async function() {
-                const selectedItems = Array.from(currentDropdownItems.children)
-                                         .filter(li => li.classList.contains('bg-blue-200'))
-                                         .map(li => li.textContent.trim());
-
+                const selectedListItems = Array.from(currentDropdownItems.children).filter(li => li.classList.contains('selected'));
                 if (!currentSelectedDropdownType) {
                     showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
                     return;
                 }
-                if (selectedItems.length === 0) {
+                if (selectedListItems.length === 0) {
                     showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
                     return;
                 }
 
-                if (!confirm(`Are you sure you want to remove these ${selectedItems.length} item(s)?`)) {
+                if (!confirm(`Are you sure you want to remove ${selectedListItems.length} selected item(s)?`)) {
                     return;
                 }
 
                 try {
-                    const response = await fetch(googleAppsScriptURL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'removeDropdownOption', type: currentSelectedDropdownType, values: selectedItems })
-                    });
-                    const data = await response.json();
-                    if (data.status === 'SUCCESS') {
-                        showMessage(dropdownMessage, 'Value(s) removed successfully!', 'success');
-                        await fetchAndRenderDropdownOptions(currentSelectedDropdownType); // Refresh list
-                    } else {
-                        showMessage(dropdownMessage, `Failed to remove value(s): ${data.message}`, 'error');
-                    }
+                    const itemsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.value));
+
+                    // Use arrayRemove to remove items from the specific array field in Firestore
+                    const updateData = {
+                        [currentSelectedDropdownType]: arrayRemove(...itemsToRemove)
+                    };
+                    await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
+                    showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
+                    // List will auto-refresh due to onSnapshot listener
                 } catch (error) {
-                    console.error('Remove dropdown value error:', error);
-                    showMessage(dropdownMessage, 'Network error removing value(s).', 'error');
+                    console.error("Error removing dropdown item(s):", error);
+                    showMessage(dropdownMessage, `Failed to remove item(s): ${error.message}`, 'error');
                 }
             });
 
-            // --- User Management Logic ---
-            createUserBtn.addEventListener('click', async function() {
-                const username = newUsernameInput.value.trim();
-                const password = newPasswordInput.value.trim();
-                const role = newUserRoleSelect.value;
+            // --- Navigation Link Event Listeners (for pages like reports, users, etc.) ---
+            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
+            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
+            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
+            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
+            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
+            document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
 
-                if (!username || !password) {
-                    showMessage(userMessage, 'Username and password cannot be empty.', 'error');
-                    return;
-                }
-
-                try {
-                    const response = await fetch(googleAppsScriptURL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'createUser', username: username, password: password, role: role })
-                    });
-                    const data = await response.json();
-                    if (data.status === 'SUCCESS') {
-                        showMessage(userMessage, 'User created successfully!', 'success');
-                        newUsernameInput.value = '';
-                        newPasswordInput.value = '';
-                        newUserRoleSelect.value = 'User';
-                        await fetchAndRenderUsers(); // Refresh user list
-                    } else {
-                        showMessage(userMessage, `Failed to create user: ${data.message}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Create user error:', error);
-                    showMessage(userMessage, 'Network error creating user.', 'error');
-                }
-            });
-
-            async function fetchAndRenderUsers() {
-                existingUsersList.innerHTML = '<li>Loading users...</li>';
-                try {
-                    const response = await fetch(`${googleAppsScriptURL}?action=getUsers`);
-                    const data = await response.json();
-
-                    existingUsersList.innerHTML = ''; // Clear loading message
-
-                    if (data.status === 'SUCCESS' && data.users) {
-                        if (data.users.length === 0) {
-                            existingUsersList.innerHTML = '<li>No users found.</li>';
-                        } else {
-                            data.users.forEach(user => {
-                                const li = document.createElement('li');
-                                li.textContent = `${user.Username} (${user.Role})`;
-                                li.dataset.username = user.Username; // Store username for removal
-                                li.classList.add('flex', 'items-center', 'justify-between');
-
-                                const removeBtn = document.createElement('button');
-                                removeBtn.textContent = 'Remove';
-                                removeBtn.classList.add('admin-btn', 'admin-btn-danger');
-                                removeBtn.addEventListener('click', async () => {
-                                    if (confirm(`Are you sure you want to remove user ${user.Username}?`)) {
-                                        await removeUser(user.Username);
-                                    }
-                                });
-                                li.appendChild(removeBtn);
-                                existingUsersList.appendChild(li);
-                            });
-                        }
-                    } else {
-                        showMessage(userMessage, `Error fetching users: ${data.message || 'Unknown error'}`, 'error');
-                        existingUsersList.innerHTML = '<li>Failed to load users.</li>';
-                    }
-                } catch (error) {
-                    console.error('Fetch users error:', error);
-                    showMessage(userMessage, 'Network error fetching users.', 'error');
-                    existingUsersList.innerHTML = '<li>Network error.</li>';
-                }
-            }
-
-            async function removeUser(username) {
-                try {
-                    const response = await fetch(googleAppsScriptURL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'removeUser', username: username })
-                    });
-                    const data = await response.json();
-                    if (data.status === 'SUCCESS') {
-                        showMessage(userMessage, 'User removed successfully!', 'success');
-                        await fetchAndRenderUsers(); // Refresh user list
-                    } else {
-                        showMessage(userMessage, `Failed to remove user: ${data.message}`, 'error');
-                    }
-                } catch (error) {
-                    console.error('Remove user error:', error);
-                    showMessage(userMessage, 'Network error removing user.', 'error');
-                }
-            }
         });
     </script>
 </body>
