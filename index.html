@@ -75,7 +75,7 @@
 
         .sidebar {
             width: 125px; /* Reduced width to half */
-            background-color: #1a73e8; /* ICEALION blue background */
+            background-color: #1a73e8;
             color: white;
             padding: 1rem 0; /* Vertical padding, no horizontal padding as links have it */
             height: 100%; /* Take full height of the main-nav (which is 100vh) */
@@ -295,7 +295,7 @@
 
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body>
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
         <div class="message-box">
             <div id="messageBoxSpinner" class="spinner hidden"></div>
@@ -646,8 +646,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
@@ -678,82 +678,34 @@
         window.fsOrderBy = orderBy;
         window.fsLimit = limit;
         window.getDocs = getDocs;
-        window.fsUpdateDoc = updateDoc; // Add updateDoc
-        window.fsArrayUnion = arrayUnion; // Add arrayUnion
-        window.fsArrayRemove = arrayRemove; // Add arrayRemove
-
-        window.currentUserId = null;
-        window.isAuthReady = false;
-
-        onAuthStateChanged(window.auth, async (user) => {
-            if (user) {
-                window.currentUserId = user.uid;
-                console.log("Firebase Auth State Changed: User logged in:", user.uid);
-            } else {
-                console.log("Firebase Auth State Changed: No user logged in. Attempting sign-in.");
-                if (initialAuthToken) {
-                    try {
-                        await signInWithCustomToken(window.auth, initialAuthToken);
-                        window.currentUserId = window.auth.currentUser.uid;
-                        console.log("Signed in with custom token:", window.currentUserId);
-                    } catch (error) {
-                        console.error("Error signing in with custom token:", error);
-                        try {
-                            await signInAnonymously(window.auth);
-                            window.currentUserId = window.auth.currentUser.uid;
-                            console.log("Signed in anonymously:", window.currentUserId);
-                        } catch (anonError) {
-                            console.error("Error signing in anonymously (fallback):", anonError);
-                        }
-                    }
-                } else {
-                    try {
-                        await signInAnonymously(window.auth);
-                        window.currentUserId = window.auth.currentUser.uid;
-                        console.log("Signed in anonymously:", window.currentUserId);
-                    } catch (anonError) {
-                        console.error("Error signing in anonymously:", anonError);
-                    }
-                }
-                if (!window.currentUserId) {
-                    console.error("No user ID available after authentication attempts. Using random UUID as fallback.");
-                    window.currentUserId = crypto.randomUUID();
-                }
-            }
-            window.isAuthReady = true;
-            document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
-        });
+        window.fsUpdateDoc = updateDoc;
 
         // Define collection paths here, where appId is definitively available
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
-        window.DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`; // NEW: Firestore collection for dropdown data
+        window.DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
 
-    </script>
-    <script>
         // --- GLOBAL DATA STORES ---
         let allRecords = []; // Records fetched from Firestore for display
         let allWebhooks = []; // Webhooks fetched from Firestore for display
-        // NEW: Store fetched dropdown options and CER name-email map
+        // Store fetched dropdown options and CER name-email map
         let dropdownOptions = {
             'cerNames': [],
             'cerRoles': [],
             'reviewerNames': [],
             'autofailTypes': []
         };
-        let cerNameEmailsMap = {};
+        let cerNameEmailsMap = {}; // Map CER Name to Email for easy lookup
 
         window.unsubscribeRecords = null;
         window.unsubscribeWebhooks = null;
-        window.unsubscribeDropdowns = {}; // Use an object to store unsub functions per dropdown type
-
-        // --- GLOBAL SCORE VARIABLES (Used by calculateScore) ---
-        let globalTotalPoints = 0;
-        let globalMaxPossiblePoints = 0;
-        let globalBusinessComplianceAccuracyValue = 0;
+        window.unsubscribeDropdowns = null; // Single listener for dropdowns document
+        window.currentUserRole = null; // To store the role of the logged-in user
+        window.currentUserId = null;
+        window.isAuthReady = false;
 
         // --- Global variable for the logged-in user's name ---
-        let loggedInUserName = "Quality Evaluation Team";
+        let loggedInUserName = "Quality Evaluation Team"; // Will be used in Share Response
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
         const allRolesQuestions = {
@@ -964,7 +916,7 @@
         };
 
 
-        // --- Message Box Functions ---
+        // --- MESSAGE BOX FUNCTIONS ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -1036,7 +988,7 @@
             if (tabName === 'auditForm') {
                 auditFormTab.classList.add('active');
                 auditFormContent.style.display = 'block';
-                // No need to initialize dropdowns here, done by fetchDropdownOptionsData on authReady
+                // Dropdowns will be populated by the fetchDropdownOptionsData listener
             } else if (tabName === 'database') {
                 databaseTab.classList.add('active');
                 databaseContent.style.display = 'block';
@@ -1066,14 +1018,14 @@
                 window.location.href = usersTab.href;
             } else if (tabName === 'admin') {
                 adminTab.classList.add('active');
-                window.location.href = adminTab.href; // Navigate to admin.html
+                window.location.href = adminTab.href;
             }
         }
 
         // Firestore Data Handling Functions
         window.unsubscribeRecords = null;
         window.unsubscribeWebhooks = null;
-        window.unsubscribeDropdowns = {}; // Use an object for multiple dropdown listeners
+        window.unsubscribeDropdowns = null; // Single listener for dropdowns document
 
         /**
          * Fetches records and webhooks from Firestore in real-time.
@@ -1137,9 +1089,9 @@
             }
         }
 
-        // NEW: Function to fetch and populate dropdown options from Firestore
+        // Function to fetch and populate dropdown options from Firestore
         async function fetchDropdownOptionsData() {
-            if (!window.db || !window.currentUserId) {
+            if (!window.db) {
                 console.warn("Firestore not ready for fetching dropdowns.");
                 return;
             }
@@ -1148,48 +1100,48 @@
                 return;
             }
 
-            const dropdownTypes = ['cerNames', 'cerRoles', 'reviewerNames', 'autofailTypes'];
+            const dropdownDocRef = window.fsDoc(window.db, window.DROPDOWN_DATA_COLLECTION_PATH, 'general_options');
 
-            for (const type of dropdownTypes) {
-                const docRef = window.fsDoc(window.db, window.DROPDOWN_DATA_COLLECTION_PATH, type);
-                // Unsubscribe previous listener for this type if it exists
-                if (window.unsubscribeDropdowns[type]) {
-                    window.unsubscribeDropdowns[type]();
-                }
-
-                window.unsubscribeDropdowns[type] = window.fsOnSnapshot(docRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data().options || [];
-                        dropdownOptions[type] = data;
-
-                        // Specifically for cerNames, build the email map
-                        if (type === 'cerNames') {
-                            cerNameEmailsMap = {};
-                            data.forEach(item => {
-                                if (typeof item === 'object' && item.name && item.email) {
-                                    cerNameEmailsMap[item.name] = item.email;
-                                } else if (typeof item === 'string') { // Handle legacy string entries without email
-                                    cerNameEmailsMap[item] = ''; // No email for these
-                                }
-                            });
-                        }
-                        populateAllDropdownsInForm();
-                    } else {
-                        console.log(`Dropdown type '${type}' document does not exist. Initializing empty.`);
-                        dropdownOptions[type] = [];
-                        // Attempt to create the document if it doesn't exist
-                        // This helps initialize the structure from the client side if admin panel is not used first
-                        window.fsUpdateDoc(docRef, { options: [] }, { merge: true }).catch(e => console.error(`Error creating dropdown doc for ${type}:`, e));
-                        populateAllDropdownsInForm();
-                    }
-                }, (error) => {
-                    console.error(`Error listening to dropdown '${type}':`, error);
-                    // Handle error, e.g., show a message to the user
-                });
+            if (window.unsubscribeDropdowns) {
+                window.unsubscribeDropdowns(); // Unsubscribe previous listener if exists
             }
+
+            window.unsubscribeDropdowns = window.fsOnSnapshot(dropdownDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    dropdownOptions.cerNames = data.cerNames || [];
+                    dropdownOptions.cerRoles = data.cerRoles || [];
+                    dropdownOptions.reviewerNames = data.reviewerNames || [];
+                    dropdownOptions.autofailTypes = data.autofailTypes || [];
+
+                    // Populate CER Name to Email map
+                    cerNameEmailsMap = {};
+                    dropdownOptions.cerNames.forEach(item => {
+                        if (typeof item === 'object' && item.name && item.email) {
+                            cerNameEmailsMap[item.name] = item.email;
+                        } else if (typeof item === 'string') {
+                            cerNameEmailsMap[item] = ''; // Handle legacy string entries without email
+                        }
+                    });
+
+                    populateAllDropdownsInForm();
+                    console.log("Dropdown data loaded from Firestore.");
+                } else {
+                    console.warn("Dropdown options document does not exist. Please use the Admin panel to add initial options.");
+                    // Clear dropdowns if the document doesn't exist
+                    dropdownOptions = {
+                        'cerNames': [], 'cerRoles': [], 'reviewerNames': [], 'autofailTypes': []
+                    };
+                    cerNameEmailsMap = {};
+                    populateAllDropdownsInForm(); // Clear the UI dropdowns
+                }
+            }, (error) => {
+                console.error("Error listening to dropdown data:", error);
+                showMessageBox("Error", "Failed to load dropdown options: " + error.message, true, false, true);
+            });
         }
 
-        // NEW: Function to populate all dropdowns in the form
+        // Function to populate all dropdowns in the form
         function populateAllDropdownsInForm() {
             const cerNameSelect = document.getElementById('cer-name');
             const cerRoleSelect = document.getElementById('cer-role');
@@ -1198,6 +1150,7 @@
 
             // Helper to populate a single select element
             const populateSelect = (selectElement, optionsArray, type) => {
+                const currentSelectedValue = selectElement.value; // Preserve current selection if possible
                 selectElement.innerHTML = '<option value="">Select ' + (type === 'cerNames' ? 'CER' : type.replace('Names', '').replace('Types', '').replace('Roles', '')) + '</option>';
                 optionsArray.forEach(option => {
                     const value = (type === 'cerNames' && typeof option === 'object') ? option.name : option;
@@ -1206,6 +1159,12 @@
                     optionElement.textContent = value;
                     selectElement.appendChild(optionElement);
                 });
+                // Attempt to restore previous selection
+                if (Array.from(selectElement.options).some(opt => opt.value === currentSelectedValue)) {
+                    selectElement.value = currentSelectedValue;
+                } else {
+                    selectElement.value = ''; // Reset if old value is no longer available
+                }
             };
 
             populateSelect(cerNameSelect, dropdownOptions.cerNames, 'cerNames');
@@ -1219,443 +1178,98 @@
 
             // Re-populate CER Email if CER Name is already selected
             const currentCerName = cerNameSelect.value;
-            if (currentCerName) {
-                const cerEmailInput = document.getElementById('cer-email');
-                cerEmailInput.value = cerNameEmailsMap[currentCerName] || '';
-            }
-        }
-
-
-        /**
-         * Adds a new evaluation record to Firestore.
-         */
-        async function addRecordToFirestore(recordData) {
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return false;
-            }
-            if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
-                console.error("Firestore collection path for records is not defined.");
-                showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
-                return false;
-            }
-
-            showMessageBox("Submitting", "Saving record to database...", false, true, false);
-            try {
-                const docRef = await window.fsAddDoc(window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH), {
-                    ...recordData,
-                    submittedAt: new Date().toISOString() // Add a server timestamp
-                });
-                console.log("Record written with ID:", docRef.id);
-                showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
-                    window.resetForm(); // Call global reset form
-                    sendDataToWebhooks(recordData); // Call internal webhook sender
-                });
-                return true;
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                showMessageBox("Submission Failed", `Error saving data: ${e.message}`, true, false, true);
-                return false;
-            }
+            const cerEmailInput = document.getElementById('cer-email');
+            cerEmailInput.value = cerNameEmailsMap[currentCerName] || '';
         }
 
         /**
-         * Deletes selected records from Firestore.
+         * Renders the dynamic question sections based on the selected CER Role.
+         * This function needs to be defined in the same scope as where it's called.
          */
-        async function deleteSelectedRecords() {
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
+        function renderQuestionsForRole(role) {
+            const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
+            const psQuestionsContainer = document.getElementById('psQuestionsContainer');
+            const caQuestionsContainer = document.getElementById('caQuestionsContainer');
 
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return;
-            }
-            if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
-                console.error("Firestore collection path for records is not defined for deletion.");
-                showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
-                return;
-            }
+            const questionContainers = {
+                'CUSTOMER EXPERIENCE': cxQuestionsContainer,
+                'PROBLEM SOLVING SKILLS': psQuestionsContainer,
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
+            };
 
-            const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-            const recordIdsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
+            console.log("Rendering questions for role:", role);
 
-            if (recordIdsToDelete.length === 0) {
-                showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true);
-                return;
-            }
-
-            const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
-
-            showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
-
-            const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = 'Delete';
-            confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-            confirmBtn.onclick = async () => {
-                hideMessageBox();
-                showMessageBox("Deleting", "Deleting selected records...", false, true, false);
-                try {
-                    const deletePromises = recordIdsToDelete.map(id => window.fsDeleteDoc(window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, id)));
-                    await Promise.all(deletePromises);
-                    console.log("Selected records deleted successfully.");
-                    showMessageBox("Success", "Selected records deleted.", false, false, true);
-                    selectAllRecordsCheckbox.checked = false;
-                    updateDeleteButtonState();
-                } catch (e) {
-                    console.error("Error deleting documents: ", e);
-                    showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
-                } finally {
-                    messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+            for (const key in questionContainers) {
+                if (questionContainers[key]) {
+                    questionContainers[key].innerHTML = '';
                 }
-            };
-
-            const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-            cancelBtn.onclick = () => {
-                hideMessageBox();
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-            };
-
-            messageBoxContent.innerHTML = '';
-            messageBoxContent.appendChild(confirmBtn);
-            messageBoxContent.appendChild(cancelBtn);
-
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            messageBoxCloseBtn.onclick = () => {
-                hideMessageBox();
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-            };
-        }
-
-        /**
-         * Adds a new webhook URL to Firestore.
-         */
-        async function addWebhook() {
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return;
             }
-            if (!window.WEBHOOKS_COLLECTION_PATH) {
-                console.error("Firestore collection path for webhooks is not defined.");
-                showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
+
+            const roleQuestions = allRolesQuestions[role];
+
+            if (!roleQuestions) {
+                console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
+                calculateScore();
                 return;
             }
 
-            const webhookUrl = newWebhookUrlInput.value.trim();
-            if (!webhookUrl) {
-                showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
-                return;
-            }
-            if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
-                showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
-                return;
-            }
-            if (allWebhooks.some(hook => hook.url === webhookUrl)) {
-                showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
-                newWebhookUrlInput.value = '';
-                return;
-            }
+            let questionNumber = 1;
 
-            showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
-            try {
-                await window.fsAddDoc(window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
-                newWebhookUrlInput.value = '';
-                showMessageBox("Success", "Webhook added successfully!", false, false, true);
-            } catch (e) {
-                console.error("Error adding webhook: ", e);
-                showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true);
-            }
-        }
+            for (const sectionTitle in roleQuestions) {
+                const questions = roleQuestions[sectionTitle];
+                const container = questionContainers[sectionTitle];
 
-        /**
-         * Deletes a specific webhook from Firestore.
-         */
-        async function deleteWebhook(webhookId) {
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return;
-            }
-            if (!window.WEBHOOKS_COLLECTION_PATH) {
-                console.error("Firestore collection path for webhooks is not defined for deletion.");
-                showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
-                return;
-            }
-            showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
-            try {
-                await window.fsDeleteDoc(window.fsDoc(window.db, window.WEBHOOKS_COLLECTION_PATH, webhookId));
-                showMessageBox("Success", "Webhook deleted successfully!", false, false, true);
-            } catch (e) {
-                console.error("Error deleting webhook: ", e);
-                showMessageBox("Failed to Delete Webhook", `Error: ${e.message}`, true, false, true);
-            }
-        }
+                if (!container) {
+                    console.error(`Container not found for section: ${sectionTitle}`);
+                    continue;
+                }
 
-        /**
-         * Sends record data to all configured webhooks.
-         */
-        async function sendDataToWebhooks(recordData) {
-            if (allWebhooks.length === 0) {
-                console.log("No webhooks configured. Skipping webhook dispatch.");
-                return;
-            }
-            console.log(`Sending data to ${allWebhooks.length} webhook(s)...`);
-            const webhookPromises = allWebhooks.map(async (webhook) => {
-                try {
-                    const response = await fetch(webhook.url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(recordData)
-                    });
-                    const result = await response.text();
-                    console.log(`Webhook to ${webhook.url} response:`, response.status, result);
-                    if (!response.ok) {
-                        console.error(`Webhook to ${webhook.url} failed: ${response.status} - ${result}`);
+                questions.forEach(q => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
+
+                    let iconColorClass;
+                    const iconIndex = (questionNumber - 1) % 4;
+                    if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
+                    else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
+                    else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
+                    else iconColorClass = 'icon-bg-yellow';
+
+                    const requiredAttribute = q.autofail ? '' : (q.required ? 'required' : '');
+                    const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
+
+                    rowDiv.innerHTML = `
+                        <div class="col-span-6 flex items-center gap-2">
+                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
+                            ${q.desc}
+                        </div>
+                        <div class="col-span-2">
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${requiredAttribute} ${hasNAAttribute}>
+                                <option value="" >None</option>
+                                <option value="Yes" selected>Yes</option>
+                                <option value="No">No</option>
+                                ${q.hasNA ? '<option value="N/A">N/A</option>' : ''}
+                            </select>
+                        </div>
+                        <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
+                        <div class="col-span-1 text-center">
+                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
+                        </div>
+                        <div class="col-span-2">
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea"></textarea>
+                        </div>
+                    `;
+                    container.appendChild(rowDiv);
+
+                    const newSelect = rowDiv.querySelector('.rating-select');
+                    if (newSelect) {
+                        newSelect.addEventListener('change', calculateScore);
                     }
-                } catch (error) {
-                    console.error(`Error sending to webhook ${webhook.url}:`, error);
-                }
-            });
-            await Promise.allSettled(webhookPromises);
-            console.log("All webhook dispatches attempted.");
-        }
-
-        // --- INTERNAL RENDERING & UI STATE FUNCTIONS (Used by database.js content) ---
-
-        /**
-         * Renders the evaluation records table.
-         */
-        function renderRecordsTable(records) {
-            const recordsTableBody = document.getElementById('recordsTableBody');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-
-            recordsTableBody.innerHTML = '';
-            if (records.length === 0) {
-                recordsTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="10" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
-                    </tr>
-                `;
-                deleteSelectedRecordsBtn.disabled = true;
-                selectAllRecordsCheckbox.checked = false;
-                selectAllRecordsCheckbox.disabled = true;
-                return;
-            }
-
-            selectAllRecordsCheckbox.disabled = false;
-
-            records.forEach(record => {
-                const row = recordsTableBody.insertRow();
-                row.className = 'border-b border-gray-200';
-                row.insertCell().innerHTML = `<input type="checkbox" class="record-checkbox" data-record-id="${record.id}">`;
-                row.insertCell().textContent = record.submittedAt ? new Date(record.submittedAt).toLocaleString() : 'N/A';
-                row.insertCell().textContent = record['Contact ID'] || '';
-                row.insertCell().textContent = record['Client Name'] || '';
-                row.insertCell().textContent = record['CER Name'] || '';
-                row.insertCell().textContent = record['Overall Score'] || '';
-
-                // Actions cell (delete button)
-                row.insertCell().innerHTML = `
-                    <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
-                `;
-
-                // View button
-                const viewCell = row.insertCell();
-                const viewBtn = document.createElement('button');
-                viewBtn.className = 'view-record-btn';
-                viewBtn.textContent = 'View';
-                viewBtn.dataset.recordId = record.id;
-                viewBtn.addEventListener('click', () => viewRecordDetails(record.id));
-                viewCell.appendChild(viewBtn);
-
-                // Email button
-                const emailCell = row.insertCell();
-                const emailBtn = document.createElement('button');
-                emailBtn.className = 'email-record-btn';
-                emailBtn.textContent = 'Email';
-                emailBtn.dataset.recordId = record.id;
-                emailBtn.addEventListener('click', () => sendRecordEmail(record.id));
-                emailCell.appendChild(emailBtn);
-
-                // Download button
-                const downloadCell = row.insertCell();
-                const downloadBtn = document.createElement('button');
-                downloadBtn.className = 'download-record-btn';
-                downloadBtn.textContent = 'Download';
-                downloadBtn.dataset.recordId = record.id;
-                downloadBtn.addEventListener('click', () => downloadRecordData(record.id));
-                downloadCell.appendChild(downloadBtn);
-            });
-
-            document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', updateDeleteButtonState);
-            });
-
-            updateDeleteButtonState();
-        }
-
-        /**
-         * Updates the state of the "Delete Selected" button.
-         */
-        function updateDeleteButtonState() {
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-            const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
-            deleteSelectedRecordsBtn.disabled = checkedCount === 0;
-        }
-
-        /**
-         * Renders the list of configured webhooks.
-         */
-        function renderWebhookList(webhooks) {
-            const webhookList = document.getElementById('webhookList');
-            webhookList.innerHTML = '';
-            if (webhooks.length === 0) {
-                webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
-                return;
-            }
-
-            webhooks.forEach(hook => {
-                const webhookDiv = document.createElement('div');
-                webhookDiv.innerHTML = `
-                    <span>${hook.url}</span>
-                    <button class="delete-webhook-btn bg-red-400 hover:bg-red-500 text-white p-1 rounded-md text-xs" data-webhook-id="${hook.id}">
-                        <i class="fas fa-times"></i> Delete
-                    </button>
-                `;
-                webhookList.appendChild(webhookDiv);
-            });
-
-            document.querySelectorAll('.delete-webhook-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const webhookId = e.target.closest('button').dataset.webhookId;
-                    const messageBoxContent = document.getElementById('messageBoxContent');
-                    const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
-
-                    showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, false);
-                    const confirmBtn = document.createElement('button');
-                    confirmBtn.textContent = 'Delete';
-                    confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-                    confirmBtn.onclick = async () => {
-                        hideMessageBox();
-                        showMessageBox("Deleting", "Deleting webhook...", false, true, false);
-                        await deleteWebhook(webhookId);
-                        hideMessageBox();
-                    };
-                    const cancelBtn = document.createElement('button');
-                    cancelBtn.textContent = 'Cancel';
-                    cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-                    cancelBtn.onclick = () => {
-                        hideMessageBox();
-                        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-                    };
-
-                    messageBoxContent.innerHTML = '';
-                    messageBoxContent.appendChild(confirmBtn);
-                    messageBoxContent.appendChild(cancelBtn);
-
-                    const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-                    messageBoxCloseBtn.onclick = () => {
-                        hideMessageBox();
-                        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-                    };
+                    questionNumber++;
                 });
-            });
+            }
+            calculateScore();
         }
-
-        /**
-         * Displays full details of a selected record in a modal.
-         */
-        function viewRecordDetails(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found.", true, false, true);
-                return;
-            }
-
-            let detailsHtml = '<pre>';
-            for (const key in record) {
-                if (record.hasOwnProperty(key)) {
-                    let value = record[key];
-                    if (key === 'submittedAt' && value) {
-                        value = new Date(value).toLocaleString();
-                    }
-                    detailsHtml += `<b>${key}:</b> ${JSON.stringify(value, null, 2).replace(/"/g, '')}\n`;
-                }
-            }
-            detailsHtml += '</pre>';
-
-            showMessageBox("Record Details", detailsHtml, false, false, true);
-        }
-
-        /**
-         * Sends the selected record's summary via email.
-         */
-        function sendRecordEmail(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found for email.", true, false, true);
-                return;
-            }
-
-            const contactId = record['Contact ID'] || 'N/A';
-            const cerName = record['CER Name'] || 'N/A';
-            const overallScore = record['Overall Score'] || 'N/A';
-            const evaluationDate = record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'N/A';
-            const cerEmail = record['CER Email'] || '';
-
-            const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
-            const body = `Dear ${cerName},\n\n` +
-                                 `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                 `Contact ID: ${contactId}\n` +
-                                 `CER Name: ${cerName}\n` +
-                                 `Overall Score: ${overallScore}\n` +
-                                 `Evaluation Date: ${evaluationDate}\n\n` +
-                                 `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                 `Kind Regards,\nQuality Evaluation Team`;
-
-            const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-            try {
-                window.location.href = mailtoLink;
-                showMessageBox("Email Client Opened", "Your email client should open shortly. Please review and send the email.", false, false, true);
-            } catch (e) {
-                console.error("Failed to open email client:", e);
-                showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
-            }
-        }
-
-        /**
-         * Downloads the selected record's data as a JSON file.
-         */
-        function downloadRecordData(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found for download.", true, false, true);
-                return;
-            }
-
-            const filename = `record_${record.id}_${record['Contact ID'] || 'unknown'}.json`;
-            const dataStr = JSON.stringify(record, null, 2);
-
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            showMessageBox("Download Complete", `Record '${filename}' downloaded successfully.`, false, false, true);
-        }
-
 
         // Audit Form Calculations
         const calculateScore = () => {
@@ -1665,8 +1279,8 @@
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
 
-            let globalTotalPoints = 0;
-            let globalMaxPossiblePoints = 0;
+            let currentTotalPoints = 0; // Changed from globalTotalPoints to avoid interference outside this call
+            let currentMaxPossiblePoints = 0; // Changed from globalMaxPossiblePoints
             let autofailTriggered = false;
 
             let complianceCurrentPoints = 0;
@@ -1691,17 +1305,17 @@
 
                 const rating = selectElement.value;
                 const weightage = parseFloat(weightageDisplay.dataset.weightage);
-                let currentPoints = 0;
+                let pointsForThisQuestion = 0;
 
                 pointsElement.style.backgroundColor = '#e9ecef';
                 pointsElement.style.color = '#555';
 
                 if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
-                    currentPoints = weightage;
+                    pointsForThisQuestion = weightage;
                     pointsElement.readOnly = false;
                     pointsElement.style.backgroundColor = '#fff';
                 } else if (rating === 'No') {
-                    currentPoints = 0;
+                    pointsForThisQuestion = 0;
                     pointsElement.readOnly = true;
 
                     if (isAutofailQuestion) {
@@ -1712,14 +1326,14 @@
                         pointsElement.style.backgroundColor = '#e0e0e0';
                     }
                 } else {
-                    currentPoints = 0;
+                    pointsForThisQuestion = 0;
                     pointsElement.readOnly = true;
                     pointsElement.style.backgroundColor = '#e9ecef';
                 }
 
-                pointsElement.value = currentPoints;
-                globalTotalPoints += currentPoints;
-                globalMaxPossiblePoints += weightage;
+                pointsElement.value = pointsForThisQuestion;
+                currentTotalPoints += pointsForThisQuestion;
+                currentMaxPossiblePoints += weightage;
 
                 const currentRole = cerRoleSelect.value;
                 if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
@@ -1739,8 +1353,8 @@
             if (autofailTriggered) {
                 overallPercentage = 0;
             } else {
-                if (globalMaxPossiblePoints > 0) {
-                    overallPercentage = ((globalTotalPoints / globalMaxPossiblePoints) * 100).toFixed(0);
+                if (currentMaxPossiblePoints > 0) {
+                    overallPercentage = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
                 } else {
                     overallPercentage = 0;
                 }
@@ -1757,6 +1371,11 @@
                 businessCompliancePct = 0;
             }
             businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
+
+            // Update global variables after calculation
+            globalTotalPoints = currentTotalPoints;
+            globalMaxPossiblePoints = currentMaxPossiblePoints;
+            globalBusinessComplianceAccuracyValue = businessCompliancePct;
         };
 
         // Audit Form Initialization and Reset
@@ -1911,7 +1530,7 @@
         // NEW FUNCTION: Fetch Last 3 Evaluations for a CER
         async function fetchLastThreeEvaluations(cerName) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
-            if (!window.db || !window.EVALUATION_RECORDS_COLLECTION_PATH) {
+            if (!window.db || !window.currentUserId) {
                 console.error("Firestore not initialized or collection path not defined.");
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Database not ready.</td></tr>';
                 return;
@@ -1962,7 +1581,7 @@
                     <td class="py-2 px-4">${evaluation['Overall Score'] || 'N/A'}</td>
                     <td class="py-2 px-4">${evaluation['CER Role'] || 'N/A'}</td>
                     <td class="py-2 px-4">${evaluation['Contact ID'] || 'N/A'}</td>
-                    <td class="py-2 px-4">${evaluation.submittedAt ? new Date(evaluation.submittedAt).toLocaleDateString() : 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation.submittedAt ? new Date(evaluation.submittedAt.toDate()).toLocaleDateString() : 'N/A'}</td>
                 `;
             });
         }
@@ -1996,7 +1615,7 @@
                         const record = doc.data();
                         const option = document.createElement('option');
                         option.value = doc.id;
-                        option.textContent = `${record['Contact ID'] || 'N/A'} - ${record['CER Name'] || 'N/A'} (${new Date(record.submittedAt).toLocaleDateString()})`;
+                        option.textContent = `${record['Contact ID'] || 'N/A'} - ${record['CER Name'] || 'N/A'} (${record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A'})`;
                         selectRecordToShare.appendChild(option);
                     });
                 }
@@ -2030,7 +1649,7 @@
 
             const cerName = record['CER Name'] || 'N/A';
             const contactId = record['Contact ID'] || 'N/A';
-            const evaluationDate = record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'N/A';
+            const evaluationDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
             const overallScore = record['Overall Score'] || 'N/A';
 
             // "To" field: CER Email from the map
@@ -2110,7 +1729,6 @@
                 loginPage.style.display = 'none';
                 mainNav.style.display = 'block';
                 showTab('auditForm');
-                // Dropdowns will be populated by the fetchDropdownOptionsData listener
             } else {
                 loginPage.style.display = 'flex';
                 mainNav.style.display = 'none';
@@ -2125,7 +1743,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
-            // --- UI Elements (Get references to DOM elements here) ---
             const loginForm = document.getElementById('loginForm');
             const loginMessage = document.getElementById('loginMessage');
             const usernameInput = document.getElementById('username');
@@ -2139,7 +1756,6 @@
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
-
 
             const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
             const printEmailBtn = document.getElementById('print-email-btn');
@@ -2165,37 +1781,50 @@
             const sendShareEmailBtn = document.getElementById('sendShareEmailBtn');
 
 
-            // --- EVENT LISTENERS (Attach to DOM elements) ---
-            loginForm.addEventListener('submit', function(event) {
+            // --- EVENT LISTENERS ---
+            loginForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 loginMessage.classList.add('hidden');
 
-                const CORRECT_USERNAME = 'Supervisor';
-                const CORRECT_PASSWORD = 'Supervisor';
+                const enteredUsername = usernameInput.value;
+                const enteredPassword = passwordInput.value;
 
-                if (usernameInput.value === CORRECT_USERNAME && passwordInput.value === CORRECT_PASSWORD) {
+                // IMPORTANT: Use your actual Firebase Admin/Supervisor email and password here
+                // that you created in Firebase Authentication.
+                // This will replace the hardcoded 'Supervisor' check.
+                const ADMIN_EMAIL = 'supervisor@icealion.com'; // Replace with your admin email
+                const ADMIN_PASSWORD = 'Supervisor'; // Replace with your admin password
+
+                try {
+                    // Authenticate with Firebase Email/Password
+                    const userCredential = await signInWithEmailAndPassword(window.auth, enteredUsername, enteredPassword);
                     sessionStorage.setItem('loggedIn', 'true');
-                    initializeApp();
-                } else {
-                    loginMessage.textContent = 'Invalid Username or Password. Please try again.';
+                    window.location.reload(); // Reload to trigger onAuthStateChanged and page init
+                } catch (error) {
+                    console.error("Firebase Login Error:", error);
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        loginMessage.textContent = 'Invalid email or password.';
+                    } else if (error.code === 'auth/invalid-email') {
+                         loginMessage.textContent = 'Please enter a valid email address.';
+                    } else if (error.code === 'auth/too-many-requests') {
+                         loginMessage.textContent = 'Too many login attempts. Please try again later.';
+                    }
+                    else {
+                        loginMessage.textContent = `Login failed: ${error.message}`;
+                    }
                     loginMessage.classList.remove('hidden');
                 }
             });
 
-            logoutBtn.addEventListener('click', function() {
+            logoutBtn.addEventListener('click', async function() {
                 sessionStorage.removeItem('loggedIn');
                 if (window.unsubscribeRecords) window.unsubscribeRecords();
                 if (window.unsubscribeWebhooks) window.unsubscribeWebhooks();
-                // Unsubscribe all dropdown listeners
-                for (const type in window.unsubscribeDropdowns) {
-                    if (window.unsubscribeDropdowns.hasOwnProperty(type) && typeof window.unsubscribeDropdowns[type] === 'function') {
-                        window.unsubscribeDropdowns[type]();
-                    }
-                }
+                if (window.unsubscribeDropdowns) window.unsubscribeDropdowns(); // Unsubscribe dropdown listener
+                await signOut(window.auth); // Sign out from Firebase Auth
                 window.location.reload();
             });
 
-            // Added click listeners for navigation tabs
             auditFormTab.addEventListener('click', (e) => {
                 e.preventDefault();
                 console.log("Audit Form Tab CLICKED!");
@@ -2211,19 +1840,19 @@
             reportsTab.addEventListener('click', (e) => {
                 e.preventDefault();
                 console.log("Reports Tab CLICKED!");
-                showTab('reports');
+                window.location.href = reportsTab.href;
             });
 
             autofailsTab.addEventListener('click', (e) => {
                 e.preventDefault();
                 console.log("Autofails Tab CLICKED!");
-                showTab('autofails');
+                window.location.href = autofailsTab.href;
             });
 
             adminTab.addEventListener('click', (e) => {
                 e.preventDefault();
                 console.log("Admin Tab CLICKED!");
-                showTab('admin');
+                window.location.href = adminTab.href;
             });
 
             shareResponseTab.addEventListener('click', (e) => {
@@ -2235,7 +1864,7 @@
             usersTab.addEventListener('click', (e) => {
                 e.preventDefault();
                 console.log("Users Tab CLICKED!");
-                showTab('users');
+                window.location.href = usersTab.href;
             });
 
             if (selectAllRecordsCheckbox) {
@@ -2486,12 +2115,11 @@
 
 
             // Initial trigger for app setup after DOM is ready
+            // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
                 // Fetch and populate all dropdowns first
                 fetchDropdownOptionsData();
-
-                // Then initialize the app, which will show audit form and use populated dropdowns
-                initializeApp();
+                initializeApp(); // Then initialize the app, which will show audit form and use populated dropdowns
 
                 if (sessionStorage.getItem('loggedIn') === 'true') {
                    fetchRecordsAndWebhooks();
@@ -2512,542 +2140,5 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-</body>
-</html>
-```
-
----
-
-**2. `users.html` (Complete File)**
-
-This file is dedicated to user management, as per your request. It's a separate page, so its Firebase setup and login check are self-contained.
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management - ICEA LION GROUP</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
-    <style>
-        /* Base styles - similar to index.html for consistency */
-        body {
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            align-items: flex-start;
-            min-height: 100vh;
-            background-color: #f3f4f6;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* ICEALION Branding Colors */
-        .icealion-blue {
-            background-color: #1a73e8;
-            color: white;
-        }
-        .icealion-orange-text {
-            color: #f57c00;
-        }
-
-        /* Navigation styles (copied from index.html for consistent sidebar) */
-        .main-nav {
-            width: auto;
-            background-color: transparent;
-            color: inherit;
-            padding: 0;
-            display: block;
-            box-shadow: none;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 100;
-        }
-
-        .sidebar {
-            width: 125px; /* Half width */
-            background-color: #1a73e8;
-            color: white;
-            padding: 1rem 0;
-            height: 100%;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .sidebar ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            flex-grow: 1;
-        }
-        .sidebar ul li {
-            margin-right: 0;
-            margin-bottom: 0.5rem;
-        }
-        .sidebar ul li a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 0.75rem 0.5rem; /* Adjusted padding */
-            display: block;
-            border-radius: 0;
-            transition: background-color 0.3s ease;
-            display: flex;
-            flex-direction: column; /* Stack icon and text */
-            align-items: center;
-            gap: 0.25rem;
-            font-size: 0.75rem; /* Smaller font */
-            text-align: center;
-        }
-        .sidebar ul li a .fas {
-            margin-bottom: 0.25rem;
-            font-size: 1.2rem;
-        }
-
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
-            background-color: #0d47a1;
-        }
-
-        .logout-button {
-            background-color: #f57c00;
-            color: white;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-            margin: 1rem auto;
-            width: calc(100% - 2rem);
-            font-size: 0.75rem;
-        }
-        .logout-button:hover {
-            background-color: #e65100;
-        }
-
-        /* Main content area for users.html */
-        .main-content {
-            margin-left: 125px; /* Matches sidebar width */
-            width: calc(100% - 125px); /* Fills remaining space */
-            padding: 1.5rem;
-            min-height: 100vh;
-            box-sizing: border-box; /* Include padding in width */
-        }
-        .users-container {
-            background-color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0.5rem;
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-
-        /* Error/Message styles */
-        .error-message {
-            color: #dc2626; /* red-700 */
-            font-size: 0.875rem; /* text-sm */
-            margin-top: 0.5rem; /* mt-2 */
-            text-align: center;
-        }
-        .success-message {
-            color: #10b981; /* green-500 */
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <!-- Main Navigation / Sidebar -->
-    <nav class="main-nav" id="mainNav">
-        <div class="sidebar">
-            <ul>
-                <!-- Ensure these paths are correct relative to users.html -->
-                <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li><a href="users.html" id="usersTab" class="active"><i class="fas fa-users"></i> Users</a></li> <!-- Active on this page -->
-                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
-            </ul>
-            <button id="logoutBtn" class="logout-button">Logout</button>
-        </div>
-    </nav>
-
-    <!-- Login Page (re-used logic but for users.html) -->
-    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage" style="display: none;">
-        <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
-            <div class="icealion-blue p-6 rounded-t-lg text-center">
-                <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
-            </div>
-
-            <form id="loginForm" class="p-8 space-y-6">
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="username" name="username"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                           required placeholder="Enter your username">
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" name="password"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                           required placeholder="Enter your password">
-                </div>
-                <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                    Login
-                </button>
-                <div id="loginMessage" class="error-message hidden"></div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Main Content Area for Users -->
-    <div class="main-content" id="usersContent">
-        <div class="users-container">
-            <div class="icealion-blue p-4 text-xl font-semibold text-center">
-                User Management
-            </div>
-            <div class="p-6">
-                <p class="text-gray-700 mb-4">
-                    This section is for managing users, roles, and privileges within the system.
-                </p>
-                <p class="text-red-600 font-bold mb-4">
-                    NOTE: For a secure and robust application, actual user creation, password resets, role management, and deletion should be handled via a backend service (e.g., Firebase Cloud Functions interacting with Firebase Authentication). This page provides a conceptual frontend.
-                </p>
-
-                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Manage Existing Users</h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full bg-white border border-gray-200 rounded-md">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Email</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Role</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody">
-                            <!-- User data will be loaded here via JavaScript -->
-                            <tr><td colspan="3" class="py-4 px-4 text-center text-gray-500">Loading users... (requires backend setup)</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Add New User</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="new-user-email" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="new-user-email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="user@example.com">
-                    </div>
-                    <div>
-                        <label for="new-user-password" class="block text-sm font-medium text-gray-700">Initial Password</label>
-                        <input type="password" id="new-user-password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="••••••••">
-                    </div>
-                    <div>
-                        <label for="new-user-role" class="block text-sm font-medium text-gray-700">Role</label>
-                        <select id="new-user-role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border">
-                            <option value="">Select Role</option>
-                            <option value="agent">Agent</option>
-                            <option value="supervisor">Supervisor</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-                    <div class="col-span-1 md:col-span-2">
-                        <button id="addUserBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
-                            Add User (Requires Backend)
-                        </button>
-                    </div>
-                </div>
-                <div id="userMessage" class="error-message hidden mt-4"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase SDK and custom script for users.html -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signOut, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-
-        // IMPORTANT: This is a client-side only example.
-        // Actual user management (creation, deletion, role assignment) for Firebase Authentication
-        // requires the Firebase Admin SDK, which MUST be run on a trusted server environment
-        // like Firebase Cloud Functions or your own secure backend.
-        // Direct client-side calls to Firebase Auth for user creation/role changes are NOT secure.
-
-        // --- Your Web App's Firebase Configuration ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-            authDomain: "icea-lion-qa.firebaseapp.com",
-            projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
-            messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
-            measurementId: "G-1RJJTT3QET"
-        };
-
-        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app); // Initialize Firestore for this page too, if needed for user roles/profiles
-
-        // Expose window.db and window.auth for consistency with index.html's global access pattern
-        window.db = db;
-        window.auth = auth;
-        window.currentUserId = null;
-        window.isAuthReady = false;
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                window.currentUserId = user.uid;
-                console.log("Firebase Auth State Changed (users.html): User logged in:", user.uid);
-            } else {
-                console.log("Firebase Auth State Changed (users.html): No user logged in. Attempting sign-in.");
-                if (initialAuthToken) {
-                    try {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                        window.currentUserId = auth.currentUser.uid;
-                        console.log("Signed in with custom token (users.html):", window.currentUserId);
-                    } catch (error) {
-                        console.error("Error signing in with custom token (users.html):", error);
-                        try {
-                            await signInAnonymously(auth);
-                            window.currentUserId = auth.currentUser.uid;
-                            console.log("Signed in anonymously (users.html):", window.currentUserId);
-                        } catch (anonError) {
-                            console.error("Error signing in anonymously (users.html):", anonError);
-                        }
-                    }
-                } else {
-                    try {
-                        await signInAnonymously(auth);
-                        window.currentUserId = auth.currentUser.uid;
-                        console.log("Signed in anonymously (users.html):", window.currentUserId);
-                    } catch (anonError) {
-                        console.error("Error signing in anonymously (users.html):", anonError);
-                    }
-                }
-                if (!window.currentUserId) {
-                    console.error("No user ID available after authentication attempts (users.html). Using random UUID as fallback.");
-                    window.currentUserId = crypto.randomUUID();
-                }
-            }
-            window.isAuthReady = true;
-            document.dispatchEvent(new CustomEvent('firebaseAuthReadyUsersPage')); // Custom event for this page
-        });
-
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const loginPage = document.getElementById('loginPage');
-            const mainNav = document.getElementById('mainNav');
-            const usersContent = document.getElementById('usersContent');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const loginForm = document.getElementById('loginForm');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const loginMessage = document.getElementById('loginMessage');
-
-
-            // User management elements
-            const newUsernameInput = document.getElementById('new-user-email'); // Renamed for clarity
-            const newPasswordInput = document.getElementById('new-user-password'); // Added for setting initial password
-            const newUserRoleSelect = document.getElementById('new-user-role');
-            const addUserBtn = document.getElementById('addUserBtn');
-            const userMessage = document.getElementById('userMessage');
-            const userTableBody = document.getElementById('userTableBody');
-
-            // --- Utility Functions ---
-            const showMessage = (element, message, type) => {
-                element.textContent = message;
-                element.classList.remove('hidden', 'error', 'success');
-                element.classList.add(type);
-                setTimeout(() => { element.classList.add('hidden'); }, 3000); // Hide after 3 seconds
-            };
-
-            const showLoginErrorMessage = (message) => {
-                loginMessage.textContent = message;
-                loginMessage.classList.remove('hidden');
-            };
-
-            const hideLoginErrorMessage = () => {
-                loginMessage.classList.add('hidden');
-                loginMessage.textContent = '';
-            };
-
-
-            // --- Login/Authentication Logic for this page ---
-            loginForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-                hideLoginErrorMessage();
-
-                const CORRECT_USERNAME = 'Supervisor'; // Hardcoded for this demo
-                const CORRECT_PASSWORD = 'Supervisor'; // Hardcoded for this demo
-
-                if (usernameInput.value === CORRECT_USERNAME && passwordInput.value === CORRECT_PASSWORD) {
-                    sessionStorage.setItem('loggedIn', 'true');
-                    window.location.reload(); // Reload the page to show main content
-                } else {
-                    showLoginErrorMessage('Invalid Username or Password. Please try again.');
-                }
-            });
-
-            // Initial check for login status and Firebase Auth readiness
-            const initializeUsersPage = () => {
-                const isLoggedIn = sessionStorage.getItem('loggedIn');
-                if (isLoggedIn === 'true') {
-                    loginPage.style.display = 'none'; // Hide login
-                    mainNav.style.display = 'block'; // Show sidebar
-                    usersContent.style.display = 'block'; // Show user content
-                    // Highlight the current tab
-                    document.querySelectorAll('.sidebar ul li a').forEach(link => {
-                        link.classList.remove('active');
-                        if (link.href.includes('users.html')) {
-                            link.classList.add('active');
-                        }
-                    });
-                    fetchAndRenderUsers(); // Load users for display
-                } else {
-                    loginPage.style.display = 'flex'; // Show login
-                    mainNav.style.display = 'none'; // Hide sidebar
-                    usersContent.style.display = 'none'; // Hide user content
-                }
-            };
-
-            // Listen for firebaseAuthReadyUsersPage event before initializing the page
-            document.addEventListener('firebaseAuthReadyUsersPage', initializeUsersPage);
-
-            // Fallback for fast loads where auth might be ready before DOMContentLoaded
-            if (document.readyState === 'complete' && window.isAuthReady !== null) {
-                initializeUsersPage();
-            }
-
-            // --- Logout Functionality ---
-            logoutBtn.addEventListener('click', async () => {
-                try {
-                    // You might want to also sign out from Firebase if you implement Firebase Auth
-                    // await signOut(auth);
-                    sessionStorage.removeItem('loggedIn'); // Clear custom login state
-                    window.location.href = 'index.html'; // Redirect to main login page
-                } catch (error) {
-                    console.error("Error signing out:", error);
-                    showMessage(userMessage, `Error signing out: ${error.message}`, 'error');
-                }
-            });
-
-            // --- User Management Logic (Conceptual for Client-Side) ---
-            // In a real application, these operations would call a secure backend (e.g., Firebase Cloud Functions).
-            // This client-side code is for UI interaction and demonstration only.
-
-            addUserBtn.addEventListener('click', async () => {
-                showMessage(userMessage, '', 'hidden'); // Clear previous messages
-                const email = newUsernameInput.value.trim();
-                const password = newPasswordInput.value.trim();
-                const role = newUserRoleSelect.value;
-
-                if (!email || !password || !role) {
-                    showMessage(userMessage, "Please fill in all fields (Email, Password, Role).", 'error');
-                    return;
-                }
-
-                showMessage(userMessage, "Simulating user creation... (Requires Backend)", 'success'); // Show a loading/simulating message
-
-                try {
-                    // *** IMPORTANT: This is a placeholder for a backend API call. ***
-                    // In a real app, you would send this data to a Cloud Function or your server
-                    // which then uses Firebase Admin SDK to create the user and set their role.
-                    console.log(`Simulated creation: User Email: ${email}, Role: ${role}`);
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-
-                    // If you had a real backend, this would be:
-                    /*
-                    const response = await fetch('/api/createUser', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password, role })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        showMessage(userMessage, `User '${email}' created successfully!`, 'success');
-                    } else {
-                        throw new Error(result.error || 'Failed to create user on backend.');
-                    }
-                    */
-
-                    showMessage(userMessage, `User '${email}' created successfully! (Simulated)`, 'success');
-                    newUsernameInput.value = '';
-                    newPasswordInput.value = '';
-                    newUserRoleSelect.value = ''; // Reset dropdown
-                    fetchAndRenderUsers(); // Refresh the list after "creation"
-
-                } catch (error) {
-                    console.error("Simulated User Creation Error:", error);
-                    showMessage(userMessage, `Failed to create user: ${error.message || 'Unknown error'}`, 'error');
-                }
-            });
-
-            // Function to simulate fetching and rendering users
-            function fetchAndRenderUsers() {
-                userTableBody.innerHTML = '<tr><td colspan="3" class="py-4 px-4 text-center text-gray-500">Fetching users... (Requires Backend)</td></tr>';
-                // In a real app, you would fetch from a secure API endpoint
-                // For this demo, we'll use a hardcoded list.
-                setTimeout(() => {
-                    const simulatedUsers = [
-                        { email: 'supervisor@icealion.com', role: 'Supervisor' },
-                        { email: 'ann.nyokabi@icealion.com', role: 'Agent' },
-                        { email: 'cliff.kiyaka@icealion.com', role: 'Agent' },
-                        { email: 'admin@icealion.com', role: 'Admin' },
-                    ];
-
-                    userTableBody.innerHTML = ''; // Clear loading message
-
-                    if (simulatedUsers.length === 0) {
-                        userTableBody.innerHTML = '<tr><td colspan="3" class="py-4 px-4 text-center text-gray-500">No users found.</td></tr>';
-                        return;
-                    }
-
-                    simulatedUsers.forEach(user => {
-                        const row = userTableBody.insertRow();
-                        row.className = 'border-b border-gray-200';
-                        row.innerHTML = `
-                            <td class="py-2 px-4">${user.email}</td>
-                            <td class="py-2 px-4">${user.role}</td>
-                            <td class="py-2 px-4">
-                                <button class="bg-red-500 hover:bg-red-600 text-white py-1 px-2 rounded text-xs" onclick="alert('User deletion requires backend logic!')">Delete</button>
-                            </td>
-                        `;
-                    });
-                }, 500); // Simulate network delay
-            }
-
-            // Initial fetch of users on page load
-            // This will be called after Firebase auth is ready or on DOMContentLoaded fallback
-            fetchAndRenderUsers();
-
-            // --- Navigation Link Event Listeners (for pages like reports, admin, etc.) ---
-            // These ensure the sidebar links work correctly even on users.html
-            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
-            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
-            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
-            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
-            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
-            document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
-
-        });
-    </script>
 </body>
 </html>
