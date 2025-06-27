@@ -118,6 +118,8 @@
         }
         .main-nav ul li {
             margin-right: 1.5rem;
+            /* Ensure all list items are visible */
+            display: inline-block !important; /* Force display for all roles */
         }
         .main-nav ul li a {
             color: white;
@@ -131,19 +133,7 @@
         .main-nav ul li a.active {
             background-color: #f7b32d; /* Updated: Yellow for hover/active */
         }
-        .logout-button {
-            background-color: #f57c00; /* icealion-orange */
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem; /* rounded-md */
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-        }
-        .logout-button:hover {
-            background-color: #e65100; /* darker orange */
-        }
+        /* Removed .logout-button styles as button is removed */
 
         /* Specific styles for modal/message box */
         .message-box-overlay {
@@ -353,42 +343,8 @@
             color: #065f46; /* green-700 */
             font-weight: bold;
         }
-        /* Styles for the login/access denied section */
-        #accessSection {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh; /* Make it full height of the viewport */
-            width: 100%;
-            position: fixed; /* Fix its position to cover everything */
-            top: 0;
-            left: 0;
-            background-color: #f3f4f6; /* bg-gray-100 */
-            z-index: 1000; /* Ensure it's on top */
-        }
-        #accessBox {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        #accessBox h2 {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 1.5rem;
-            color: #1f2937; /* gray-800 */
-        }
-        #accessBox button {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-            cursor: pointer;
-        }
+        /* Removed login/access denied section styles */
+        #accessSection { display: none; }
     </style>
 </head>
 <body>
@@ -405,16 +361,15 @@
         </div>
     </div>
 
-    <nav class="main-nav" id="mainNav" style="display: none;">
+    <nav class="main-nav" id="mainNav">
         <ul>
             <li><a href="#" id="evaluationFormTab" class="active"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
             <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
             <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
             <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-            <li id="adminTabNav" style="display: none;"><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+            <li id="adminTabNav"><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
         </ul>
-        <button id="logoutBtn" class="logout-button">Logout</button>
-    </nav>
+        </nav>
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="evaluationFormContent" style="display: none;">
         <div class="icealion-blue p-4 flex items-center justify-between">
@@ -656,7 +611,7 @@
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
                     <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)"
-                           class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border form-grid-input">
+                            class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border form-grid-input">
                     <button id="addWebhookBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                         <i class="fas fa-plus mr-2"></i>Add Webhook
                     </button>
@@ -670,11 +625,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import {
-            getAuth,
-            onAuthStateChanged,
-            signOut
-        } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        // Removed Firebase Auth imports
+        // import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import {
             getFirestore,
             collection,
@@ -695,7 +647,7 @@
         // Hardcoded Firebase Configuration for GitHub/local hosting
         // IMPORTANT: For production with sensitive data, use environment variables or a backend.
         const firebaseConfig = {
-            apiKey: "IzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", // Your provided API key
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", // Your provided API key
             authDomain: "icea-lion-qa.firebaseapp.com",
             databaseURL: "https://icea-lion-qa-default-rtdb.firebaseio.com",
             projectId: "icea-lion-qa",
@@ -705,29 +657,28 @@
             measurementId: "G-1RJJTT3QET" // Your provided measurementId
         };
 
-        // Log the hardcoded config for verification
         console.log("Firebase config (hardcoded in index.html):", firebaseConfig);
 
-        let app, auth, db;
-
+        let app, db; // Removed 'auth'
+        
         // Initialize Firebase if config is not empty
         if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey && firebaseConfig.projectId) {
             try {
                 app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
                 db = getFirestore(app);
             } catch (initError) {
                 console.error("Firebase app initialization failed in index.html:", initError);
-                // If initialization fails, auth will be undefined, triggering the redirect below.
+                // Display error but don't redirect, as there's no login.
+                showMessageBox("Initialization Error", `Failed to initialize Firebase: ${initError.message}. Data features may not work.`, true);
             }
         } else {
-            console.error("Firebase config is missing or invalid in index.html. Redirecting to login.");
-            // This path will lead to `auth` being undefined, triggering the redirect below.
+            console.error("Firebase config is missing or invalid in index.html. Data features may not work.");
+            showMessageBox("Configuration Error", "Firebase configuration is missing or invalid. Data features may not work.", true);
         }
 
         // Expose Firebase instances and appId globally for easier access in other scripts
         window.firebaseApp = app;
-        window.auth = auth;
+        // window.auth = auth; // Removed
         window.db = db;
         window.appId = firebaseConfig.appId; // Use appId directly from hardcoded config
 
@@ -745,12 +696,11 @@
         window.fsSetDoc = setDoc;
         window.fsGetDoc = getDoc;
         window.fsUpdateDoc = updateDoc;
-        window.signOut = signOut;
+        // window.signOut = signOut; // Removed
 
-        // Global variables for user state
-        window.currentUserId = null;
-        window.currentUserRole = null;
-        window.isAuthReady = false; // Flag to indicate Firebase auth state is resolved
+        // Global variables for user state (Simplified, as no login)
+        window.currentUserId = "public_user"; // Default user ID for public access
+        window.currentUserRole = "Admin"; // Default role to show all features
 
         // --- DOM Elements (for main portal) ---
         const mainNav = document.getElementById('mainNav');
@@ -758,9 +708,9 @@
         const databaseContent = document.getElementById('databaseContent');
         const monthlyStatsContainer = document.getElementById('monthlyStatsContainer');
         const adminTabNav = document.getElementById('adminTabNav'); // Admin navigation item
-        const logoutBtn = document.getElementById('logoutBtn');
+        // const logoutBtn = document.getElementById('logoutBtn'); // Removed
 
-        // --- Message Box Functions (for main app messages) ---
+        // --- Message Box Functions (unchanged, still useful for UI feedback) ---
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -826,59 +776,8 @@
             });
         }
 
-
-        // --- Main Authentication State Listener (Handles Main App UI Display) ---
-        // This listener will be defined *after* `auth` is potentially initialized.
-        // It's wrapped in a check to ensure `auth` is defined.
-        if (auth) { // Proceed only if Firebase Auth was successfully initialized
-            onAuthStateChanged(auth, async (user) => {
-                // No more localStorage checks for lastActivity or loginTime here.
-                // Firebase's onAuthStateChanged directly reflects the authentication status.
-
-                if (user) {
-                    // User is authenticated, fetch their role
-                    window.currentUserId = user.uid;
-                    console.log("Firebase Auth State Changed: User logged in:", user.uid);
-
-                    const userDocRef = doc(db, `artifacts/${firebaseConfig.appId}/users/${user.uid}`); // Use firebaseConfig.appId directly
-                    try {
-                        const userDocSnap = await getDoc(userDocRef);
-
-                        if (userDocSnap.exists()) {
-                            window.currentUserRole = userDocSnap.data().role;
-                            console.log("User role fetched:", window.currentUserRole);
-                            // No need to update localStorage 'lastActivity' here if not using it for session timeout
-
-                            initializeAppUI(); // Initialize the main app UI based on role
-                        } else {
-                            console.warn(`User profile for ${user.email} not found in Firestore. Redirecting to login.`);
-                            if (auth) await signOut(auth); // Ensure user is signed out if no profile
-                            window.location.href = 'login.html'; // Redirect if no profile found
-                        }
-                    } catch (error) {
-                        console.error("Error fetching user role from Firestore:", error);
-                        if (auth) await signOut(auth); // Ensure signed out on Firestore error
-                        window.location.href = 'login.html'; // Redirect on Firestore error
-                    }
-                } else {
-                    console.log("No user logged in. Redirecting to login.html");
-                    window.currentUserId = null;
-                    window.currentUserRole = null;
-                    // Clean up any remaining localStorage items related to session if they exist
-                    // though they should ideally be handled by login.html or signout
-                    // localStorage.removeItem('lastActivity'); // REMOVE THIS LINE
-                    // localStorage.removeItem('loginTime');    // REMOVE THIS LINE
-                    sessionStorage.removeItem('loggedIn'); // Keep this if login.html checks sessionStorage for a quick redirect
-                    window.location.href = 'login.html'; // Redirect unauthenticated users
-                }
-                window.isAuthReady = true; // Signal that auth state is resolved
-            });
-        } else {
-            // If auth was not initialized, immediately redirect to login.html
-            console.error("Firebase Auth not available at script execution. Redirecting to login.html.");
-            window.location.href = 'login.html';
-        }
-
+        // Removed session management functions (checkSessionTimeout, updateLastActivity)
+        // Removed onAuthStateChanged listener
 
         // --- GLOBAL DATA STORES ---
         let allRecords = [];
@@ -899,7 +798,7 @@
         const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`; // Keep for potential future use or consistency check
         const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
 
-        // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED, duplicated for now) ---
+        // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
         const allRolesQuestions = {
             '': { 'CUSTOMER EXPERIENCE': [], 'PROBLEM SOLVING SKILLS': [], 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': [] },
             'Outbound Sales': {
@@ -1521,7 +1420,7 @@
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
             lastEvaluationsTableBody.innerHTML = '';
 
-            if (evaluations.length === 0) { // Corrected the typo 'evaluallength' to 'evaluations.length'
+            if (evaluations.length === 0) {
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
                 return;
             }
@@ -1557,7 +1456,7 @@
                 populateDropdownsFromCache();
             }, (error) => {
                 console.error("Error fetching all dropdown options (real-time listener):", error);
-                showMessageBox("Error", `Failed to load dropdown options: ${error.message}`, true, false, true);
+                showMessageBox("Error", `Failed to load dropdown options: ${error.message}.`, true, false, true);
             });
         }
 
@@ -2227,8 +2126,8 @@
                 const docRef = await window.fsAddDoc(window.fsCollection(window.db, EVALUATION_RECORDS_COLLECTION_PATH), {
                     ...formData,
                     submittedAt: new Date().toISOString(),
-                    submittedBy: window.currentUserId,
-                    reviewerEmail: window.auth.currentUser ? window.auth.currentUser.email : 'anonymous'
+                    submittedBy: window.currentUserId, // Will be "public_user"
+                    reviewerEmail: "public_reviewer@example.com" // Default email for public access
                 });
                 console.log("Document written with ID: ", docRef.id);
 
@@ -2245,50 +2144,26 @@
             }
         }
 
-        // Main Application UI Initialization Function (renamed for clarity)
+        // Main Application UI Initialization Function (modified)
         function initializeAppUI() {
-            const userRole = window.currentUserRole;
+            console.log("Initializing main application UI for public access.");
 
-            console.log("Initializing main application UI based on role:", userRole);
+            mainNav.style.display = 'flex'; // Ensure the navigation bar is always visible
 
-            mainNav.style.display = 'flex'; // Show the navigation bar
+            // Ensure all tab navigation items are visible
+            document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
+            document.getElementById('databaseTab').parentElement.style.display = 'inline-block';
+            document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
+            document.getElementById('autofailsTab').parentElement.style.display = 'inline-block';
+            adminTabNav.style.display = 'inline-block'; // Show Admin tab as well
 
-            evaluationFormContent.style.display = 'none';
-            databaseContent.style.display = 'none';
-            monthlyStatsContainer.style.display = 'none';
+            // Default to showing the Evaluation Form tab
+            showTab('evaluationForm');
 
-            document.getElementById('evaluationFormTab').parentElement.style.display = 'none';
-            document.getElementById('databaseTab').parentElement.style.display = 'none';
-            document.getElementById('reportsTab').parentElement.style.display = 'none';
-            document.getElementById('autofailsTab').parentElement.style.display = 'none';
-            adminTabNav.style.display = 'none';
-
-            if (userRole === 'CER') {
-                document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
-                document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
-                showTab('evaluationForm');
-            } else if (userRole === 'Supervisor') {
-                document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
-                document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
-                document.getElementById('autofailsTab').parentElement.style.display = 'inline-block';
-                document.getElementById('databaseTab').parentElement.style.display = 'inline-block';
-                showTab('evaluationForm');
-            } else if (userRole === 'Admin') {
-                document.getElementById('evaluationFormTab').parentElement.style.display = 'inline-block';
-                document.getElementById('databaseTab').parentElement.style.display = 'inline-block';
-                document.getElementById('reportsTab').parentElement.style.display = 'inline-block';
-                document.getElementById('autofailsTab').parentElement.style.display = 'inline-block';
-                adminTabNav.style.display = 'inline-block';
-                showTab('evaluationForm');
-            } else {
-                console.warn("User role not recognized or insufficient privileges. Redirecting to login.html.");
-                window.location.href = 'login.html'; // Unrecognized role, redirect
-                return;
-            }
-
+            // Initialize form-specific elements and load dynamic data
             initializeEvaluationForm();
             fetchAllDropdownOptions();
-            loadWebhooks();
+            loadWebhooks(); // Load webhooks for the database tab
         }
 
         function showTab(tabName) {
@@ -2303,15 +2178,16 @@
             if (tabName === 'evaluationForm') {
                 document.getElementById('evaluationFormContent').style.display = 'block';
                 document.getElementById('evaluationFormTab').classList.add('active');
-                initializeEvaluationForm();
+                initializeEvaluationForm(); // Re-initialize to clear/set defaults
             } else if (tabName === 'database') {
                 document.getElementById('databaseContent').style.display = 'block';
                 document.getElementById('databaseTab').classList.add('active');
-                loadRecords();
+                loadRecords(); // Load records when database tab is shown
             } else if (tabName === 'monthlyStats') {
                 document.getElementById('monthlyStatsContainer').style.display = 'block';
-                fetchAndRenderMonthlyStats();
+                fetchAndRenderMonthlyStats(); // Load stats when monthly stats tab is shown
             }
+            // reports.html and autofails.html will handle their own content as they are separate pages
         }
 
         let tempPdfDisplayElements = [];
@@ -2332,18 +2208,7 @@
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const addWebhookBtn = document.getElementById('addWebhookBtn');
 
-            logoutBtn.addEventListener('click', async function() {
-                sessionStorage.removeItem('loggedIn'); // Keep this if login.html checks sessionStorage for a quick redirect
-                // REMOVE localStorage.removeItem('lastActivity');
-                // REMOVE localStorage.removeItem('loginTime');
-                try {
-                    await signOut(auth);
-                    console.log("Signed out from Firebase.");
-                } catch (error) {
-                    console.error("Error signing out:", error);
-                }
-                window.location.href = 'login.html'; // Redirect to login page after logout
-            });
+            // Removed logout button event listener
 
             if (document.getElementById('evaluationFormTab')) {
                 document.getElementById('evaluationFormTab').addEventListener('click', (e) => { e.preventDefault(); showTab('evaluationForm'); });
@@ -2635,6 +2500,9 @@
                     originalDisplays.forEach(({ el, display }) => { if (el) el.style.display = display; });
                 }
             });
+
+            // Call initializeAppUI directly on DOMContentLoaded, no auth check needed
+            initializeAppUI();
         });
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
