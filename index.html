@@ -349,7 +349,7 @@
                 <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
                 <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li><a href="#" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li> <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
@@ -394,6 +394,10 @@
                     <option value="Victor Kibet">Victor Kibet</option>
                     <option value="Harlod Mwiti">Harlod Mwiti</option>
                 </select>
+            </div>
+            <div>
+                <label for="cer-email" class="block text-sm font-medium text-gray-700">CER Email</label>
+                <input type="email" id="cer-email" name="CER Email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" placeholder="e.g., cer.name@icealion.com" readonly required>
             </div>
             <div>
                 <label for="cer-role" class="block text-sm font-medium text-gray-700">CER Role</label>
@@ -585,7 +589,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <div id="databaseTableContainer" class="overflow-x-auto max-h-[60vh]">
                 <table class="min-w-full">
                     <thead>
@@ -630,6 +634,45 @@
         </div>
     </div>
 
+    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl mt-8 mb-8" id="shareResponseContent" style="display: none;">
+        <div class="icealion-blue p-4 text-xl font-semibold text-center">
+            Share Evaluation Response
+        </div>
+        <div class="p-6">
+            <div class="mb-4">
+                <label for="select-record-to-share" class="block text-sm font-medium text-gray-700">Select Evaluation Record</label>
+                <select id="select-record-to-share" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
+                    <option value="">-- Select a Record --</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="share-email-to" class="block text-sm font-medium text-gray-700">To (CER Email)</label>
+                    <input type="email" id="share-email-to" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-100" readonly>
+                </div>
+                <div>
+                    <label for="share-email-from" class="block text-sm font-medium text-gray-700">From (Your Name)</label>
+                    <input type="text" id="share-email-from" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-100" readonly>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="share-email-subject" class="block text-sm font-medium text-gray-700">Subject</label>
+                <input type="text" id="share-email-subject" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border">
+            </div>
+
+            <div class="mb-6">
+                <label for="share-email-body" class="block text-sm font-medium text-gray-700">Email Body</label>
+                <textarea id="share-email-body" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border"></textarea>
+            </div>
+
+            <button id="sendShareEmailBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                Send Email
+            </button>
+            <div id="shareEmailMessage" class="error-message hidden"></div>
+        </div>
+    </div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
@@ -654,7 +697,7 @@
         window.firebaseApp = initializeApp(firebaseConfig);
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
-        
+
         // Expose ALL necessary Firestore functions globally
         window.fsCollection = collection;
         window.fsOnSnapshot = onSnapshot;
@@ -712,7 +755,7 @@
         // Define collection paths here, where appId is definitively available
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
-        
+
     </script>
     <script>
         // --- GLOBAL DATA STORES ---
@@ -727,6 +770,34 @@
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
         let globalBusinessComplianceAccuracyValue = 0;
+
+        // --- CER Name to Email Mapping (UNCHANGED from previous step) ---
+        const cerEmails = {
+            "Ann Nyokabi": "ann.nyokabi@icealion.com",
+            "Cliff Kiyaka": "cliff.kiyaka@icealion.com",
+            "Edith watahi": "edith.watahi@icealion.com",
+            "Faith Irungu": "faith.irungu@icealion.com",
+            "Ian Wanyagi": "ian.wanyagi@icealion.com",
+            "Kelvin Nyagaka": "kelvin.nyagaka@icealion.com",
+            "Lawrence Ochola": "lawrence.ochola@icealion.com",
+            "Linnet Chege": "linnet.chege@icealion.com",
+            "Margaret Mukulu": "margaret.mukulu@icealion.com",
+            "Bonface Masiaga": "bonface.masiaga@icealion.com",
+            "Maureen Ongola": "maureen.ongola@icealion.com",
+            "Melinda Omballa": "melinda.omballa@icealion.com",
+            "Nancy Wanjiku": "nancy.wanjiku@icealion.com",
+            "Patricia Mumbi": "patricia.mumbi@icealion.com",
+            "Philly Osikeh": "philly.osikeh@icealion.com",
+            "Phina Owiti": "phina.owiti@icealion.com",
+            "Sharon Wambugu": "sharon.wambugu@icealion.com",
+            "Victor Kibet": "victor.kibet@icealion.com",
+            "Harlod Mwiti": "harlod.mwiti@icealion.com",
+            // Add more CERs and their emails here
+        };
+
+        // --- Global variable for the logged-in user's name (NEW) ---
+        // This can be set dynamically based on your actual login logic if you have different users
+        let loggedInUserName = "Quality Evaluation Team";
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
         // This object holds all the dynamic questions and their properties for each CER Role.
@@ -957,7 +1028,7 @@
                 messageBoxContent.textContent = message;
                 messageBoxContent.classList.remove('message-box-content-pre');
             }
-            
+
             messageBoxOverlay.classList.remove('hidden');
             messageBoxSpinner.classList.toggle('hidden', !showSpinner);
             messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
@@ -983,22 +1054,30 @@
         function showTab(tabName) {
             const auditFormTab = document.getElementById('auditFormTab');
             const databaseTab = document.getElementById('databaseTab');
+            const shareResponseTab = document.getElementById('shareResponseTab'); // NEW
+            const reportsTab = document.getElementById('reportsTab');
+            const autofailsTab = document.getElementById('autofailsTab');
+            const adminTab = document.getElementById('adminTab');
+
             const auditFormContent = document.getElementById('auditFormContent');
             const databaseContent = document.getElementById('databaseContent');
+            const shareResponseContent = document.getElementById('shareResponseContent'); // NEW
+
 
             console.log("showTab called with:", tabName); // Diagnostic log
 
             // Deactivate all tabs
             auditFormTab.classList.remove('active');
             databaseTab.classList.remove('active');
-            document.getElementById('reportsTab').classList.remove('active'); // Added to ensure correct active state
-            document.getElementById('autofailsTab').classList.remove('active'); // Added
-            document.getElementById('adminTab').classList.remove('active'); // Added
-
+            shareResponseTab.classList.remove('active'); // NEW
+            reportsTab.classList.remove('active');
+            autofailsTab.classList.remove('active');
+            adminTab.classList.remove('active');
 
             // Hide all content sections
             auditFormContent.style.display = 'none';
             databaseContent.style.display = 'none';
+            shareResponseContent.style.display = 'none'; // NEW
 
             // Activate selected tab and show its content
             if (tabName === 'auditForm') {
@@ -1007,20 +1086,29 @@
             } else if (tabName === 'database') {
                 databaseTab.classList.add('active');
                 databaseContent.style.display = 'block';
-                // Trigger database table refresh when switching to it
-                if (window.db && window.currentUserId) { // Ensure Firebase is initialized and auth is ready
-                    fetchRecordsAndWebhooks(); // Refresh data when entering the tab
+                if (window.db && window.currentUserId) {
+                    fetchRecordsAndWebhooks();
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
-            } else if (tabName === 'reports') {
-                document.getElementById('reportsTab').classList.add('active');
-                // For external links, you might want to prevent default and navigate or show a message.
-                // For this example, it's left to external navigation for simplicity.
+            } else if (tabName === 'shareResponse') { // NEW
+                shareResponseTab.classList.add('active');
+                shareResponseContent.style.display = 'block';
+                if (window.db && window.currentUserId) {
+                    populateShareResponseDropdown(); // Call new function
+                } else {
+                    showMessageBox("Share Response Not Ready", "Waiting for authentication to load records for sharing.", false, true, false);
+                }
+            }
+            else if (tabName === 'reports') {
+                reportsTab.classList.add('active');
+                window.location.href = reportsTab.href;
             } else if (tabName === 'autofails') {
-                document.getElementById('autofailsTab').classList.add('active');
+                autofailsTab.classList.add('active');
+                window.location.href = autofailsTab.href;
             } else if (tabName === 'admin') {
-                document.getElementById('adminTab').classList.add('active');
+                adminTab.classList.add('active');
+                window.location.href = adminTab.href;
             }
         }
 
@@ -1053,11 +1141,11 @@
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
                 return;
             }
-            
+
             // Unsubscribe previous listeners to prevent duplicates if function called multiple times
             if (window.unsubscribeRecords) window.unsubscribeRecords();
             if (window.unsubscribeWebhooks) window.unsubscribeWebhooks();
-            
+
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
             try {
@@ -1158,7 +1246,7 @@
             const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
 
             showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
-            
+
             const confirmBtn = document.createElement('button');
             confirmBtn.textContent = 'Delete';
             confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
@@ -1191,7 +1279,7 @@
             messageBoxContent.innerHTML = '';
             messageBoxContent.appendChild(confirmBtn);
             messageBoxContent.appendChild(cancelBtn);
-            
+
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
             messageBoxCloseBtn.onclick = () => {
                 hideMessageBox();
@@ -1215,7 +1303,7 @@
                 showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
                 return;
             }
-            
+
             const webhookUrl = newWebhookUrlInput.value.trim();
             if (!webhookUrl) {
                 showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
@@ -1331,7 +1419,7 @@
                 row.insertCell().textContent = record['Client Name'] || '';
                 row.insertCell().textContent = record['CER Name'] || '';
                 row.insertCell().textContent = record['Overall Score'] || '';
-                
+
                 // Actions cell (delete button)
                 row.insertCell().innerHTML = `
                     <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
@@ -1481,6 +1569,7 @@
             const cerName = record['CER Name'] || 'N/A';
             const overallScore = record['Overall Score'] || 'N/A';
             const evaluationDate = record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'N/A';
+            const cerEmail = record['CER Email'] || ''; // Get CER Email from record
 
             // Custom Subject and Body as requested
             const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
@@ -1493,7 +1582,7 @@
                                  `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
                                  `Kind Regards,\nQuality Evaluation Team`;
 
-            const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
             // Attempt to open email client
             try {
@@ -1642,6 +1731,7 @@
             const callDateTimeInput = document.getElementById('call-date-time');
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name'); // Get CER Name select
+            const cerEmailInput = document.getElementById('cer-email'); // NEW: Get CER Email input
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
@@ -1653,6 +1743,7 @@
             callDateTimeInput.value = now.toISOString().slice(0,16);
 
             cerNameSelect.value = ''; // Reset CER Name
+            cerEmailInput.value = ''; // NEW: Reset CER Email
             cerRoleSelect.value = '';
             autofailTypeSelect.value = ''; // Reset autofail type
 
@@ -1672,7 +1763,7 @@
             const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
             const psQuestionsContainer = document.getElementById('psQuestionsContainer');
             const caQuestionsContainer = document.getElementById('caQuestionsContainer');
-            
+
             const questionContainers = { // Re-define locally or access global elements
                 'CUSTOMER EXPERIENCE': cxQuestionsContainer,
                 'PROBLEM SOLVING SKILLS': psQuestionsContainer,
@@ -1760,6 +1851,7 @@
             const contactIdInput = document.getElementById('contact-id');
             const clientNameInput = document.getElementById('client-name');
             const cerNameSelect = document.getElementById('cer-name');
+            const cerEmailInput = document.getElementById('cer-email'); // NEW: Get CER Email input
             const cerRoleSelect = document.getElementById('cer-role');
             const callDateTimeInput = document.getElementById('call-date-time');
             const evaluationDateInput = document.getElementById('review-date');
@@ -1776,6 +1868,7 @@
             contactIdInput.value = '';
             clientNameInput.value = '';
             cerNameSelect.value = ''; // Reset CER Name select
+            cerEmailInput.value = ''; // NEW: Reset CER Email
             cerRoleSelect.value = '';
 
             const now = new Date();
@@ -1971,12 +2064,140 @@
         }
 
 
+        // --- NEW SHARE RESPONSE SECTION FUNCTIONS ---
+
+        /**
+         * Populates the dropdown in the Share Response section with submitted records.
+         */
+        async function populateShareResponseDropdown() {
+            const selectRecordToShare = document.getElementById('select-record-to-share');
+            selectRecordToShare.innerHTML = '<option value="">-- Loading Records --</option>'; // Initial loading state
+
+            if (!window.db || !window.currentUserId) {
+                selectRecordToShare.innerHTML = '<option value="">-- Database not ready --</option>';
+                console.error("Firestore not initialized for populating share response dropdown.");
+                return;
+            }
+
+            try {
+                // Fetch all records or a relevant subset for sharing
+                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+                const querySnapshot = await window.getDocs(recordsColRef); // One-time fetch for dropdown
+
+                selectRecordToShare.innerHTML = '<option value="">-- Select a Record --</option>'; // Reset dropdown
+
+                if (querySnapshot.empty) {
+                    selectRecordToShare.innerHTML = '<option value="">-- No Records Found --</option>';
+                } else {
+                    querySnapshot.forEach(doc => {
+                        const record = doc.data();
+                        const option = document.createElement('option');
+                        option.value = doc.id; // Use doc.id to reference the full record later
+                        option.textContent = `${record['Contact ID'] || 'N/A'} - ${record['CER Name'] || 'N/A'} (${new Date(record.submittedAt).toLocaleDateString()})`;
+                        selectRecordToShare.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Error populating share response dropdown:", error);
+                selectRecordToShare.innerHTML = '<option value="">-- Error Loading Records --</option>';
+                showMessageBox("Error", "Could not load records for sharing.", true, false, true);
+            }
+        }
+
+        /**
+         * Populates the email fields when a record is selected in the Share Response section.
+         */
+        function populateShareEmailFields(recordId) {
+            const record = allRecords.find(r => r.id === recordId);
+            const shareEmailTo = document.getElementById('share-email-to');
+            const shareEmailFrom = document.getElementById('share-email-from');
+            const shareEmailSubject = document.getElementById('share-email-subject');
+            const shareEmailBody = document.getElementById('share-email-body');
+            const shareEmailMessage = document.getElementById('shareEmailMessage');
+
+            shareEmailMessage.classList.add('hidden'); // Clear any previous error messages
+
+            if (!record) {
+                shareEmailTo.value = '';
+                shareEmailFrom.value = '';
+                shareEmailSubject.value = '';
+                shareEmailBody.value = '';
+                return;
+            }
+
+            const cerName = record['CER Name'] || 'N/A';
+            const contactId = record['Contact ID'] || 'N/A';
+            const evaluationDate = record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'N/A';
+            const overallScore = record['Overall Score'] || 'N/A';
+
+            // "To" field: CER Email
+            const cerEmail = cerEmails[cerName] || '';
+            shareEmailTo.value = cerEmail;
+
+            // "From" field: Logged-in user's name
+            shareEmailFrom.value = loggedInUserName;
+
+            // "Subject" field
+            shareEmailSubject.value = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
+
+            // "Body" field: Contents from PDF & Email button logic
+            const emailBodyContent = `Dear ${cerName},\n\n` +
+                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                     `Contact ID: ${contactId}\n` +
+                                     `CER Name: ${cerName}\n` +
+                                     `Overall Score: ${overallScore}\n` +
+                                     `Evaluation Date: ${evaluationDate}\n\n` +
+                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                     `Kind Regards,\nQuality Evaluation Team`;
+            shareEmailBody.value = emailBodyContent;
+        }
+
+        /**
+         * Sends the email from the Share Response section.
+         */
+        function sendShareResponseEmail() {
+            const shareEmailTo = document.getElementById('share-email-to').value.trim();
+            const shareEmailSubject = document.getElementById('share-email-subject').value.trim();
+            const shareEmailBody = document.getElementById('share-email-body').value.trim();
+            const shareEmailMessage = document.getElementById('shareEmailMessage');
+
+            shareEmailMessage.classList.add('hidden'); // Hide previous messages
+
+            if (!shareEmailTo) {
+                shareEmailMessage.textContent = "Please select an evaluation record to populate the 'To' field and ensure the CER has an email address.";
+                shareEmailMessage.classList.remove('hidden');
+                return;
+            }
+            if (!shareEmailSubject) {
+                shareEmailMessage.textContent = "Subject cannot be empty.";
+                shareEmailMessage.classList.remove('hidden');
+                return;
+            }
+            if (!shareEmailBody) {
+                shareEmailMessage.textContent = "Email body cannot be empty.";
+                shareEmailMessage.classList.remove('hidden');
+                return;
+            }
+
+            const mailtoLink = `mailto:${encodeURIComponent(shareEmailTo)}?subject=${encodeURIComponent(shareEmailSubject)}&body=${encodeURIComponent(shareEmailBody)}`;
+
+            try {
+                window.location.href = mailtoLink;
+                showMessageBox("Email Client Opened", "Your email client should open shortly. Please review and send the email. (Note: Attachments are not supported via mailto: links directly.)", false, false, true);
+            } catch (e) {
+                console.error("Failed to open email client:", e);
+                showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+            }
+        }
+
+
         // Main Application Initialization Function
         function initializeApp() {
             const loginPage = document.getElementById('loginPage');
             const mainNav = document.getElementById('mainNav');
             const auditFormContent = document.getElementById('auditFormContent');
             const databaseContent = document.getElementById('databaseContent');
+            const shareResponseContent = document.getElementById('shareResponseContent'); // NEW
 
             console.log("Initializing main application.");
             const isLoggedIn = sessionStorage.getItem('loggedIn');
@@ -1991,6 +2212,7 @@
                 mainNav.style.display = 'none';
                 auditFormContent.style.display = 'none';
                 databaseContent.style.display = 'none';
+                shareResponseContent.style.display = 'none'; // NEW
             }
         }
 
@@ -2019,6 +2241,7 @@
 
             const auditFormTab = document.getElementById('auditFormTab');
             const databaseTab = document.getElementById('databaseTab');
+            const shareResponseTab = document.getElementById('shareResponseTab'); // NEW
             const logoutBtn = document.getElementById('logoutBtn');
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
@@ -2033,6 +2256,7 @@
             const otherReviewerNameInput = document.getElementById('other-reviewer-name');
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
+            const cerEmailInput = document.getElementById('cer-email'); // CER Email Input
 
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
@@ -2044,6 +2268,9 @@
 
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
             const addWebhookBtn = document.getElementById('addWebhookBtn');
+
+            const selectRecordToShare = document.getElementById('select-record-to-share'); // NEW Share Response dropdown
+            const sendShareEmailBtn = document.getElementById('sendShareEmailBtn'); // NEW Share Response Send Email button
 
 
             // --- EVENT LISTENERS (Attach to DOM elements) ---
@@ -2105,6 +2332,13 @@
                 window.location.href = adminTab.href; // Navigate to external page
             });
 
+            // NEW: Share Response Tab Click Listener
+            shareResponseTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log("Share Response Tab CLICKED!");
+                showTab('shareResponse');
+            });
+
 
             // Event listeners for database actions
             // These event listeners now correctly reference the functions in the main script scope.
@@ -2158,13 +2392,30 @@
                 resetFormFieldsButKeepRole();
             });
 
+            // NEW: Event listener for CER Name select to populate CER Email and fetch last evaluations
             cerNameSelect.addEventListener('change', (event) => {
                 const selectedCerName = event.target.value;
+                const cerEmail = cerEmails[selectedCerName] || ''; // Look up email from the cerEmails map
+
+                cerEmailInput.value = cerEmail; // Set the value of the CER Email input
+
+                // Trigger fetching last evaluations if a CER name is selected
                 if (selectedCerName) {
                     fetchLastThreeEvaluations(selectedCerName);
                 } else {
                     document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
                 }
+            });
+
+            // NEW: Event Listener for record selection in Share Response tab
+            selectRecordToShare.addEventListener('change', (event) => {
+                const selectedRecordId = event.target.value;
+                populateShareEmailFields(selectedRecordId);
+            });
+
+            // NEW: Event Listener for Send Email button in Share Response tab
+            sendShareEmailBtn.addEventListener('click', () => {
+                sendShareResponseEmail();
             });
 
 
@@ -2178,18 +2429,26 @@
                 }
 
                 const formDataForSubmission = {};
-                const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
-                basicInfoInputs.forEach(input => {
+                // Get general info inputs
+                const generalInputs = document.querySelectorAll('#auditFormContent .form-grid-input, #autofailDescriptionContainer textarea');
+
+                generalInputs.forEach(input => {
                     if (input.name) {
                         if (input.type === 'datetime-local' || input.type === 'date') {
                             formDataForSubmission[input.name] = input.value;
                         } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
+                            // Do not include hidden 'other-reviewer-name' if not selected
                             return;
-                        } else {
+                        } else if (input.id === 'autofail-description' && autofailTypeSelect.value === '') {
+                             // Do not include autofail description if autofail type is not selected
+                            return;
+                        }
+                        else {
                             formDataForSubmission[input.name] = input.value.trim();
                         }
                     }
                 });
+
 
                 // Get current overall score from display
                 const overallScoreDisplay = document.getElementById('overall-score-display');
@@ -2265,6 +2524,7 @@
                 const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
                 const contactIdInput = document.getElementById('contact-id');
                 const cerNameSelect = document.getElementById('cer-name');
+                const cerEmailInput = document.getElementById('cer-email'); // Get CER Email input for email sending
                 const evaluationDateInput = document.getElementById('review-date');
                 const reviewerNameSelect = document.getElementById('reviewer-name');
                 const otherReviewerNameInput = document.getElementById('other-reviewer-name');
@@ -2308,12 +2568,7 @@
                         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
                         heightLeft -= pageHeight;
                     }
-                    console.log("PDF images added.");
-
-                    const contactIdForPdf = contactIdInput.value || 'N/A';
-                    const cerNameForPdf = cerNameSelect.value || 'N/A';
-                    const reviewDateForPdf = evaluationDateInput.value || 'N/A';
-                    pdf.save(`QA_Form_${contactIdForPdf}_${cerNameForPdf}_${reviewDateForPdf}.pdf`);
+                    pdf.save(`QA_Form_${contactIdInput.value || 'N/A'}_${cerNameSelect.value || 'N/A'}_${evaluationDateInput.value || 'N/A'}.pdf`);
                     console.log("PDF saved.");
 
                     const cerNameVal = cerNameSelect.value;
@@ -2321,6 +2576,7 @@
                     const evaluationDateVal = evaluationDateInput.value;
                     const overallScoreVal = overallFinalPercentageDisplay.textContent;
                     const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
+                    const cerEmailVal = cerEmailInput.value; // Get the CER Email for mailto
 
                     // Custom Subject and Body as requested
                     const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
@@ -2334,7 +2590,7 @@
                                  `Kind Regards,\nQuality Evaluation Team`;
 
 
-                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    const mailtoLink = `mailto:${encodeURIComponent(cerEmailVal)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // Added cerEmailVal to mailto:
 
                     // Attempt to open email client
                     try {
@@ -2368,7 +2624,7 @@
                 // Collection path variables are now explicitly defined globally in the module script
                 const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
                 const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                
+
                 console.log("Firebase Auth is ready. Current User ID:", currentUserId);
                 initializeApp();
 
