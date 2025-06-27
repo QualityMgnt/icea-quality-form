@@ -122,6 +122,17 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             min-height: 500px;
         }
+        
+        /* Hide content of inactive tabs */
+        .tab-pane {
+            display: none;
+        }
+
+        /* Show content of the active tab */
+        .tab-pane.active {
+            display: block;
+        }
+
 
         .tab-content h3 {
             font-size: 1.4rem;
@@ -230,54 +241,91 @@
             <span class="logo-text">ICEALION</span>
         </div>
 
-        <div class="tab-nav">
-            <button class="active">User Management</button>
-            <button>Dropdown Options</button>
-            <button>Autofail Types</button>
+        <div class="tab-nav" id="adminTabs">
+            <button class="tab-button active" data-tab-target="user-management">User Management</button>
+            <button class="tab-button" data-tab-target="dropdown-options">Dropdown Options</button>
+            <button class="tab-button" data-tab-target="autofail-types">Autofail Types</button>
         </div>
 
         <div class="tab-content">
-            <h3>Manage Users</h3>
-            <div class="note">
-                <strong>NOTE:</strong> User creation/deletion in this public version only affects their Firestore profile. Actual Firebase Authentication user accounts must be managed directly in the Firebase Console.
+            <div id="user-management" class="tab-pane active">
+                <h3>Manage Users</h3>
+                <div class="note">
+                    <strong>NOTE:</strong> User creation/deletion in this public version only affects their Firestore profile. Actual Firebase Authentication user accounts must be managed directly in the Firebase Console.
+                </div>
+
+                <table class="user-table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 20px;">
+                                <span class="error-message">Error loading users: Missing or insufficient permissions.</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                </table>
+
+                <h3 style="margin-top: 40px;">Add New User</h3>
+                <form id="addCerForm">
+                    <div class="form-group">
+                        <label for="cerName">CER Name:</label>
+                        <input type="text" id="cerName" name="cerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cerEmail">CER Role Email Address:</label>
+                        <input type="email" id="cerEmail" name="cerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit">Add CER</button>
+                    </div>
+                </form>
             </div>
 
-            <table class="user-table">
-                <thead>
-                    <tr>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="3" style="text-align: center; padding: 20px;">
-                            <span class="error-message">Error loading users: Missing or insufficient permissions.</span>
-                        </td>
-                    </tr>
-                    </tbody>
-            </table>
+            <div id="dropdown-options" class="tab-pane">
+                <h3>Manage Dropdown Options</h3>
+                <p>This is where you can manage the options for dropdown menus in the evaluation form.</p>
+                </div>
 
-            <h3 style="margin-top: 40px;">Add New User</h3>
-            <form id="addCerForm">
-                <div class="form-group">
-                    <label for="cerName">CER Name:</label>
-                    <input type="text" id="cerName" name="cerName" required>
+            <div id="autofail-types" class="tab-pane">
+                <h3>Manage Autofail Types</h3>
+                <p>This section allows you to define and manage different types of autofail criteria.</p>
                 </div>
-                <div class="form-group">
-                    <label for="cerEmail">CER Role Email Address:</label>
-                    <input type="email" id="cerEmail" name="cerEmail" required>
-                </div>
-                <div class="form-group">
-                    <button type="submit">Add CER</button>
-                </div>
-            </form>
         </div>
     </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Tab Navigation Logic ---
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove 'active' class from all buttons and panes
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabPanes.forEach(pane => pane.classList.remove('active'));
+
+            // Add 'active' class to the clicked button
+            button.classList.add('active');
+
+            // Get the target tab's ID from the data attribute
+            const targetId = button.getAttribute('data-tab-target');
+            const targetPane = document.getElementById(targetId);
+
+            // Add 'active' class to the corresponding content pane
+            if (targetPane) {
+                targetPane.classList.add('active');
+            }
+        });
+    });
+
+    // --- User Management Form Logic (from previous code) ---
     const form = document.getElementById('addCerForm');
     const userTableBody = document.querySelector('.user-table tbody');
 
@@ -310,8 +358,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const cerEmail = cerEmailInput.value.trim();
 
         if (cerName && cerEmail) {
-            // In a real application, you'd send this data to a backend server.
-            // For this example, we just add it to the table.
             addCerToTable(cerName, cerEmail);
 
             // Clear the form fields
