@@ -192,7 +192,7 @@
         // Hardcoded Firebase Configuration for GitHub/local hosting
         // IMPORTANT: For production with sensitive data, use environment variables or a backend.
         const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", // Your provided API key
+            apiKey: "AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY", // Your provided API key
             authDomain: "icea-lion-qa.firebaseapp.com",
             databaseURL: "https://icea-lion-qa-default-rtdb.firebaseio.com",
             projectId: "icea-lion-qa",
@@ -203,17 +203,25 @@
         };
 
         // Log the hardcoded config for verification
-        console.log("Firebase config (hardcoded in login.html):", firebaseConfig);
+        console.log("DEBUG: Firebase config (hardcoded in login.html):", firebaseConfig);
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app, auth, db;
 
-        // Expose Firebase instances for index.html if needed (though it will re-initialize them)
-        window.firebaseApp = app;
-        window.auth = auth;
-        window.db = db;
-        window.appId = firebaseConfig.appId; // Use appId directly from hardcoded config
+        // Only initialize Firebase if config is present and seemingly valid
+        if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey && firebaseConfig.projectId) {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                console.log("DEBUG: Firebase app initialized successfully in login.html.");
+            } catch (initError) {
+                console.error("ERROR: Firebase app initialization failed in login.html:", initError);
+                showMessageBox("Initialization Error", `Failed to initialize Firebase: ${initError.message}. Please check your console and Firebase project settings.`, true);
+            }
+        } else {
+            console.error("ERROR: Firebase config is missing or invalid. App cannot proceed.");
+            showMessageBox("Configuration Error", "Firebase configuration is missing or invalid. Please contact your administrator.", true);
+        }
 
 
         // --- DOM Elements ---
@@ -315,57 +323,71 @@
 
         // --- Authentication State Listener (Handles Login Page Logic) ---
         // This listener will decide whether to show the login form or redirect.
-        onAuthStateChanged(auth, async (user) => {
-            if (!auth || !db) { // Firebase initialization failed (e.g., bad hardcoded config)
-                console.error("Firebase services not available. Cannot check auth state. Initialization likely failed.");
-                // Error message already shown by initialization block.
-                return;
-            }
+        // It's wrapped in a check to ensure 'auth' is defined before calling onAuthStateChanged
+        if (auth) { // Only proceed if Firebase Auth was successfully initialized
+            onAuthStateChanged(auth, async (user) => {
+                console.log("DEBUG: onAuthStateChanged triggered in login.html. User:", user ? user.email : "none");
 
-            if (window.checkSessionTimeout()) {
-                await signOut(auth); // Ensure Firebase session is cleared if timeout detected
-                accessSection.classList.remove('hidden'); // Show login if session expired
-                accessTitle.textContent = "Session Expired";
-                loginError.textContent = "Your session has expired. Please log in again.";
-                loginError.classList.remove('hidden');
-                return;
-            }
+                if (window.checkSessionTimeout()) {
+                    console.log("DEBUG: Session timeout detected.");
+                    await signOut(auth); // Ensure Firebase session is cleared if timeout detected
+                    accessSection.classList.remove('hidden'); // Show login if session expired
+                    accessTitle.textContent = "Session Expired";
+                    loginError.textContent = "Your session has expired. Please log in again.";
+                    loginError.classList.remove('hidden');
+                    return;
+                }
 
-            if (user) {
-                // User is authenticated, now check their role in Firestore
-                const userDocRef = doc(db, `artifacts/${firebaseConfig.appId}/users/${user.uid}`); // Use firebaseConfig.appId directly
-                try {
-                    const userDocSnap = await getDoc(userDocRef);
+                if (user) {
+                    // User is authenticated, now check their role in Firestore
+                    console.log(`DEBUG: User authenticated with UID: ${user.uid}`);
+                    const userDocRef = doc(db, `artifacts/${firebaseConfig.appId}/users/${user.uid}`); // Use firebaseConfig.appId directly
+                    console.log(`DEBUG: Attempting to fetch user doc from path: artifacts/${firebaseConfig.appId}/users/${user.uid}`);
 
-                    if (userDocSnap.exists()) {
-                        const userRole = userDocSnap.data().role;
-                        console.log(`User ${user.email} (${userRole}) logged in. Redirecting to index.html`);
-                        window.location.href = 'index.html';
-                    } else {
-                        // User authenticated with Firebase Auth but no role document found in Firestore
-                        console.warn(`User profile for ${user.email} not found in Firestore. Logging out.`);
-                        await signOut(auth); // Log them out from Firebase Auth
+                    try {
+                        const userDocSnap = await getDoc(userDocRef);
+                        console.log(`DEBUG: userDocSnap.exists(): ${userDocSnap.exists()}`);
+
+                        if (userDocSnap.exists()) {
+                            const userData = userDocSnap.data();
+                            const userRole = userData.role;
+                            console.log(`DEBUG: User data found. Role: ${userRole}, Data:`, userData);
+
+                            // You can add more specific role checks here if needed before redirecting,
+                            // but for now, any existing profile means successful "login" from this page's perspective.
+                            console.log(`User ${user.email} (${userRole}) logged in. Redirecting to index.html`);
+                            window.location.href = 'index.html';
+                        } else {
+                            // User authenticated with Firebase Auth but no role document found in Firestore
+                            console.warn(`WARN: User profile for ${user.email} not found in Firestore. Logging out.`);
+                            await signOut(auth); // Log them out from Firebase Auth
+                            accessSection.classList.remove('hidden');
+                            accessTitle.textContent = "Access Denied";
+                            loginError.textContent = "Your user profile is incomplete or missing. Please contact an administrator.";
+                            loginError.classList.remove('hidden');
+                        }
+                    } catch (error) {
+                        console.error("ERROR: Error fetching user role from Firestore:", error);
+                        // If it's a network issue (offline) from the previous error,
+                        // this catch block will be hit and log the FirebaseError.
+                        await signOut(auth); // Log out in case of Firestore error
                         accessSection.classList.remove('hidden');
-                        accessTitle.textContent = "Access Denied";
-                        loginError.textContent = "Your user profile is incomplete or missing. Please contact an administrator.";
+                        accessTitle.textContent = "Login Error";
+                        loginError.textContent = `Failed to retrieve user profile: ${error.message}. Please try again.`;
                         loginError.classList.remove('hidden');
                     }
-                } catch (error) {
-                    console.error("Error fetching user role from Firestore:", error);
-                    await signOut(auth); // Log out in case of Firestore error
-                    accessSection.classList.remove('hidden');
-                    accessTitle.textContent = "Login Error";
-                    loginError.textContent = `Failed to retrieve user profile: ${error.message}. Please try again.`;
-                    loginError.classList.remove('hidden');
+                } else {
+                    // No user logged in, show the login form
+                    console.log("DEBUG: No user logged in. Showing login form.");
+                    accessSection.classList.remove('hidden'); // Ensure login form is visible
+                    accessTitle.textContent = "Login to ICEA LION QA Audit";
+                    loginError.classList.add('hidden'); // Hide any previous errors
                 }
-            } else {
-                // No user logged in, show the login form
-                console.log("Firebase Auth State Changed: No user logged in. Showing login form.");
-                accessSection.classList.remove('hidden'); // Ensure login form is visible
-                accessTitle.textContent = "Login to ICEA LION QA Audit";
-                loginError.classList.add('hidden'); // Hide any previous errors
-            }
-        });
+            });
+        } else {
+            console.error("CRITICAL: Firebase Auth not available at script execution due to config issues. Login flow cannot proceed.");
+            showMessageBox("Initialization Error", "Firebase services could not be initialized. Please check console for details and ensure your Firebase project is configured correctly.", true, false, true);
+        }
 
 
         // --- Login Form Submission ---
@@ -384,12 +406,15 @@
             showMessageBox("Logging In", "Please wait...", false, true, false);
 
             try {
+                console.log("DEBUG: Attempting signInWithEmailAndPassword for:", email);
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log("DEBUG: signInWithEmailAndPassword successful for UID:", userCredential.user.uid);
                 // After successful Firebase Auth login, the onAuthStateChanged listener above
                 // will trigger and handle role verification and redirection.
                 hideMessageBox(); // Hide login progress message
             } catch (error) {
                 hideMessageBox();
+                console.error("ERROR: Login failed:", error);
                 let errorMessage = "Login failed. Please check your credentials.";
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                     errorMessage = "Invalid email or password.";
@@ -421,7 +446,9 @@
             showMessageBox("Sending Reset Email", "Please wait...", false, true, false);
 
             try {
+                console.log("DEBUG: Attempting sendPasswordResetEmail for:", email);
                 await sendPasswordResetEmail(auth, email);
+                console.log("DEBUG: Password reset email sent.");
                 hideMessageBox();
                 showMessageBox(
                     "Password Reset",
@@ -431,6 +458,7 @@
             }
             catch (error) {
                 hideMessageBox();
+                console.error("ERROR: Password reset failed:", error);
                 let errorMessage = "Failed to send password reset email.";
                 if (error.code === 'auth/user-not-found') {
                     errorMessage = "No user found with that email address. Please check the email.";
