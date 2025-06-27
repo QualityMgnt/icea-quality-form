@@ -1,686 +1,175 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal - ICEA LION GROUP</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* Base styles for the body, centering content */
-        body {
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            flex-direction: column; /* Changed to column to stack nav and content */
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f3f4f6;
-        }
-        /* Custom brand colors for ICEA LION */
-        .icealion-blue {
-            background-color: #1a73e8;
-            color: white;
-        }
-        .icealion-orange {
-            background-color: #f57c00;
-            color: white;
-        }
-        /* Styling for error messages */
-        .error-message {
-            color: #dc2626;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            text-align: center;
-        }
-        /* Spinner animation for loading states */
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #1a73e8;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* Tab button styling for navigation */
-        .tab-button {
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-            background-color: #cbd5e1; /* gray-300 */
-            color: #1f2937; /* gray-800 */
-        }
-        .tab-button.active {
-            background-color: #1a73e8; /* icealion-blue */
-            color: white;
-        }
-        .tab-button:hover:not(.active) {
-            background-color: #94a3b8; /* gray-400 */
-        }
-        /* Table styling for user management */
-        .user-table th, .user-table td {
-            padding: 0.75rem;
-            border-bottom: 1px solid #e5e7eb;
-            text-align: left;
-        }
-        .user-table th {
-            background-color: #eff6ff;
-            font-weight: 600;
-            color: #1f2937;
-        }
-        .user-table tr:nth-child(even) {
-            background-color: #f9fafb;
-        }
-        .user-table tr:hover {
-            background-color: #f3f4f6;
-        }
-        /* Styling for individual dropdown items */
-        .dropdown-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #f0f9ff;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            margin-bottom: 0.5rem;
-        }
-        /* Hide access denied section (already removed login) */
-        #accessDeniedSection {
-            display: none !important;
-        }
+<title>Admin Panel</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
 
-        /* Main Navigation Bar Styles (copied from index.html for consistency) */
-        .main-nav {
-            width: 100%;
-            background-color: #0d47a1; /* Dark blue */
-            color: white;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .main-nav ul {
-            display: flex;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-        .main-nav ul li {
-            margin-right: 1.5rem;
-            display: inline-block; /* Ensure all list items are visible by default */
-        }
-        .main-nav ul li a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem; /* rounded-md */
-            transition: background-color 0.3s ease;
-        }
-        .main-nav ul li a:hover,
-        .main-nav ul li a.active {
-            background-color: #f7b32d; /* Yellow for hover/active */
-        }
-    </style>
+.container {
+    max-width: 600px;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+    text-align: center;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box; /* Ensures padding and border don't affect the width */
+}
+
+.form-group input[type="submit"] {
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.form-group input[type="submit"]:hover {
+    background-color: #45a049;
+}
+
+.user-list {
+    margin-top: 20px;
+}
+
+.user-list h3 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.user-list table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.user-list th, .user-list td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.user-list th {
+    background-color: #f2f2f2;
+    color: #333;
+}
+
+.user-list tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+</style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body>
 
-    <div id="messageBoxOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm mx-auto">
-            <div id="messageBoxSpinner" class="spinner hidden"></div>
-            <h3 id="messageBoxTitle" class="text-xl font-semibold text-blue-600 mb-3"></h3>
-            <p id="messageBoxContent" class="text-gray-700 mb-5"></p>
-            <button id="messageBoxCloseBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md hidden">OK</button>
-            <div id="messageBoxConfirmButtons" class="flex justify-center space-x-4 hidden">
-                <button id="messageBoxConfirmYesBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">Yes</button>
-                <button id="messageBoxConfirmNoBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md">No</button>
-            </div>
+<div class="container">
+    <h2>Admin Panel - Add CER Role</h2>
+    <form id="addCerForm">
+        <div class="form-group">
+            <label for="cerName">CER Name:</label>
+            <input type="text" id="cerName" name="cerName" required>
         </div>
-    </div>
-
-    <nav class="main-nav" id="mainNav">
-        <ul>
-            <li><a href="index.html" id="evaluationFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-            <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-            <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
-            <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-            <li id="adminTabNav"><a href="admin.html" id="adminTab" class="active"><i class="fas fa-user-cog"></i> Admin</a></li>
-        </ul>
-        </nav>
-
-    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-4xl p-8 mt-8 mb-8">
-        <div class="icealion-blue p-4 flex items-center justify-between mb-6">
-            <div class="text-2xl font-semibold">ICEA LION QA Audit Admin Portal</div>
-            <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
+        <div class="form-group">
+            <label for="cerEmail">CER Role Email Address:</label>
+            <input type="email" id="cerEmail" name="cerEmail" required>
         </div>
-
-        <div id="adminDashboard">
-            <div class="flex space-x-2 border-b border-gray-200 mb-6">
-                <button id="usersTabBtn" class="tab-button active">User Management</button>
-                <button id="dropdownsTabBtn" class="tab-button">Dropdown Options</button>
-                <button id="autofailsTabBtn" class="tab-button">Autofail Types</button>
-                </div>
-
-            <div id="usersContent" class="tab-content">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Users</h3>
-                <p class="text-red-500 text-sm mb-4">
-                    NOTE: User creation/deletion in this public version only affects their Firestore profile.
-                    Actual Firebase Authentication user accounts must be managed directly in the Firebase Console.
-                </p>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full bg-white user-table rounded-lg overflow-hidden">
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody">
-                            <tr><td colspan="3" class="text-center py-4 text-gray-500">Loading users...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-4">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Add New User</h4>
-                    <form id="addNewUserForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="email" id="newEmail" placeholder="New User Email" class="p-2 border rounded-md" required>
-                        <input type="password" id="newPassword" placeholder="Initial Password" class="p-2 border rounded-md" required>
-                        <select id="newUserRole" class="p-2 border rounded-md" required>
-                            <option value="">Select Role</option>
-                            <option value="CER">CER</option>
-                            <option value="Supervisor">Supervisor</option>
-                            <option value="Admin">Admin</option>
-                        </select>
-                        <button type="submit" class="col-span-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md">Add User</button>
-                    </form>
-                    <div id="addNewUserError" class="error-message hidden"></div>
-                </div>
-            </div>
-
-            <div id="dropdownsContent" class="tab-content hidden">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Dropdown Options</h3>
-
-                <div class="mb-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-2">CER Names</h4>
-                    <div id="cerNamesList" class="space-y-2 mb-2"></div>
-                    <input type="text" id="newCerName" placeholder="Add new CER Name" class="p-2 border rounded-md w-full md:w-1/2">
-                    <button class="add-option-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-md mt-2" data-type="cerNames">Add</button>
-                </div>
-
-                <div class="mb-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-2">CER Roles</h4>
-                    <div id="cerRolesList" class="space-y-2 mb-2"></div>
-                    <input type="text" id="newCerRole" placeholder="Add new CER Role" class="p-2 border rounded-md w-full md:w-1/2">
-                    <button class="add-option-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-md mt-2" data-type="cerRoles">Add</button>
-                </div>
-
-                <div class="mb-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Reviewer Names</h4>
-                    <div id="reviewerNamesList" class="space-y-2 mb-2"></div>
-                    <input type="text" id="newReviewerName" placeholder="Add new Reviewer Name" class="p-2 border rounded-md w-full md:w-1/2">
-                    <button class="add-option-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-md mt-2" data-type="reviewerNames">Add</button>
-                </div>
-
-                   <div class="mb-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Autofail Types</h4>
-                    <div id="autofailTypesList" class="space-y-2 mb-2"></div>
-                    <input type="text" id="newAutofailType" placeholder="Add new Autofail Type" class="p-2 border rounded-md w-full md:w-1/2">
-                    <button class="add-option-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-md mt-2" data-type="autofailTypes">Add</button>
-                </div>
-            </div>
-
-            <div id="autofailsContent" class="tab-content hidden">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Manage Autofail Rules</h3>
-                <p class="text-gray-600 mb-4">
-                    This section would allow adding, editing, and deleting specific autofail rules.
-                    (e.g., if "Improper Authentication" is selected, score becomes 0).
-                    For this prototype, it's a placeholder for future functionality.
-                </p>
-                <div class="mt-4">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Current Autofail Rules (Conceptual)</h4>
-                    <ul class="list-disc list-inside text-gray-700">
-                        <li>Improper Authentication -> Overall Score = 0%</li>
-                        <li>Data Capture Error -> Overall Score = 0%</li>
-                        </ul>
-                </div>
-                <div class="mt-4">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-2">Add New Autofail Rule</h4>
-                    <form id="addAutofailRuleForm" class="space-y-3">
-                        <input type="text" placeholder="Rule Name (e.g., Data Breach)" class="p-2 border rounded-md w-full">
-                        <textarea placeholder="Description (e.g., Disclosure of sensitive customer data)" rows="2" class="p-2 border rounded-md w-full"></textarea>
-                        <select class="p-2 border rounded-md w-full">
-                            <option value="">Set Score to</option>
-                            <option value="0">0% (Critical Fail)</option>
-                            </select>
-                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md">Add Rule</button>
-                    </form>
-                </div>
-            </div>
+        <div class="form-group">
+            <input type="submit" value="Add CER">
         </div>
-    </div>
+    </form>
+</div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        // Removed Firebase Auth imports
-        import {
-            getFirestore,
-            collection,
-            addDoc,
-            getDocs,
-            deleteDoc,
-            doc,
-            onSnapshot,
-            query,
-            where,
-            setDoc,
-            updateDoc,
-            getDoc
-        } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+<div class="container user-list">
+    <h3>CERs with Assigned Roles</h3>
+    <table id="cerTable">
+        <thead>
+            <tr>
+                <th>CER Name</th>
+                <th>CER Role Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+</div>
 
-        // Initialize Firebase using hardcoded config
-        const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", // Your provided API key
-            authDomain: "icea-lion-qa.firebaseapp.com",
-            projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
-            messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
-            measurementId: "G-1RJJTT3QET"
-        };
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addCerForm');
+    const tableBody = document.querySelector('#cerTable tbody');
 
-        const appId = firebaseConfig.appId;
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    // Function to add a new row to the table
+    function addCerToTable(name, email) {
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td>${name}</td>
+            <td>${email}</td>
+        `;
+        tableBody.appendChild(newRow);
+    }
 
-        // Expose Firebase instances and appId globally
-        window.firebaseApp = app;
-        window.db = db;
-        window.appId = appId;
+    // Handle form submission
+    form.addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
 
-        // Firebase Collection Paths
-        const USERS_COLLECTION_PATH = `artifacts/${window.appId}/users`;
-        const DROPDOWN_OPTIONS_COLLECTION_PATH = `artifacts/${window.appId}/public/data/dropdown_options`;
+        const cerNameInput = document.getElementById('cerName');
+        const cerEmailInput = document.getElementById('cerEmail');
 
-        // --- DOM Elements ---
-        // Removed accessDeniedSection and its child elements
-        const adminDashboard = document.getElementById('adminDashboard');
+        const cerName = cerNameInput.value;
+        const cerEmail = cerEmailInput.value;
 
-        const usersTabBtn = document.getElementById('usersTabBtn');
-        const dropdownsTabBtn = document.getElementById('dropdownsTabBtn');
-        const autofailsTabBtn = document.getElementById('autofailsTabBtn');
-        // Removed logoutAdminBtn
-        // Removed backToAppBtn (as main nav handles this)
-        const mainNav = document.getElementById('mainNav'); // Get reference to the new main nav
+        // You would typically send this data to a server here using an API call (e.g., fetch())
+        // For this example, we'll just add it to the table directly.
+        if (cerName && cerEmail) {
+            addCerToTable(cerName, cerEmail);
 
-        const userTableBody = document.getElementById('userTableBody');
-        const addNewUserForm = document.getElementById('addNewUserForm');
-        const addNewUserError = document.getElementById('addNewUserError');
-
-        const cerNamesList = document.getElementById('cerNamesList');
-        const cerRolesList = document.getElementById('cerRolesList');
-        const reviewerNamesList = document.getElementById('reviewerNamesList');
-        const autofailTypesList = document.getElementById('autofailTypesList');
-
-        // --- Message Box Functions (unchanged) ---
-        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
-            const messageBoxTitle = document.getElementById('messageBoxTitle');
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            const messageBoxConfirmButtons = document.getElementById('messageBoxConfirmButtons');
-
-            messageBoxTitle.textContent = title;
-            messageBoxContent.textContent = message;
-
-            messageBoxOverlay.classList.remove('hidden');
-            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
-            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
-            messageBoxConfirmButtons.classList.add('hidden');
-
-            messageBoxTitle.style.color = isError ? '#dc2626' : '#1a73e8';
-
-            messageBoxCloseBtn.onclick = () => {
-                messageBoxOverlay.classList.add('hidden');
-                if (onClose) onClose();
-            };
+            // Clear the form fields after submission
+            cerNameInput.value = '';
+            cerEmailInput.value = '';
+            cerNameInput.focus(); // Set focus back to the first input
+        } else {
+            alert('Please fill in both fields.');
         }
+    });
 
-        function showConfirmationBox(title, message) {
-            return new Promise((resolve) => {
-                const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-                const messageBoxSpinner = document.getElementById('messageBoxSpinner');
-                const messageBoxTitle = document.getElementById('messageBoxTitle');
-                const messageBoxContent = document.getElementById('messageBoxContent');
-                const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-                const messageBoxConfirmButtons = document.getElementById('messageBoxConfirmButtons');
-                const messageBoxConfirmYesBtn = document.getElementById('messageBoxConfirmYesBtn');
-                const messageBoxConfirmNoBtn = document.getElementById('messageBoxConfirmNoBtn');
+    // You can add code here to load existing data from a server when the page loads.
+    // Example:
+    // fetch('/api/cers')
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         data.forEach(cer => {
+    //             addCerToTable(cer.name, cer.email);
+    //         });
+    //     })
+    //     .catch(error => console.error('Error fetching CER data:', error));
+});
+</script>
 
-                messageBoxTitle.textContent = title;
-                messageBoxContent.textContent = message;
-
-                messageBoxOverlay.classList.remove('hidden');
-                messageBoxSpinner.classList.add('hidden');
-                messageBoxCloseBtn.classList.add('hidden');
-                messageBoxConfirmButtons.classList.remove('hidden');
-
-                messageBoxTitle.style.color = '#1a73e8';
-
-                const closeAndResolve = (result) => {
-                    messageBoxOverlay.classList.add('hidden');
-                    resolve(result);
-                };
-
-                messageBoxConfirmYesBtn.onclick = () => closeAndResolve(true);
-                messageBoxConfirmNoBtn.onclick = () => closeAndResolve(false);
-            });
-        }
-
-        function hideMessageBox() {
-            document.getElementById('messageBoxOverlay').classList.add('hidden');
-        }
-
-        // --- Session Management (Removed for public access) ---
-
-        // --- Event Listeners for Access Denied Section (Removed) ---
-
-        // --- Admin Dashboard Tabs Logic ---
-        function showAdminTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-
-            document.getElementById(tabId).classList.remove('hidden');
-            if (tabId === 'usersContent') usersTabBtn.classList.add('active');
-            else if (tabId === 'dropdownsContent') dropdownsTabBtn.classList.add('active');
-            else if (tabId === 'autofailsContent') autofailsTabBtn.classList.add('active');
-        }
-
-        usersTabBtn.addEventListener('click', () => showAdminTab('usersContent'));
-        dropdownsTabBtn.addEventListener('click', () => showAdminTab('dropdownsContent'));
-        autofailsTabBtn.addEventListener('click', () => showAdminTab('autofailsContent'));
-        
-        // Removed logoutAdminBtn and backToAppBtn listeners from here as they are now handled by main nav
-
-        // Event listeners for the main navigation (copied from index.html logic)
-        document.getElementById('evaluationFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
-        document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; }); // Note: Hash changes on same page need to be handled in index.html
-        document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
-        document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
-        // The adminTab is already the current page, so no redirect needed for it.
-
-
-        // --- Load Admin Dashboard Data ---
-        async function loadAdminDashboard() {
-            showMessageBox("Loading Admin Data", "Fetching user data and configurations...", false, true, false);
-            try {
-                await Promise.all([loadUsers(), loadDropdownOptions()]);
-                hideMessageBox();
-            } catch (error) {
-                hideMessageBox();
-                showMessageBox("Error Loading Data", `Failed to load admin data: ${error.message}`, true);
-            }
-        }
-
-        // --- User Management Functions ---
-        async function loadUsers() {
-            userTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Loading users...</td></tr>';
-            
-            onSnapshot(collection(db, USERS_COLLECTION_PATH), (querySnapshot) => {
-                userTableBody.innerHTML = '';
-
-                if (querySnapshot.empty) {
-                    userTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">No users found.</td></tr>';
-                    return;
-                }
-
-                querySnapshot.forEach((docSnap) => {
-                    const userData = docSnap.data();
-                    const userId = docSnap.id;
-                    const row = userTableBody.insertRow();
-                    row.innerHTML = `
-                        <td>${userData.email || 'N/A'}</td>
-                        <td>
-                            <select class="user-role-select p-1 border rounded-md" data-user-id="${userId}">
-                                <option value="CER" ${userData.role === 'CER' ? 'selected' : ''}>CER</option>
-                                <option value="Supervisor" ${userData.role === 'Supervisor' ? 'selected' : ''}>Supervisor</option>
-                                <option value="Admin" ${userData.role === 'Admin' ? 'selected' : ''}>Admin</option>
-                            </select>
-                        </td>
-                        <td>
-                            <button class="delete-user-btn bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1 rounded-md" data-user-id="${userId}" data-user-email="${userData.email}">Delete</button>
-                        </td>
-                    `;
-                    row.querySelector('.user-role-select').addEventListener('change', (e) => updateRole(userId, e.target.value));
-                    row.querySelector('.delete-user-btn').addEventListener('click', (e) => deleteUser(userId, userData.email));
-                });
-            }, (error) => {
-                console.error("Error setting up real-time user listener:", error);
-                userTableBody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-red-500">Error loading users: ${error.message}</td></tr>`;
-            });
-        }
-
-        async function updateRole(userId, newRole) {
-            const confirmed = await showConfirmationBox("Confirm Role Change", `Are you sure you want to change the role of user ${userId} to ${newRole}?`);
-            if (!confirmed) {
-                loadUsers(); // Revert UI if canceled
-                return;
-            }
-
-            showMessageBox("Updating Role", "Updating user role...", false, true, false);
-            try {
-                const userDocRef = doc(db, USERS_COLLECTION_PATH, userId);
-                await updateDoc(userDocRef, { role: newRole });
-                hideMessageBox();
-                showMessageBox("Success", "User role updated successfully!", false);
-            } catch (error) {
-                hideMessageBox();
-                showMessageBox("Error", `Failed to update role: ${error.message}`, true);
-            }
-        }
-
-        async function deleteUser(userId, userEmail) {
-            const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete user ${userEmail}? This action cannot be undone and will NOT delete the Firebase Authentication user (if one exists).`);
-            if (!confirmed) {
-                return;
-            }
-
-            showMessageBox("Deleting User", "Deleting user...", false, true, false);
-            try {
-                await deleteDoc(doc(db, USERS_COLLECTION_PATH, userId));
-                hideMessageBox();
-                showMessageBox("Success", `User ${userEmail} document deleted from Firestore! (Manual Firebase Authentication user deletion may be required.)`, false);
-            } catch (error) {
-                hideMessageBox();
-                showMessageBox("Error", `Failed to delete user: ${error.message}`, true);
-            }
-        }
-
-        // --- Add New User Form Submission ---
-        addNewUserForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            addNewUserError.classList.add('hidden');
-            const email = document.getElementById('newEmail').value;
-            const password = document.getElementById('newPassword').value; // Password won't create a real auth user
-            const role = document.getElementById('newUserRole').value;
-
-            if (!role) {
-                addNewUserError.textContent = "Please select a role.";
-                addNewUserError.classList.remove('hidden');
-                return;
-            }
-
-            showMessageBox("Adding User", "Creating user profile...", false, true, false);
-
-            try {
-                // Generate a dummy user ID for the Firestore profile
-                const dummyUserId = "public_admin_added_" + Date.now();
-
-                await setDoc(doc(db, USERS_COLLECTION_PATH, dummyUserId), {
-                    email: email,
-                    role: role,
-                    createdAt: new Date().toISOString()
-                });
-
-                hideMessageBox();
-                showMessageBox("Success", `New user profile for ${email} registered as ${role}!`, false, false, true, () => {
-                    addNewUserForm.reset();
-                });
-
-            } catch (error) {
-                hideMessageBox();
-                let errorMessage = `Error: ${error.message}`;
-                addNewUserError.textContent = errorMessage;
-                addNewUserError.classList.remove('hidden');
-            }
-        });
-
-
-        // --- Dropdown Options Management Functions (unchanged) ---
-        async function loadDropdownOptions() {
-            const docRef = doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options');
-            
-            onSnapshot(docRef, (docSnap) => {
-                const data = docSnap.exists() ? docSnap.data() : {};
-
-                renderDropdownList(data.cerNames || [], cerNamesList, 'cerNames');
-                renderDropdownList(data.cerRoles || [], cerRolesList, 'cerRoles');
-                renderDropdownList(data.reviewerNames || [], reviewerNamesList, 'reviewerNames');
-                renderDropdownList(data.autofailTypes || [], autofailTypesList, 'autofailTypes');
-            }, (error) => {
-                console.error("Error setting up real-time dropdown options listener:", error);
-                showMessageBox("Error", `Failed to load dropdown options: ${error.message}`, true);
-            });
-        }
-
-        function renderDropdownList(optionsArray, containerElement, type) {
-            containerElement.innerHTML = '';
-            if (optionsArray.length === 0) {
-                containerElement.innerHTML = `<p class="text-gray-500 text-sm">No ${type.replace(/([A-Z])/g, ' $1').toLowerCase()} defined yet.</p>`;
-                return;
-            }
-            optionsArray.forEach((option, index) => {
-                const div = document.createElement('div');
-                div.className = 'dropdown-item';
-                div.innerHTML = `
-                    <span>${option}</span>
-                    <button class="delete-option-btn bg-red-400 hover:bg-red-500 text-white text-xs px-2 py-1 rounded-md" data-index="${index}" data-type="${type}">Delete</button>
-                `;
-                containerElement.appendChild(div);
-            });
-            document.querySelectorAll('.delete-option-btn').forEach(btn => {
-                btn.addEventListener('click', deleteDropdownOption);
-            });
-        }
-
-        document.querySelectorAll('.add-option-btn').forEach(button => {
-            button.addEventListener('click', addDropdownOption);
-        });
-
-        async function addDropdownOption(e) {
-            const type = e.target.dataset.type;
-            let inputElement;
-            if (type === 'cerNames') inputElement = document.getElementById('newCerName');
-            else if (type === 'cerRoles') inputElement = document.getElementById('newCerRole');
-            else if (type === 'reviewerNames') inputElement = document.getElementById('newReviewerName');
-            else if (type === 'autofailTypes') inputElement = document.getElementById('newAutofailType');
-
-            const newValue = inputElement.value.trim();
-            if (!newValue) {
-                showMessageBox("Input Required", `Please enter a value for ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}.`, true);
-                return;
-            }
-
-            showMessageBox("Adding Option", "Saving new option...", false, true, false);
-            try {
-                const docRef = doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options');
-                const docSnap = await getDoc(docRef);
-                const currentOptions = docSnap.exists() ? docSnap.data() : {};
-                const optionsArray = currentOptions[type] || [];
-
-                if (optionsArray.includes(newValue)) {
-                    hideMessageBox();
-                    showMessageBox("Duplicate", `'${newValue}' already exists in ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}.`, false);
-                    inputElement.value = '';
-                    return;
-                }
-
-                optionsArray.push(newValue);
-                await updateDoc(docRef, { [type]: optionsArray });
-
-                hideMessageBox();
-                showMessageBox("Success", `'${newValue}' added to ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}!`, false, false, true, () => {
-                    inputElement.value = '';
-                });
-            } catch (error) {
-                hideMessageBox();
-                showMessageBox("Error", `Failed to add option: ${error.message}`, true);
-            }
-        }
-
-        async function deleteDropdownOption(e) {
-            const index = parseInt(e.target.dataset.index);
-            const type = e.target.dataset.type;
-
-            const confirmed = await showConfirmationBox("Confirm Deletion", `Are you sure you want to delete this option from ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}?`);
-            if (!confirmed) {
-                return;
-            }
-
-            showMessageBox("Deleting Option", "Removing option...", false, true, false);
-            try {
-                const docRef = doc(db, DROPDOWN_OPTIONS_COLLECTION_PATH, 'options');
-                const docSnap = await getDoc(docRef);
-                const currentOptions = docSnap.exists() ? docSnap.data() : {};
-                const optionsArray = currentOptions[type] || [];
-
-                if (index > -1 && index < optionsArray.length) {
-                    optionsArray.splice(index, 1);
-                    await updateDoc(docRef, { [type]: optionsArray });
-
-                    hideMessageBox();
-                    showMessageBox("Success", "Option deleted successfully!", false, false, true);
-                } else {
-                    hideMessageBox();
-                    showMessageBox("Error", "Option not found or invalid index.", true);
-                }
-            } catch (error) {
-                hideMessageBox();
-                showMessageBox("Error", `Failed to delete option: ${error.message}`, true);
-            }
-        }
-
-        // --- Autofail Types Management (Conceptual for now) ---
-        async function loadAutofailTypes() {
-            console.log("Autofail Rules Management section loaded (conceptual).");
-        }
-
-        // --- Initial Load Logic for Admin Page (No Login Required) ---
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("Admin DOM fully loaded and parsed. Initializing for public access with main nav.");
-
-            // Ensure the main navigation is visible
-            mainNav.style.display = 'flex';
-            
-            // Always show the admin dashboard content
-            adminDashboard.classList.remove('hidden');
-
-            // Load all necessary admin data
-            loadAdminDashboard();
-            
-            // Set initial active tab within admin section
-            showAdminTab('usersContent');
-        });
-    </script>
 </body>
 </html>
