@@ -3,447 +3,566 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICEA LION QA Audit Admin Portal</title>
+    <title>Admin - ICEA LION GROUP</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-
         body {
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            background-color: #f4f7f6;
-            display: flex;
-            height: 100vh;
-            color: #333;
-        }
-
-        /* ----- Side Navigation Bar ----- */
-        .sidebar {
-            width: 250px;
-            background-color: #ffffff;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
-            padding-top: 20px;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            padding: 0;
         }
 
-        .sidebar a {
-            display: flex;
-            align-items: center;
+        /* Adjustments for admin container relative to body flow */
+        body > .admin-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        /* Basic form/section styling for admin page */
+        .admin-section {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
             width: 100%;
-            padding: 15px 25px;
-            color: #555;
-            text-decoration: none;
-            font-weight: 500;
-            transition: background-color 0.3s, color 0.3s;
-            border-left: 5px solid transparent;
+            max-width: 800px;
         }
 
-        .sidebar a i {
-            margin-right: 15px;
-            width: 20px;
+        .admin-section h2 {
+            color: #0d47a1;
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-group-admin {
+            margin-bottom: 16px;
+        }
+
+        .form-group-admin label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+
+        .form-group-admin input[type="text"],
+        .form-group-admin input[type="password"],
+        .form-group-admin select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-group-admin input[type="text"]:focus,
+        .form-group-admin input[type="password"]:focus,
+        .form-group-admin select:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+        }
+
+        .admin-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-top: 8px; /* Space from inputs */
+        }
+
+        .admin-btn-primary {
+            background-color: #3182ce;
+            color: white;
+        }
+
+        .admin-btn-primary:hover {
+            background-color: #2b6cb0;
+        }
+
+        .admin-btn-danger {
+            background-color: #e53e3e;
+            color: white;
+        }
+
+        .admin-btn-danger:hover {
+            background-color: #c53030;
+        }
+
+        .admin-message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 500;
             text-align: center;
         }
 
-        .sidebar a:hover {
-            background-color: #e9ecef;
-            color: #007bff;
+        .admin-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
 
-        .sidebar a.active {
-            background-color: #e1f0ff;
-            color: #007bff;
-            border-left: 5px solid #007bff;
+        .admin-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
-        /* ----- Main Content Area ----- */
-        .main-content-container {
-            flex-grow: 1;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            /* Container for the content panes */
-            position: relative; 
+        .current-items-list {
+            list-style: disc;
+            padding-left: 20px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            border-radius: 5px;
         }
-        
-        .main-pane {
-            display: none;
-            position: absolute; /* Position them on top of each other */
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            padding: 20px;
-            box-sizing: border-box; /* Include padding in dimensions */
-            overflow-y: auto; /* Enable scrolling for content */
-        }
-        
-        .main-pane.active {
-            display: block;
-        }
-
-        /* ----- Top Header Bar ----- */
-        .header-bar {
-            background-color: #007bff;
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        .current-items-list li {
+            padding: 5px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-
-        .header-bar .logo-text {
-            color: #ffffff;
+        .current-items-list li:nth-child(even) {
+            background-color: #f7fafc;
         }
-
-        /* ----- Tab Navigation ----- */
-        .tab-nav {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ddd;
+        .current-items-list li button {
+            margin-left: 10px;
+            padding: 4px 8px;
+            font-size: 0.8em;
         }
-
-        .tab-nav button {
-            padding: 12px 20px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            background-color: transparent;
-            color: #555;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .tab-nav button.active {
-            color: #007bff;
-            border-bottom: 2px solid #007bff;
-            background-color: #f4f7f6;
-        }
-
-        .tab-nav button:hover {
-            background-color: #e9ecef;
-        }
-
-        /* ----- Tab Content ----- */
-        .tab-content {
-            background-color: #ffffff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            min-height: 500px;
-        }
-        
-        /* Hide content of inactive tabs */
-        .tab-pane {
-            display: none;
-        }
-
-        /* Show content of the active tab */
-        .tab-pane.active {
-            display: block;
-        }
-
-
-        .tab-content h3 {
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .tab-content .note {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            line-height: 1.5;
-            font-size: 0.95rem;
-        }
-
-        .tab-content .error-message {
-            color: #dc3545;
-            font-weight: 500;
-            margin-top: 10px;
-        }
-
-        /* ----- Table Styling ----- */
-        .user-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        .user-table th, .user-table td {
-            text-align: left;
-            padding: 12px;
-        }
-
-        .user-table th {
-            background-color: #eef4f9;
-            color: #555;
-            font-weight: 600;
-            border-bottom: 2px solid #d4e1e8;
-        }
-
-        .user-table td {
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .user-table tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-
-        /* ----- Form Styling ----- */
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .form-group input[type="text"],
-        .form-group input[type="email"],
-        .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1rem;
-            box-sizing: border-box;
-        }
-
-        .form-group button {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
-        }
-
-        .form-group button:hover {
-            background-color: #0056b3;
-        }
-
     </style>
 </head>
-<body>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center">
+    <!-- Navigation Menu -->
+    <nav class="main-nav" id="mainNav">
+        <ul>
+            <li><a href="index.html"><i class="fas fa-file-alt"></i> Audit Form</a></li>
+            <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="admin.html" class="active"><i class="fas fa-cog"></i> Admin</a></li>
+        </ul>
+        <button id="logoutBtn" class="logout-button">Logout</button>
+    </nav>
 
-    <div class="sidebar" id="main-nav">
-        <a href="#" class="main-link" data-main-target="evaluation-form"><i class="fas fa-file-alt"></i> Evaluation Form</a>
-        <a href="#" class="main-link" data-main-target="database"><i class="fas fa-database"></i> Database</a>
-        <a href="#" class="main-link" data-main-target="reports"><i class="fas fa-chart-bar"></i> Reports</a>
-        <a href="#" class="main-link" data-main-target="autofails"><i class="fas fa-exclamation-triangle"></i> Autofails</a>
-        <a href="#" class="main-link active" data-main-target="admin-panel"><i class="fas fa-user-shield"></i> Admin</a>
-    </div>
-
-    <div class="main-content-container">
-        <div class="header-bar">
-            <span>ICEA LION QA Audit Admin Portal</span>
-            <span class="logo-text">ICEALION</span>
-        </div>
-        
-        <div id="evaluation-form" class="main-pane">
-            <div class="tab-content">
-                <h3>Evaluation Form</h3>
-                <p>This is the content for the Evaluation Form. You can add your form elements here.</p>
-            </div>
-        </div>
-
-        <div id="database" class="main-pane">
-            <div class="tab-content">
-                <h3>Database Dashboard</h3>
-                <p>This section will display database information and records.</p>
-            </div>
-        </div>
-
-        <div id="reports" class="main-pane">
-            <div class="tab-content">
-                <h3>Reports and Analytics</h3>
-                <p>Here you can view and generate various reports.</p>
-            </div>
-        </div>
-        
-        <div id="autofails" class="main-pane">
-            <div class="tab-content">
-                <h3>Autofail Management</h3>
-                <p>This section is for managing autofail criteria.</p>
-            </div>
-        </div>
-
-        <div id="admin-panel" class="main-pane active">
-            <div class="tab-nav" id="adminTabs">
-                <button class="tab-button active" data-tab-target="user-management">User Management</button>
-                <button class="tab-button" data-tab-target="dropdown-options">Dropdown Options</button>
-                <button class="tab-button" data-tab-target="autofail-types">Autofail Types</button>
+    <!-- Login Page (re-used from index.html) -->
+    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage" style="display: none;">
+        <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
+            <div class="icealion-blue p-6 rounded-t-lg text-center">
+                <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
             </div>
 
-            <div class="tab-content">
-                <div id="user-management" class="tab-pane active">
-                    <h3>Manage Users</h3>
-                    <div class="note">
-                        <strong>NOTE:</strong> User creation/deletion in this public version only affects their Firestore profile. Actual Firebase Authentication user accounts must be managed directly in the Firebase Console.
-                    </div>
-
-                    <table class="user-table">
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="3" style="text-align: center; padding: 20px;">
-                                    <span class="error-message">Error loading users: Missing or insufficient permissions.</span>
-                                </td>
-                            </tr>
-                            </tbody>
-                    </table>
-
-                    <h3 style="margin-top: 40px;">Add New User</h3>
-                    <form id="addCerForm">
-                        <div class="form-group">
-                            <label for="cerName">CER Name:</label>
-                            <input type="text" id="cerName" name="cerName" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="cerEmail">CER Role Email Address:</label>
-                            <input type="email" id="cerEmail" name="cerEmail" required>
-                        </div>
-                        <div class="form-group">
-                            <button type="submit">Add CER</button>
-                        </div>
-                    </form>
+            <form id="loginForm" class="p-8 space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="username" name="username" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" 
+                           required placeholder="Enter your username">
                 </div>
-
-                <div id="dropdown-options" class="tab-pane">
-                    <h3>Manage Dropdown Options</h3>
-                    <p>This is where you can manage the options for dropdown menus in the evaluation form.</p>
-                    </div>
-
-                <div id="autofail-types" class="tab-pane">
-                    <h3>Manage Autofail Types</h3>
-                    <p>This section allows you to define and manage different types of autofail criteria.</p>
-                    </div>
-            </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" name="password" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" 
+                           required placeholder="Enter your password">
+                </div>
+                <button type="submit" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                    Login
+                </button>
+                <div id="loginMessage" class="error-message hidden"></div>
+            </form>
         </div>
     </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // --- Main Navigation Logic (Left Sidebar) ---
-    const mainLinks = document.querySelectorAll('.main-link');
-    const mainPanes = document.querySelectorAll('.main-pane');
+    <!-- Admin Content (Initially Hidden) -->
+    <div class="admin-container w-full max-w-6xl p-4" id="adminContent" style="display: none;">
+        <h1 class="text-3xl font-bold text-center text-blue-800 mb-8">Admin Panel</h1>
 
-    mainLinks.forEach(link => {
-        link.addEventListener('click', (event) => {
-            event.preventDefault(); // Prevent the default anchor link behavior
+        <!-- Dropdown Management Section -->
+        <div class="admin-section">
+            <h2>Manage Form Dropdowns</h2>
+            <div class="form-group-admin">
+                <label for="dropdownTypeSelect">Select Dropdown:</label>
+                <select id="dropdownTypeSelect" class="block w-full">
+                    <option value="">Select a dropdown to manage</option>
+                    <option value="cerNames">CER Names</option>
+                    <option value="cerRoles">CER Roles</option>
+                    <option value="reviewerNames">Reviewer Names</option>
+                    <option value="autofailTypes">Autofail Types</option>
+                </select>
+            </div>
 
-            // Remove 'active' class from all links and panes
-            mainLinks.forEach(lnk => lnk.classList.remove('active'));
-            mainPanes.forEach(pane => pane.classList.remove('active'));
+            <div class="form-group-admin" id="dropdownValueInputGroup" style="display: none;">
+                <label for="dropdownValue">Current Values:</label>
+                <ul id="currentDropdownItems" class="current-items-list">
+                    <!-- Dynamic list of current items -->
+                </ul>
+                <input type="text" id="newDropdownValue" placeholder="Enter new value to add/remove">
+                <button class="admin-btn admin-btn-primary" id="addDropdownValueBtn">Add Value</button>
+                <button class="admin-btn admin-btn-danger" id="removeDropdownValueBtn">Remove Selected</button>
+                <div id="dropdownMessage" class="admin-message hidden"></div>
+            </div>
+        </div>
 
-            // Add 'active' class to the clicked link
-            link.classList.add('active');
+        <!-- User Management Section -->
+        <div class="admin-section">
+            <h2>User Management</h2>
+            <div class="form-group-admin">
+                <label for="newUsername">Username:</label>
+                <input type="text" id="newUsername" placeholder="Enter new username">
+            </div>
+            <div class="form-group-admin">
+                <label for="newPassword">Password:</label>
+                <input type="password" id="newPassword" placeholder="Enter password">
+            </div>
+             <div class="form-group-admin">
+                <label for="newUserRole">Role:</label>
+                <select id="newUserRole" class="block w-full">
+                    <option value="User">User</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </div>
+            <button class="admin-btn admin-btn-primary" id="createUserBtn">Create User</button>
+            <div id="userMessage" class="admin-message hidden"></div>
 
-            // Get the target main pane's ID from the data attribute
-            const targetId = link.getAttribute('data-main-target');
-            const targetPane = document.getElementById(targetId);
+            <h3 class="text-lg font-semibold text-gray-700 mt-6 mb-3">Existing Users:</h3>
+            <ul id="existingUsersList" class="current-items-list">
+                <!-- Dynamic list of users -->
+            </ul>
+        </div>
+    </div>
 
-            // Add 'active' class to the corresponding content pane
-            if (targetPane) {
-                targetPane.classList.add('active');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // **IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL**
+            const googleAppsScriptURL = 'https://script.google.com/macros/s/AKfycbzhmxq-pQ8NUpSNg-xAkJWRW_LEUKbw5NOzUunt-j4EO7QIEJnKjWRdclvNjYMXL2kJvg/exec';
+
+            // Login elements (shared with index.html)
+            const loginPage = document.getElementById('loginPage');
+            const loginForm = document.getElementById('loginForm');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const loginMessage = document.getElementById('loginMessage');
+
+            // Admin Page elements
+            const adminContent = document.getElementById('adminContent');
+            const mainNav = document.getElementById('mainNav'); // Navigation bar
+            const logoutBtn = document.getElementById('logoutBtn'); // Logout button
+
+            // Dropdown management elements
+            const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
+            const dropdownValueInputGroup = document.getElementById('dropdownValueInputGroup');
+            const currentDropdownItems = document.getElementById('currentDropdownItems');
+            const newDropdownValueInput = document.getElementById('newDropdownValue');
+            const addDropdownValueBtn = document.getElementById('addDropdownValueBtn');
+            const removeDropdownValueBtn = document.getElementById('removeDropdownValueBtn');
+            const dropdownMessage = document.getElementById('dropdownMessage');
+
+            // User management elements
+            const newUsernameInput = document.getElementById('newUsername');
+            const newPasswordInput = document.getElementById('newPassword');
+            const newUserRoleSelect = document.getElementById('newUserRole');
+            const createUserBtn = document.getElementById('createUserBtn');
+            const userMessage = document.getElementById('userMessage');
+            const existingUsersList = document.getElementById('existingUsersList');
+
+            // --- Utility Functions ---
+            const showMessage = (element, message, type) => {
+                element.textContent = message;
+                element.classList.remove('hidden', 'success', 'error');
+                element.classList.add(type);
+                setTimeout(() => { element.classList.add('hidden'); }, 3000);
+            };
+
+            // --- Login/Authentication Logic ---
+            const showLoginErrorMessage = (message) => {
+                loginMessage.textContent = message;
+                loginMessage.classList.remove('hidden');
+            };
+
+            const hideLoginErrorMessage = () => {
+                loginMessage.classList.add('hidden');
+                loginMessage.textContent = '';
+            };
+
+            // Authenticate user via Apps Script
+            loginForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                hideLoginErrorMessage();
+
+                const username = usernameInput.value;
+                const password = passwordInput.value;
+
+                fetch(`${googleAppsScriptURL}?action=authenticate&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'SUCCESS' && data.authenticated) {
+                            sessionStorage.setItem('loggedIn', 'true');
+                            // Now that login is handled here, reload to show admin content
+                            window.location.reload(); 
+                        } else {
+                            showLoginErrorMessage('Invalid username or password.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Login Error:', error);
+                        showLoginErrorMessage('An error occurred during login. Please try again.');
+                    });
+            });
+
+            // Initial check for login status
+            const isLoggedIn = sessionStorage.getItem('loggedIn');
+            if (isLoggedIn === 'true') {
+                loginPage.style.display = 'none'; // Hide login page
+                adminContent.style.display = 'block'; // Show admin content
+                mainNav.style.display = 'flex'; // Show navigation
+                fetchAndRenderUsers(); // Load users on admin page load
+            } else {
+                loginPage.style.display = 'flex'; // Show login
+                adminContent.style.display = 'none'; // Hide admin content
+                mainNav.style.display = 'none'; // Hide navigation
+            }
+
+            // Logout functionality
+            logoutBtn.addEventListener('click', function() {
+                sessionStorage.removeItem('loggedIn');
+                window.location.href = 'index.html'; // Redirect to login page
+            });
+
+
+            // --- Dropdown Management Logic ---
+            let currentSelectedDropdownType = ''; // To store which dropdown is currently selected
+
+            dropdownTypeSelect.addEventListener('change', async function() {
+                currentSelectedDropdownType = this.value;
+                currentDropdownItems.innerHTML = ''; // Clear previous list
+                dropdownValueInputGroup.style.display = 'none';
+                dropdownMessage.classList.add('hidden');
+
+                if (currentSelectedDropdownType) {
+                    await fetchAndRenderDropdownOptions(currentSelectedDropdownType);
+                    dropdownValueInputGroup.style.display = 'block';
+                }
+            });
+
+            async function fetchAndRenderDropdownOptions(type) {
+                currentDropdownItems.innerHTML = '<li>Loading...</li>';
+                try {
+                    const response = await fetch(`${googleAppsScriptURL}?action=getDropdownOptions&type=${type}`);
+                    const data = await response.json();
+                    
+                    currentDropdownItems.innerHTML = ''; // Clear loading message
+
+                    if (data.status === 'SUCCESS' && data.options) {
+                        if (data.options.length === 0) {
+                            currentDropdownItems.innerHTML = '<li>No items found.</li>';
+                        } else {
+                            data.options.forEach(item => {
+                                const li = document.createElement('li');
+                                li.textContent = item;
+                                // Allow selection for removal (simple click for now)
+                                li.addEventListener('click', () => {
+                                    li.classList.toggle('bg-blue-200'); // Highlight selected item
+                                });
+                                currentDropdownItems.appendChild(li);
+                            });
+                        }
+                    } else {
+                        showMessage(dropdownMessage, `Error fetching options: ${data.message || 'Unknown error'}`, 'error');
+                        currentDropdownItems.innerHTML = '<li>Failed to load items.</li>';
+                    }
+                } catch (error) {
+                    console.error('Fetch dropdown options error:', error);
+                    showMessage(dropdownMessage, 'Network error fetching options.', 'error');
+                    currentDropdownItems.innerHTML = '<li>Network error.</li>';
+                }
+            }
+
+            addDropdownValueBtn.addEventListener('click', async function() {
+                const newValue = newDropdownValueInput.value.trim();
+                if (!currentSelectedDropdownType) {
+                    showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                    return;
+                }
+                if (!newValue) {
+                    showMessage(dropdownMessage, 'Value cannot be empty.', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(googleAppsScriptURL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'addDropdownOption', type: currentSelectedDropdownType, value: newValue })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'SUCCESS') {
+                        showMessage(dropdownMessage, 'Value added successfully!', 'success');
+                        newDropdownValueInput.value = '';
+                        await fetchAndRenderDropdownOptions(currentSelectedDropdownType); // Refresh list
+                    } else {
+                        showMessage(dropdownMessage, `Failed to add value: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Add dropdown value error:', error);
+                    showMessage(dropdownMessage, 'Network error adding value.', 'error');
+                }
+            });
+
+            removeDropdownValueBtn.addEventListener('click', async function() {
+                const selectedItems = Array.from(currentDropdownItems.children)
+                                         .filter(li => li.classList.contains('bg-blue-200'))
+                                         .map(li => li.textContent.trim());
+
+                if (!currentSelectedDropdownType) {
+                    showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                    return;
+                }
+                if (selectedItems.length === 0) {
+                    showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to remove these ${selectedItems.length} item(s)?`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(googleAppsScriptURL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'removeDropdownOption', type: currentSelectedDropdownType, values: selectedItems })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'SUCCESS') {
+                        showMessage(dropdownMessage, 'Value(s) removed successfully!', 'success');
+                        await fetchAndRenderDropdownOptions(currentSelectedDropdownType); // Refresh list
+                    } else {
+                        showMessage(dropdownMessage, `Failed to remove value(s): ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Remove dropdown value error:', error);
+                    showMessage(dropdownMessage, 'Network error removing value(s).', 'error');
+                }
+            });
+
+            // --- User Management Logic ---
+            createUserBtn.addEventListener('click', async function() {
+                const username = newUsernameInput.value.trim();
+                const password = newPasswordInput.value.trim();
+                const role = newUserRoleSelect.value;
+
+                if (!username || !password) {
+                    showMessage(userMessage, 'Username and password cannot be empty.', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(googleAppsScriptURL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'createUser', username: username, password: password, role: role })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'SUCCESS') {
+                        showMessage(userMessage, 'User created successfully!', 'success');
+                        newUsernameInput.value = '';
+                        newPasswordInput.value = '';
+                        newUserRoleSelect.value = 'User';
+                        await fetchAndRenderUsers(); // Refresh user list
+                    } else {
+                        showMessage(userMessage, `Failed to create user: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Create user error:', error);
+                    showMessage(userMessage, 'Network error creating user.', 'error');
+                }
+            });
+
+            async function fetchAndRenderUsers() {
+                existingUsersList.innerHTML = '<li>Loading users...</li>';
+                try {
+                    const response = await fetch(`${googleAppsScriptURL}?action=getUsers`);
+                    const data = await response.json();
+
+                    existingUsersList.innerHTML = ''; // Clear loading message
+
+                    if (data.status === 'SUCCESS' && data.users) {
+                        if (data.users.length === 0) {
+                            existingUsersList.innerHTML = '<li>No users found.</li>';
+                        } else {
+                            data.users.forEach(user => {
+                                const li = document.createElement('li');
+                                li.textContent = `${user.Username} (${user.Role})`;
+                                li.dataset.username = user.Username; // Store username for removal
+                                li.classList.add('flex', 'items-center', 'justify-between');
+
+                                const removeBtn = document.createElement('button');
+                                removeBtn.textContent = 'Remove';
+                                removeBtn.classList.add('admin-btn', 'admin-btn-danger');
+                                removeBtn.addEventListener('click', async () => {
+                                    if (confirm(`Are you sure you want to remove user ${user.Username}?`)) {
+                                        await removeUser(user.Username);
+                                    }
+                                });
+                                li.appendChild(removeBtn);
+                                existingUsersList.appendChild(li);
+                            });
+                        }
+                    } else {
+                        showMessage(userMessage, `Error fetching users: ${data.message || 'Unknown error'}`, 'error');
+                        existingUsersList.innerHTML = '<li>Failed to load users.</li>';
+                    }
+                } catch (error) {
+                    console.error('Fetch users error:', error);
+                    showMessage(userMessage, 'Network error fetching users.', 'error');
+                    existingUsersList.innerHTML = '<li>Network error.</li>';
+                }
+            }
+
+            async function removeUser(username) {
+                try {
+                    const response = await fetch(googleAppsScriptURL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'removeUser', username: username })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'SUCCESS') {
+                        showMessage(userMessage, 'User removed successfully!', 'success');
+                        await fetchAndRenderUsers(); // Refresh user list
+                    } else {
+                        showMessage(userMessage, `Failed to remove user: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Remove user error:', error);
+                    showMessage(userMessage, 'Network error removing user.', 'error');
+                }
             }
         });
-    });
-
-    // --- Admin Tab Navigation Logic (from previous code) ---
-    const tabButtons = document.querySelectorAll('.tab-button');
-    const tabPanes = document.querySelectorAll('.tab-pane');
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // Remove 'active' class from all buttons and panes
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            tabPanes.forEach(pane => pane.classList.remove('active'));
-
-            // Add 'active' class to the clicked button
-            button.classList.add('active');
-
-            // Get the target tab's ID from the data attribute
-            const targetId = button.getAttribute('data-tab-target');
-            const targetPane = document.getElementById(targetId);
-
-            // Add 'active' class to the corresponding content pane
-            if (targetPane) {
-                targetPane.classList.add('active');
-            }
-        });
-    });
-
-    // --- User Management Form Logic ---
-    const form = document.getElementById('addCerForm');
-    const userTableBody = document.querySelector('.user-table tbody');
-
-    // Function to add a new row for a CER
-    function addCerToTable(name, email) {
-        // Clear the error message row if it exists
-        const errorRowContainer = userTableBody.querySelector('tr');
-        if (errorRowContainer && errorRowContainer.querySelector('.error-message')) {
-            userTableBody.innerHTML = ''; // Clear the initial error row
-        }
-
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = `
-            <td>${email}</td>
-            <td>${name}</td>
-            <td>
-                </td>
-        `;
-        userTableBody.appendChild(newRow);
-    }
-
-    // Handle form submission
-    form.addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        const cerNameInput = document.getElementById('cerName');
-        const cerEmailInput = document.getElementById('cerEmail');
-
-        const cerName = cerNameInput.value.trim();
-        const cerEmail = cerEmailInput.value.trim();
-
-        if (cerName && cerEmail) {
-            addCerToTable(cerName, cerEmail);
-
-            // Clear the form fields
-            cerNameInput.value = '';
-            cerEmailInput.value = '';
-            cerNameInput.focus();
-        } else {
-            alert('Please enter both the CER Name and Email address.');
-        }
-    });
-});
-</script>
-
+    </script>
 </body>
 </html>
