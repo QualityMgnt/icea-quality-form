@@ -645,6 +645,7 @@
 
 
     <script type="module">
+        // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
@@ -663,11 +664,16 @@
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        window.firebaseApp = initializeApp(firebaseConfig);
-        window.db = getFirestore(window.firebaseApp);
-        window.auth = getAuth(window.firebaseApp);
+        // Initialize Firebase App and Services ONCE
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // Expose ALL necessary Firestore functions globally
+        // Expose Firebase services and functions globally via window object
+        // This makes them accessible to other parts of your script without re-importing
+        window.firebaseApp = app;
+        window.auth = auth;
+        window.db = db;
         window.fsCollection = collection;
         window.fsOnSnapshot = onSnapshot;
         window.fsAddDoc = addDoc;
@@ -680,32 +686,33 @@
         window.getDocs = getDocs;
         window.fsUpdateDoc = updateDoc;
 
-        // Define collection paths here, where appId is definitively available
+        // Define Firestore Collection Paths
         window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         window.WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         window.DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
+        window.USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`; // Path to user profiles for roles
 
-        // --- GLOBAL DATA STORES ---
-        let allRecords = []; // Records fetched from Firestore for display
-        let allWebhooks = []; // Webhooks fetched from Firestore for display
-        // Store fetched dropdown options and CER name-email map
+        // --- GLOBAL DATA STORES & STATE VARIABLES ---
+        let allRecords = [];
+        let allWebhooks = [];
         let dropdownOptions = {
             'cerNames': [],
             'cerRoles': [],
             'reviewerNames': [],
             'autofailTypes': []
         };
-        let cerNameEmailsMap = {}; // Map CER Name to Email for easy lookup
+        let cerNameEmailsMap = {};
 
-        window.unsubscribeRecords = null;
-        window.unsubscribeWebhooks = null;
-        window.unsubscribeDropdowns = null; // Single listener for dropdowns document
-        window.currentUserRole = null; // To store the role of the logged-in user
-        window.currentUserId = null;
-        window.isAuthReady = false;
+        let unsubscribeRecords = null;
+        let unsubscribeWebhooks = null;
+        let unsubscribeDropdowns = null; // Single listener for dropdowns document
 
-        // --- Global variable for the logged-in user's name ---
-        let loggedInUserName = "Quality Evaluation Team"; // Will be used in Share Response
+        let currentUserRole = null; // To store the role of the logged-in user
+        let currentUserId = null;
+        let isAuthReady = false;
+
+        let loggedInUserName = "Quality Evaluation Team"; // Default, could be updated on login
+
 
         // --- ALL QUESTION DATA BY CER ROLE (UNCHANGED) ---
         const allRolesQuestions = {
@@ -988,7 +995,6 @@
             if (tabName === 'auditForm') {
                 auditFormTab.classList.add('active');
                 auditFormContent.style.display = 'block';
-                // Dropdowns will be populated by the fetchDropdownOptionsData listener
             } else if (tabName === 'database') {
                 databaseTab.classList.add('active');
                 databaseContent.style.display = 'block';
@@ -1023,9 +1029,9 @@
         }
 
         // Firestore Data Handling Functions
-        window.unsubscribeRecords = null;
-        window.unsubscribeWebhooks = null;
-        window.unsubscribeDropdowns = null; // Single listener for dropdowns document
+        unsubscribeRecords = null;
+        unsubscribeWebhooks = null;
+        unsubscribeDropdowns = null; // Single listener for dropdowns document
 
         /**
          * Fetches records and webhooks from Firestore in real-time.
@@ -1049,14 +1055,14 @@
                 return;
             }
 
-            if (window.unsubscribeRecords) window.unsubscribeRecords();
-            if (window.unsubscribeWebhooks) window.unsubscribeWebhooks();
+            if (unsubscribeRecords) unsubscribeRecords();
+            if (unsubscribeWebhooks) unsubscribeWebhooks();
 
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
 
             try {
                 const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
-                window.unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => {
+                unsubscribeRecords = window.fsOnSnapshot(recordsColRef, (snapshot) => {
                     allRecords = [];
                     snapshot.forEach(doc => {
                         allRecords.push({ id: doc.id, ...doc.data() });
@@ -1070,7 +1076,7 @@
                 });
 
                 const webhooksColRef = window.fsCollection(window.db, window.WEBHOOKS_COLLECTION_PATH);
-                window.unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => {
+                unsubscribeWebhooks = window.fsOnSnapshot(webhooksColRef, (snapshot) => {
                     allWebhooks = [];
                     snapshot.forEach(doc => {
                         allWebhooks.push({ id: doc.id, ...doc.data() });
@@ -1102,11 +1108,11 @@
 
             const dropdownDocRef = window.fsDoc(window.db, window.DROPDOWN_DATA_COLLECTION_PATH, 'general_options');
 
-            if (window.unsubscribeDropdowns) {
-                window.unsubscribeDropdowns(); // Unsubscribe previous listener if exists
+            if (unsubscribeDropdowns) {
+                unsubscribeDropdowns(); // Unsubscribe previous listener if exists
             }
 
-            window.unsubscribeDropdowns = window.fsOnSnapshot(dropdownDocRef, (docSnap) => {
+            unsubscribeDropdowns = window.fsOnSnapshot(dropdownDocRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     dropdownOptions.cerNames = data.cerNames || [];
@@ -1137,7 +1143,8 @@
                 }
             }, (error) => {
                 console.error("Error listening to dropdown data:", error);
-                showMessageBox("Error", "Failed to load dropdown options: " + error.message, true, false, true);
+                // No explicit message box for this error, as it's often a permission issue
+                // when initial doc doesn't exist and anonymous user tries to listen (read is allowed, but maybe doc doesn't exist yet)
             });
         }
 
@@ -1279,8 +1286,8 @@
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
 
-            let currentTotalPoints = 0; // Changed from globalTotalPoints to avoid interference outside this call
-            let currentMaxPossiblePoints = 0; // Changed from globalMaxPossiblePoints
+            let currentTotalPoints = 0;
+            let currentMaxPossiblePoints = 0;
             let autofailTriggered = false;
 
             let complianceCurrentPoints = 0;
@@ -1728,7 +1735,7 @@
             if (isLoggedIn === 'true') {
                 loginPage.style.display = 'none';
                 mainNav.style.display = 'block';
-                showTab('auditForm');
+                showTab('auditForm'); // Default tab on login
             } else {
                 loginPage.style.display = 'flex';
                 mainNav.style.display = 'none';
@@ -1789,15 +1796,9 @@
                 const enteredUsername = usernameInput.value;
                 const enteredPassword = passwordInput.value;
 
-                // IMPORTANT: Use your actual Firebase Admin/Supervisor email and password here
-                // that you created in Firebase Authentication.
-                // This will replace the hardcoded 'Supervisor' check.
-                const ADMIN_EMAIL = 'supervisor@icealion.com'; // Replace with your admin email
-                const ADMIN_PASSWORD = 'Supervisor'; // Replace with your admin password
-
+                // Authenticate with Firebase Email/Password
                 try {
-                    // Authenticate with Firebase Email/Password
-                    const userCredential = await signInWithEmailAndPassword(window.auth, enteredUsername, enteredPassword);
+                    const userCredential = await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
                     sessionStorage.setItem('loggedIn', 'true');
                     window.location.reload(); // Reload to trigger onAuthStateChanged and page init
                 } catch (error) {
@@ -1818,10 +1819,10 @@
 
             logoutBtn.addEventListener('click', async function() {
                 sessionStorage.removeItem('loggedIn');
-                if (window.unsubscribeRecords) window.unsubscribeRecords();
-                if (window.unsubscribeWebhooks) window.unsubscribeWebhooks();
-                if (window.unsubscribeDropdowns) window.unsubscribeDropdowns(); // Unsubscribe dropdown listener
-                await signOut(window.auth); // Sign out from Firebase Auth
+                if (unsubscribeRecords) unsubscribeRecords();
+                if (unsubscribeWebhooks) unsubscribeWebhooks();
+                if (unsubscribeDropdowns) unsubscribeDropdowns(); // Unsubscribe dropdown listener
+                await signOut(auth); // Sign out from Firebase Auth
                 window.location.reload();
             });
 
@@ -2115,7 +2116,6 @@
 
 
             // Initial trigger for app setup after DOM is ready
-            // Listen for the custom event fired when Firebase auth is ready
             document.addEventListener('firebaseAuthReady', () => {
                 // Fetch and populate all dropdowns first
                 fetchDropdownOptionsData();
