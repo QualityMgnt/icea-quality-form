@@ -75,7 +75,7 @@
         }
 
         .sidebar {
-            width: 250px; /* Fixed width for the sidebar as seen in the image */
+            width: 125px; /* Reduced width to half */
             background-color: #1a73e8; /* ICEALION blue background */
             color: white;
             padding: 1rem 0; /* Vertical padding, no horizontal padding as links have it */
@@ -85,47 +85,43 @@
             flex-direction: column; /* Stack items vertically */
             justify-content: space-between; /* Push logout to bottom if inside sidebar */
         }
+        /* ... existing .sidebar ul and li styles ... */
 
-        .sidebar ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            flex-grow: 1; /* Allows the list to grow and push logout down */
-        }
-        .sidebar ul li {
-            margin-right: 0; /* No horizontal margin for vertical list */
-            margin-bottom: 0.5rem; /* Space between vertical list items */
-        }
         .sidebar ul li a {
             color: white;
             text-decoration: none;
             font-weight: 500;
-            padding: 0.75rem 1.5rem; /* More padding for larger clickable area */
+            padding: 0.75rem 0.5rem; /* Reduced horizontal padding for smaller sidebar */
             display: block; /* Make the whole area clickable */
             border-radius: 0; /* No rounded corners for full-width links */
             transition: background-color 0.3s ease;
             display: flex; /* Align icon and text */
+            flex-direction: column; /* Stack icon and text vertically for smaller width */
             align-items: center;
-            gap: 0.75rem; /* Space between icon and text */
+            gap: 0.25rem; /* Smaller space between icon and text */
+            font-size: 0.75rem; /* Smaller font size */
+            text-align: center; /* Center text */
         }
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
-            background-color: #0d47a1; /* A darker blue for hover/active */
+
+        /* Adjust padding for icons to ensure they fit well */
+        .sidebar ul li a .fas {
+            margin-bottom: 0.25rem; /* Space between icon and text */
+            font-size: 1.2rem; /* Make icons a bit larger */
         }
 
         /* Logout button specific styling within the sidebar context */
         .logout-button {
             background-color: #f57c00; /* icealion-orange */
             color: white;
-            padding: 0.75rem 1.5rem; /* Increased padding */
+            padding: 0.5rem 0.75rem; /* Adjusted padding */
             border-radius: 0.375rem;
             font-weight: 600;
             cursor: pointer;
             border: none;
             transition: background-color 0.3s ease;
-            margin: 1rem 1.5rem; /* Margin within the sidebar for placement */
-            width: calc(100% - 3rem); /* Adjust width for padding */
-            text-align: center;
+            margin: 1rem auto; /* Center the button horizontally */
+            width: calc(100% - 2rem); /* Adjust width for margin on both sides (1rem * 2) */
+            font-size: 0.75rem; /* Smaller font size */
         }
         .logout-button:hover {
             background-color: #e65100;
@@ -133,16 +129,16 @@
 
         /* Adjust main content containers to account for the sidebar width */
         .container.mx-auto {
-            margin-left: 250px; /* Push content to the right by sidebar width */
-            width: calc(100% - 250px); /* Adjust width to fill remaining space */
+            margin-left: 125px; /* Push content to the right by new sidebar width */
+            width: calc(100% - 125px); /* Adjust width to fill remaining space */
             max-width: none; /* Remove max-width constraint for full flexibility */
             border-radius: 0; /* Remove rounded corners if you want it flush with the sidebar */
             min-height: 100vh; /* Ensure main content pushes body height */
         }
         /* Adjust the login container position if it's still absolute, otherwise it might be behind the sidebar */
         .login-container {
-            left: 250px; /* Adjust if it's supposed to sit next to the sidebar */
-            width: calc(100% - 250px);
+            left: 125px; /* Adjust if it's supposed to sit next to the sidebar */
+            width: calc(100% - 125px);
         }
 
         /* Specific styles for modal/message box */
@@ -349,7 +345,8 @@
                 <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
                 <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li><a href="#" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li> <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li><a href="#" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
+                <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li> <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
@@ -1054,22 +1051,25 @@
         function showTab(tabName) {
             const auditFormTab = document.getElementById('auditFormTab');
             const databaseTab = document.getElementById('databaseTab');
-            const shareResponseTab = document.getElementById('shareResponseTab'); // NEW
+            const shareResponseTab = document.getElementById('shareResponseTab');
+            const usersTab = document.getElementById('usersTab'); // NEW: Users tab reference
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
 
             const auditFormContent = document.getElementById('auditFormContent');
             const databaseContent = document.getElementById('databaseContent');
-            const shareResponseContent = document.getElementById('shareResponseContent'); // NEW
+            const shareResponseContent = document.getElementById('shareResponseContent');
+            // const usersContent = document.getElementById('usersContent'); // NO LONGER HERE, IT'S IN USERS.HTML
 
 
-            console.log("showTab called with:", tabName); // Diagnostic log
+            console.log("showTab called with:", tabName);
 
             // Deactivate all tabs
             auditFormTab.classList.remove('active');
             databaseTab.classList.remove('active');
-            shareResponseTab.classList.remove('active'); // NEW
+            shareResponseTab.classList.remove('active');
+            usersTab.classList.remove('active'); // NEW
             reportsTab.classList.remove('active');
             autofailsTab.classList.remove('active');
             adminTab.classList.remove('active');
@@ -1077,7 +1077,9 @@
             // Hide all content sections
             auditFormContent.style.display = 'none';
             databaseContent.style.display = 'none';
-            shareResponseContent.style.display = 'none'; // NEW
+            shareResponseContent.style.display = 'none';
+            // usersContent.style.display = 'none'; // NO LONGER HERE
+
 
             // Activate selected tab and show its content
             if (tabName === 'auditForm') {
@@ -1091,24 +1093,28 @@
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
-            } else if (tabName === 'shareResponse') { // NEW
+            } else if (tabName === 'shareResponse') {
                 shareResponseTab.classList.add('active');
                 shareResponseContent.style.display = 'block';
                 if (window.db && window.currentUserId) {
-                    populateShareResponseDropdown(); // Call new function
+                    populateShareResponseDropdown();
                 } else {
                     showMessageBox("Share Response Not Ready", "Waiting for authentication to load records for sharing.", false, true, false);
                 }
             }
+            // Logic for external tabs (reports, autofails, admin, users)
             else if (tabName === 'reports') {
                 reportsTab.classList.add('active');
-                window.location.href = reportsTab.href;
+                window.location.href = reportsTab.href; // Navigate to external page
             } else if (tabName === 'autofails') {
                 autofailsTab.classList.add('active');
-                window.location.href = autofailsTab.href;
+                window.location.href = autofailsTab.href; // Navigate to external page
             } else if (tabName === 'admin') {
                 adminTab.classList.add('active');
-                window.location.href = adminTab.href;
+                window.location.href = adminTab.href; // Navigate to external page
+            } else if (tabName === 'users') { // NEW: Handle Users tab by navigating to users.html
+                usersTab.classList.add('active');
+                window.location.href = usersTab.href; // Navigate to users.html
             }
         }
 
@@ -1272,7 +1278,7 @@
             cancelBtn.textContent = 'Cancel';
             cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
             cancelBtn.onclick = () => {
-                hideMessageBox();
+                    hideMessageBox();
                 messageBoxContent.innerHTML = originalMessageBoxContentHTML;
             };
 
@@ -1870,7 +1876,7 @@
             cerNameSelect.value = ''; // Reset CER Name select
             cerEmailInput.value = ''; // NEW: Reset CER Email
             cerRoleSelect.value = '';
-
+            
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             callDateTimeInput.value = now.toISOString().slice(0,16);
@@ -1936,7 +1942,7 @@
             let allFieldsValid = true;
 
             // Validate top-level form fields
-            const topLevelInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
+            const topLevelInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required], .p-6.grid.grid-cols-2 input[required], .p-6.grid.grid-cols-2 select[required], .p-6.grid.grid-cols-3 input[required], .p-6.grid.grid-cols-3 select[required]');
             for (const input of topLevelInputs) {
                 // Skip validation for hidden 'other-reviewer-name' if it's not applicable
                 if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
@@ -2199,6 +2205,7 @@
             const databaseContent = document.getElementById('databaseContent');
             const shareResponseContent = document.getElementById('shareResponseContent'); // NEW
 
+
             console.log("Initializing main application.");
             const isLoggedIn = sessionStorage.getItem('loggedIn');
 
@@ -2242,6 +2249,7 @@
             const auditFormTab = document.getElementById('auditFormTab');
             const databaseTab = document.getElementById('databaseTab');
             const shareResponseTab = document.getElementById('shareResponseTab'); // NEW
+            const usersTab = document.getElementById('usersTab'); // NEW
             const logoutBtn = document.getElementById('logoutBtn');
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
@@ -2337,6 +2345,13 @@
                 e.preventDefault();
                 console.log("Share Response Tab CLICKED!");
                 showTab('shareResponse');
+            });
+
+            // NEW: Users Tab Click Listener
+            usersTab.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log("Users Tab CLICKED!");
+                showTab('users'); // This will trigger navigation to users.html
             });
 
 
