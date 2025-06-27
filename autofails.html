@@ -9,14 +9,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
-        /* Base styles */
+        /* Base styles - consistent with index.html, users.html, admin.html */
         body {
             font-family: 'Inter', sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
-            background-color: #f3f4f6; /* bg-gray-100 */
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
         }
 
         /* ICEALION Branding Colors */
@@ -36,50 +37,102 @@
             text-align: center;
         }
 
-        /* Navigation styles */
+        /* Navigation styles (consistent sidebar) */
         .main-nav {
-            width: 100%;
+            width: auto;
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            display: block;
+            box-shadow: none;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .sidebar {
+            width: 125px; /* Half width */
             background-color: #1a73e8;
             color: white;
-            padding: 1rem 2rem;
+            padding: 1rem 0;
+            height: 100%;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .main-nav ul {
-            display: flex;
+
+        .sidebar ul {
             list-style: none;
             margin: 0;
             padding: 0;
+            flex-grow: 1;
         }
-        .main-nav ul li {
-            margin-right: 1.5rem;
+        .sidebar ul li {
+            margin-right: 0;
+            margin-bottom: 0.5rem;
         }
-        .main-nav ul li a {
+        .sidebar ul li a {
             color: white;
             text-decoration: none;
             font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem; /* rounded-md */
+            padding: 0.75rem 0.5rem; /* Adjusted padding */
+            display: block;
+            border-radius: 0;
             transition: background-color 0.3s ease;
+            display: flex;
+            flex-direction: column; /* Stack icon and text */
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem; /* Smaller font */
+            text-align: center;
         }
-        .main-nav ul li a:hover,
-        .main-nav ul li a.active {
-            background-color: #0d47a1; /* A darker blue for hover/active */
+        .sidebar ul li a .fas {
+            margin-bottom: 0.25rem;
+            font-size: 1.2rem;
         }
+
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: #0d47a1;
+        }
+
         .logout-button {
-            background-color: #f57c00; /* icealion-orange */
+            background-color: #f57c00;
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem; /* rounded-md */
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
             font-weight: 600;
             cursor: pointer;
             border: none;
             transition: background-color 0.3s ease;
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
         }
         .logout-button:hover {
-            background-color: #e65100; /* darker orange */
+            background-color: #e65100;
+        }
+
+        /* Main content area for autofails.html */
+        .main-content {
+            margin-left: 125px; /* Matches sidebar width */
+            width: calc(100% - 125px); /* Fills remaining space */
+            padding: 1.5rem;
+            min-height: 100vh;
+            box-sizing: border-box; /* Include padding in width */
+            /* Removed display:none from here, will be controlled by JS */
+        }
+        .autofails-container {
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            max-width: 900px; /* Limit width of autofails content */
+            margin: 0 auto; /* Center it */
         }
 
         /* Report specific styles */
@@ -148,7 +201,7 @@
         .autofail-table .email-btn:hover {
             background-color: #E65100;
         }
-            /* Specific styles for modal/message box */
+        /* Specific styles for modal/message box */
         .message-box-overlay {
             position: fixed;
             top: 0;
@@ -205,114 +258,96 @@
         </div>
     </div>
 
-    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage">
-        <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
-            <div class="icealion-blue p-6 rounded-t-lg text-center">
-                <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
-            </div>
-
-            <form id="loginForm" class="p-8 space-y-6">
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="username" name="username"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                           required placeholder="Enter your username">
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" name="password"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                           required placeholder="Enter your password">
-                </div>
-                <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                    Login
-                </button>
-                <div id="loginMessage" class="error-message hidden"></div>
-            </form>
+    <!-- Main Navigation / Sidebar -->
+    <nav class="main-nav" id="mainNav">
+        <div class="sidebar">
+            <ul>
+                <!-- Ensure these paths are correct relative to autofails.html -->
+                <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li><a href="autofails.html" id="autofailsTab" class="active"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
+                <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
-    </div>
-
-    <nav class="main-nav" id="mainNav" style="display: none;">
-        <ul>
-            <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Audit Form</a></li>
-            <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-            <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
-            <li><a href="autofails.html" id="autofailsTab" class="active"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-            <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
-        </ul>
-        <button id="logoutBtn" class="logout-button">Logout</button>
     </nav>
 
-    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-5xl mt-8 mb-8" id="autofailsContent" style="display: none;">
-        <div class="icealion-blue p-4 text-xl font-semibold text-center">
-            Autofail Records
-        </div>
-        <div class="p-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Add New Autofail Record</h2>
-            <form id="addAutofailForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <div>
-                    <label for="cerRole" class="block text-sm font-medium text-gray-700">CER Role</label>
-                    <input type="text" id="cerRole" name="cerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
-                </div>
-                <div>
-                    <label for="cerName" class="block text-sm font-medium text-gray-700">CER Name</label>
-                    <input type="text" id="cerName" name="cerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
-                </div>
-                <div>
-                    <label for="contactId" class="block text-sm font-medium text-gray-700">Contact ID</label>
-                    <input type="text" id="contactId" name="contactId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
-                </div>
-                <div>
-                    <label for="autofailType" class="block text-sm font-medium text-gray-700">Autofail Type</label>
-                    <input type="text" id="autofailType" name="autofailType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
-                </div>
-                <div class="md:col-span-2">
-                    <label for="autofailReason" class="block text-sm font-medium text-gray-700">Reason for Autofail</label>
-                    <textarea id="autofailReason" name="autofailReason" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required></textarea>
-                </div>
-                <div class="md:col-span-2 text-right">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                        Add Autofail Record
+    <!-- Main Content Area for Autofails -->
+    <div class="main-content" id="autofailsContent">
+        <div class="autofails-container">
+            <div class="icealion-blue p-4 text-xl font-semibold text-center">
+                Autofail Records
+            </div>
+            <div class="p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Add New Autofail Record</h2>
+                <form id="addAutofailForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div>
+                        <label for="cerRole" class="block text-sm font-medium text-gray-700">CER Role</label>
+                        <input type="text" id="cerRole" name="cerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                    </div>
+                    <div>
+                        <label for="cerName" class="block text-sm font-medium text-gray-700">CER Name</label>
+                        <input type="text" id="cerName" name="cerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                    </div>
+                    <div>
+                        <label for="contactId" class="block text-sm font-medium text-gray-700">Contact ID</label>
+                        <input type="text" id="contactId" name="contactId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                    </div>
+                    <div>
+                        <label for="autofailType" class="block text-sm font-medium text-gray-700">Autofail Type</label>
+                        <input type="text" id="autofailType" name="autofailType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="autofailReason" class="block text-sm font-medium text-gray-700">Reason for Autofail</label>
+                        <textarea id="autofailReason" name="autofailReason" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required></textarea>
+                    </div>
+                    <div class="md:col-span-2 text-right">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                            Add Autofail Record
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-800">Existing Autofail Records</h2>
+                    <button id="generateReportBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        <i class="fas fa-file-csv mr-2"></i>Generate Autofail Report
                     </button>
                 </div>
-            </form>
-            
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-semibold text-gray-800">Existing Autofail Records</h2>
-                <button id="generateReportBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                    <i class="fas fa-file-csv mr-2"></i>Generate Autofail Report
-                </button>
-            </div>
 
-            <div id="autofailTableContainer" class="overflow-x-auto max-h-[70vh]">
-                <table class="autofail-table min-w-full">
-                    <thead>
-                        <tr>
-                            <th>CER Role</th>
-                            <th>CER Name</th>
-                            <th>Overall Score</th>
-                            <th>Contact ID</th>
-                            <th>Evaluation Date</th>
-                            <th>Autofail Type</th>
-                            <th>Reason for Autofail</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="autofailRecordsTableBody">
-                        <tr>
-                            <td colspan="8" class="text-center py-4 text-gray-500">Loading autofail records...</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div id="autofailTableContainer" class="overflow-x-auto max-h-[70vh]">
+                    <table class="autofail-table min-w-full">
+                        <thead>
+                            <tr>
+                                <th>CER Role</th>
+                                <th>CER Name</th>
+                                <th>Overall Score</th>
+                                <th>Contact ID</th>
+                                <th>Evaluation Date</th>
+                                <th>Autofail Type</th>
+                                <th>Reason for Autofail</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="autofailRecordsTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-gray-500">Loading autofail records...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Firebase SDK (for Firestore and Auth) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js"; // Added signOut
-        import { getFirestore, collection, getDocs, query, where, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js"; // Added getDoc
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
@@ -334,17 +369,17 @@
         
         // Expose ALL necessary Firestore functions globally
         window.fsCollection = collection;
-        window.fsGetDocs = getDocs; 
+        window.fsGetDocs = getDocs;
         window.fsQuery = query;
         window.fsWhere = where;
         window.fsOrderBy = orderBy;
         window.fsLimit = limit;
-        window.fsDoc = doc; // For doc references
-        window.fsUpdateDoc = updateDoc; // For updating documents
-        window.fsDeleteDoc = deleteDoc; // For deleting documents
-        window.fsAddDoc = addDoc; // For adding documents
-        window.fsServerTimestamp = serverTimestamp; // For adding timestamps
-        window.fsGetDoc = getDoc; // For getting a single doc
+        window.fsDoc = doc;
+        window.fsUpdateDoc = updateDoc;
+        window.fsDeleteDoc = deleteDoc;
+        window.fsAddDoc = addDoc;
+        window.fsServerTimestamp = serverTimestamp;
+        window.fsGetDoc = getDoc;
 
         window.currentUserId = null;
         window.currentUserRole = null; // Track current user's role
@@ -353,30 +388,62 @@
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
                 window.currentUserId = user.uid;
-                console.log("Firebase Auth State Changed: User logged in:", user.uid);
+                console.log("Firebase Auth State Changed (autofails.html): User logged in:", user.uid);
                 // Fetch user role from Firestore
                 const userDocRef = window.fsDoc(window.db, `artifacts/${appId}/users/${user.uid}`);
                 try {
                     const userDocSnap = await window.fsGetDoc(userDocRef);
                     if (userDocSnap.exists()) {
                         window.currentUserRole = userDocSnap.data().role;
-                        console.log("User role fetched:", window.currentUserRole);
+                        console.log("User role fetched (autofails.html):", window.currentUserRole);
                     } else {
                         window.currentUserRole = 'Guest'; // Default if profile missing
                         console.warn("User profile not found in Firestore for UID:", user.uid, "Defaulting to Guest role.");
                     }
                 } catch (error) {
-                    console.error("Error fetching user role:", error);
+                    console.error("Error fetching user role (autofails.html):", error);
                     window.currentUserRole = 'Guest';
                 }
             } else {
-                console.log("Firebase Auth State Changed: No user logged in. Attempting sign-in.");
-                // Redirect to login page if no user or session not found
-                window.location.href = 'admin.html'; // Assuming admin.html is your centralized login
-                return; // Stop execution
+                console.log("Firebase Auth State Changed (autofails.html): No user logged in.");
+                // If no user is logged in, and no initial token to try, redirect to main login
+                if (!sessionStorage.getItem('loggedIn')) { // Only redirect if not already logged in via session
+                     window.location.href = 'index.html'; // Redirect to the main login page
+                     return;
+                }
+                // If session is loggedIn but Firebase auth is not, try anonymous sign-in (fallback)
+                if (initialAuthToken) {
+                    try {
+                        await signInWithCustomToken(window.auth, initialAuthToken);
+                        window.currentUserId = window.auth.currentUser.uid;
+                        console.log("Signed in with custom token (autofails.html):", window.currentUserId);
+                    } catch (error) {
+                        console.error("Error signing in with custom token (autofails.html):", error);
+                        try {
+                            await signInAnonymously(window.auth);
+                            window.currentUserId = window.auth.currentUser.uid;
+                            console.log("Signed in anonymously (autofails.html):", window.currentUserId);
+                        } catch (anonError) {
+                            console.error("Error signing in anonymously (autofails.html):", anonError);
+                        }
+                    }
+                } else {
+                    try {
+                        await signInAnonymously(window.auth);
+                        window.currentUserId = window.auth.currentUser.uid;
+                        console.log("Signed in anonymously (autofails.html):", window.currentUserId);
+                    } catch (anonError) {
+                        console.error("Error signing in anonymously (autofails.html):", anonError);
+                    }
+                }
+                if (!window.currentUserId) {
+                    console.error("No user ID available after authentication attempts (autofails.html). Redirecting to login.");
+                    window.location.href = 'index.html'; // Force redirect if still no user
+                    return;
+                }
             }
             window.isAuthReady = true;
-            document.dispatchEvent(new CustomEvent('firebaseAuthReady'));
+            document.dispatchEvent(new CustomEvent('firebaseAuthReadyAutofailsPage')); // Custom event for this page
         });
 
         // Define collection path
@@ -388,19 +455,15 @@
         let autofailRecords = []; // Stores records fetched for this page
 
         // --- UI ELEMENTS ---
-        const loginPage = document.getElementById('loginPage');
-        const loginForm = document.getElementById('loginForm');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const loginMessage = document.getElementById('loginMessage');
+        // Removed loginPage, loginForm, usernameInput, passwordInput, loginMessage as they are no longer in HTML
 
         const mainNav = document.getElementById('mainNav');
-        const autofailsTab = document.getElementById('autofailsTab');
+        const autofailsTab = document.getElementById('autofailsTab'); // Active tab will be set by JS
         const logoutBtn = document.getElementById('logoutBtn');
 
         const autofailsContent = document.getElementById('autofailsContent');
         const autofailRecordsTableBody = document.getElementById('autofailRecordsTableBody');
-        const generateReportBtn = document.getElementById('generateReportBtn'); // New: Report Button
+        const generateReportBtn = document.getElementById('generateReportBtn'); // Report Button
 
         const addAutofailForm = document.getElementById('addAutofailForm');
         const cerRoleInput = document.getElementById('cerRole');
@@ -443,13 +506,21 @@
         // --- DATABASE FETCH AND RENDER FUNCTIONS ---
 
         async function fetchAutofailRecords() {
-            if (!window.db || !window.currentUserId) {
-                showMessageBox("Authentication Required", "Please log in to view autofail records.", true, false, true);
+            // These checks are crucial for direct access pages
+            if (!sessionStorage.getItem('loggedIn')) {
+                showMessageBox("Authentication Required", "Please log in to view autofail records. Redirecting...", true, false, true, () => {
+                    window.location.href = 'index.html'; // Redirect to main login page
+                });
                 autofailRecordsTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Authentication required.</td></tr>';
                 return;
             }
+            if (!window.db || !window.currentUserId) {
+                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                autofailRecordsTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Database not ready.</td></tr>';
+                return;
+            }
             if (window.currentUserRole !== 'Admin') { // Only Admin can view autofails
-                showMessageBox("Access Denied", "You do not have permission to view this page.", true, false, true, () => {
+                showMessageBox("Access Denied", "You do not have permission to view this page. Redirecting...", true, false, true, () => {
                     window.location.href = 'index.html'; // Redirect to a page accessible by the user's role
                 });
                 autofailRecordsTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Access Denied. Only Admin can view autofails.</td></tr>';
@@ -618,14 +689,14 @@
 
             const subject = `Autofail Feedback - ${cerName} - Contact ID: ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
-                                     `This email is regarding an autofail detected in your recent evaluation.\n\n` +
-                                     `Contact ID: ${contactId}\n` +
-                                     `Evaluation Date: ${evaluationDate}\n` +
-                                     `Overall Score: ${overallScore}\n` +
-                                     `Autofail Type: ${autofailType}\n` +
-                                     `Reason for Autofail: ${autofailDescription}\n\n` +
-                                     `Please review this feedback and reach out to your supervisor for further discussion.\n\n` +
-                                     `Kind Regards,\nQuality Evaluation Team`;
+                                 `This email is regarding an autofail detected in your recent evaluation.\n\n` +
+                                 `Contact ID: ${contactId}\n` +
+                                 `Evaluation Date: ${evaluationDate}\n` +
+                                 `Overall Score: ${overallScore}\n` +
+                                 `Autofail Type: ${autofailType}\n` +
+                                 `Reason for Autofail: ${autofailDescription}\n\n` +
+                                 `Please review this feedback and reach out to your supervisor for further discussion.\n\n` +
+                                 `Kind Regards,\nQuality Evaluation Team`;
 
             const mailtoLink = `mailto:${cerName.replace(/\s/g, '').toLowerCase()}@icealion.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // Example email, adjust as needed
 
@@ -705,7 +776,7 @@
 
             try {
                 const headers = [
-                    "CER Role", "CER Name", "Overall Score", "Contact ID", 
+                    "CER Role", "CER Name", "Overall Score", "Contact ID",
                     "Evaluation Date", "Autofail Type", "Reason for Autofail"
                 ];
 
@@ -747,21 +818,37 @@
         // --- INITIALIZATION ---
         // Changed initializeAutofailsPage to wait for Firebase Auth to be ready
         function initializeAutofailsPage() {
-            if (window.isAuthReady) {
+            // No longer checking sessionStorage for login, relying purely on Firebase Auth state
+            // and the `window.currentUserRole` populated by onAuthStateChanged.
+
+            // Only proceed if Firebase Auth is ready AND current user role is determined
+            if (window.isAuthReady && window.currentUserRole !== null) {
                 if (window.currentUserRole === 'Admin') {
-                    loginPage.style.display = 'none';
-                    mainNav.style.display = 'flex';
-                    autofailsContent.style.display = 'block';
+                    // Hide login if it somehow appeared (shouldn't with this setup if logged in)
+                    document.getElementById('loginPage').style.display = 'none';
+                    mainNav.style.display = 'block'; // Show sidebar
+                    autofailsContent.style.display = 'block'; // Show main content
+                    // Set active state for sidebar tab
+                    document.querySelectorAll('.sidebar ul li a').forEach(link => {
+                        link.classList.remove('active');
+                        if (link.href.includes('autofails.html')) {
+                            link.classList.add('active');
+                        }
+                    });
                     fetchAutofailRecords(); // Fetch records only if Admin
                 } else {
-                    // Redirect or show access denied message if not Admin
-                    showMessageBox("Access Denied", "You must be logged in as an Admin to access this page. Redirecting...", true, false, true, () => {
-                        window.location.href = 'admin.html'; // Or 'index.html'
+                    // If not Admin, redirect to the main login/audit form page
+                    showMessageBox("Access Denied", "You do not have permission to access this page. Redirecting...", true, false, true, () => {
+                        window.location.href = 'index.html'; // Redirect to main index.html
                     });
+                    // Hide content sections immediately
+                    document.getElementById('loginPage').style.display = 'none'; // Ensure login page is not shown
+                    mainNav.style.display = 'none';
+                    autofailsContent.style.display = 'none';
                 }
             } else {
-                // If auth is not ready, wait for the event
-                document.addEventListener('firebaseAuthReady', initializeAutofailsPage);
+                // If auth is not ready or role is null, wait for the event
+                document.addEventListener('firebaseAuthReadyAutofailsPage', initializeAutofailsPage);
             }
         }
 
@@ -773,90 +860,47 @@
             // The `onAuthStateChanged` callback will handle the primary routing
             // after Firebase authentication determines the user's state and role.
 
-            loginForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-                loginMessage.classList.add('hidden');
-
-                const enteredUsername = usernameInput.value;
-                const enteredPassword = passwordInput.value;
-
-                // IMPORTANT: In a real application, you would authenticate these credentials
-                // against Firebase Authentication (e.g., signInWithEmailAndPassword).
-                // For this example, we're using a hardcoded check for the "Admin" role.
-                const ADMIN_USERNAME = 'Admin'; // Your actual admin username
-                const ADMIN_PASSWORD = 'Admin'; // Your actual admin password
-
-                if (enteredUsername === ADMIN_USERNAME && enteredPassword === ADMIN_PASSWORD) {
-                    try {
-                        // Assuming you have an Admin user set up in Firebase Authentication
-                        // You might need a custom token generated from a backend,
-                        // or directly sign in with email/password if using that.
-                        // For simplicity in a client-side only example, if you just want
-                        // to *simulate* an Admin login for the UI:
-                        // This bypasses real Firebase Auth if initialAuthToken isn't present
-                        // and relies on anonymous sign-in, then setting role.
-                        // For production, this part should be securely handled.
-                        
-                        // For demonstration: If you have a dedicated Admin email/password
-                        // you'd use signInWithEmailAndPassword here.
-                        // Example:
-                        // await signInWithEmailAndPassword(window.auth, 'admin@yourdomain.com', 'yourAdminPassword');
-                        // Then your onAuthStateChanged listener would pick it up and fetch role.
-
-                        // Since your current auth flow for this page relies on anonymous sign-in or custom token,
-                        // and then checking role:
-                        // For the purpose of getting into the Admin section if hardcoded credentials match,
-                        // we can set a session flag and then rely on onAuthStateChanged to pick up the actual role.
-                        // However, directly calling initializeAutofailsPage (which fetches role)
-                        // might be better here to ensure the Firebase role is also 'Admin'.
-
-                        // Instead of a direct hardcoded login that grants access,
-                        // it's better to ensure this page only loads if Firebase auth confirms the user is Admin.
-                        // This hardcoded check is only for UI access; real auth comes from Firebase.
-
-                        sessionStorage.setItem('loggedIn', 'true');
-                        // Instead of directly displaying, rely on onAuthStateChanged to redirect/display
-                        // if the authenticated user's role is indeed 'Admin'.
-                        // For this page, we're assuming the user has already successfully authenticated
-                        // in `admin.html` or `index.html` and their session persists.
-                        // The `onAuthStateChanged` at the top will handle role checking and page access.
-                        initializeAutofailsPage(); // Trigger initial load logic again
-                    } catch (error) {
-                        console.error("Login simulation error:", error);
-                        loginMessage.textContent = 'An error occurred during login. Please try again.';
-                        loginMessage.classList.remove('hidden');
-                    }
-
-                } else {
-                    loginMessage.textContent = 'Invalid Admin Username or Password. Please try again.';
-                    loginMessage.classList.remove('hidden');
-                }
-            });
+            // No login form submission listener on this page anymore
 
             logoutBtn.addEventListener('click', async function() {
-                sessionStorage.removeItem('loggedIn');
-                await signOut(window.auth); // Sign out from Firebase
-                window.location.href = 'admin.html'; // Redirect to a centralized login/admin page
+                sessionStorage.removeItem('loggedIn'); // Clear custom login state
+                await signOut(window.auth); // Sign out from Firebase Auth
+                window.location.href = 'index.html'; // Redirect to the main login page
             });
 
             // Listen for Firebase Auth readiness
             // This event ensures that currentUserId and currentUserRole are populated
             // before trying to fetch/render anything sensitive.
-            document.addEventListener('firebaseAuthReady', initializeAutofailsPage);
+            document.addEventListener('firebaseAuthReadyAutofailsPage', initializeAutofailsPage);
             
             // If the DOM is already complete and auth is already ready (e.g., cached session),
             // call initializeAutofailsPage directly.
             if (document.readyState === 'complete' && window.isAuthReady) {
                 initializeAutofailsPage();
+            } else {
+                // If not ready, explicitly hide content until auth is confirmed
+                 autofailsContent.style.display = 'none';
+                 mainNav.style.display = 'none';
+                 // Keep message box visible or show a loading indicator if desired
             }
+
 
             // Add event listener for the new autofail form
             addAutofailForm.addEventListener('submit', addNewAutofailRecord);
 
-            // New: Add event listener for the generate report button
+            // Add event listener for the generate report button
             generateReportBtn.addEventListener('click', generateAutofailReport);
-        });
 
+            // --- Navigation Link Event Listeners (for other pages) ---
+            // These ensure the sidebar links work correctly on autofails.html
+            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
+            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
+            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
+            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
+            document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
+            document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
+
+        });
     </script>
 </body>
 </html>
