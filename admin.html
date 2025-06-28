@@ -43,6 +43,787 @@
             text-align: center;
         }
 
+        /* NEW TOP HEADER (Consistent across all pages) */
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px; /* Adjust height as needed */
+            background-color: #800080; /* Purple color */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            z-index: 1000; /* Ensure it's above everything */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Navigation styles (consistent sidebar) */
+        .main-nav {
+            width: auto;
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            display: block;
+            box-shadow: none;
+            height: calc(100vh - 48px); /* Adjusted height to account for new top header */
+            position: fixed;
+            top: 48px; /* Positioned below the new top header */
+            left: 0;
+            z-index: 100;
+        }
+
+        .sidebar {
+            width: 125px; /* Half width */
+            background-color: #800080; /* Purple color */
+            color: white;
+            padding: 1rem 0; /* Vertical padding, no horizontal padding as links have it */
+            height: 100%; /* Take full height of the main-nav (which is 100vh) */
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex-grow: 1;
+        }
+        .sidebar ul li {
+            margin-right: 0;
+            margin-bottom: 0.5rem;
+        }
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.75rem 0.5rem; /* Adjusted padding */
+            display: block;
+            border-radius: 0;
+            transition: background-color 0.3s ease;
+            display: flex;
+            flex-direction: column; /* Stack icon and text */
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem; /* Smaller font */
+            text-align: center;
+        }
+        .sidebar ul li a .fas {
+            margin-bottom: 0.25rem;
+            font-size: 1.2rem;
+        }
+
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: #0d47a1; /* Stays darker blue as per your request */
+        }
+
+        .logout-button {
+            background-color: #f57c00;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
+        }
+        .logout-button:hover {
+            background-color: #e65100;
+        }
+
+        /* Main content area for admin.html */
+        .main-content {
+            margin-left: 125px; /* Matches sidebar width */
+            margin-top: 48px; /* Offset by top header height */
+            width: calc(100% - 125px); /* Fills remaining space */
+            min-height: calc(100vh - 48px); /* Adjusted min-height for new top header */
+            box-sizing: border-box; /* Include padding in width */
+        }
+        .admin-container {
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            max-width: 900px; /* Limit width of admin content */
+            margin: 0 auto; /* Center it */
+        }
+
+        /* Login Container (re-used for this page) */
+        .login-container {
+            position: fixed; /* Use fixed for full overlay */
+            top: 0;
+            left: 0; /* Cover the whole screen */
+            width: 100vw; /* Full viewport width */
+            height: 100vh; /* Full viewport height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(243, 244, 246, 0.95); /* Opaque background */
+            z-index: 1000; /* Ensure it's on top */
+        }
+
+        /* Admin section styling */
+        .admin-section {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+            width: 100%;
+        }
+
+        .admin-section h2 {
+            color: #0d47a1;
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-group-admin {
+            margin-bottom: 16px;
+        }
+
+        .form-group-admin label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #4a5568;
+        }
+
+        .form-group-admin input[type="text"],
+        .form-group-admin input[type="email"], /* Added for email field */
+        .form-group-admin select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-group-admin input[type="text"]:focus,
+        .form-group-admin input[type="email"]:focus,
+        .form-group-admin select:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+        }
+
+        .admin-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-top: 8px; /* Space from inputs */
+        }
+
+        .admin-btn-primary {
+            background-color: #3182ce;
+            color: white;
+        }
+
+        .admin-btn-primary:hover {
+            background-color: #2b6cb0;
+        }
+
+        .admin-btn-danger {
+            background-color: #e53e3e;
+            color: white;
+        }
+
+        .admin-btn-danger:hover {
+            background-color: #c53030;
+        }
+
+        .admin-message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .admin-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .admin-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .current-items-list {
+            list-style: none; /* Removed default disc */
+            padding: 0;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            border-radius: 5px;
+        }
+        .current-items-list li {
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+        .current-items-list li:last-child {
+            border-bottom: none;
+        }
+        .current-items-list li.selected {
+            background-color: #bfdbfe; /* blue-200 */
+            font-weight: 600;
+        }
+        .current-items-list li .item-text {
+            flex-grow: 1;
+        }
+        .current-items-list li button {
+            margin-left: 10px;
+            padding: 4px 8px;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <!-- NEW TOP HEADER BAR -->
+    <div class="top-header">
+        ICEA LION QUALITY EVALUATION AND MONITORING
+    </div>
+
+    <!-- Main Navigation / Sidebar -->
+    <nav class="main-nav" id="mainNav">
+        <div class="sidebar">
+            <ul>
+                <!-- Ensure these paths are correct relative to admin.html -->
+                <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
+                <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html" id="adminTab" class="active"><i class="fas fa-user-cog"></i> Admin</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Login Page (re-used from index.html) -->
+    <div class="login-container" id="loginPage" style="display: none;">
+        <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
+            <div class="icealion-blue p-6 rounded-t-lg text-center">
+                <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
+            </div>
+
+            <form id="loginForm" class="p-8 space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="username" name="username"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                           required placeholder="Enter your username">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" name="password"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                           required placeholder="Enter your password">
+                </div>
+                <button type="button" id="loginButton"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                    Login
+                </button>
+                <div id="loginMessage" class="error-message hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content Area for Admin -->
+    <div class="main-content" id="adminContent">
+        <div class="admin-container">
+            <div class="icealion-blue p-4 text-xl font-semibold text-center">
+                Admin Panel - Dropdown Management
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-6">
+                    Use this section to manage the dynamic dropdown options that appear on the Quality Assessment Form.
+                </p>
+
+                <!-- Dropdown Type Selection -->
+                <div class="admin-section mb-6">
+                    <h2>Select Dropdown Type</h2>
+                    <div class="form-group-admin">
+                        <label for="dropdownTypeSelect">Choose a dropdown to manage:</label>
+                        <select id="dropdownTypeSelect" class="block w-full">
+                            <option value="">-- Select a dropdown type --</option>
+                            <option value="cerNames">CER Names</option>
+                            <option value="cerRoles">CER Roles</option>
+                            <option value="reviewerNames">Reviewer Names</option>
+                            <option value="autofailTypes">Autofail Types</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Manage Values Section -->
+                <div class="admin-section" id="manageDropdownValuesSection" style="display: none;">
+                    <h2 id="currentDropdownTitle">Manage Items</h2>
+                    <div class="form-group-admin">
+                        <label>Current Items:</label>
+                        <ul id="currentDropdownItems" class="current-items-list">
+                            <!-- Dynamically populated list -->
+                            <li>No items loaded. Select a dropdown type.</li>
+                        </ul>
+                    </div>
+
+                    <div class="form-group-admin mt-4">
+                        <label for="newDropdownValue">Add New Item:</label>
+                        <input type="text" id="newDropdownValue" placeholder="Enter new item name">
+                        <input type="email" id="newDropdownEmail" class="mt-2" placeholder="Enter email (for CER Names only)" style="display: none;">
+                    </div>
+
+                    <button class="admin-btn admin-btn-primary" id="addDropdownValueBtn">Add Item</button>
+                    <button class="admin-btn admin-btn-danger ml-2" id="removeDropdownValueBtn">Remove Selected Items</button>
+                    <div id="dropdownMessage" class="admin-message hidden"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (for Firestore and Auth) -->
+    <script type="module">
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+          authDomain: "icea-lion-qa.firebaseapp.com",
+          projectId: "icea-lion-qa",
+          storageBucket: "icea-lion-qa.firebasestorage.app",
+          messagingSenderId: "820082472004",
+          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+          measurementId: "G-1RJJTT3QET"
+        };
+
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+        const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null) ? __initial_auth_token : null; // Not directly used here for sign-in, but kept for consistency
+
+        // Initialize Firebase App and Services ONCE
+        let appInstance;
+        if (!getApps().length) {
+            appInstance = initializeApp(firebaseConfig);
+        } else {
+            appInstance = getApp();
+        }
+        const auth = getAuth(appInstance);
+        const db = getFirestore(appInstance);
+
+        // Define Firestore Paths
+        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`; // Path to user profiles for role check
+
+        // Global variables for admin page state
+        let currentUserRole = null;
+        let unsubscribeDropdownListener = null;
+
+        // --- Utility Functions ---
+        const showMessage = (element, message, type) => {
+            element.textContent = message;
+            element.classList.remove('hidden', 'success', 'error');
+            element.classList.add(type);
+            setTimeout(() => { element.classList.add('hidden'); }, 3000); // Hide after 3 seconds
+        };
+
+        const showLoginErrorMessage = (message) => {
+            document.getElementById('loginMessage').textContent = message;
+            document.getElementById('loginMessage').classList.remove('hidden');
+        };
+
+        const hideLoginErrorMessage = () => {
+            document.getElementById('loginMessage').classList.add('hidden');
+            document.getElementById('loginMessage').textContent = '';
+        };
+
+        // --- Authentication Logic ---
+        const initializeAdminPage = () => {
+            const loginPage = document.getElementById('loginPage');
+            const mainNav = document.getElementById('mainNav');
+            const adminContent = document.getElementById('adminContent');
+
+            const isLoggedIn = sessionStorage.getItem('loggedIn');
+            const user = auth.currentUser;
+
+            // Wait for auth to be fully loaded and user role determined
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    // Fetch user role from Firestore profile
+                    const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+                    try {
+                        const userDocSnap = await getDoc(userProfileDocRef);
+                        if (userDocSnap.exists()) {
+                            currentUserRole = userDocSnap.data().role;
+                        } else {
+                            const idTokenResult = await user.getIdTokenResult(true);
+                            currentUserRole = idTokenResult.claims.role || 'Guest';
+                        }
+                    } catch (error) {
+                        console.error("Error fetching user role:", error);
+                        currentUserRole = 'Guest';
+                    }
+
+                    if (isLoggedIn === 'true' && currentUserRole === 'admin') {
+                        loginPage.style.display = 'none';
+                        mainNav.style.display = 'block';
+                        adminContent.style.display = 'block';
+                        document.querySelectorAll('.sidebar ul li a').forEach(link => {
+                            link.classList.remove('active');
+                            if (link.href.includes('admin.html')) {
+                                link.classList.add('active');
+                            }
+                        });
+                        setupDropdownsListener(); // Start listening to dropdown changes from Firestore
+                    } else {
+                        // User logged in but not admin, or session is inconsistent
+                        sessionStorage.removeItem('loggedIn'); // Clear potentially stale session
+                        loginPage.style.display = 'flex';
+                        mainNav.style.display = 'none';
+                        adminContent.style.display = 'none';
+                        showLoginErrorMessage("Access Denied: You must be an Admin to access this page.");
+                        // Sign out if not admin
+                        if(user) signOut(auth);
+                    }
+                } else {
+                    // No Firebase user, show login page
+                    loginPage.style.display = 'flex';
+                    mainNav.style.display = 'none';
+                    adminContent.style.display = 'none';
+                    sessionStorage.removeItem('loggedIn'); // Clear session
+                    // Attempt anonymous sign-in only if necessary for public reads on other pages,
+                    // but for Admin, just showing login is sufficient.
+                }
+            });
+        };
+
+
+        // Setup real-time listener for dropdown options document
+        const setupDropdownsListener = () => {
+            if (unsubscribeDropdownListener) {
+                unsubscribeDropdownListener(); // Unsubscribe previous listener if exists
+            }
+
+            unsubscribeDropdownListener = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
+                if (docSnap.exists()) {
+                    // Update the global currentDropdownData with the fetched data
+                    currentDropdownData = docSnap.data();
+                    console.log("Dropdown data updated from Firestore:", currentDropdownData);
+                } else {
+                    console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
+                    // If document doesn't exist, set local data to empty, it will be created on first add.
+                    currentDropdownData = {
+                        cerNames: [],
+                        cerRoles: [],
+                        reviewerNames: [],
+                        autofailTypes: []
+                    };
+                    // No need to try creating it here, as it will be created by addDropdownValueBtn on first write
+                }
+                renderCurrentDropdownItems(); // Re-render the list based on updated data
+            }, (error) => {
+                console.error("Error listening to dropdown data:", error);
+                showMessage(document.getElementById('dropdownMessage'), "Error loading dropdown data. Please check console.", 'error');
+            });
+        };
+
+
+        // --- DOMContentLoaded Event Listener ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get UI elements (within DOMContentLoaded to ensure they exist)
+            const loginButton = document.getElementById('loginButton');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
+            const manageDropdownValuesSection = document.getElementById('manageDropdownValuesSection');
+            const currentDropdownTitle = document.getElementById('currentDropdownTitle');
+            const currentDropdownItems = document.getElementById('currentDropdownItems');
+            const newDropdownValueInput = document.getElementById('newDropdownValue');
+            const newDropdownEmailInput = document.getElementById('newDropdownEmail');
+            const addDropdownValueBtn = document.getElementById('addDropdownValueBtn');
+            const removeDropdownValueBtn = document.getElementById('removeDropdownValueBtn');
+            const dropdownMessage = document.getElementById('dropdownMessage');
+
+            let currentSelectedDropdownType = ''; // Keep track of the currently selected dropdown type
+
+            // Initialize the page view based on login state
+            initializeAdminPage();
+
+
+            // --- Login Button Listener ---
+            if (loginButton) {
+                loginButton.addEventListener('click', async function(event) {
+                    event.preventDefault(); // Prevent default form submission
+                    hideLoginErrorMessage();
+
+                    const enteredUsername = usernameInput.value;
+                    const enteredPassword = passwordInput.value;
+
+                    try {
+                        const userCredential = await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
+                        sessionStorage.setItem('loggedIn', 'true'); // Set session flag
+                        // onAuthStateChanged will handle page re-initialization and redirection
+                    } catch (error) {
+                        console.error("Firebase Login Error:", error);
+                        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                            showLoginErrorMessage('Invalid email or password.');
+                        } else if (error.code === 'auth/invalid-email') {
+                            showLoginErrorMessage('Please enter a valid email address.');
+                        } else if (error.code === 'auth/too-many-requests') {
+                            showLoginErrorMessage('Too many login attempts. Please try again later.');
+                        } else {
+                            showLoginErrorMessage(`Login failed: ${error.message}`);
+                        }
+                    }
+                });
+            }
+
+            // --- Logout Button Listener ---
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async function() {
+                    sessionStorage.removeItem('loggedIn');
+                    if (unsubscribeDropdownListener) unsubscribeDropdownListener(); // Unsubscribe Firestore listener
+                    await signOut(auth);
+                    // No need for window.location.reload() explicitly here; onAuthStateChanged will redirect.
+                });
+            }
+
+            // --- Dropdown Management Event Listeners ---
+            dropdownTypeSelect.addEventListener('change', function() {
+                currentSelectedDropdownType = this.value;
+                dropdownMessage.classList.add('hidden'); // Clear messages
+
+                if (currentSelectedDropdownType) {
+                    manageDropdownValuesSection.style.display = 'block';
+                    currentDropdownTitle.textContent = `Manage ${this.options[this.selectedIndex].text}`;
+
+                    // Show/hide email input based on selected dropdown
+                    if (currentSelectedDropdownType === 'cerNames') {
+                        newDropdownEmailInput.style.display = 'block';
+                        newDropdownEmailInput.setAttribute('required', 'required');
+                        newDropdownValueInput.placeholder = "Enter CER Name";
+                    } else {
+                        newDropdownEmailInput.style.display = 'none';
+                        newDropdownEmailInput.removeAttribute('required');
+                        newDropdownEmailInput.value = ''; // Clear email input
+                        newDropdownValueInput.placeholder = "Enter new value";
+                    }
+                    renderCurrentDropdownItems(); // Re-render the list immediately
+                } else {
+                    manageDropdownValuesSection.style.display = 'none';
+                    currentDropdownItems.innerHTML = '<li>No items loaded. Select a dropdown type.</li>';
+                }
+            });
+
+            addDropdownValueBtn.addEventListener('click', async function() {
+                const newItemValue = newDropdownValueInput.value.trim();
+                let itemToAdd;
+
+                if (!currentSelectedDropdownType) {
+                    showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                    return;
+                }
+                if (!newItemValue) {
+                    showMessage(dropdownMessage, 'Item name cannot be empty.', 'error');
+                    return;
+                }
+
+                // Check if the current user has admin role BEFORE attempting write
+                if (currentUserRole !== 'admin') {
+                    showMessage(dropdownMessage, 'Permission Denied: Only administrators can modify dropdowns.', 'error');
+                    return;
+                }
+
+                if (currentSelectedDropdownType === 'cerNames') {
+                    const newEmailValue = newDropdownEmailInput.value.trim();
+                    if (!newEmailValue) {
+                         showMessage(dropdownMessage, 'Email is required for CER Names.', 'error');
+                         return;
+                    }
+                    itemToAdd = { name: newItemValue, email: newEmailValue };
+                    // Check for duplicate CER Name (case-sensitive as stored)
+                    const isDuplicate = currentDropdownData.cerNames.some(cer => typeof cer === 'object' && cer.name === newItemValue);
+                    if (isDuplicate) {
+                        showMessage(dropdownMessage, 'CER Name already exists.', 'error');
+                        return;
+                    }
+                } else {
+                    itemToAdd = newItemValue;
+                    // Check for duplicate string entry
+                    const isDuplicate = currentDropdownData[currentSelectedDropdownType].includes(newItemValue);
+                    if (isDuplicate) {
+                        showMessage(dropdownMessage, 'This item already exists.', 'error');
+                        return;
+                    }
+                }
+
+                try {
+                    // Use updateDoc with arrayUnion to add the new item to the specific array field in Firestore
+                    // If the document 'general_options' doesn't exist, this will create it with the initial data.
+                    const updateData = {
+                        [currentSelectedDropdownType]: arrayUnion(itemToAdd)
+                    };
+                    await updateDoc(DROPDOWN_DATA_DOC_REF, updateData, { merge: true }); // merge:true is crucial here!
+                    showMessage(dropdownMessage, 'Item added successfully!', 'success');
+                    newDropdownValueInput.value = '';
+                    newDropdownEmailInput.value = ''; // Clear email input
+                } catch (error) {
+                    console.error("Error adding dropdown item:", error);
+                    showMessage(dropdownMessage, `Failed to add item: ${error.message}`, 'error');
+                }
+            });
+
+            removeDropdownValueBtn.addEventListener('click', async function() {
+                const selectedListItems = Array.from(currentDropdownItems.children).filter(li => li.classList.contains('selected'));
+                if (!currentSelectedDropdownType) {
+                    showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                    return;
+                }
+                if (selectedListItems.length === 0) {
+                    showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
+                    return;
+                }
+
+                // Check if the current user has admin role BEFORE attempting write
+                if (currentUserRole !== 'admin') {
+                    showMessage(dropdownMessage, 'Permission Denied: Only administrators can modify dropdowns.', 'error');
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to remove these ${selectedListItems.length} item(s)?`)) {
+                    return;
+                }
+
+                try {
+                    // Parse the stored data-value to get the actual item (string or object)
+                    const itemsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.value));
+
+                    // Use arrayRemove to remove items from the specific array field in Firestore
+                    const updateData = {
+                        [currentSelectedDropdownType]: arrayRemove(...itemsToRemove)
+                    };
+                    await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
+                    showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
+                    // List will auto-refresh due to onSnapshot listener
+                } catch (error) {
+                    console.error("Error removing dropdown item(s):", error);
+                    showMessage(dropdownMessage, `Failed to remove item(s): ${error.message}`, 'error');
+                }
+            });
+
+            // --- Helper to render items into the ul ---
+            function renderCurrentDropdownItems() {
+                currentDropdownItems.innerHTML = ''; // Clear existing list
+                const items = currentDropdownData[currentSelectedDropdownType] || [];
+
+                if (items.length === 0) {
+                    currentDropdownItems.innerHTML = '<li>No items added yet.</li>';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    let displayText = item;
+                    let valueToStore = item; // Default for non-CER names
+
+                    if (currentSelectedDropdownType === 'cerNames' && typeof item === 'object' && item.name) {
+                        displayText = `${item.name} (${item.email || 'No Email'})`;
+                        valueToStore = item; // Store the full object for removal
+                    }
+
+                    li.innerHTML = `<span class="item-text">${displayText}</span>`;
+                    li.dataset.value = JSON.stringify(valueToStore); // Store the actual value for removal
+
+                    li.addEventListener('click', () => {
+                        li.classList.toggle('selected');
+                    });
+                    currentDropdownItems.appendChild(li);
+                });
+            }
+
+            // --- Navigation Link Event Listeners (for other pages) ---
+            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
+            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
+            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
+            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
+            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
+            document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
+        });
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - ICEA LION GROUP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex; /* Changed from column to row for sidebar layout */
+            align-items: flex-start; /* Align items to the start (top) */
+            min-height: 100vh;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            margin: 0; /* Remove default body margin */
+            padding: 0; /* Remove default body padding */
+        }
+
+        /* ICEALION Branding Colors */
+        .icealion-blue {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .icealion-orange-text {
+            color: #f57c00;
+        }
+
+        /* Error/Message styles */
+        .error-message {
+            color: #dc2626; /* red-700 */
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.5rem; /* mt-2 */
+            text-align: center;
+        }
+        .success-message {
+            color: #10b981; /* green-500 */
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
         /* Navigation styles (consistent sidebar) */
         .main-nav {
             width: auto;
