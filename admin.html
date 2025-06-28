@@ -411,7 +411,7 @@
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js"; // Added setDoc
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -442,7 +442,7 @@
 
         // Global variables for admin page state
         // Initialized with default structure to prevent 'undefined' errors
-        let currentDropdownData = { // Initialize with default structure
+        let currentDropdownData = {
             cerNames: [],
             cerRoles: [],
             reviewerNames: [],
@@ -567,8 +567,8 @@
             const currentDropdownItemsList = document.getElementById('currentDropdownItems');
             const dropdownTypeSelect = document.getElementById('dropdownTypeSelect'); // Get current selection element
             if (!currentDropdownItemsList || !dropdownTypeSelect) {
-                console.warn("UI elements for dropdown items not found during renderCurrentDropdownItems.");
-                return;
+                console.warn("UI elements for dropdown items not found during renderCurrentDropdownItems. This might happen before DOM is fully ready or if page is not admin.html.");
+                return; // Exit if elements aren't ready
             }
 
             const currentSelectedDropdownType = dropdownTypeSelect.value; // Get current selection value
@@ -621,8 +621,6 @@
             const addDropdownValueBtn = document.getElementById('addDropdownValueBtn');
             const removeDropdownValueBtn = document.getElementById('removeDropdownValueBtn');
             const dropdownMessage = document.getElementById('dropdownMessage');
-
-            let currentSelectedDropdownType = ''; // Keep track of the currently selected dropdown type
 
             // Initialize the page view based on login state
             initializeAdminPage();
@@ -736,12 +734,23 @@
                 }
 
                 try {
-                    // Use updateDoc with arrayUnion to add the new item to the specific array field in Firestore
-                    // If the document 'general_options' doesn't exist, updateDoc with {merge:true} will create it
+                    // Check if the general_options document exists. If not, set it first with empty arrays.
+                    const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
+                    if (!docSnap.exists()) {
+                        await setDoc(DROPDOWN_DATA_DOC_REF, { // Use setDoc to create the document
+                            cerNames: [],
+                            cerRoles: [],
+                            reviewerNames: [],
+                            autofailTypes: []
+                        });
+                        console.log("Created initial general_options document.");
+                    }
+
+                    // Now proceed with updating the document
                     const updateData = {
                         [currentSelectedDropdownType]: arrayUnion(itemToAdd)
                     };
-                    await updateDoc(DROPDOWN_DATA_DOC_REF, updateData, { merge: true }); // merge:true is crucial here!
+                    await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
                     showMessage(dropdownMessage, 'Item added successfully!', 'success');
                     newDropdownValueInput.value = '';
                     newDropdownEmailInput.value = ''; // Clear email input
