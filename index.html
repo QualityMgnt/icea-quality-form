@@ -127,13 +127,17 @@
         }
 
         /* Adjust main content containers to account for the sidebar width */
-        .container.mx-auto {
+        /* IMPORTANT: Make these rules specific to content divs */
+        #auditFormContent.container.mx-auto,
+        #databaseContent.container.mx-auto,
+        #shareResponseContent.container.mx-auto {
             margin-left: 125px; /* Push content to the right by new sidebar width */
             width: calc(100% - 125px); /* Adjust width to fill remaining space */
             max-width: none; /* Remove max-width constraint for full flexibility */
             border-radius: 0; /* Remove rounded corners if you want it flush with the sidebar */
             min-height: 100vh; /* Ensure main content pushes body height */
         }
+        
         /* Login container redesign */
         .login-container {
             position: fixed; /* Use fixed for full overlay */
@@ -149,11 +153,11 @@
         }
         /* Adjust the inner login box size */
         .login-container .container.mx-auto {
-            margin-left: 0; /* Remove sidebar push */
-            width: auto; /* Let content determine width for max-w */
+            /* This targets the inner box within login-container */
             max-width: 320px; /* Make the login form much smaller */
             border-radius: 0.5rem; /* Rounded corners for the login box */
             min-height: auto; /* Let height adapt to content */
+            margin: auto; /* Explicitly center the inner box within the flex container */
         }
 
 
@@ -692,10 +696,10 @@
 
         // Initialize Firebase App and Services ONCE at the top level of the module
         let appInstance;
-        if (!getApps().length) {
+        if (!getApps().length) { // Check if no Firebase apps have been initialized yet
             appInstance = initializeApp(firebaseConfig);
         } else {
-            appInstance = getApp();
+            appInstance = getApp(); // Get the default app if it already exists
         }
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
@@ -1044,7 +1048,7 @@
         }
 
         // Firestore Data Handling Functions
-        // Variables like unsubscribeRecords are declared at the top of the module.
+        // `let` declarations are at the top of this module for correct scoping.
 
         /**
          * Fetches records and webhooks from Firestore in real-time.
