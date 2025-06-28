@@ -134,11 +134,28 @@
             border-radius: 0; /* Remove rounded corners if you want it flush with the sidebar */
             min-height: 100vh; /* Ensure main content pushes body height */
         }
-        /* Adjust the login container position if it's still absolute, otherwise it might be behind the sidebar */
+        /* Login container redesign */
         .login-container {
-            left: 125px; /* Adjust if it's supposed to sit next to the sidebar */
-            width: calc(100% - 125px);
+            position: fixed; /* Use fixed for full overlay */
+            top: 0;
+            left: 0;
+            width: 100vw; /* Full viewport width */
+            height: 100vh; /* Full viewport height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f3f4f6; /* Match body background for seamless look */
+            z-index: 1000; /* Ensure it's on top */
         }
+        /* Adjust the inner login box size */
+        .login-container .container.mx-auto {
+            margin-left: 0; /* Remove sidebar push */
+            width: auto; /* Let content determine width for max-w */
+            max-width: 320px; /* Make the login form much smaller */
+            border-radius: 0.5rem; /* Rounded corners for the login box */
+            min-height: auto; /* Let height adapt to content */
+        }
+
 
         /* Specific styles for modal/message box */
         .message-box-overlay {
@@ -305,8 +322,8 @@
         </div>
     </div>
 
-    <div class="login-container absolute inset-0 flex items-center justify-center p-4 md:p-8 z-10" id="loginPage">
-        <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
+    <div class="login-container" id="loginPage"> <!-- Removed absolute, inset-0 to allow fixed positioning from CSS -->
+        <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-xs"> <!-- Changed max-w-md to max-w-xs -->
             <div class="icealion-blue p-6 rounded-t-lg text-center">
                 <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
             </div>
@@ -328,6 +345,10 @@
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                     Login
                 </button>
+                <!-- NEW Forgot Password Link -->
+                <div class="text-center text-sm mt-3">
+                    <a href="#" id="forgotPasswordLink" class="text-blue-600 hover:underline">Forgot Password?</a>
+                </div>
                 <div id="loginMessage" class="error-message hidden"></div>
             </form>
         </div>
@@ -550,7 +571,7 @@
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-semibold text-gray-800">Submitted Records</h2>
                 <div>
-                    <button id="deleteSelectedRecordsBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <button id="deleteSelectedRecordsBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                         <i class="fas fa-trash-alt mr-2"></i>Delete Selected
                     </button>
                 </div>
@@ -648,11 +669,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script type="module">
-        // Firebase Imports (all imports here)
+        // Firebase Imports
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         // Import all necessary Firestore functions
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
 
         // --- Firebase Configuration ---
@@ -671,22 +692,22 @@
 
         // Initialize Firebase App and Services ONCE at the top level of the module
         let appInstance;
-        if (!getApps().length) {
+        if (!getApps().length) { // Check if no Firebase apps have been initialized yet
             appInstance = initializeApp(firebaseConfig);
         } else {
-            appInstance = getApp();
+            appInstance = getApp(); // Get the default app if it already exists
         }
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
 
-        // Define Firebase Collection Paths (using const as they don't change)
+        // Define Firebase Collection Paths
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         const DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
 
-        // --- GLOBAL DATA STORES & STATE VARIABLES (declared with let for reassignability) ---
+        // --- GLOBAL DATA STORES & STATE VARIABLES ---
         let allRecords = [];
         let allWebhooks = [];
         let dropdownOptions = {
@@ -703,7 +724,7 @@
 
         let currentUserRole = null;
         let currentUserId = null;
-        let isAuthReady = false;
+        let isAuthReady = false; // Flag to indicate if Firebase Auth state has been determined
 
         let loggedInUserName = "Quality Evaluation Team";
 
@@ -1102,13 +1123,13 @@
                         <td colspan="10" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
                     </tr>
                 `;
-                deleteSelectedRecordsBtn.disabled = true;
-                selectAllRecordsCheckbox.checked = false;
-                selectAllRecordsCheckbox.disabled = true;
+                if (deleteSelectedRecordsBtn) deleteSelectedRecordsBtn.disabled = true;
+                if (selectAllRecordsCheckbox) selectAllRecordsCheckbox.checked = false;
+                if (selectAllRecordsCheckbox) selectAllRecordsCheckbox.disabled = true;
                 return;
             }
 
-            selectAllRecordsCheckbox.disabled = false;
+            if (selectAllRecordsCheckbox) selectAllRecordsCheckbox.disabled = false;
 
             records.forEach(record => {
                 const row = recordsTableBody.insertRow();
@@ -1373,21 +1394,24 @@
 
             console.log("Initializing main application display.");
 
+            // Check Firebase Auth's current user state (most reliable)
             const user = auth.currentUser;
             const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
 
-            if (user && isLoggedInFromSession === 'true') {
+            if (user && isLoggedInFromSession === 'true') { // Check both session flag and actual Firebase user
                 loginPage.style.display = 'none';
                 mainNav.style.display = 'block';
-                const activeHash = window.location.hash.substring(1);
+                // Show the tab that was active or default to 'auditForm'
+                const activeHash = window.location.hash.substring(1); // Get hash from URL
                 if (activeHash === 'database') {
                     showTab('database');
                 } else if (activeHash === 'shareResponse') {
                     showTab('shareResponse');
                 } else {
-                    showTab('auditForm');
+                    showTab('auditForm'); // Default to audit form
                 }
             } else {
+                // If not logged in or session is invalid, show login page
                 loginPage.style.display = 'flex';
                 mainNav.style.display = 'none';
                 auditFormContent.style.display = 'none';
@@ -1407,6 +1431,7 @@
             const loginMessage = document.getElementById('loginMessage');
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
+            const forgotPasswordLink = document.getElementById('forgotPasswordLink'); // NEW: Get forgot password link
 
             const auditFormTab = document.getElementById('auditFormTab');
             const databaseTab = document.getElementById('databaseTab');
@@ -1451,7 +1476,7 @@
 
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                     try {
-                        const userDocSnap = await getDoc(userProfileDocRef); // Correctly use getDoc
+                        const userDocSnap = await getDoc(userProfileDocRef);
                         if (userDocSnap.exists()) {
                             currentUserRole = userDocSnap.data().role;
                             loggedInUserName = userDocSnap.data().email || user.email || "Quality Evaluation Team";
@@ -1529,8 +1554,31 @@
                 });
             }
 
+            // --- Forgot Password Link Listener ---
+            if (forgotPasswordLink) {
+                forgotPasswordLink.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const email = prompt("Please enter your email address to reset your password:");
+                    if (email) {
+                        try {
+                            await sendPasswordResetEmail(auth, email);
+                            showMessageBox("Password Reset", `Password reset email sent to ${email}. Please check your inbox.`, false, false, true);
+                        } catch (error) {
+                            console.error("Forgot password error:", error);
+                            if (error.code === 'auth/user-not-found') {
+                                showMessageBox("Error", "No user found with that email address. Please check your email.", true, false, true);
+                            } else if (error.code === 'auth/invalid-email') {
+                                showMessageBox("Error", "Please enter a valid email address.", true, false, true);
+                            } else {
+                                showMessageBox("Error", `Failed to send password reset email: ${error.message}`, true, false, true);
+                            }
+                        }
+                    }
+                });
+            }
 
-            // --- Other Event Listeners (ensuring elements exist) ---
+
+            // --- Other Event Listeners (ensure elements exist before attaching) ---
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async function() {
                     sessionStorage.removeItem('loggedIn');
