@@ -110,7 +110,7 @@
             font-weight: 500;
             padding: 0.75rem 0.5rem; /* Reduced horizontal padding for smaller sidebar */
             display: block; /* Make the whole area clickable */
-            border-radius: 0; /* No rounded corners for full-width links */
+            border-radius: 0;
             transition: background-color 0.3s ease;
             display: flex; /* Align icon and text */
             flex-direction: column; /* Stack icon and text vertically for smaller width */
@@ -349,7 +349,7 @@
         </div>
     </div>
 
-    <div class="login-container" id="loginPage" style="display: none;">
+    <div class="login-container" id="loginPage">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-xs">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
                 <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
@@ -372,7 +372,6 @@
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                     Login
                 </button>
-                <!-- NEW Forgot Password Link -->
                 <div class="text-center text-sm mt-3">
                     <a href="#" id="forgotPasswordLink" class="text-blue-600 hover:underline">Forgot Password?</a>
                 </div>
@@ -1245,13 +1244,1295 @@
             }
         }
 
+        // Function to fetch and populate dropdown options from Firestore
+        function fetchDropdownOptionsData() {
+            if (!db) {
+                console.warn("Firestore not ready for fetching dropdowns.");
+                return;
+            }
+            if (!DROPDOWN_DATA_COLLECTION_PATH) {
+                console.error("Dropdowns collection path is not defined.");
+                return;
+            }
 
-        // --- DOMContentLoaded Listener (attaches event handlers, makes initial calls) ---
+            const dropdownDocRef = doc(db, DROPDOWN_DATA_COLLECTION_PATH, 'general_options');
+
+            if (unsubscribeDropdowns) {
+                unsubscribeDropdowns(); // Unsubscribe previous listener if exists
+            }
+
+            unsubscribeDropdowns = onSnapshot(dropdownDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    // Update the global dropdownOptions with the fetched data
+                    dropdownOptions = docSnap.data();
+                    console.log("Dropdown data updated from Firestore:", dropdownOptions);
+                } else {
+                    console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
+                    // If document doesn't exist, set local data to empty, it will be created on first add.
+                    dropdownOptions = {
+                        cerNames: [],
+                        cerRoles: [],
+                        reviewerNames: [],
+                        autofailTypes: []
+                    };
+                }
+                populateAllDropdownsInForm();
+            }, (error) => {
+                console.error("Error listening to dropdown data:", error);
+                // No explicit message box for this error, as it's often a permission issue
+                // when initial doc doesn't exist and anonymous user tries to listen (read is allowed, but maybe doc doesn't exist yet)
+            });
+        }
+
+        // Function to populate all dropdowns in the form
+        function populateAllDropdownsInForm() {
+            const cerNameSelect = document.getElementById('cer-name');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+
+            // Helper to populate a single select element
+            const populateSelect = (selectElement, optionsArray, type) => {
+                const currentSelectedValue = selectElement.value; // Preserve current selection if possible
+                selectElement.innerHTML = '<option value="">Select ' + (type === 'cerNames' ? 'CER' : type.replace('Names', '').replace('Types', '').replace('Roles', '')) + '</option>';
+                optionsArray.forEach(option => {
+                    const value = (type === 'cerNames' && typeof option === 'object') ? option.name : option;
+                    const optionElement = document.createElement('option');
+                    optionElement.value = value;
+                    optionElement.textContent = value;
+                    selectElement.appendChild(optionElement);
+                });
+                // Attempt to restore previous selection
+                if (Array.from(selectElement.options).some(opt => opt.value === currentSelectedValue)) {
+                    selectElement.value = currentSelectedValue;
+                } else {
+                    selectElement.value = ''; // Reset if old value is no longer available
+                }
+            };
+
+            // Defensive check for dropdownOptions properties
+            populateSelect(cerNameSelect, dropdownOptions.cerNames || [], 'cerNames');
+            populateSelect(cerRoleSelect, dropdownOptions.cerRoles || [], 'cerRoles');
+            populateSelect(reviewerNameSelect, dropdownOptions.reviewerNames || [], 'reviewerNames');
+            populateSelect(autofailTypeSelect, dropdownOptions.autofailTypes || [], 'autofailTypes');
+
+            // Re-render questions based on currently selected role (if any)
+            const currentRole = cerRoleSelect.value;
+            renderQuestionsForRole(currentRole);
+
+            // Re-populate CER Email if CER Name is already selected
+            const currentCerName = cerNameSelect.value;
+            const cerEmailInput = document.getElementById('cer-email');
+            cerEmailInput.value = cerNameEmailsMap[currentCerName] || '';
+        }
+
+        /**
+         * Renders the dynamic question sections based on the selected CER Role.
+         * This function needs to be defined in the same scope as where it's called.
+         */
+        function renderQuestionsForRole(role) {
+            const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
+            const psQuestionsContainer = document.getElementById('psQuestionsContainer');
+            const caQuestionsContainer = document.getElementById('caQuestionsContainer');
+
+            const questionContainers = {
+                'CUSTOMER EXPERIENCE': cxQuestionsContainer,
+                'PROBLEM SOLVING SKILLS': psQuestionsContainer,
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
+            };
+
+            console.log("Rendering questions for role:", role);
+
+            for (const key in questionContainers) {
+                if (questionContainers[key]) {
+                    questionContainers[key].innerHTML = '';
+                }
+            }
+
+            const roleQuestions = allRolesQuestions[role];
+
+            if (!roleQuestions) {
+                console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
+                calculateScore();
+                return;
+            }
+
+            let questionNumber = 1;
+
+            for (const sectionTitle in roleQuestions) {
+                const questions = roleQuestions[sectionTitle];
+                const container = questionContainers[sectionTitle];
+
+                if (!container) {
+                    console.error(`Container not found for section: ${sectionTitle}`);
+                    continue;
+                }
+
+                questions.forEach(q => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
+
+                    let iconColorClass;
+                    const iconIndex = (questionNumber - 1) % 4;
+                    if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
+                    else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
+                    else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
+                    else iconColorClass = 'icon-bg-yellow';
+
+                    const requiredAttribute = q.autofail ? '' : (q.required ? 'required' : '');
+                    const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
+
+                    rowDiv.innerHTML = `
+                        <div class="col-span-6 flex items-center gap-2">
+                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
+                            ${q.desc}
+                        </div>
+                        <div class="col-span-2">
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${requiredAttribute} ${hasNAAttribute}>
+                                <option value="" >None</option>
+                                <option value="Yes" selected>Yes</option>
+                                <option value="No">No</option>
+                                ${q.hasNA ? '<option value="N/A">N/A</option>' : ''}
+                            </select>
+                        </div>
+                        <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
+                        <div class="col-span-1 text-center">
+                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
+                        </div>
+                        <div class="col-span-2">
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea"></textarea>
+                        </div>
+                    `;
+                    container.appendChild(rowDiv);
+
+                    const newSelect = rowDiv.querySelector('.rating-select');
+                    if (newSelect) {
+                        newSelect.addEventListener('change', calculateScore);
+                    }
+                    questionNumber++;
+                });
+            }
+            calculateScore();
+        }
+
+        // Audit Form Calculations
+        function calculateScore() {
+            const cerRoleSelect = document.getElementById('cer-role');
+            const overallScoreDisplay = document.getElementById('overall-score-display');
+            const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
+            const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
+            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
+
+            let currentTotalPoints = 0;
+            let currentMaxPossiblePoints = 0;
+            let autofailTriggered = false;
+
+            let complianceCurrentPoints = 0;
+            let complianceMaxPoints = 0;
+
+            const allRatingSelects = document.querySelectorAll('.rating-select');
+
+            allRatingSelects.forEach(selectElement => {
+                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                if (!rowDiv) return;
+
+                const pointsElement = rowDiv.querySelector('.points-input');
+                const weightageDisplay = rowDiv.querySelector('.weightage-display');
+                const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
+                const questionText = selectElement.name.replace(' (Rating)', '');
+                const hasNA = selectElement.hasAttribute('data-has-na');
+
+                if (!pointsElement || !weightageDisplay) {
+                    console.warn(`Missing associated elements for select: ${selectElement.name}`);
+                    return;
+                }
+
+                const rating = selectElement.value;
+                const weightage = parseFloat(weightageDisplay.dataset.weightage);
+                let pointsForThisQuestion = 0;
+
+                pointsElement.style.backgroundColor = '#e9ecef';
+                pointsElement.style.color = '#555';
+
+                if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
+                    pointsForThisQuestion = weightage;
+                    pointsElement.readOnly = false;
+                    pointsElement.style.backgroundColor = '#fff';
+                } else if (rating === 'No') {
+                    pointsForThisQuestion = 0;
+                    pointsElement.readOnly = true;
+
+                    if (isAutofailQuestion) {
+                        pointsElement.style.backgroundColor = '#fca5a5';
+                        pointsElement.style.color = '#dc2626';
+                        autofailTriggered = true;
+                    } else {
+                        pointsElement.style.backgroundColor = '#e0e0e0';
+                    }
+                } else {
+                    pointsForThisQuestion = 0;
+                    pointsElement.readOnly = true;
+                    pointsElement.style.backgroundColor = '#e9ecef';
+                }
+
+                pointsElement.value = pointsForThisQuestion;
+                currentTotalPoints += pointsForThisQuestion;
+                currentMaxPossiblePoints += weightage;
+
+                const currentRole = cerRoleSelect.value;
+                if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
+                    const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
+                    if (complianceQuestions.includes(questionText)) {
+                        if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
+                            complianceCurrentPoints += weightage;
+                        }
+                        if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) {
+                             complianceMaxPoints += weightage;
+                        }
+                    }
+                }
+            });
+
+            let overallPercentage = 0;
+            if (autofailTriggered) {
+                overallPercentage = 0;
+            } else {
+                if (currentMaxPossiblePoints > 0) {
+                    overallPercentage = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
+                } else {
+                    overallPercentage = 0;
+                }
+            }
+
+            overallScoreDisplay.textContent = `${overallPercentage}%`;
+            totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
+            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`;
+
+            let businessCompliancePct = 0;
+            if (complianceMaxPoints > 0) {
+                businessCompliancePct = ((complianceCurrentPoints / complianceMaxPoints) * 100).toFixed(0);
+            } else {
+                businessCompliancePct = 0;
+            }
+            businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
+
+            // Update global variables after calculation
+            globalTotalPoints = currentTotalPoints;
+            globalMaxPossiblePoints = currentMaxPossiblePoints;
+            globalBusinessComplianceAccuracyValue = businessCompliancePct;
+        }
+
+        // Audit Form Initialization and Reset
+        function initializeAuditForm() {
+            const contactIdInput = document.getElementById('contact-id');
+            const clientNameInput = document.getElementById('client-name');
+            const cerNameSelect = document.getElementById('cer-name');
+            const cerEmailInput = document.getElementById('cer-email');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const callDateTimeInput = document.getElementById('call-date-time');
+            const evaluationDateInput = document.getElementById('review-date');
+            const durationInput = document.getElementById('duration');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+
+
+            console.log("Full form reset.");
+
+            contactIdInput.value = '';
+            clientNameInput.value = '';
+            cerNameSelect.value = '';
+            cerEmailInput.value = '';
+            cerRoleSelect.value = '';
+
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            callDateTimeInput.value = now.toISOString().slice(0,16);
+            evaluationDateInput.valueAsDate = new Date();
+
+            durationInput.value = '';
+            autofailTypeSelect.value = '';
+
+            autofailDescriptionContainer.classList.add('hidden');
+            autofailDescriptionInput.value = '';
+            autofailDescriptionInput.removeAttribute('required');
+
+            reviewerNameSelect.value = '';
+            otherReviewerNameInput.classList.add('hidden');
+            otherReviewerNameInput.value = '';
+            otherReviewerNameInput.removeAttribute('required');
+            otherReviewerNameInput.style.borderColor = '';
+
+            const requiredInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
+            requiredInputs.forEach(input => {
+                input.style.borderColor = '';
+            });
+
+            // Populate dropdowns from fetched data
+            populateAllDropdownsInForm();
+            renderQuestionsForRole(''); // Render initial questions
+            calculateScore();
+            document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
+        }
+
+        function resetFormFieldsButKeepRole() {
+            const cerRoleSelect = document.getElementById('cer-role');
+
+            console.log("Resetting question fields only.");
+
+            const dynamicSelects = document.querySelectorAll('.rating-select');
+            dynamicSelects.forEach(selectElement => {
+                selectElement.value = 'Yes';
+                selectElement.style.borderColor = '';
+
+                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                if (rowDiv) {
+                    const pointsElement = rowDiv.querySelector('.points-input');
+                    const remarksElement = rowDiv.querySelector('.remarks-textarea');
+
+                    if (pointsElement) {
+                        pointsElement.value = 0;
+                        pointsElement.readOnly = true;
+                        pointsElement.style.backgroundColor = '#e9ecef';
+                        pointsElement.style.color = '#555';
+                    }
+                    if (remarksElement) {
+                        remarksElement.value = '';
+                    }
+                }
+            });
+            calculateScore();
+        }
+
+        // Function to validate all mandatory fields
+        function validateAllMandatoryFields() {
+            let allFieldsValid = true;
+
+            const topLevelInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required], .p-6.grid.grid-cols-2 input[required], .p-6.grid.grid-cols-2 select[required], .p-6.grid.grid-cols-3 input[required], .p-6.grid.grid-cols-3 select[required]');
+            topLevelInputs.forEach(input => {
+                if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
+                    input.style.borderColor = '';
+                    return;
+                }
+
+                if (input.value.trim() === '') {
+                    input.style.borderColor = 'red';
+                    allFieldsValid = false;
+                } else {
+                    input.style.borderColor = '';
+                }
+            });
+
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+            if (autofailTypeSelect.value !== '') {
+                autofailDescriptionInput.setAttribute('required', 'required');
+                if (autofailDescriptionInput.value.trim() === '') {
+                    autofailDescriptionInput.style.borderColor = 'red';
+                    allFieldsValid = false;
+                } else {
+                    autofailDescriptionInput.style.borderColor = '';
+                }
+            } else {
+                autofailDescriptionInput.removeAttribute('required');
+                autofailDescriptionInput.style.borderColor = '';
+            }
+
+            const dynamicRatingSelects = document.querySelectorAll('.rating-select');
+            dynamicRatingSelects.forEach(selectElement => {
+                if (!selectElement.hasAttribute('data-autofail-question')) {
+                    if (selectElement.value === '') {
+                        selectElement.style.borderColor = 'red';
+                        allFieldsValid = false;
+                    } else {
+                        selectElement.style.borderColor = '';
+                    }
+                } else {
+                    selectElement.style.borderColor = '';
+                }
+            });
+
+            const remarksTextareas = document.querySelectorAll('.remarks-textarea');
+            remarksTextareas.forEach(textarea => {
+                textarea.style.borderColor = '';
+            });
+
+            if (!allFieldsValid) {
+                const firstInvalidField = document.querySelector('input[required][value=""], select[required][value=""], .rating-select[value=""][style*="border-color: red"], textarea[required][value=""]');
+                if (firstInvalidField) {
+                    firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalidField.focus();
+                }
+            }
+            return allFieldsValid;
+        }
+
+        // NEW FUNCTION: Fetch Last 3 Evaluations for a CER
+        async function fetchLastThreeEvaluations(cerName) {
+            const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
+            if (!db || !currentUserId) {
+                console.error("Firestore not initialized or collection path not defined.");
+                lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Database not ready.</td></tr>';
+                return;
+            }
+
+            lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading last evaluations...</td></tr>';
+
+            try {
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
+                const q = query(
+                    recordsColRef,
+                    where('CER Name', '==', cerName),
+                    orderBy('submittedAt', 'desc'),
+                    limit(3)
+                );
+                const querySnapshot = await getDocs(q);
+
+                const evaluations = [];
+                if (querySnapshot.empty) {
+                    lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
+                } else {
+                    querySnapshot.forEach(doc => {
+                        evaluations.push(doc.data());
+                    });
+                    renderLastThreeEvaluationsTable(evaluations);
+                }
+            } catch (error) {
+                console.error("Error fetching last 3 evaluations:", error);
+                lastEvaluationsTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error loading evaluations: ${error.message}</td></tr>`;
+            }
+        }
+
+        // NEW FUNCTION: Render Last 3 Evaluations Table
+        function renderLastThreeEvaluationsTable(evaluations) {
+            const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
+            lastEvaluationsTableBody.innerHTML = '';
+
+            if (evaluations.length === 0) {
+                lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
+                return;
+            }
+
+            evaluations.forEach(evaluation => {
+                const row = lastEvaluationsTableBody.insertRow();
+                row.className = 'border-b border-gray-200';
+                row.innerHTML = `
+                    <td class="py-2 px-4">${evaluation['CER Name'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation['Overall Score'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation['CER Role'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation['Contact ID'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation.submittedAt ? new Date(evaluation.submittedAt.toDate()).toLocaleDateString() : 'N/A'}</td>
+                `;
+            });
+        }
+
+
+        // NEW SHARE RESPONSE SECTION FUNCTIONS
+
+        /**
+         * Populates the dropdown in the Share Response section with submitted records.
+         */
+        async function populateShareResponseDropdown() {
+            const selectRecordToShare = document.getElementById('select-record-to-share');
+            selectRecordToShare.innerHTML = '<option value="">-- Loading Records --</option>';
+
+            if (!db || !currentUserId) {
+                selectRecordToShare.innerHTML = '<option value="">-- Database not ready --</option>';
+                console.error("Firestore not initialized for populating share response dropdown.");
+                return;
+            }
+
+            try {
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
+                const querySnapshot = await getDocs(recordsColRef);
+
+                selectRecordToShare.innerHTML = '<option value="">-- Select a Record --</option>';
+
+                if (querySnapshot.empty) {
+                    selectRecordToShare.innerHTML = '<option value="">-- No Records Found --</option>';
+                } else {
+                    querySnapshot.forEach(doc => {
+                        const record = doc.data();
+                        const submittedDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
+                        const option = document.createElement('option');
+                        option.value = doc.id;
+                        option.textContent = `${record['Contact ID'] || 'N/A'} - ${record['CER Name'] || 'N/A'} (${submittedDate})`;
+                        selectRecordToShare.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Error populating share response dropdown:", error);
+                selectRecordToShare.innerHTML = '<option value="">-- Error Loading Records --</option>';
+                showMessageBox("Error", "Could not load records for sharing.", true, false, true);
+            }
+        }
+
+        /**
+         * Populates the email fields when a record is selected in the Share Response section.
+         */
+        function populateShareEmailFields(recordId) {
+            const record = allRecords.find(r => r.id === recordId);
+            const shareEmailTo = document.getElementById('share-email-to');
+            const shareEmailFrom = document.getElementById('share-email-from');
+            const shareEmailSubject = document.getElementById('share-email-subject');
+            const shareEmailBody = document.getElementById('share-email-body');
+            const shareEmailMessage = document.getElementById('shareEmailMessage');
+
+            shareEmailMessage.classList.add('hidden');
+
+            if (!record) {
+                shareEmailTo.value = '';
+                shareEmailFrom.value = '';
+                shareEmailSubject.value = '';
+                shareEmailBody.value = '';
+                return;
+            }
+
+            const cerName = record['CER Name'] || 'N/A';
+            const contactId = record['Contact ID'] || 'N/A';
+            const evaluationDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
+            const overallScore = record['Overall Score'] || 'N/A';
+
+            const cerEmail = cerNameEmailsMap[cerName] || ''; // Get CER Email from the map
+
+            const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
+            const body = `Dear ${cerName},\n\n` +
+                                 `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                 `Contact ID: ${contactId}\n` +
+                                 `CER Name: ${cerName}\n` +
+                                 `Overall Score: ${overallScore}\n` +
+                                 `Evaluation Date: ${evaluationDate}\n\n` +
+                                 `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                 `Kind Regards,\nQuality Evaluation Team`;
+
+            const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+            try {
+                window.location.href = mailtoLink;
+                showMessageBox("Email Client Opened", "Your email client should open shortly. Please review and send the email.", false, false, true);
+            } catch (e) {
+                console.error("Failed to open email client:", e);
+                showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+            }
+        }
+
+
+        // Helper function for submitting form data to Firestore
+        async function addRecordToFirestore(recordData) {
+            if (!db || !currentUserId) {
+                showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
+                return false;
+            }
+            if (!EVALUATION_RECORDS_COLLECTION_PATH) {
+                console.error("Firestore collection path for records is not defined.");
+                showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
+                return false;
+            }
+
+            showMessageBox("Submitting", "Saving record to database...", false, true, false);
+            try {
+                const docRef = await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
+                    ...recordData,
+                    submittedAt: new Date() // Use current date for submission
+                });
+                console.log("Record written with ID:", docRef.id);
+                showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
+                    initializeAuditForm(); // Reset form, which also re-renders questions/scores
+                    // No direct call to sendDataToWebhooks here; it's triggered when a new record is saved to Firestore
+                    // and you'd have a Cloud Function or another mechanism listen to Firestore for that.
+                });
+                return true;
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showMessageBox("Submission Failed", `Error saving data: ${e.message}`, true, false, true);
+                return false;
+            }
+        }
+
+
+        // Main Application Initialization Function (controls overall display)
+        function initializeAppDisplay() {
+            const loginPage = document.getElementById('loginPage');
+            const mainNav = document.getElementById('mainNav');
+            const auditFormContent = document.getElementById('auditFormContent');
+            const databaseContent = document.getElementById('databaseContent');
+            const shareResponseContent = document.getElementById('shareResponseContent');
+
+            console.log("Initializing main application display.");
+
+            // Check Firebase Auth's current user state (most reliable)
+            const user = auth.currentUser;
+            const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
+
+            if (user && isLoggedInFromSession === 'true') { // Check both session flag and actual Firebase user
+                loginPage.style.display = 'none';
+                mainNav.style.display = 'block';
+                // Show the tab that was active or default to 'auditForm'
+                const activeHash = window.location.hash.substring(1); // Get hash from URL
+                if (activeHash === 'database') {
+                    showTab('database');
+                } else if (activeHash === 'shareResponse') {
+                    showTab('shareResponse');
+                } else {
+                    showTab('auditForm'); // Default to audit form
+                }
+            } else {
+                // If not logged in or session is invalid, show login page
+                loginPage.style.display = 'flex';
+                mainNav.style.display = 'none';
+                auditFormContent.style.display = 'none';
+                databaseContent.style.display = 'none';
+                shareResponseContent.style.display = 'none';
+            }
+        }
+
+
+        // Function to fetch and populate dropdown options from Firestore
+        function fetchDropdownOptionsData() {
+            if (!db) {
+                console.warn("Firestore not ready for fetching dropdowns.");
+                return;
+            }
+            if (!DROPDOWN_DATA_COLLECTION_PATH) {
+                console.error("Dropdowns collection path is not defined.");
+                return;
+            }
+
+            const dropdownDocRef = doc(db, DROPDOWN_DATA_COLLECTION_PATH, 'general_options');
+
+            if (unsubscribeDropdowns) {
+                unsubscribeDropdowns(); // Unsubscribe previous listener if exists
+            }
+
+            unsubscribeDropdowns = onSnapshot(dropdownDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    // Update the global dropdownOptions with the fetched data
+                    dropdownOptions = docSnap.data();
+                    console.log("Dropdown data updated from Firestore:", dropdownOptions);
+                } else {
+                    console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
+                    // If document doesn't exist, set local data to empty, it will be created on first add.
+                    dropdownOptions = {
+                        cerNames: [],
+                        cerRoles: [],
+                        reviewerNames: [],
+                        autofailTypes: []
+                    };
+                }
+                populateAllDropdownsInForm();
+            }, (error) => {
+                console.error("Error listening to dropdown data:", error);
+                // No explicit message box for this error, as it's often a permission issue
+                // when initial doc doesn't exist and anonymous user tries to listen (read is allowed, but maybe doc doesn't exist yet)
+            });
+        }
+
+        // Function to populate all dropdowns in the form
+        function populateAllDropdownsInForm() {
+            const cerNameSelect = document.getElementById('cer-name');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+
+            // Helper to populate a single select element
+            const populateSelect = (selectElement, optionsArray, type) => {
+                const currentSelectedValue = selectElement.value; // Preserve current selection if possible
+                selectElement.innerHTML = '<option value="">Select ' + (type === 'cerNames' ? 'CER' : type.replace('Names', '').replace('Types', '').replace('Roles', '')) + '</option>';
+                optionsArray.forEach(option => {
+                    const value = (type === 'cerNames' && typeof option === 'object') ? option.name : option;
+                    const optionElement = document.createElement('option');
+                    optionElement.value = value;
+                    optionElement.textContent = value;
+                    selectElement.appendChild(optionElement);
+                });
+                // Attempt to restore previous selection
+                if (Array.from(selectElement.options).some(opt => opt.value === currentSelectedValue)) {
+                    selectElement.value = currentSelectedValue;
+                } else {
+                    selectElement.value = ''; // Reset if old value is no longer available
+                }
+            };
+
+            // Defensive check for dropdownOptions properties
+            populateSelect(cerNameSelect, dropdownOptions.cerNames || [], 'cerNames');
+            populateSelect(cerRoleSelect, dropdownOptions.cerRoles || [], 'cerRoles');
+            populateSelect(reviewerNameSelect, dropdownOptions.reviewerNames || [], 'reviewerNames');
+            populateSelect(autofailTypeSelect, dropdownOptions.autofailTypes || [], 'autofailTypes');
+
+            // Re-render questions based on currently selected role (if any)
+            const currentRole = cerRoleSelect.value;
+            renderQuestionsForRole(currentRole);
+
+            // Re-populate CER Email if CER Name is already selected
+            const currentCerName = cerNameSelect.value;
+            const cerEmailInput = document.getElementById('cer-email');
+            cerEmailInput.value = cerNameEmailsMap[currentCerName] || '';
+        }
+
+        // Function to submit form data to Firestore
+        async function submitFormToDB(event) {
+            event.preventDefault(); // Ensure this is also prevented here just in case
+            console.log("Submit to Database button clicked.");
+
+            if (!validateAllMandatoryFields()) {
+                showMessageBox("Validation Error", "Please fill out all mandatory fields before submitting.", true, false, true);
+                return;
+            }
+
+            const formDataForSubmission = {};
+            const generalInputs = document.querySelectorAll('#auditFormContent .form-grid-input, #autofailDescriptionContainer textarea');
+
+            generalInputs.forEach(input => {
+                if (input.name) {
+                    if (input.type === 'datetime-local' || input.type === 'date') {
+                        formDataForSubmission[input.name] = input.value;
+                    } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
+                        return;
+                    } else if (input.id === 'autofail-description' && autofailTypeSelect.value === '') {
+                        return;
+                    }
+                    else {
+                        formDataForSubmission[input.name] = input.value.trim();
+                    }
+                }
+            });
+
+
+            const overallScoreDisplay = document.getElementById('overall-score-display');
+            const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
+
+            if (overallScoreValue === 0) {
+                if (!autofailTypeSelect.value.trim()) {
+                    formDataForSubmission['Auto Fail Type'] = 'Auto-Scored Fail';
+                    autofailTypeSelect.value = 'Auto-Scored Fail';
+                }
+                if (!autofailDescriptionInput.value.trim()) {
+                    formDataForSubmission['Autofail Description'] = 'Automatically marked due to 0% overall score.';
+                    autofailDescriptionInput.value = 'Automatically marked due to 0% overall score.';
+                    autofailDescriptionContainer.classList.remove('hidden');
+                    autofailDescriptionInput.setAttribute('required', 'required');
+                }
+            } else {
+                formDataForSubmission['Auto Fail Type'] = autofailTypeSelect.value.trim();
+                formDataForSubmission['Autofail Description'] = autofailDescriptionInput.value.trim();
+            }
+
+            formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
+            formDataForSubmission['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
+            formDataForSubmission['Total Pts.'] = globalTotalPoints;
+            formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
+            formDataForSubmission['Final Score'] = overallScoreDisplay.textContent;
+
+            const dynamicSelects = document.querySelectorAll('.rating-select');
+            dynamicSelects.forEach(selectElement => {
+                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                if (rowDiv) {
+                    const pointsElement = rowDiv.querySelector('.points-input');
+                    const remarksElement = rowDiv.querySelector('.remarks-textarea');
+                    formDataForSubmission[selectElement.name] = selectElement.value;
+                    if (pointsElement) {
+                        formDataForSubmission[pointsElement.name] = pointsElement.value;
+                    }
+                    if (remarksElement) {
+                        formDataForSubmission[remarksElement.name] = remarksElement.value.trim();
+                    }
+                }
+            });
+            console.log("Collected Data for Submission:", formDataForSubmission);
+
+            await addRecordToFirestore(formDataForSubmission);
+        }
+
+        /**
+         * Renders the dynamic question sections based on the selected CER Role.
+         * This function needs to be defined in the same scope as where it's called.
+         */
+        function renderQuestionsForRole(role) {
+            const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
+            const psQuestionsContainer = document.getElementById('psQuestionsContainer');
+            const caQuestionsContainer = document.getElementById('caQuestionsContainer');
+
+            const questionContainers = {
+                'CUSTOMER EXPERIENCE': cxQuestionsContainer,
+                'PROBLEM SOLVING SKILLS': psQuestionsContainer,
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
+            };
+
+            console.log("Rendering questions for role:", role);
+
+            for (const key in questionContainers) {
+                if (questionContainers[key]) {
+                    questionContainers[key].innerHTML = '';
+                }
+            }
+
+            const roleQuestions = allRolesQuestions[role];
+
+            if (!roleQuestions) {
+                console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
+                calculateScore();
+                return;
+            }
+
+            let questionNumber = 1;
+
+            for (const sectionTitle in roleQuestions) {
+                const questions = roleQuestions[sectionTitle];
+                const container = questionContainers[sectionTitle];
+
+                if (!container) {
+                    console.error(`Container not found for section: ${sectionTitle}`);
+                    continue;
+                }
+
+                questions.forEach(q => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
+
+                    let iconColorClass;
+                    const iconIndex = (questionNumber - 1) % 4;
+                    if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
+                    else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
+                    else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
+                    else iconColorClass = 'icon-bg-yellow';
+
+                    const requiredAttribute = q.autofail ? '' : (q.required ? 'required' : '');
+                    const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
+
+                    rowDiv.innerHTML = `
+                        <div class="col-span-6 flex items-center gap-2">
+                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
+                            ${q.desc}
+                        </div>
+                        <div class="col-span-2">
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${requiredAttribute} ${hasNAAttribute}>
+                                <option value="" >None</option>
+                                <option value="Yes" selected>Yes</option>
+                                <option value="No">No</option>
+                                ${q.hasNA ? '<option value="N/A">N/A</option>' : ''}
+                            </select>
+                        </div>
+                        <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
+                        <div class="col-span-1 text-center">
+                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
+                        </div>
+                        <div class="col-span-2">
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea"></textarea>
+                        </div>
+                    `;
+                    container.appendChild(rowDiv);
+
+                    const newSelect = rowDiv.querySelector('.rating-select');
+                    if (newSelect) {
+                        newSelect.addEventListener('change', calculateScore);
+                    }
+                    questionNumber++;
+                });
+            }
+            calculateScore();
+        }
+
+        // Audit Form Calculations
+        function calculateScore() {
+            const cerRoleSelect = document.getElementById('cer-role');
+            const overallScoreDisplay = document.getElementById('overall-score-display');
+            const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
+            const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
+            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
+
+            let currentTotalPoints = 0;
+            let currentMaxPossiblePoints = 0;
+            let autofailTriggered = false;
+
+            let complianceCurrentPoints = 0;
+            let complianceMaxPoints = 0;
+
+            const allRatingSelects = document.querySelectorAll('.rating-select');
+
+            allRatingSelects.forEach(selectElement => {
+                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                if (!rowDiv) return;
+
+                const pointsElement = rowDiv.querySelector('.points-input');
+                const weightageDisplay = rowDiv.querySelector('.weightage-display');
+                const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
+                const questionText = selectElement.name.replace(' (Rating)', '');
+                const hasNA = selectElement.hasAttribute('data-has-na');
+
+                if (!pointsElement || !weightageDisplay) {
+                    console.warn(`Missing associated elements for select: ${selectElement.name}`);
+                    return;
+                }
+
+                const rating = selectElement.value;
+                const weightage = parseFloat(weightageDisplay.dataset.weightage);
+                let pointsForThisQuestion = 0;
+
+                pointsElement.style.backgroundColor = '#e9ecef';
+                pointsElement.style.color = '#555';
+
+                if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
+                    pointsForThisQuestion = weightage;
+                    pointsElement.readOnly = false;
+                    pointsElement.style.backgroundColor = '#fff';
+                } else if (rating === 'No') {
+                    pointsForThisQuestion = 0;
+                    pointsElement.readOnly = true;
+
+                    if (isAutofailQuestion) {
+                        pointsElement.style.backgroundColor = '#fca5a5';
+                        pointsElement.style.color = '#dc2626';
+                        autofailTriggered = true;
+                    } else {
+                        pointsElement.style.backgroundColor = '#e0e0e0';
+                    }
+                } else {
+                    pointsForThisQuestion = 0;
+                    pointsElement.readOnly = true;
+                    pointsElement.style.backgroundColor = '#e9ecef';
+                }
+
+                pointsElement.value = pointsForThisQuestion;
+                currentTotalPoints += pointsForThisQuestion;
+                currentMaxPossiblePoints += weightage;
+
+                const currentRole = cerRoleSelect.value;
+                if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
+                    const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
+                    if (complianceQuestions.includes(questionText)) {
+                        if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
+                            complianceCurrentPoints += weightage;
+                        }
+                        if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) {
+                             complianceMaxPoints += weightage;
+                        }
+                    }
+                }
+            });
+
+            let overallPercentage = 0;
+            if (autofailTriggered) {
+                overallPercentage = 0;
+            } else {
+                if (currentMaxPossiblePoints > 0) {
+                    overallPercentage = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
+                } else {
+                    overallPercentage = 0;
+                }
+            }
+
+            overallScoreDisplay.textContent = `${overallPercentage}%`;
+            totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
+            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`;
+
+            let businessCompliancePct = 0;
+            if (complianceMaxPoints > 0) {
+                businessCompliancePct = ((complianceCurrentPoints / complianceMaxPoints) * 100).toFixed(0);
+            } else {
+                businessCompliancePct = 0;
+            }
+            businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
+
+            // Update global variables after calculation
+            globalTotalPoints = currentTotalPoints;
+            globalMaxPossiblePoints = currentMaxPossiblePoints;
+            globalBusinessComplianceAccuracyValue = businessCompliancePct;
+        }
+
+        // Audit Form Initialization and Reset
+        function initializeAuditForm() {
+            const contactIdInput = document.getElementById('contact-id');
+            const clientNameInput = document.getElementById('client-name');
+            const cerNameSelect = document.getElementById('cer-name');
+            const cerEmailInput = document.getElementById('cer-email');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const callDateTimeInput = document.getElementById('call-date-time');
+            const evaluationDateInput = document.getElementById('review-date');
+            const durationInput = document.getElementById('duration');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+
+
+            console.log("Full form reset.");
+
+            contactIdInput.value = '';
+            clientNameInput.value = '';
+            cerNameSelect.value = '';
+            cerEmailInput.value = '';
+            cerRoleSelect.value = '';
+
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            callDateTimeInput.value = now.toISOString().slice(0,16);
+            evaluationDateInput.valueAsDate = new Date();
+
+            durationInput.value = '';
+            autofailTypeSelect.value = '';
+
+            autofailDescriptionContainer.classList.add('hidden');
+            autofailDescriptionInput.value = '';
+            autofailDescriptionInput.removeAttribute('required');
+
+            reviewerNameSelect.value = '';
+            otherReviewerNameInput.classList.add('hidden');
+            otherReviewerNameInput.value = '';
+            otherReviewerNameInput.removeAttribute('required');
+            otherReviewerNameInput.style.borderColor = '';
+
+            const requiredInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required]');
+            requiredInputs.forEach(input => {
+                input.style.borderColor = '';
+            });
+
+            // Populate dropdowns from fetched data
+            populateAllDropdownsInForm();
+            renderQuestionsForRole(''); // Render initial questions
+            calculateScore();
+            document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
+        }
+
+        function resetFormFieldsButKeepRole() {
+            const cerRoleSelect = document.getElementById('cer-role');
+
+            console.log("Resetting question fields only.");
+
+            const dynamicSelects = document.querySelectorAll('.rating-select');
+            dynamicSelects.forEach(selectElement => {
+                selectElement.value = 'Yes';
+                selectElement.style.borderColor = '';
+
+                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                if (rowDiv) {
+                    const pointsElement = rowDiv.querySelector('.points-input');
+                    const remarksElement = rowDiv.querySelector('.remarks-textarea');
+
+                    if (pointsElement) {
+                        pointsElement.value = 0;
+                        pointsElement.readOnly = true;
+                        pointsElement.style.backgroundColor = '#e9ecef';
+                        pointsElement.style.color = '#555';
+                    }
+                    if (remarksElement) {
+                        remarksElement.value = '';
+                    }
+                }
+            });
+            calculateScore();
+        }
+
+        // Function to validate all mandatory fields
+        function validateAllMandatoryFields() {
+            let allFieldsValid = true;
+
+            const topLevelInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input[required], .p-6.grid.grid-cols-1 select[required], .p-6.grid.grid-cols-2 input[required], .p-6.grid.grid-cols-2 select[required], .p-6.grid.grid-cols-3 input[required], .p-6.grid.grid-cols-3 select[required]');
+            topLevelInputs.forEach(input => {
+                if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
+                    input.style.borderColor = '';
+                    return;
+                }
+
+                if (input.value.trim() === '') {
+                    input.style.borderColor = 'red';
+                    allFieldsValid = false;
+                } else {
+                    input.style.borderColor = '';
+                }
+            });
+
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+            if (autofailTypeSelect.value !== '') {
+                autofailDescriptionInput.setAttribute('required', 'required');
+                if (autofailDescriptionInput.value.trim() === '') {
+                    autofailDescriptionInput.style.borderColor = 'red';
+                    allFieldsValid = false;
+                } else {
+                    autofailDescriptionInput.style.borderColor = '';
+                }
+            } else {
+                autofailDescriptionInput.removeAttribute('required');
+                autofailDescriptionInput.style.borderColor = '';
+            }
+
+            const dynamicRatingSelects = document.querySelectorAll('.rating-select');
+            dynamicRatingSelects.forEach(selectElement => {
+                if (!selectElement.hasAttribute('data-autofail-question')) {
+                    if (selectElement.value === '') {
+                        selectElement.style.borderColor = 'red';
+                        allFieldsValid = false;
+                    } else {
+                        selectElement.style.borderColor = '';
+                    }
+                } else {
+                    selectElement.style.borderColor = '';
+                }
+            });
+
+            const remarksTextareas = document.querySelectorAll('.remarks-textarea');
+            remarksTextareas.forEach(textarea => {
+                textarea.style.borderColor = '';
+            });
+
+            if (!allFieldsValid) {
+                const firstInvalidField = document.querySelector('input[required][value=""], select[required][value=""], .rating-select[value=""][style*="border-color: red"], textarea[required][value=""]');
+                if (firstInvalidField) {
+                    firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalidField.focus();
+                }
+            }
+            return allFieldsValid;
+        }
+
+        // NEW FUNCTION: Fetch Last 3 Evaluations for a CER
+        async function fetchLastThreeEvaluations(cerName) {
+            const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
+            if (!db || !currentUserId) {
+                console.error("Firestore not initialized or collection path not defined.");
+                lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Database not ready.</td></tr>';
+                return;
+            }
+
+            lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading last evaluations...</td></tr>';
+
+            try {
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
+                const q = query(
+                    recordsColRef,
+                    where('CER Name', '==', cerName),
+                    orderBy('submittedAt', 'desc'),
+                    limit(3)
+                );
+                const querySnapshot = await getDocs(q);
+
+                const evaluations = [];
+                if (querySnapshot.empty) {
+                    lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
+                } else {
+                    querySnapshot.forEach(doc => {
+                        evaluations.push(doc.data());
+                    });
+                    renderLastThreeEvaluationsTable(evaluations);
+                }
+            } catch (error) {
+                console.error("Error fetching last 3 evaluations:", error);
+                lastEvaluationsTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error loading evaluations: ${error.message}</td></tr>`;
+            }
+        }
+
+        // NEW FUNCTION: Render Last 3 Evaluations Table
+        function renderLastThreeEvaluationsTable(evaluations) {
+            const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
+            lastEvaluationsTableBody.innerHTML = '';
+
+            if (evaluations.length === 0) {
+                lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No past evaluations found for this CER.</td></tr>';
+                return;
+            }
+
+            evaluations.forEach(evaluation => {
+                const row = lastEvaluationsTableBody.insertRow();
+                row.className = 'border-b border-gray-200';
+                row.innerHTML = `
+                    <td class="py-2 px-4">${evaluation['CER Name'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation['Overall Score'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation['CER Role'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation['Contact ID'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${evaluation.submittedAt ? new Date(evaluation.submittedAt.toDate()).toLocaleDateString() : 'N/A'}</td>
+                `;
+            });
+        }
+
+
+        // NEW SHARE RESPONSE SECTION FUNCTIONS
+
+        /**
+         * Populates the dropdown in the Share Response section with submitted records.
+         */
+        async function populateShareResponseDropdown() {
+            const selectRecordToShare = document.getElementById('select-record-to-share');
+            selectRecordToShare.innerHTML = '<option value="">-- Loading Records --</option>';
+
+            if (!db || !currentUserId) {
+                selectRecordToShare.innerHTML = '<option value="">-- Database not ready --</option>';
+                console.error("Firestore not initialized for populating share response dropdown.");
+                return;
+            }
+
+            try {
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
+                const querySnapshot = await getDocs(recordsColRef);
+
+                selectRecordToShare.innerHTML = '<option value="">-- Select a Record --</option>';
+
+                if (querySnapshot.empty) {
+                    selectRecordToShare.innerHTML = '<option value="">-- No Records Found --</option>';
+                } else {
+                    querySnapshot.forEach(doc => {
+                        const record = doc.data();
+                        const submittedDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
+                        const option = document.createElement('option');
+                        option.value = doc.id;
+                        option.textContent = `${record['Contact ID'] || 'N/A'} - ${record['CER Name'] || 'N/A'} (${submittedDate})`;
+                        selectRecordToShare.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Error populating share response dropdown:", error);
+                selectRecordToShare.innerHTML = '<option value="">-- Error Loading Records --</option>';
+                showMessageBox("Error", "Could not load records for sharing.", true, false, true);
+            }
+        }
+
+        /**
+         * Populates the email fields when a record is selected in the Share Response section.
+         */
+        function populateShareEmailFields(recordId) {
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) {
+                showMessageBox("Error", "Record not found.", true, false, true);
+                return;
+            }
+
+            const cerName = record['CER Name'] || 'N/A';
+            const contactId = record['Contact ID'] || 'N/A';
+            const evaluationDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
+            const overallScore = record['Overall Score'] || 'N/A';
+
+            const cerEmail = cerNameEmailsMap[cerName] || ''; // Get CER Email from the map
+
+            const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
+            const body = `Dear ${cerName},\n\n` +
+                                 `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                 `Contact ID: ${contactId}\n` +
+                                 `CER Name: ${cerName}\n` +
+                                 `Overall Score: ${overallScore}\n` +
+                                 `Evaluation Date: ${evaluationDate}\n\n` +
+                                 `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                 `Kind Regards,\nQuality Evaluation Team`;
+
+            const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+            try {
+                window.location.href = mailtoLink;
+                showMessageBox("Email Client Opened", "Your email client should open shortly. Please review and send the email.", false, false, true);
+            } catch (e) {
+                console.error("Failed to open email client:", e);
+                showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+            }
+        }
+
+
+        // FINAL CONSOLIDATION: All event listeners and initial setup logic within DOMContentLoaded
+
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
-            // Get UI elements (within DOMContentLoaded to ensure they exist)
-            const loginForm = document.getElementById('loginForm');
+            // Get UI elements
             const loginButton = document.getElementById('loginButton');
             const loginMessage = document.getElementById('loginMessage');
             const usernameInput = document.getElementById('username');
@@ -1292,8 +2573,6 @@
 
 
             // --- Firebase Auth State Listener (Centralized) ---
-            // This listener runs whenever the user's sign-in state changes.
-            // It's the primary gatekeeper for content access.
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUserId = user.uid;
@@ -1301,7 +2580,7 @@
 
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                     try {
-                        const userDocSnap = await getDoc(userProfileDocRef); // Use getDoc directly
+                        const userDocSnap = await getDoc(userProfileDocRef);
                         if (userDocSnap.exists()) {
                             currentUserRole = userDocSnap.data().role;
                             loggedInUserName = userDocSnap.data().email || user.email || "Quality Evaluation Team";
@@ -1342,9 +2621,9 @@
                 }
                 isAuthReady = true;
                 initializeAppDisplay();
-                fetchDropdownOptionsData();
+                fetchDropdownOptionsData(); // Call this here directly
                 if (sessionStorage.getItem('loggedIn') === 'true' && currentUserId) {
-                   fetchRecordsAndWebhooks();
+                   fetchRecordsAndWebhooks(); // Call this here directly
                 }
             });
 
@@ -1502,188 +2781,6 @@
 
             if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', sendShareResponseEmail); }
             if (submitFormToDBBtn) { submitFormToDBBtn.addEventListener('click', submitFormToDB); }
-
-
-            // Helper function for submit (to avoid duplicating large form collection logic)
-            async function submitFormToDB(event) {
-                event.preventDefault(); // Ensure this is also prevented here just in case
-                console.log("Submit to Database button clicked.");
-
-                if (!validateAllMandatoryFields()) {
-                    showMessageBox("Validation Error", "Please fill out all mandatory fields before submitting.", true, false, true);
-                    return;
-                }
-
-                const formDataForSubmission = {};
-                const generalInputs = document.querySelectorAll('#auditFormContent .form-grid-input, #autofailDescriptionContainer textarea');
-
-                generalInputs.forEach(input => {
-                    if (input.name) {
-                        if (input.type === 'datetime-local' || input.type === 'date') {
-                            formDataForSubmission[input.name] = input.value;
-                        } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
-                            return;
-                        } else if (input.id === 'autofail-description' && autofailTypeSelect.value === '') {
-                            return;
-                        }
-                        else {
-                            formDataForSubmission[input.name] = input.value.trim();
-                        }
-                    }
-                });
-
-
-                const overallScoreDisplay = document.getElementById('overall-score-display');
-                const overallScoreValue = parseFloat(overallScoreDisplay.textContent);
-
-                if (overallScoreValue === 0) {
-                    if (!autofailTypeSelect.value.trim()) {
-                        formDataForSubmission['Auto Fail Type'] = 'Auto-Scored Fail';
-                        autofailTypeSelect.value = 'Auto-Scored Fail';
-                    }
-                    if (!autofailDescriptionInput.value.trim()) {
-                        formDataForSubmission['Autofail Description'] = 'Automatically marked due to 0% overall score.';
-                        autofailDescriptionInput.value = 'Automatically marked due to 0% overall score.';
-                        autofailDescriptionContainer.classList.remove('hidden');
-                        autofailDescriptionInput.setAttribute('required', 'required');
-                    }
-                } else {
-                    formDataForSubmission['Auto Fail Type'] = autofailTypeSelect.value.trim();
-                    formDataForSubmission['Autofail Description'] = autofailDescriptionInput.value.trim();
-                }
-
-                formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
-                formDataForSubmission['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
-                formDataForSubmission['Total Pts.'] = globalTotalPoints;
-                formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
-                formDataForSubmission['Final Score'] = overallScoreDisplay.textContent;
-
-                const dynamicSelects = document.querySelectorAll('.rating-select');
-                dynamicSelects.forEach(selectElement => {
-                    const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
-                    if (rowDiv) {
-                        const pointsElement = rowDiv.querySelector('.points-input');
-                        const remarksElement = rowDiv.querySelector('.remarks-textarea');
-                        formDataForSubmission[selectElement.name] = selectElement.value;
-                        if (pointsElement) {
-                            formDataForSubmission[pointsElement.name] = pointsElement.value;
-                        }
-                        if (remarksElement) {
-                            formDataForSubmission[remarksElement.name] = remarksElement.value.trim();
-                        }
-                    }
-                });
-                console.log("Collected Data for Submission:", formDataForSubmission);
-
-                await addRecordToFirestore(formDataForSubmission);
-            }
-
-            // PDF & Email Button
-            if (printEmailBtn) {
-                printEmailBtn.addEventListener('click', async () => {
-                    console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
-
-                    if (!validateAllMandatoryFields()) {
-                        showMessageBox("Validation Error", "Please fill out all mandatory fields before generating PDF and Email.", true, false, true);
-                        return;
-                    }
-
-                    const auditFormContent = document.getElementById('auditFormContent');
-                    if (!auditFormContent) {
-                        console.error('Error: Form container not found for PDF generation.');
-                        showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
-                        return;
-                    }
-
-                    const mainNav = document.getElementById('mainNav');
-                    const printEmailBtn = document.getElementById('print-email-btn');
-                    const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-                    const contactIdInput = document.getElementById('contact-id');
-                    const cerNameSelect = document.getElementById('cer-name');
-                    const cerEmailInput = document.getElementById('cer-email');
-                    const evaluationDateInput = document.getElementById('review-date');
-                    const reviewerNameSelect = document.getElementById('reviewer-name');
-                    const otherReviewerNameInput = document.getElementById('other-reviewer-name');
-
-
-                    const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
-                    const originalDisplays = [];
-                    elementsToHide.forEach(el => {
-                        if (el) {
-                            originalDisplays.push({ el: el, display: el.style.display });
-                            el.style.display = 'none';
-                        }
-                    });
-                    console.log("Elements hidden for PDF capture.");
-
-                    try {
-                        const canvas = await html2canvas(auditFormContent, {
-                            scale: 2,
-                            useCORS: true,
-                            logging: false
-                        });
-                        console.log("html2canvas capture complete.");
-
-                        const imgData = canvas.toDataURL('image/jpeg', 0.8);
-                        const imgWidth = 210;
-                        const pageHeight = 297;
-                        const imgHeight = canvas.height * imgWidth / canvas.width;
-                        let heightLeft = imgHeight;
-
-                        const { jsPDF } = window.jspdf;
-                        const pdf = new jsPDF('p', 'mm', 'a4');
-                        console.log("jsPDF initialized.");
-
-                        let position = 0;
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                        heightLeft -= pageHeight;
-
-                        while (heightLeft > -1) {
-                            position = heightLeft - imgHeight;
-                            pdf.addPage();
-                            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                            heightLeft -= pageHeight;
-                        }
-                        pdf.save(`QA_Form_${contactIdInput.value || 'N/A'}_${cerNameSelect.value || 'N/A'}_${evaluationDateInput.value || 'N/A'}.pdf`);
-                        console.log("PDF saved.");
-
-                        const cerNameVal = cerNameSelect.value;
-                        const contactIdVal = contactIdInput.value;
-                        const evaluationDateVal = evaluationDateInput.value;
-                        const overallScoreVal = document.getElementById('overall-final-percentage-display').textContent;
-                        const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
-                        const cerEmailVal = cerEmailInput.value;
-
-                        const subject = `Quality Assessment Feedback - ${cerNameVal} - ${contactIdVal}`;
-                        const body = `Dear ${cerNameVal},\n\n` +
-                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                     `Contact ID: ${contactIdVal}\n` +
-                                     `CER Name: ${cerNameVal}\n` +
-                                     `Overall Score: ${overallScoreVal}\n` +
-                                     `Evaluation Date: ${evaluationDateVal}\n\n` +
-                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                     `Kind Regards,\nQuality Evaluation Team`;
-
-                        const mailtoLink = `mailto:${encodeURIComponent(cerEmailVal)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-                        try {
-                            window.location.href = mailtoLink;
-                            showMessageBox("PDF Generated", "PDF generated and downloaded. Your email client should open shortly. Please review and send the email.", false, false, true);
-                        } catch (e) {
-                            console.error("Failed to open email client:", e);
-                            showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
-                        }
-                    } catch (error) {
-                        console.error("Critical Error during PDF generation or mailto attempt:", error);
-                        showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
-                    } finally {
-                        originalDisplays.forEach(({ el, display }) => {
-                            if (el) el.style.display = display;
-                        });
-                        console.log("Elements restored.");
-                    }
-                });
-            }
         });
     </script>
 </body>
