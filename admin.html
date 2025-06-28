@@ -488,13 +488,12 @@
                         if (userDocSnap.exists()) {
                             currentUserRole = userDocSnap.data().role;
                         } else {
-                            // If profile not found, try getting custom claims (less reliable without token refresh)
                             const idTokenResult = await user.getIdTokenResult(true);
                             currentUserRole = idTokenResult.claims.role || 'Guest';
                         }
                     } catch (error) {
                         console.error("Error fetching user role:", error);
-                        currentUserRole = 'Guest'; // Default to guest on error
+                        currentUserRole = 'Guest';
                     }
 
                     // Removed the 'admin' role check here for page access as requested
@@ -510,13 +509,14 @@
                         });
                         setupDropdownsListener(); // Start listening to dropdown changes from Firestore
                     } else {
-                        // User logged in but session is inconsistent, or not an admin (if role check was still here)
+                        // User logged in but not admin, or session is inconsistent
                         sessionStorage.removeItem('loggedIn'); // Clear potentially stale session
                         loginPage.style.display = 'flex';
                         mainNav.style.display = 'none';
                         adminContent.style.display = 'none';
                         showLoginErrorMessage("Access Denied: Please log in to access this page.");
-                        if(user) signOut(auth); // Sign out any partial login
+                        // Sign out if not admin
+                        if(user) signOut(auth);
                     }
                 } else {
                     // No Firebase user, show login page
@@ -524,6 +524,8 @@
                     mainNav.style.display = 'none';
                     adminContent.style.display = 'none';
                     sessionStorage.removeItem('loggedIn'); // Clear session
+                    // Attempt anonymous sign-in only if necessary for public reads on other pages,
+                    // but for Admin, just showing login is sufficient.
                 }
             });
         };
@@ -559,6 +561,41 @@
         };
 
 
+        // --- Helper to render items into the ul (Moved to top level of module) ---
+        function renderCurrentDropdownItems() {
+            const currentDropdownItems = document.getElementById('currentDropdownItems'); // Get element inside function
+            const currentSelectedDropdownType = document.getElementById('dropdownTypeSelect').value; // Get current selection
+
+            currentDropdownItems.innerHTML = ''; // Clear existing list
+            // Use currentDropdownData[currentSelectedDropdownType] || [] to ensure it's an array
+            const items = currentDropdownData[currentSelectedDropdownType] || [];
+
+            if (items.length === 0) {
+                currentDropdownItems.innerHTML = '<li>No items added yet.</li>';
+                return;
+            }
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                let displayText = item;
+                let valueToStore = item; // Default for non-CER names
+
+                if (currentSelectedDropdownType === 'cerNames' && typeof item === 'object' && item.name) {
+                    displayText = `${item.name} (${item.email || 'No Email'})`;
+                    valueToStore = item; // Store the full object for removal
+                }
+
+                li.innerHTML = `<span class="item-text">${displayText}</span>`;
+                li.dataset.value = JSON.stringify(valueToStore); // Store the actual value for removal
+
+                li.addEventListener('click', () => {
+                    li.classList.toggle('selected');
+                });
+                currentDropdownItems.appendChild(li);
+            });
+        }
+
+
         // --- DOMContentLoaded Event Listener ---
         document.addEventListener('DOMContentLoaded', function() {
             // Get UI elements (within DOMContentLoaded to ensure they exist)
@@ -570,14 +607,12 @@
             const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
             const manageDropdownValuesSection = document.getElementById('manageDropdownValuesSection');
             const currentDropdownTitle = document.getElementById('currentDropdownTitle');
-            const currentDropdownItems = document.getElementById('currentDropdownItems');
+            const currentDropdownItemsElement = document.getElementById('currentDropdownItems'); // Renamed to avoid conflict with function local currentDropdownItems
             const newDropdownValueInput = document.getElementById('newDropdownValue');
             const newDropdownEmailInput = document.getElementById('newDropdownEmail');
             const addDropdownValueBtn = document.getElementById('addDropdownValueBtn');
             const removeDropdownValueBtn = document.getElementById('removeDropdownValueBtn');
             const dropdownMessage = document.getElementById('dropdownMessage');
-
-            let currentSelectedDropdownType = ''; // Keep track of the currently selected dropdown type
 
             // Initialize the page view based on login state
             initializeAdminPage();
@@ -644,7 +679,7 @@
                     renderCurrentDropdownItems(); // Re-render the list immediately
                 } else {
                     manageDropdownValuesSection.style.display = 'none';
-                    currentDropdownItems.innerHTML = '<li>No items loaded. Select a dropdown type.</li>';
+                    currentDropdownItemsElement.innerHTML = '<li>No items loaded. Select a dropdown type.</li>'; // Use correct element reference
                 }
             });
 
@@ -707,7 +742,7 @@
             });
 
             removeDropdownValueBtn.addEventListener('click', async function() {
-                const selectedListItems = Array.from(currentDropdownItems.children).filter(li => li.classList.contains('selected'));
+                const selectedListItems = Array.from(currentDropdownItemsElement.children).filter(li => li.classList.contains('selected')); // Use correct element reference
                 if (!currentSelectedDropdownType) {
                     showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
                     return;
@@ -735,51 +770,4 @@
                     await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
                     showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
                     // List will auto-refresh due to onSnapshot listener
-                } catch (error) {
-                    console.error("Error removing dropdown item(s):", error);
-                    showMessage(dropdownMessage, `Failed to remove item(s): ${error.message}`, 'error');
                 }
-            });
-
-            // --- Helper to render items into the ul ---
-            function renderCurrentDropdownItems() {
-                currentDropdownItems.innerHTML = ''; // Clear existing list
-                // Use currentDropdownData[currentSelectedDropdownType] || [] to ensure it's an array
-                const items = currentDropdownData[currentSelectedDropdownType] || [];
-
-                if (items.length === 0) {
-                    currentDropdownItems.innerHTML = '<li>No items added yet.</li>';
-                    return;
-                }
-
-                items.forEach(item => {
-                    const li = document.createElement('li');
-                    let displayText = item;
-                    let valueToStore = item; // Default for non-CER names
-
-                    if (currentSelectedDropdownType === 'cerNames' && typeof item === 'object' && item.name) {
-                        displayText = `${item.name} (${item.email || 'No Email'})`;
-                        valueToStore = item; // Store the full object for removal
-                    }
-
-                    li.innerHTML = `<span class="item-text">${displayText}</span>`;
-                    li.dataset.value = JSON.stringify(valueToStore); // Store the actual value for removal
-
-                    li.addEventListener('click', () => {
-                        li.classList.toggle('selected');
-                    });
-                    currentDropdownItems.appendChild(li);
-                });
-            }
-
-            // --- Navigation Link Event Listeners (for other pages) ---
-            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
-            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
-            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
-            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
-            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
-            document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
-        });
-    </script>
-</body>
-</html>
