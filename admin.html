@@ -441,7 +441,8 @@
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`; // Path to user profiles for role check
 
         // Global variables for admin page state
-        let currentDropdownData = { // Initialize with default structure
+        // Initialized with default structure to prevent 'undefined' errors
+        let currentDropdownData = {
             cerNames: [],
             cerRoles: [],
             reviewerNames: [],
@@ -487,15 +488,17 @@
                         if (userDocSnap.exists()) {
                             currentUserRole = userDocSnap.data().role;
                         } else {
+                            // If profile not found, try getting custom claims (less reliable without token refresh)
                             const idTokenResult = await user.getIdTokenResult(true);
                             currentUserRole = idTokenResult.claims.role || 'Guest';
                         }
                     } catch (error) {
                         console.error("Error fetching user role:", error);
-                        currentUserRole = 'Guest';
+                        currentUserRole = 'Guest'; // Default to guest on error
                     }
 
-                    if (isLoggedIn === 'true' && currentUserRole === 'admin') {
+                    // Removed the 'admin' role check here for page access as requested
+                    if (isLoggedIn === 'true') { // Now any logged in user can view admin.html
                         loginPage.style.display = 'none';
                         mainNav.style.display = 'block';
                         adminContent.style.display = 'block';
@@ -507,14 +510,13 @@
                         });
                         setupDropdownsListener(); // Start listening to dropdown changes from Firestore
                     } else {
-                        // User logged in but not admin, or session is inconsistent
+                        // User logged in but session is inconsistent, or not an admin (if role check was still here)
                         sessionStorage.removeItem('loggedIn'); // Clear potentially stale session
                         loginPage.style.display = 'flex';
                         mainNav.style.display = 'none';
                         adminContent.style.display = 'none';
-                        showLoginErrorMessage("Access Denied: You must be an Admin to access this page.");
-                        // Sign out if not admin
-                        if(user) signOut(auth);
+                        showLoginErrorMessage("Access Denied: Please log in to access this page.");
+                        if(user) signOut(auth); // Sign out any partial login
                     }
                 } else {
                     // No Firebase user, show login page
@@ -522,8 +524,6 @@
                     mainNav.style.display = 'none';
                     adminContent.style.display = 'none';
                     sessionStorage.removeItem('loggedIn'); // Clear session
-                    // Attempt anonymous sign-in only if necessary for public reads on other pages,
-                    // but for Admin, just showing login is sufficient.
                 }
             });
         };
@@ -543,13 +543,13 @@
                 } else {
                     console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
                     // If document doesn't exist, set local data to empty, it will be created on first add.
+                    // This local initialization handles the 'not defined' error.
                     currentDropdownData = {
                         cerNames: [],
                         cerRoles: [],
                         reviewerNames: [],
                         autofailTypes: []
                     };
-                    // No need to try creating it here, as it will be created by addDropdownValueBtn on first write
                 }
                 renderCurrentDropdownItems(); // Re-render the list based on updated data
             }, (error) => {
@@ -661,11 +661,8 @@
                     return;
                 }
 
-                // Check if the current user has admin role BEFORE attempting write
-                if (currentUserRole !== 'admin') {
-                    showMessage(dropdownMessage, 'Permission Denied: Only administrators can modify dropdowns.', 'error');
-                    return;
-                }
+                // Removed the 'currentUserRole !== 'admin'' check here, as requested
+                // Now any authenticated user (as per Firestore rules) can modify dropdowns via this page.
 
                 // Defensive check: Ensure currentDropdownData[currentSelectedDropdownType] is an array
                 const currentItemsArray = currentDropdownData[currentSelectedDropdownType] || [];
@@ -720,11 +717,8 @@
                     return;
                 }
 
-                // Check if the current user has admin role BEFORE attempting write
-                if (currentUserRole !== 'admin') {
-                    showMessage(dropdownMessage, 'Permission Denied: Only administrators can modify dropdowns.', 'error');
-                    return;
-                }
+                // Removed the 'currentUserRole !== 'admin'' check here, as requested
+                // Now any authenticated user (as per Firestore rules) can modify dropdowns via this page.
 
                 if (!confirm(`Are you sure you want to remove these ${selectedListItems.length} item(s)?`)) {
                     return;
