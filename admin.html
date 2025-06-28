@@ -553,7 +553,13 @@
                         autofailTypes: []
                     };
                 }
-                renderCurrentDropdownItems(); // Re-render the list based on updated data
+                // Call render with the current selected type, or an empty string if nothing selected yet
+                const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
+                if (dropdownTypeSelect) {
+                    renderCurrentDropdownItems(dropdownTypeSelect.value);
+                } else {
+                    renderCurrentDropdownItems(''); // Pass empty string if element not ready
+                }
             }, (error) => {
                 console.error("Error listening to dropdown data:", error);
                 showMessage(document.getElementById('dropdownMessage'), "Error loading dropdown data. Please check console.", 'error');
@@ -562,21 +568,19 @@
 
 
         // --- Helper to render items into the ul (Moved to top level of module) ---
-        function renderCurrentDropdownItems() {
+        // Now accepts typeToRender as an argument
+        function renderCurrentDropdownItems(typeToRender) {
             // Ensure elements are available
             const currentDropdownItemsList = document.getElementById('currentDropdownItems');
-            const dropdownTypeSelect = document.getElementById('dropdownTypeSelect'); // Get current selection element
-            if (!currentDropdownItemsList || !dropdownTypeSelect) {
+            if (!currentDropdownItemsList) {
                 console.warn("UI elements for dropdown items not found during renderCurrentDropdownItems. This might happen before DOM is fully ready or if page is not admin.html.");
                 return; // Exit if elements aren't ready
             }
 
-            const currentSelectedDropdownType = dropdownTypeSelect.value; // Get current selection value
-
             currentDropdownItemsList.innerHTML = ''; // Clear existing list
 
-            // Safely access the array, defaulting to an empty array if undefined
-            const items = currentDropdownData[currentSelectedDropdownType] || [];
+            // Safely access the array, defaulting to an empty array if undefined or the type is invalid
+            const items = currentDropdownData[typeToRender] || [];
 
             if (items.length === 0) {
                 currentDropdownItemsList.innerHTML = '<li>No items added yet.</li>';
@@ -588,7 +592,7 @@
                 let displayText = item;
                 let valueToStore = item; // Default for non-CER names
 
-                if (currentSelectedDropdownType === 'cerNames' && typeof item === 'object' && item.name) {
+                if (typeToRender === 'cerNames' && typeof item === 'object' && item.name) {
                     displayText = `${item.name} (${item.email || 'No Email'})`;
                     valueToStore = item; // Store the full object for removal
                 }
@@ -666,15 +670,15 @@
 
             // --- Dropdown Management Event Listeners ---
             dropdownTypeSelect.addEventListener('change', function() {
-                currentSelectedDropdownType = this.value;
+                const selectedType = this.value; // Get the selected type
                 dropdownMessage.classList.add('hidden'); // Clear messages
 
-                if (currentSelectedDropdownType) {
+                if (selectedType) { // Check if a valid type is selected
                     manageDropdownValuesSection.style.display = 'block';
                     currentDropdownTitle.textContent = `Manage ${this.options[this.selectedIndex].text}`;
 
                     // Show/hide email input based on selected dropdown
-                    if (currentSelectedDropdownType === 'cerNames') {
+                    if (selectedType === 'cerNames') { // Use selectedType here
                         newDropdownEmailInput.style.display = 'block';
                         newDropdownEmailInput.setAttribute('required', 'required');
                         newDropdownValueInput.placeholder = "Enter CER Name";
@@ -684,7 +688,7 @@
                         newDropdownEmailInput.value = ''; // Clear email input
                         newDropdownValueInput.placeholder = "Enter new value";
                     }
-                    renderCurrentDropdownItems(); // Re-render the list immediately
+                    renderCurrentDropdownItems(selectedType); // Pass the selectedType to the render function
                 } else {
                     manageDropdownValuesSection.style.display = 'none';
                     currentDropdownItems.innerHTML = '<li>No items loaded. Select a dropdown type.</li>';
@@ -693,9 +697,10 @@
 
             addDropdownValueBtn.addEventListener('click', async function() {
                 const newItemValue = newDropdownValueInput.value.trim();
+                const selectedType = dropdownTypeSelect.value; // Get selected type here
                 let itemToAdd;
 
-                if (!currentSelectedDropdownType) {
+                if (!selectedType) {
                     showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
                     return;
                 }
@@ -707,10 +712,10 @@
                 // Removed the 'currentUserRole !== 'admin'' check here, as requested
                 // Now any authenticated user (as per Firestore rules) can modify dropdowns via this page.
 
-                // Defensive check: Ensure currentDropdownData[currentSelectedDropdownType] is an array
-                const currentItemsArray = currentDropdownData[currentSelectedDropdownType] || [];
+                // Defensive check: Ensure currentDropdownData[selectedType] is an array
+                const currentItemsArray = currentDropdownData[selectedType] || [];
 
-                if (currentSelectedDropdownType === 'cerNames') {
+                if (selectedType === 'cerNames') {
                     const newEmailValue = newDropdownEmailInput.value.trim();
                     if (!newEmailValue) {
                          showMessage(dropdownMessage, 'Email is required for CER Names.', 'error');
@@ -737,20 +742,27 @@
                     // Check if the general_options document exists. If not, set it first with empty arrays.
                     const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
                     if (!docSnap.exists()) {
-                        await setDoc(DROPDOWN_DATA_DOC_REF, { // Use setDoc to create the document
+                        // Initialize with empty arrays for all types
+                        const initialData = {
                             cerNames: [],
                             cerRoles: [],
                             reviewerNames: [],
                             autofailTypes: []
-                        });
-                        console.log("Created initial general_options document.");
+                        };
+                        // Add the first item directly to the initial data for the correct type
+                        if (initialData[selectedType]) {
+                            initialData[selectedType].push(itemToAdd);
+                        }
+                        await setDoc(DROPDOWN_DATA_DOC_REF, initialData);
+                        console.log("Created initial general_options document with first item.");
+                    } else {
+                        // Document exists, proceed with updating the document
+                        const updateData = {
+                            [selectedType]: arrayUnion(itemToAdd)
+                        };
+                        await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
                     }
 
-                    // Now proceed with updating the document
-                    const updateData = {
-                        [currentSelectedDropdownType]: arrayUnion(itemToAdd)
-                    };
-                    await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
                     showMessage(dropdownMessage, 'Item added successfully!', 'success');
                     newDropdownValueInput.value = '';
                     newDropdownEmailInput.value = ''; // Clear email input
@@ -761,8 +773,11 @@
             });
 
             removeDropdownValueBtn.addEventListener('click', async function() {
+                // Access currentDropdownItems directly from the DOM, as renderCurrentDropdownItems populates it
                 const selectedListItems = Array.from(currentDropdownItems.children).filter(li => li.classList.contains('selected'));
-                if (!currentSelectedDropdownType) {
+                const selectedType = dropdownTypeSelect.value; // Get selected type here
+
+                if (!selectedType) {
                     showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
                     return;
                 }
@@ -784,7 +799,7 @@
 
                     // Use arrayRemove to remove items from the specific array field in Firestore
                     const updateData = {
-                        [currentSelectedDropdownType]: arrayRemove(...itemsToRemove)
+                        [selectedType]: arrayRemove(...itemsToRemove)
                     };
                     await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
                     showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
