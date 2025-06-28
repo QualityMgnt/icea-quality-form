@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-Ğ8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -126,6 +126,7 @@
             background-color: #0d47a1; /* This will remain the darker blue as it was */
         }
 
+        /* Logout button specific styling within the sidebar context */
         .logout-button {
             background-color: #f57c00; /* icealion-orange */
             color: white;
@@ -698,7 +699,7 @@
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         // Import all necessary Firestore functions
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
 
         // --- Firebase Configuration ---
@@ -1219,7 +1220,7 @@
                 showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
                     initializeAuditForm(); // Reset form, which also re-renders questions/scores
                     // No direct call to sendDataToWebhooks here; it's triggered when a new record is saved to Firestore
-                    // and youd have a Cloud Function or another mechanism listen to Firestore for that.
+                    // and you'd have a Cloud Function or another mechanism listen to Firestore for that.
                 });
                 return true;
             } catch (e) {
@@ -1267,12 +1268,94 @@
         }
 
 
-        // --- DOMContentLoaded Listener (attaches event handlers, makes initial calls) ---
+        // Function to fetch and populate dropdown options from Firestore
+        function fetchDropdownOptionsData() {
+            if (!db) {
+                console.warn("Firestore not ready for fetching dropdowns.");
+                return;
+            }
+            if (!DROPDOWN_DATA_COLLECTION_PATH) {
+                console.error("Dropdowns collection path is not defined.");
+                return;
+            }
+
+            const dropdownDocRef = doc(db, DROPDOWN_DATA_COLLECTION_PATH, 'general_options');
+
+            if (unsubscribeDropdowns) {
+                unsubscribeDropdowns(); // Unsubscribe previous listener if exists
+            }
+
+            unsubscribeDropdowns = onSnapshot(dropdownDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    // Update the global dropdownOptions with the fetched data
+                    dropdownOptions = docSnap.data();
+                    console.log("Dropdown data updated from Firestore:", dropdownOptions);
+                } else {
+                    console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
+                    // If document doesn't exist, set local data to empty, it will be created on first add.
+                    dropdownOptions = {
+                        cerNames: [],
+                        cerRoles: [],
+                        reviewerNames: [],
+                        autofailTypes: []
+                    };
+                }
+                populateAllDropdownsInForm();
+            }, (error) => {
+                console.error("Error listening to dropdown data:", error);
+                // No explicit message box for this error, as it's often a permission issue
+                // when initial doc doesn't exist and anonymous user tries to listen (read is allowed, but maybe doc doesn't exist yet)
+            });
+        }
+
+        // Function to populate all dropdowns in the form
+        function populateAllDropdownsInForm() {
+            const cerNameSelect = document.getElementById('cer-name');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+
+            // Helper to populate a single select element
+            const populateSelect = (selectElement, optionsArray, type) => {
+                const currentSelectedValue = selectElement.value; // Preserve current selection if possible
+                selectElement.innerHTML = '<option value="">Select ' + (type === 'cerNames' ? 'CER' : type.replace('Names', '').replace('Types', '').replace('Roles', '')) + '</option>';
+                optionsArray.forEach(option => {
+                    const value = (type === 'cerNames' && typeof option === 'object') ? option.name : option;
+                    const optionElement = document.createElement('option');
+                    optionElement.value = value;
+                    optionElement.textContent = value;
+                    selectElement.appendChild(optionElement);
+                });
+                // Attempt to restore previous selection
+                if (Array.from(selectElement.options).some(opt => opt.value === currentSelectedValue)) {
+                    selectElement.value = currentSelectedValue;
+                } else {
+                    selectElement.value = ''; // Reset if old value is no longer available
+                }
+            };
+
+            // Defensive check for dropdownOptions properties
+            populateSelect(cerNameSelect, dropdownOptions.cerNames || [], 'cerNames');
+            populateSelect(cerRoleSelect, dropdownOptions.cerRoles || [], 'cerRoles');
+            populateSelect(reviewerNameSelect, dropdownOptions.reviewerNames || [], 'reviewerNames');
+            populateSelect(autofailTypeSelect, dropdownOptions.autofailTypes || [], 'autofailTypes');
+
+            // Re-render questions based on currently selected role (if any)
+            const currentRole = cerRoleSelect.value;
+            renderQuestionsForRole(currentRole);
+
+            // Re-populate CER Email if CER Name is already selected
+            const currentCerName = cerNameSelect.value;
+            const cerEmailInput = document.getElementById('cer-email');
+            cerEmailInput.value = cerNameEmailsMap[currentCerName] || '';
+        }
+
+        // FINAL CONSOLIDATION: All event listeners and initial setup logic within DOMContentLoaded
+
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
-            // Get UI elements (within DOMContentLoaded to ensure they exist)
-            const loginForm = document.getElementById('loginForm');
+            // Get UI elements
             const loginButton = document.getElementById('loginButton');
             const loginMessage = document.getElementById('loginMessage');
             const usernameInput = document.getElementById('username');
@@ -1361,9 +1444,9 @@
                 }
                 isAuthReady = true;
                 initializeAppDisplay();
-                fetchDropdownOptionsData();
+                fetchDropdownOptionsData(); // Call this here directly
                 if (sessionStorage.getItem('loggedIn') === 'true' && currentUserId) {
-                   fetchRecordsAndWebhooks();
+                   fetchRecordsAndWebhooks(); // Call this here directly
                 }
             });
 
