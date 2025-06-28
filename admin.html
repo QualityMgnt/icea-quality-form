@@ -661,6 +661,9 @@
                     return;
                 }
 
+                // Defensive check: Ensure currentDropdownData[currentSelectedDropdownType] is an array
+                const currentItemsArray = currentDropdownData[currentSelectedDropdownType] || [];
+
                 if (currentSelectedDropdownType === 'cerNames') {
                     const newEmailValue = newDropdownEmailInput.value.trim();
                     if (!newEmailValue) {
@@ -669,8 +672,7 @@
                     }
                     itemToAdd = { name: newItemValue, email: newEmailValue };
                     // Check for duplicate CER Name (case-sensitive as stored)
-                    // Use currentDropdownData[currentSelectedDropdownType] || [] to ensure it's an array
-                    const isDuplicate = (currentDropdownData[currentSelectedDropdownType] || []).some(cer => typeof cer === 'object' && cer.name === newItemValue);
+                    const isDuplicate = currentItemsArray.some(cer => typeof cer === 'object' && cer.name === newItemValue);
                     if (isDuplicate) {
                         showMessage(dropdownMessage, 'CER Name already exists.', 'error');
                         return;
@@ -678,7 +680,7 @@
                 } else {
                     itemToAdd = newItemValue;
                      // Check for duplicate string entry
-                    const isDuplicate = (currentDropdownData[currentSelectedDropdownType] || []).includes(newItemValue);
+                    const isDuplicate = currentItemsArray.includes(newItemValue);
                     if (isDuplicate) {
                         showMessage(dropdownMessage, 'This item already exists.', 'error');
                         return;
