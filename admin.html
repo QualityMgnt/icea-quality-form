@@ -442,7 +442,7 @@
 
         // Global variables for admin page state
         // Initialized with default structure to prevent 'undefined' errors
-        let currentDropdownData = {
+        let currentDropdownData = { // Initialize with default structure
             cerNames: [],
             cerRoles: [],
             reviewerNames: [],
@@ -563,15 +563,23 @@
 
         // --- Helper to render items into the ul (Moved to top level of module) ---
         function renderCurrentDropdownItems() {
-            const currentDropdownItems = document.getElementById('currentDropdownItems'); // Get element inside function
-            const currentSelectedDropdownType = document.getElementById('dropdownTypeSelect').value; // Get current selection
+            // Ensure elements are available
+            const currentDropdownItemsList = document.getElementById('currentDropdownItems');
+            const dropdownTypeSelect = document.getElementById('dropdownTypeSelect'); // Get current selection element
+            if (!currentDropdownItemsList || !dropdownTypeSelect) {
+                console.warn("UI elements for dropdown items not found during renderCurrentDropdownItems.");
+                return;
+            }
 
-            currentDropdownItems.innerHTML = ''; // Clear existing list
-            // Use currentDropdownData[currentSelectedDropdownType] || [] to ensure it's an array
+            const currentSelectedDropdownType = dropdownTypeSelect.value; // Get current selection value
+
+            currentDropdownItemsList.innerHTML = ''; // Clear existing list
+
+            // Safely access the array, defaulting to an empty array if undefined
             const items = currentDropdownData[currentSelectedDropdownType] || [];
 
             if (items.length === 0) {
-                currentDropdownItems.innerHTML = '<li>No items added yet.</li>';
+                currentDropdownItemsList.innerHTML = '<li>No items added yet.</li>';
                 return;
             }
 
@@ -591,7 +599,7 @@
                 li.addEventListener('click', () => {
                     li.classList.toggle('selected');
                 });
-                currentDropdownItems.appendChild(li);
+                currentDropdownItemsList.appendChild(li);
             });
         }
 
@@ -607,12 +615,14 @@
             const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
             const manageDropdownValuesSection = document.getElementById('manageDropdownValuesSection');
             const currentDropdownTitle = document.getElementById('currentDropdownTitle');
-            const currentDropdownItemsElement = document.getElementById('currentDropdownItems'); // Renamed to avoid conflict with function local currentDropdownItems
+            const currentDropdownItems = document.getElementById('currentDropdownItems'); // Corrected use
             const newDropdownValueInput = document.getElementById('newDropdownValue');
             const newDropdownEmailInput = document.getElementById('newDropdownEmail');
             const addDropdownValueBtn = document.getElementById('addDropdownValueBtn');
             const removeDropdownValueBtn = document.getElementById('removeDropdownValueBtn');
             const dropdownMessage = document.getElementById('dropdownMessage');
+
+            let currentSelectedDropdownType = ''; // Keep track of the currently selected dropdown type
 
             // Initialize the page view based on login state
             initializeAdminPage();
@@ -679,7 +689,7 @@
                     renderCurrentDropdownItems(); // Re-render the list immediately
                 } else {
                     manageDropdownValuesSection.style.display = 'none';
-                    currentDropdownItemsElement.innerHTML = '<li>No items loaded. Select a dropdown type.</li>'; // Use correct element reference
+                    currentDropdownItems.innerHTML = '<li>No items loaded. Select a dropdown type.</li>';
                 }
             });
 
@@ -742,7 +752,7 @@
             });
 
             removeDropdownValueBtn.addEventListener('click', async function() {
-                const selectedListItems = Array.from(currentDropdownItemsElement.children).filter(li => li.classList.contains('selected')); // Use correct element reference
+                const selectedListItems = Array.from(currentDropdownItems.children).filter(li => li.classList.contains('selected'));
                 if (!currentSelectedDropdownType) {
                     showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
                     return;
@@ -770,4 +780,20 @@
                     await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
                     showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
                     // List will auto-refresh due to onSnapshot listener
+                } catch (error) {
+                    console.error("Error removing dropdown item(s):", error);
+                    showMessage(dropdownMessage, `Failed to remove item(s): ${error.message}`, 'error');
                 }
+            });
+
+            // --- Navigation Link Event Listeners (for other pages) ---
+            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
+            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
+            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
+            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
+            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
+            document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
+        });
+    </script>
+</body>
+</html>
