@@ -760,6 +760,200 @@
 
 
         // --- All Core Functions (Hoisted to top of module scope using `function` keyword) ---
+        // (Order matters for hoisting with traditional `function` declarations)
+
+        // Function definitions for core logic
+        function calculateScore() {
+            const cerRoleSelect = document.getElementById('cer-role');
+            const overallScoreDisplay = document.getElementById('overall-score-display');
+            const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
+            const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
+            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
+
+            let currentTotalPoints = 0;
+            let currentMaxPossiblePoints = 0;
+            let autofailTriggered = false;
+
+            let complianceCurrentPoints = 0;
+            let complianceMaxPoints = 0;
+
+            const allRatingSelects = document.querySelectorAll('.rating-select');
+
+            allRatingSelects.forEach(selectElement => {
+                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                if (!rowDiv) return;
+
+                const pointsElement = rowDiv.querySelector('.points-input');
+                const weightageDisplay = rowDiv.querySelector('.weightage-display');
+                const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
+                const questionText = selectElement.name.replace(' (Rating)', '');
+                const hasNA = selectElement.hasAttribute('data-has-na');
+
+                if (!pointsElement || !weightageDisplay) {
+                    console.warn(`Missing associated elements for select: ${selectElement.name}`);
+                    return;
+                }
+
+                const rating = selectElement.value;
+                const weightage = parseFloat(weightageDisplay.dataset.weightage);
+                let pointsForThisQuestion = 0;
+
+                pointsElement.style.backgroundColor = '#e9ecef';
+                pointsElement.style.color = '#555';
+
+                if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
+                    pointsForThisQuestion = weightage;
+                    pointsElement.readOnly = false;
+                    pointsElement.style.backgroundColor = '#fff';
+                } else if (rating === 'No') {
+                    pointsForThisQuestion = 0;
+                    pointsElement.readOnly = true;
+
+                    if (isAutofailQuestion) {
+                        pointsElement.style.backgroundColor = '#fca5a5';
+                        pointsElement.style.color = '#dc2626';
+                        autofailTriggered = true;
+                    } else {
+                        pointsElement.style.backgroundColor = '#e0e0e0';
+                    }
+                } else {
+                    pointsForThisQuestion = 0;
+                    pointsElement.readOnly = true;
+                    pointsElement.style.backgroundColor = '#e9ecef';
+                }
+
+                pointsElement.value = pointsForThisQuestion;
+                currentTotalPoints += pointsForThisQuestion;
+                currentMaxPossiblePoints += weightage;
+
+                const currentRole = cerRoleSelect.value;
+                if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
+                    const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
+                    if (complianceQuestions.includes(questionText)) {
+                        if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
+                            complianceCurrentPoints += weightage;
+                        }
+                        if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) {
+                             complianceMaxPoints += weightage;
+                        }
+                    }
+                }
+            });
+
+            let overallPercentage = 0;
+            if (autofailTriggered) {
+                overallPercentage = 0;
+            } else {
+                if (currentMaxPossiblePoints > 0) {
+                    overallPercentage = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
+                } else {
+                    overallPercentage = 0;
+                }
+            }
+
+            overallScoreDisplay.textContent = `${overallPercentage}%`;
+            totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
+            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`;
+
+            let businessCompliancePct = 0;
+            if (complianceMaxPoints > 0) {
+                businessCompliancePct = ((complianceCurrentPoints / complianceMaxPoints) * 100).toFixed(0);
+            } else {
+                businessCompliancePct = 0;
+            }
+            businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
+
+            // Update global variables after calculation
+            globalTotalPoints = currentTotalPoints;
+            globalMaxPossiblePoints = currentMaxPossiblePoints;
+            globalBusinessComplianceAccuracyValue = businessCompliancePct;
+        }
+
+        // Renders dynamic questions based on CER Role
+        function renderQuestionsForRole(role) {
+            const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
+            const psQuestionsContainer = document.getElementById('psQuestionsContainer');
+            const caQuestionsContainer = document.getElementById('caQuestionsContainer');
+
+            const questionContainers = {
+                'CUSTOMER EXPERIENCE': cxQuestionsContainer,
+                'PROBLEM SOLVING SKILLS': psQuestionsContainer,
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
+            };
+
+            console.log("Rendering questions for role:", role);
+
+            for (const key in questionContainers) {
+                if (questionContainers[key]) {
+                    questionContainers[key].innerHTML = '';
+                }
+            }
+
+            const roleQuestions = allRolesQuestions[role];
+
+            if (!roleQuestions) {
+                console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
+                calculateScore();
+                return;
+            }
+
+            let questionNumber = 1;
+
+            for (const sectionTitle in roleQuestions) {
+                const questions = roleQuestions[sectionTitle];
+                const container = questionContainers[sectionTitle];
+
+                if (!container) {
+                    console.error(`Container not found for section: ${sectionTitle}`);
+                    continue;
+                }
+
+                questions.forEach(q => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
+
+                    let iconColorClass;
+                    const iconIndex = (questionNumber - 1) % 4;
+                    if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
+                    else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
+                    else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
+                    else iconColorClass = 'icon-bg-yellow';
+
+                    const requiredAttribute = q.autofail ? '' : (q.required ? 'required' : '');
+                    const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
+
+                    rowDiv.innerHTML = `
+                        <div class="col-span-6 flex items-center gap-2">
+                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
+                            ${q.desc}
+                        </div>
+                        <div class="col-span-2">
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${requiredAttribute} ${hasNAAttribute}>
+                                <option value="" >None</option>
+                                <option value="Yes" selected>Yes</option>
+                                <option value="No">No</option>
+                                ${q.hasNA ? '<option value="N/A">N/A</option>' : ''}
+                            </select>
+                        </div>
+                        <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
+                        <div class="col-span-1 text-center">
+                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
+                        </div>
+                        <div class="col-span-2">
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea"></textarea>
+                        </div>
+                    `;
+                    container.appendChild(rowDiv);
+
+                    const newSelect = rowDiv.querySelector('.rating-select');
+                    if (newSelect) {
+                        newSelect.addEventListener('change', calculateScore);
+                    }
+                    questionNumber++;
+                });
+            }
+            calculateScore();
+        }
 
         // Message Box Functions
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
@@ -1114,7 +1308,7 @@
                     buttonContainer.appendChild(confirmBtn);
                     buttonContainer.appendChild(cancelBtn);
                     messageBoxContentElement.appendChild(buttonContainer);
-                    messageBoxCloseBtnBtn.classList.add('hidden');
+                    messageBoxCloseBtnElement.classList.add('hidden');
                 });
             });
         }
@@ -1341,7 +1535,7 @@
 
             // Re-render questions based on currently selected role (if any)
             const currentRole = cerRoleSelect.value;
-            renderQuestionsForRole(currentRole);
+            renderQuestionsForRole(currentRole); // Call the hoisted function
 
             // Re-populate CER Email if CER Name is already selected
             const currentCerName = cerNameSelect.value;
