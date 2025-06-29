@@ -1052,6 +1052,13 @@
         // --- All Core Functions (Hoisted to top of module scope using `function` keyword) ---
         // (Order matters for hoisting with traditional `function` declarations)
 
+        // Global helper for auto-expanding textareas
+        window.autoExpandTextarea = function(element) {
+            element.style.height = 'auto'; // Reset height to recalculate
+            element.style.height = (element.scrollHeight) + 'px'; // Set to scroll height
+        };
+
+
         // Function definitions for core logic
         function calculateScore() {
             const cerRoleSelect = document.getElementById('cer-role');
@@ -1224,7 +1231,6 @@
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
                     else iconColorClass = 'icon-bg-yellow';
 
-                    // Adjusted for new font class and removed 'required' from here as it's handled by 'None'/'Not Applicable' logic
                     const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
 
                     rowDiv.innerHTML = `
@@ -1234,7 +1240,8 @@
                         </div>
                         <div class="col-span-2">
                             <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${hasNAAttribute}>
-                                <option value="">Select Rating</option> <option value="Yes">Yes</option>
+                                <option value="">Select Rating</option>
+                                <option value="Yes">Yes</option>
                                 <option value="No">No</option>
                                 ${q.hasNA ? '<option value="Not Applicable">Not Applicable</option>' : ''}
                             </select>
@@ -1244,7 +1251,7 @@
                             <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
                         </div>
                         <div class="col-span-2">
-                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea"></textarea>
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea" oninput="autoExpandTextarea(this)"></textarea>
                         </div>
                     `;
                     container.appendChild(rowDiv);
@@ -1257,6 +1264,10 @@
                 });
             }
             calculateScore(); // Initial calculation for newly rendered questions
+            // Ensure all remarks textareas auto-expand on initial load if pre-filled
+            document.querySelectorAll('.remarks-textarea').forEach(textarea => {
+                autoExpandTextarea(textarea);
+            });
         }
 
         // Message Box Functions
