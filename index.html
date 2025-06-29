@@ -1372,6 +1372,7 @@
                 if (shareResponseTab) shareResponseTab.classList.add('active');
                 if (shareResponseContent) shareResponseContent.style.display = 'block';
                 if (db && currentUserId) {
+                    fetchRecordsAndWebhooks(); // Ensure allRecords is up-to-date before populating dropdown
                     populateShareResponseDropdown();
                 } else {
                     showMessageBox("Share Response Not Ready", "Waiting for authentication to load records for sharing.", false, true, false);
@@ -1787,7 +1788,7 @@
         /**
          * Collects form data and saves it. Then reveals the PDF & Share button.
          */
-        async function saveFormToDB() { // Renamed from submitFormToDB
+        window.saveFormToDB = async function() { // Renamed from submitFormToDB
             const form = document.getElementById('assessment-form');
             const contactId = document.getElementById('contact-id').value.trim();
             const clientName = document.getElementById('client-name').value.trim();
@@ -1867,9 +1868,9 @@
                 resetFormFieldsButKeepRole();
                 document.getElementById('pdfShareBtn').classList.remove('hidden'); // Show PDF & Share button
             }
-        }
+        }; // END of window.saveFormToDB
 
-        // Function to reset all form fields except for CER Role
+
         function resetFormFieldsButKeepRole() {
             const form = document.getElementById('assessment-form');
             const cerRoleSelect = document.getElementById('cer-role'); // Get CER Role select element
@@ -2200,7 +2201,7 @@
         }
 
         // Handles PDF generation and navigation to share page
-        async function handlePdfAndShare() {
+        window.handlePdfAndShare = async function() {
             if (!latestSavedRecordId) {
                 showMessageBox("Error", "No record has been recently saved to generate a PDF for.", true, false, true);
                 return;
@@ -2314,9 +2315,8 @@
                 document.body.removeChild(tempDiv); // Remove temp div after canvas is created
 
                 // Try different formats/qualities to aim for < 700KB
-                // PNG is lossless but larger. JPEG is lossy but smaller.
-                // 0.8 is a good balance, can be reduced to 0.7 or 0.6 if needed.
-                const imgData = canvas.toDataURL('image/jpeg', 0.8); 
+                // JPEG quality between 0.6 to 0.8 is usually good.
+                const imgData = canvas.toDataURL('image/jpeg', 0.7); 
 
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
@@ -2342,16 +2342,21 @@
                     heightLeft -= pageHeight;
                 }
 
-                const pdfBlob = pdf.output('blob'); // Get PDF as a Blob
-
                 // Trigger PDF download
                 pdf.save(`Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString()}.pdf`);
 
                 // Navigate to Share Response tab and pre-fill fields
-                showTab('shareResponse');
-                document.getElementById('select-record-to-share').value = latestSavedRecordId; // Select the record in the dropdown
-                populateShareEmailFields(latestSavedRecordId); // This will pre-fill To/From/Subject/Body
-
+                showTab('shareResponse'); // This will automatically populate the dropdown on the share page.
+                // We need to wait for populateShareResponseDropdown to finish populating
+                // before we can select the latest record and fill email fields.
+                // This is handled by populateShareResponseDropdown itself attempting to restore selection.
+                // A small timeout might be needed for very slow rendering, but typically it's quick enough.
+                
+                // Set the selected record after the dropdown is populated
+                // This relies on populateShareResponseDropdown already having been called and allRecords being fresh.
+                document.getElementById('select-record-to-share').value = latestSavedRecordId;
+                populateShareEmailFields(latestSavedRecordId); // Ensure fields are filled for THIS record
+                
                 // Update the email body to explain PDF attachment.
                 const shareEmailBody = document.getElementById('share-email-body');
                 shareEmailBody.value = shareEmailBody.value + `\n\n(Note: The PDF document has been downloaded to your device. Please attach it manually to this email before sending, if your email client supports this.)`;
@@ -2365,7 +2370,7 @@
                 hideMessageBox();
                 showMessageBox("Action Failed", `Could not generate PDF or prepare for sharing: ${error.message}. Please try again.`, true, false, true);
             }
-        }
+        }; // END of window.handlePdfAndShare function
 
 
         // FINAL CONSOLIDATION: All event listeners and initial setup logic within DOMContentLoaded
@@ -2589,7 +2594,6 @@
                     } else {
                         otherReviewerNameInput.classList.add('hidden');
                         otherReviewerNameInput.value = '';
-                        otherReviewerNameInput.removeAttribute('required');
                     }
                 });
             }
@@ -2627,8 +2631,9 @@
             }
 
             if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', sendShareResponseEmail); }
-            if (saveFormBtn) { saveFormBtn.addEventListener('click', saveFormToDB); } // Event listener for the Save button
-            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', handlePdfAndShare); } // Event listener for PDF & Share
+            if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); } // Event listener for the Save button, calling global function
+            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); } // Event listener for PDF & Share, calling global function
+
 
             // Initial call to render questions if a role is pre-selected (e.g., from browser's autofill)
             // This happens after dropdowns are populated by fetchDropdownOptionsData
