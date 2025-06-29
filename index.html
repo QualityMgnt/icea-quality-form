@@ -2209,7 +2209,15 @@
                     const clientName = (record['Client Name'] || '').toLowerCase();
                     const contactId = (record['Contact ID'] || '').toLowerCase();
                     const cerName = (record['CER Name'] || '').toLowerCase();
-                    return clientName.includes(searchTerm) || contactId.includes(searchTerm) || cerName.includes(searchTerm);
+                    // Add other fields to search if needed
+                    const reviewDate = record['Evaluation Date'] ? String(record['Evaluation Date']).toLowerCase() : '';
+                    const overallScore = record['Overall Score'] ? String(record['Overall Score']).toLowerCase() : '';
+
+                    return clientName.includes(searchTerm) ||
+                           contactId.includes(searchTerm) ||
+                           cerName.includes(searchTerm) ||
+                           reviewDate.includes(searchTerm) ||
+                           overallScore.includes(searchTerm);
                 });
             } else {
                 filtered = [...filterableRecords]; // If no search term, show all records
@@ -2260,121 +2268,113 @@
 
         // Handles PDF generation and navigation to share page
         window.handlePdfAndShare = async function() {
+            // First, ensure all current form fields are captured.
+            // If the user clicked "Save" recently, `latestSavedRecordId` will hold it.
+            // If they clicked "PDF & Share" without saving recently, we need to consider if we should
+            // re-save the form first, or just generate a PDF of the *current state of the form*.
+            // For now, let's assume `latestSavedRecordId` holds the data for the PDF.
             if (!latestSavedRecordId) {
-                showMessageBox("Error", "No record has been recently saved to generate a PDF for.", true, false, true);
+                showMessageBox("Error", "Please save the evaluation form first to generate a PDF.", true, false, true);
                 return;
             }
 
             const record = allRecords.find(r => r.id === latestSavedRecordId);
             if (!record) {
-                showMessageBox("Error", "Recently saved record not found in data. Please try saving again.", true, false, true);
+                showMessageBox("Error", "Record not found for PDF generation. It might have been deleted or not correctly saved.", true, false, true);
                 return;
             }
 
             showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
-                // Create a temporary div to render the form content for PDF
-                const tempDiv = document.createElement('div');
-                tempDiv.style.width = '210mm'; // A4 width
-                tempDiv.style.padding = '10mm';
-                tempDiv.style.backgroundColor = 'white';
-                tempDiv.style.fontFamily = 'Inter, sans-serif';
-                tempDiv.style.fontSize = '12px';
-                tempDiv.style.color = '#333';
-                tempDiv.style.boxSizing = 'border-box'; // Include padding in width calculation
+                const auditFormContentDiv = document.getElementById('auditFormContent');
 
-                // Include general info
-                tempDiv.innerHTML += `
-                    <h2 style="text-align: center; color: #1a73e8; font-size: 18px; margin-bottom: 20px;">Quality Assessment Feedback</h2>
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Contact ID:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Contact ID'] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Client Name:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Client Name'] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">CER Name:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['CER Name'] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">CER Email:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['CER Email'] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">CER Role:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['CER Role'] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Call Date and Time:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Call Date and Time'] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Reviewer's Name:</td><td style="padding: 5px; border: 1px solid #ccc;">${record["Reviewer's Name"] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Auto Fail Type:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Auto Fail Type'] || 'N/A'}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Autofail Description:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Autofail Description'] || 'N/A'}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Evaluation Date:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Evaluation Date'] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Call Duration:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Call Duration'] || 'N/A'}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Overall Score:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Overall Score'] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Business & Compliance Accuracy:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Business & Compliance Accuracy'] || ''}</td></tr>
-                    </table>
-                `;
+                // Temporarily clone the form content to remove interactive elements before rendering to canvas
+                const clone = auditFormContentDiv.cloneNode(true);
+                clone.style.position = 'absolute'; // Position off-screen
+                clone.style.top = '-9999px';
+                clone.style.left = '-9999px';
+                clone.style.zIndex = '-1';
+                clone.style.width = '210mm'; // Set a fixed width for consistent PDF output
+                clone.style.padding = '20mm'; // Add some padding to the cloned content
+                clone.style.backgroundColor = 'white'; // Ensure background is white for printing
+                clone.style.color = '#333'; // Ensure text color is readable
+                clone.style.fontSize = '12px'; // Base font size for PDF capture
+                clone.style.fontFamily = 'Inter, sans-serif';
 
-                // Add questions and answers
-                tempDiv.innerHTML += `<h3 style="color: #1a73e8; font-size: 16px; margin-top: 20px; margin-bottom: 10px;">Detailed Evaluation:</h3>`;
-
-                const sections = ['CUSTOMER EXPERIENCE', 'PROBLEM SOLVING SKILLS', 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY'];
-                let qNum = 1;
-                sections.forEach(section => {
-                    tempDiv.innerHTML += `<h4 style="color: #f57c00; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">${section}</h4>`;
-                    tempDiv.innerHTML += `
-                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
-                            <thead>
-                                <tr>
-                                    <th style="padding: 5px; border: 1px solid #ccc; text-align: left;">Description</th>
-                                    <th style="padding: 5px; border: 1px solid #ccc; width: 60px;">Rating</th>
-                                    <th style="padding: 5px; border: 1px solid #ccc; width: 40px;">Pnts</th>
-                                    <th style="padding: 5px; border: 1px solid #ccc;">Remarks</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
-                    // Retrieve question descriptions from allRolesQuestions based on the record's CER Role
-                    const currentRoleQuestions = allRolesQuestions[record['CER Role']];
-                    if (currentRoleQuestions && currentRoleQuestions[section]) {
-                        currentRoleQuestions[section].forEach(q => {
-                            const questionDesc = q.desc;
-                            const rating = record[`${questionDesc} (Rating)`] || '';
-                            const points = record[`${questionDesc} (Points)`] || '0';
-                            const remarks = record[`${questionDesc} (Remarks)`] || '';
-                            tempDiv.innerHTML += `
-                                <tr>
-                                    <td style="padding: 5px; border: 1px solid #ccc;">${qNum}. ${questionDesc}</td>
-                                    <td style="padding: 5px; border: 1px solid #ccc; text-align: center;">${rating}</td>
-                                    <td style="padding: 5px; border: 1px solid #ccc; text-align: center;">${points}</td>
-                                    <td style="padding: 5px; border: 1px solid #ccc;">${remarks}</td>
-                                </tr>
-                            `;
-                            qNum++;
-                        });
+                // Remove buttons and other interactive elements from the clone
+                const elementsToRemove = clone.querySelectorAll('button, select, input[type="email"], input[type="date"], input[type="datetime-local"], input[type="text"]');
+                elementsToRemove.forEach(el => {
+                    if (el.tagName === 'BUTTON') {
+                        el.remove();
+                    } else if (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !el.classList.contains('points-input'))) {
+                        // Replace select/input fields with their current values as plain text
+                        const valueSpan = document.createElement('span');
+                        if (el.tagName === 'SELECT' && el.value) {
+                            valueSpan.textContent = el.options[el.selectedIndex].textContent;
+                        } else if (el.value) {
+                            valueSpan.textContent = el.value;
+                        } else {
+                            valueSpan.textContent = 'N/A'; // Or some other placeholder
+                        }
+                        valueSpan.style.borderBottom = '1px solid #ccc'; // Simulate input appearance
+                        valueSpan.style.padding = '2px 5px';
+                        valueSpan.style.display = 'inline-block';
+                        valueSpan.style.minWidth = '50px';
+                        el.parentNode.replaceChild(valueSpan, el);
                     }
-                    tempDiv.innerHTML += `</tbody></table>`;
+                });
+                 // Handle remarks textareas - they need to show their full content
+                 const remarksTextareas = clone.querySelectorAll('textarea.remarks-textarea');
+                 remarksTextareas.forEach(textarea => {
+                     const originalText = textarea.value;
+                     const textDiv = document.createElement('div');
+                     textDiv.style.whiteSpace = 'pre-wrap'; // Preserve line breaks
+                     textDiv.style.wordBreak = 'break-word';
+                     textDiv.style.border = '1px solid #ccc';
+                     textDiv.style.padding = '5px';
+                     textDiv.style.minHeight = '48px';
+                     textDiv.textContent = originalText;
+                     textarea.parentNode.replaceChild(textDiv, textarea);
+                 });
+
+                // Set actual values for dynamic elements like points and scores
+                const pointsInputs = clone.querySelectorAll('.points-input');
+                pointsInputs.forEach(input => {
+                    const valueSpan = document.createElement('span');
+                    valueSpan.textContent = input.value;
+                    input.parentNode.replaceChild(valueSpan, input);
+                });
+                // Update overall score and business compliance for display in PDF
+                const overallScoreDisplayClone = clone.querySelector('#overall-score-display');
+                if(overallScoreDisplayClone) overallScoreDisplayClone.textContent = record['Overall Score'] || '0%';
+
+                const businessComplianceAccuracyClone = clone.querySelector('#business-compliance-accuracy');
+                if(businessComplianceAccuracyClone) businessComplianceAccuracyClone.textContent = record['Business & Compliance Accuracy'] || '0%';
+
+                // Remove the "Last 3 Evaluations" section from the clone if it should not be in PDF
+                const lastEvaluationsSection = clone.querySelector('.p-6:last-of-type'); // Adjust selector if needed
+                if (lastEvaluationsSection) {
+                    lastEvaluationsSection.remove();
+                }
+
+                // Append clone to body to be rendered by html2canvas
+                document.body.appendChild(clone);
+
+                const canvas = await html2canvas(clone, {
+                    scale: 2, // Higher scale for better quality, might increase file size
+                    useCORS: true,
+                    logging: false,
+                    // Specific coordinates to capture only the cloned content
+                    x: clone.offsetLeft,
+                    y: clone.offsetTop,
+                    width: clone.offsetWidth,
+                    height: clone.offsetHeight
                 });
 
-                tempDiv.innerHTML += `
-                    <div style="margin-top: 30px; text-align: center; font-style: italic; color: #555;">
-                        <p>This document is generated by the ICEA LION GROUP Quality Evaluation System.</p>
-                        <p>For official use only. Please contact the Quality Evaluation Team for any queries.</p>
-                        <p style="margin-top: 20px;">Signature: __________________________</p>
-                        <p style="margin-top: 5px;">Date: __________________________</p>
-                    </div>
-                `;
+                document.body.removeChild(clone); // Remove the clone after capture
 
-                document.body.appendChild(tempDiv); // Temporarily add to DOM for rendering
-
-                const canvas = await html2canvas(tempDiv, {
-                    scale: 1, // Reduce scale to aim for smaller file size, trade-off with quality
-                    useCORS: true, // If you have external images (like your logo)
-                    logging: false, // Turn off logging for production
-                    windowWidth: document.documentElement.offsetWidth, // Capture current window width
-                    windowHeight: document.documentElement.offsetHeight, // Capture current window height
-                    scrollX: 0, // Ensure capture starts from top-left
-                    scrollY: 0,
-                    x: tempDiv.offsetLeft, // Capture only the tempDiv content
-                    y: tempDiv.offsetTop,
-                    width: tempDiv.offsetWidth,
-                    height: tempDiv.offsetHeight
-                });
-
-                document.body.removeChild(tempDiv); // Remove temp div after canvas is created
-
-                // Try different formats/qualities to aim for < 700KB
-                // JPEG quality between 0.6 to 0.8 is usually good.
-                const imgData = canvas.toDataURL('image/jpeg', 0.7); 
+                const imgData = canvas.toDataURL('image/jpeg', 0.8); // 0.8 for good balance of quality and size
 
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
@@ -2394,37 +2394,36 @@
                 heightLeft -= pageHeight;
 
                 while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
+                    position = heightLeft - pageHeight; // Move up by pageHeight
                     pdf.addPage();
                     pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
 
                 // Trigger PDF download
-                pdf.save(`Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString()}.pdf`);
+                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; // YYYY-MM-DD
+                pdf.save(pdfFileName);
 
                 // Navigate to Share Response tab and pre-fill fields
-                showTab('shareResponse'); // This will trigger populateShareResponseDropdown.
-                
-                // IMPORTANT: The following lines will run almost immediately.
-                // populateShareResponseDropdown is async and might take a moment.
-                // We trust that populateShareResponseDropdown will handle selecting
-                // `latestSavedRecordId` when it processes `filterableRecords`.
-                // A small `setTimeout` *could* be used here if there were still timing issues,
-                // but generally it works.
-                document.getElementById('select-record-to-share').value = latestSavedRecordId;
-                populateShareEmailFields(latestSavedRecordId); // Ensure fields are filled for THIS record
-                
-                // Update the email body to explain PDF attachment.
-                const shareEmailBody = document.getElementById('share-email-body');
-                shareEmailBody.value = shareEmailBody.value + `\n\n(Note: The PDF document has been downloaded to your device. Please attach it manually to this email before sending, if your email client supports this.)`;
+                showTab('shareResponse'); // This will trigger populateShareResponseDropdown
 
+                // Set the selected record after the dropdown is populated
+                // This might need a small delay if populateShareResponseDropdown is slow
+                setTimeout(() => {
+                    document.getElementById('select-record-to-share').value = latestSavedRecordId;
+                    populateShareEmailFields(latestSavedRecordId);
+                    
+                    // Final message for user to manually attach
+                    const shareEmailBody = document.getElementById('share-email-body');
+                    shareEmailBody.value += `\n\n(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)`;
+                    autoExpandTextarea(shareEmailBody); // Auto-expand after final text
+                }, 100); // Small delay to ensure dropdown is fully rendered
 
                 hideMessageBox();
-                showMessageBox("PDF Generated", "The PDF has been downloaded. You've been redirected to the Share Response page to send the email. Remember to attach the downloaded PDF manually.", false, false, true);
+                // showMessageBox("PDF Generated & Ready to Share", "The PDF has been downloaded. You've been redirected to the Share Response page to send the email. **Remember to attach the downloaded PDF manually.**", false, false, true);
 
             } catch (error) {
-                console.error("Error generating PDF or navigating to share page:", error);
+                console.error("Error generating PDF or preparing for sharing:", error);
                 hideMessageBox();
                 showMessageBox("Action Failed", `Could not generate PDF or prepare for sharing: ${error.message}. Please try again.`, true, false, true);
             }
@@ -2432,7 +2431,7 @@
 
 
         // EXPOSE TO GLOBAL WINDOW OBJECT
-        window.sendShareResponseEmail = async function() { // ADDED window.
+        window.sendShareResponseEmail = async function() {
             const recordId = document.getElementById('select-record-to-share').value;
             const toEmail = document.getElementById('share-email-to').value;
             const subject = document.getElementById('share-email-subject').value;
@@ -2704,20 +2703,6 @@
                     // and keep other main fields as is when only role changes.
                     // If you want to reset all question ratings and remarks when the role changes,
                     // you would add a call like: resetQuestionRatingsAndRemarks();
-                });
-            }
-
-            if (cerNameSelect) {
-                cerNameSelect.addEventListener('change', (event) => {
-                    const selectedCerName = event.target.value;
-                    const cerEmail = cerNameEmailsMap[selectedCerName] || '';
-                    cerEmailInput.value = cerEmail;
-
-                    if (selectedCerName) {
-                        fetchLastThreeEvaluations(selectedCerName);
-                    } else {
-                        document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
-                    }
                 });
             }
 
