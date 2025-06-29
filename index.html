@@ -53,10 +53,63 @@
         .form-row-light { background-color: #f9fafb; /* gray-50 */ }
         .form-row-dark { background-color: #edf2f7; /* gray-200 */ }
 
-        /* General input styling for consistency */
-        .form-grid-input {
-            padding: 8px; /* p-2 */
+        /* Adjustments for question descriptions, weightage, and points */
+        .question-description {
+            font-size: 0.6875rem; /* ~11px */
+            font-weight: 600; /* font-semibold */
         }
+
+        .weightage-display {
+            font-size: 0.625rem; /* ~10px */
+            font-weight: 600; /* font-semibold */
+        }
+
+        .points-input {
+            font-size: 0.6875rem; /* ~11px */
+        }
+
+        /* Adjust input field sizes a little bit */
+        .form-grid-input {
+            padding: 10px; /* Increased from 8px */
+            font-size: 0.9375rem; /* Slightly larger text inside inputs */
+        }
+
+        /* Remarks textarea size and wrapping */
+        .remarks-textarea {
+            resize: vertical; /* Allow vertical resizing only */
+            min-height: 40px; /* Slightly taller default height */
+            line-height: 1.2; /* Better line spacing for wrapping text */
+            word-wrap: break-word; /* Ensure long words break */
+            overflow-wrap: break-word; /* For modern browsers */
+        }
+
+        /* Ensure specific input types also get the padding adjustment */
+        input[type="text"].form-grid-input,
+        input[type="email"].form-grid-input,
+        input[type="datetime-local"].form-grid-input,
+        input[type="date"].form-grid-input,
+        select.form-grid-input,
+        textarea.form-grid-input {
+            padding: 10px; /* Apply to these types as well */
+        }
+
+        /* Specific adjustment for the overall score displays if they seem too small */
+        #overall-score-display,
+        #business-compliance-accuracy {
+            font-size: 1.5rem; /* Increased from 1.25rem for more prominence */
+        }
+
+        /* Small adjustment for table headers for better alignment with smaller fonts */
+        #databaseTableContainer th, #databaseTableContainer td {
+            padding: 0.6rem; /* Slightly reduced padding */
+        }
+
+        /* Ensure the rating select also takes the slightly increased input size */
+        .rating-select {
+            padding: 0.4rem; /* Adjusted for better fit */
+            font-size: 0.8rem; /* Slightly smaller than other inputs for compactness */
+        }
+
 
         /* NEW TOP HEADER */
         .top-header {
@@ -278,6 +331,10 @@
             transition: background-color 0.3s ease;
             margin-right: 0.25rem; /* Space between buttons */
         }
+        #databaseTableContainer .delete-record-btn {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+        }
         #databaseTableContainer .delete-record-btn:hover {
             background-color: #dc2626; /* red-600 */
         }
@@ -461,10 +518,10 @@
                 </div>
                 <div class="p-4">
                     <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <div class="col-span-6">Description</div>
+                        <div class="col-span-6 question-description">Description</div>
                         <div class="col-span-2 text-center">Rating</div>
-                        <div class="col-span-1 text-center">Weight</div>
-                        <div class="col-span-1 text-center">Pnts</div>
+                        <div class="col-span-1 text-center weightage-display">Weight</div>
+                        <div class="col-span-1 text-center points-input">Pnts</div>
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="cxQuestionsContainer">
@@ -478,10 +535,10 @@
                 </div>
                 <div class="p-4">
                     <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <div class="col-span-6">Description</div>
+                        <div class="col-span-6 question-description">Description</div>
                         <div class="col-span-2 text-center">Rating</div>
-                        <div class="col-span-1 text-center">Weight</div>
-                        <div class="col-span-1 text-center">Pnts</div>
+                        <div class="col-span-1 text-center weightage-display">Weight</div>
+                        <div class="col-span-1 text-center points-input">Pnts</div>
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="psQuestionsContainer">
@@ -495,10 +552,10 @@
                 </div>
                 <div class="p-4">
                     <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <div class="col-span-6">Description</div>
+                        <div class="col-span-6 question-description">Description</div>
                         <div class="col-span-2 text-center">Rating</div>
-                        <div class="col-span-1 text-center">Weight</div>
-                        <div class="col-span-1 text-center">Pnts</div>
+                        <div class="col-span-1 text-center weightage-display">Weight</div>
+                        <div class="col-span-1 text-center points-input">Pnts</div>
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="caQuestionsContainer">
@@ -1020,7 +1077,7 @@
                 const weightageDisplay = rowDiv.querySelector('.weightage-display');
                 const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
                 const questionText = selectElement.name.replace(' (Rating)', '');
-                const hasNA = selectElement.hasAttribute('data-has-na');
+                const hasNA = selectElement.hasAttribute('data-has-na'); // Retrieve the hasNA flag
 
                 if (!pointsElement || !weightageDisplay) {
                     console.warn(`Missing associated elements for select: ${selectElement.name}`);
@@ -1034,10 +1091,20 @@
                 pointsElement.style.backgroundColor = '#e9ecef';
                 pointsElement.style.color = '#555';
 
-                if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
+                if (rating === 'Yes') {
                     pointsForThisQuestion = weightage;
                     pointsElement.readOnly = false;
                     pointsElement.style.backgroundColor = '#fff';
+                } else if (rating === 'Not Applicable') { // Handle "Not Applicable" for points
+                    if (hasNA) { // Only award points if the question is truly N/A
+                        pointsForThisQuestion = weightage;
+                        pointsElement.readOnly = false;
+                        pointsElement.style.backgroundColor = '#fff';
+                    } else { // If "Not Applicable" is selected for a question that isn't truly N/A, treat as 0
+                        pointsForThisQuestion = 0;
+                        pointsElement.readOnly = true;
+                        pointsElement.style.backgroundColor = '#e0e0e0';
+                    }
                 } else if (rating === 'No') {
                     pointsForThisQuestion = 0;
                     pointsElement.readOnly = true;
@@ -1049,7 +1116,7 @@
                     } else {
                         pointsElement.style.backgroundColor = '#e0e0e0';
                     }
-                } else { // Handle "None" or any other unselected state
+                } else { // Handle empty selection ("Select Rating")
                     pointsForThisQuestion = 0;
                     pointsElement.readOnly = true;
                     pointsElement.style.backgroundColor = '#e9ecef';
@@ -1057,17 +1124,21 @@
 
                 pointsElement.value = pointsForThisQuestion;
                 currentTotalPoints += pointsForThisQuestion;
-                currentMaxPossiblePoints += weightage;
+
+                // Only add to max possible points if the question is applicable (not N/A if it *can* be N/A)
+                if (rating !== 'Not Applicable' || !hasNA) {
+                    currentMaxPossiblePoints += weightage;
+                }
 
                 const currentRole = cerRoleSelect.value;
                 if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
                     const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
                     if (complianceQuestions.includes(questionText)) {
-                        if (rating === 'Yes' || (rating === 'N/A' && hasNA)) {
+                        if (rating === 'Yes' || (rating === 'Not Applicable' && hasNA)) {
                             complianceCurrentPoints += weightage;
                         }
-                        // Only add to max points if the question is rated (not "None")
-                        if (rating === 'Yes' || rating === 'No' || (rating === 'N/A' && hasNA)) {
+                        // Only add to compliance max points if the question is rated (not "Select Rating") and is applicable
+                        if (rating === 'Yes' || rating === 'No' || (rating === 'Not Applicable' && hasNA)) {
                              complianceMaxPoints += weightage;
                         }
                     }
@@ -1123,7 +1194,7 @@
                 }
             }
 
-            const roleQuestions = allRolesQuestions[role]; // Access allRolesQuestions directly from its top-level const
+            const roleQuestions = allRolesQuestions[role];
 
             if (!roleQuestions) {
                 console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
@@ -1153,19 +1224,19 @@
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
                     else iconColorClass = 'icon-bg-yellow';
 
-                    const requiredAttribute = q.autofail ? '' : (q.required ? 'required' : '');
+                    // Adjusted for new font class and removed 'required' from here as it's handled by 'None'/'Not Applicable' logic
                     const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
 
                     rowDiv.innerHTML = `
-                        <div class="col-span-6 flex items-center gap-2">
+                        <div class="col-span-6 flex items-center gap-2 question-description">
                             <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
                             ${q.desc}
                         </div>
                         <div class="col-span-2">
-                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${requiredAttribute} ${hasNAAttribute}>
-                                <option value="" >None</option>
-                                <option value="Yes">Yes</option> <option value="No">No</option>
-                                ${q.hasNA ? '<option value="N/A">N/A</option>' : ''}
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${hasNAAttribute}>
+                                <option value="">Select Rating</option> <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                                ${q.hasNA ? '<option value="Not Applicable">Not Applicable</option>' : ''}
                             </select>
                         </div>
                         <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
@@ -1719,6 +1790,7 @@
                 return;
             }
 
+            const autofailDescriptionInput = document.getElementById('autofail-description'); // Define here
             if (autofailType && !autofailDescription) {
                 showMessageBox("Validation Error", "Please provide a description for the selected Autofail Type.", true, false, true);
                 autofailDescriptionInput.style.borderColor = 'red';
@@ -1727,6 +1799,7 @@
                 autofailDescriptionInput.style.borderColor = '';
             }
 
+            const otherReviewerNameInput = document.getElementById('other-reviewer-name'); // Define here
             if (reviewerName === 'Other' && !otherReviewerName) {
                 showMessageBox("Validation Error", "Please enter the 'Other' reviewer's name.", true, false, true);
                 otherReviewerNameInput.style.borderColor = 'red';
@@ -1805,7 +1878,7 @@
             // Reset individual question ratings and remarks
             const allRatingSelects = form.querySelectorAll('.rating-select');
             allRatingSelects.forEach(selectElement => {
-                selectElement.value = ''; // Reset to "None"
+                selectElement.value = ''; // Reset to "Select Rating" (the new default)
                 const remarksInput = selectElement.closest('.grid').querySelector('.remarks-textarea');
                 const pointsInput = selectElement.closest('.grid').querySelector('.points-input');
                 if (remarksInput) remarksInput.value = '';
@@ -2021,6 +2094,252 @@
         }
 
 
+        // Functions for the Share Response tab
+        async function populateShareResponseDropdown() {
+            const selectRecordToShare = document.getElementById('select-record-to-share');
+            selectRecordToShare.innerHTML = '<option value="">-- Loading Records --</option>';
+
+            if (!db || !currentUserId) {
+                selectRecordToShare.innerHTML = '<option value="">-- Login to Load Records --</option>';
+                return;
+            }
+
+            try {
+                // Use the already fetched `allRecords` data
+                if (allRecords.length === 0) {
+                    selectRecordToShare.innerHTML = '<option value="">-- No Records Available --</option>';
+                    return;
+                }
+
+                const currentSelectedId = selectRecordToShare.value; // Preserve current selection
+                selectRecordToShare.innerHTML = '<option value="">-- Select a Record --</option>'; // Clear and add default
+
+                allRecords.forEach(record => {
+                    const option = document.createElement('option');
+                    option.value = record.id;
+                    const recordName = record['Client Name'] || record['Contact ID'] || 'Unnamed Record';
+                    const submittedAt = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : '';
+                    option.textContent = `${recordName} (ID: ${record['Contact ID'] || record.id.substring(0, 5)}...) - ${submittedAt}`;
+                    selectRecordToShare.appendChild(option);
+                });
+
+                // Restore previous selection if still available
+                if (currentSelectedId && Array.from(selectRecordToShare.options).some(opt => opt.value === currentSelectedId)) {
+                    selectRecordToShare.value = currentSelectedId;
+                    populateShareEmailFields(currentSelectedId); // Repopulate fields if a record was selected
+                } else {
+                    populateShareEmailFields(null); // Clear fields if no record or old record is gone
+                }
+
+            } catch (error) {
+                console.error("Error populating share response dropdown:", error);
+                selectRecordToShare.innerHTML = '<option value="">-- Error Loading Records --</option>';
+                showMessageBox("Error", `Failed to load records for sharing: ${error.message}`, true, false, true);
+            }
+        }
+
+        function populateShareEmailFields(recordId) {
+            const shareEmailTo = document.getElementById('share-email-to');
+            const shareEmailFrom = document.getElementById('share-email-from');
+            const shareEmailSubject = document.getElementById('share-email-subject');
+            const shareEmailBody = document.getElementById('share-email-body');
+
+            if (!recordId) {
+                shareEmailTo.value = '';
+                shareEmailFrom.value = loggedInUserName; // Your name remains
+                shareEmailSubject.value = 'Quality Assessment Feedback';
+                shareEmailBody.value = 'Dear CER,\n\nKindly find attached the Quality Assurance Audit Feedback. Your signature is required.\n\nKind Regards,\nQuality Evaluation Team';
+                return;
+            }
+
+            const record = allRecords.find(r => r.id === recordId);
+            if (record) {
+                const cerName = record['CER Name'] || 'Client';
+                const contactId = record['Contact ID'] || 'N/A';
+                const evaluationDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
+                const overallScore = record['Overall Score'] || 'N/A';
+                const cerEmail = record['CER Email'] || cerNameEmailsMap[cerName] || ''; // Prioritize record's email, then map
+
+                shareEmailTo.value = cerEmail;
+                shareEmailFrom.value = loggedInUserName;
+                shareEmailSubject.value = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
+                shareEmailBody.value = `Dear ${cerName},\n\n` +
+                    `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
+                    `Your overall score for this interaction was ${overallScore}.\n\n` +
+                    `We encourage you to review the attached PDF for full details and provide your signature. ` +
+                    `This feedback is provided to help you continue to improve service quality.\n\n` +
+                    `If you have any questions, please feel free to reach out.\n\n` +
+                    `Kind Regards,\n${loggedInUserName}`;
+            } else {
+                // If record not found (shouldn't happen if `allRecords` is accurate)
+                populateShareEmailFields(null); // Reset
+            }
+        }
+
+        async function sendShareResponseEmail() {
+            const recordId = document.getElementById('select-record-to-share').value;
+            const toEmail = document.getElementById('share-email-to').value;
+            const subject = document.getElementById('share-email-subject').value;
+            const body = document.getElementById('share-email-body').value;
+            const shareEmailMessage = document.getElementById('shareEmailMessage');
+
+            shareEmailMessage.classList.add('hidden'); // Hide previous messages
+
+            if (!recordId || !toEmail || !subject || !body) {
+                shareEmailMessage.textContent = "Please select a record and ensure all email fields are filled.";
+                shareEmailMessage.classList.remove('hidden');
+                return;
+            }
+
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) {
+                shareEmailMessage.textContent = "Selected record not found. Please refresh and try again.";
+                shareEmailMessage.classList.remove('hidden');
+                return;
+            }
+
+            showMessageBox("Generating PDF & Email", "Please wait while we prepare the PDF and open your email client...", false, true, false);
+
+            try {
+                // Create a temporary div to render the form content for PDF
+                const tempDiv = document.createElement('div');
+                tempDiv.style.width = '210mm'; // A4 width
+                tempDiv.style.padding = '10mm';
+                tempDiv.style.backgroundColor = 'white';
+                tempDiv.style.fontFamily = 'Inter, sans-serif';
+                tempDiv.style.fontSize = '12px';
+                tempDiv.style.color = '#333';
+
+                // Include general info
+                tempDiv.innerHTML += `
+                    <h2 style="text-align: center; color: #1a73e8; font-size: 18px; margin-bottom: 20px;">Quality Assessment Feedback</h2>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Contact ID:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Contact ID'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Client Name:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Client Name'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">CER Name:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['CER Name'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">CER Role:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['CER Role'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Call Date and Time:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Call Date and Time'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Reviewer's Name:</td><td style="padding: 5px; border: 1px solid #ccc;">${record["Reviewer's Name"] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Evaluation Date:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Evaluation Date'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Call Duration:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Call Duration'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Overall Score:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Overall Score'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Business & Compliance Accuracy:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Business & Compliance Accuracy'] || ''}</td></tr>
+                    </table>
+                `;
+
+                // Add questions and answers
+                tempDiv.innerHTML += `<h3 style="color: #1a73e8; font-size: 16px; margin-top: 20px; margin-bottom: 10px;">Detailed Evaluation:</h3>`;
+
+                const sections = ['CUSTOMER EXPERIENCE', 'PROBLEM SOLVING SKILLS', 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY'];
+                let qNum = 1;
+                sections.forEach(section => {
+                    tempDiv.innerHTML += `<h4 style="color: #f57c00; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">${section}</h4>`;
+                    tempDiv.innerHTML += `
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 5px; border: 1px solid #ccc; text-align: left;">Description</th>
+                                    <th style="padding: 5px; border: 1px solid #ccc; width: 60px;">Rating</th>
+                                    <th style="padding: 5px; border: 1px solid #ccc; width: 40px;">Pnts</th>
+                                    <th style="padding: 5px; border: 1px solid #ccc;">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    // Retrieve question descriptions from allRolesQuestions based on the record's CER Role
+                    const currentRoleQuestions = allRolesQuestions[record['CER Role']];
+                    if (currentRoleQuestions && currentRoleQuestions[section]) {
+                        currentRoleQuestions[section].forEach(q => {
+                            const questionDesc = q.desc;
+                            const rating = record[`${questionDesc} (Rating)`] || 'N/A';
+                            const points = record[`${questionDesc} (Points)`] || '0';
+                            const remarks = record[`${questionDesc} (Remarks)`] || '';
+                            tempDiv.innerHTML += `
+                                <tr>
+                                    <td style="padding: 5px; border: 1px solid #ccc;">${qNum}. ${questionDesc}</td>
+                                    <td style="padding: 5px; border: 1px solid #ccc; text-align: center;">${rating}</td>
+                                    <td style="padding: 5px; border: 1px solid #ccc; text-align: center;">${points}</td>
+                                    <td style="padding: 5px; border: 1px solid #ccc;">${remarks}</td>
+                                </tr>
+                            `;
+                            qNum++;
+                        });
+                    }
+                    tempDiv.innerHTML += `</tbody></table>`;
+                });
+
+                tempDiv.innerHTML += `
+                    <div style="margin-top: 30px; text-align: center; font-style: italic; color: #555;">
+                        <p>This document is generated by the ICEA LION GROUP Quality Evaluation System.</p>
+                        <p>For official use only. Please contact the Quality Evaluation Team for any queries.</p>
+                        <p style="margin-top: 20px;">Signature: __________________________</p>
+                        <p style="margin-top: 5px;">Date: __________________________</p>
+                    </div>
+                `;
+
+                document.body.appendChild(tempDiv); // Temporarily add to DOM for rendering
+
+                const canvas = await html2canvas(tempDiv, {
+                    scale: 2, // Increase scale for better resolution
+                    useCORS: true, // If you have external images (like your logo)
+                    logging: true // Enable logging for debugging
+                });
+
+                document.body.removeChild(tempDiv); // Remove temp div after canvas is created
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.98); // Higher quality JPEG
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+
+                let position = 0;
+
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                const pdfBlob = pdf.output('blob'); // Get PDF as a Blob
+
+                // Now, prepare for emailing using mailto, cannot attach directly this way
+                // This will open the user's default email client
+                const mailtoLink = `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                // You CANNOT attach a file directly using mailto:
+                // For attaching files, you would need a server-side solution (e.g., Firebase Cloud Function
+                // that generates the PDF and sends the email with an attachment via SendGrid, Nodemailer, etc.)
+
+                window.open(mailtoLink, '_blank'); // Open email client in a new tab/window
+
+                hideMessageBox();
+                showMessageBox("Email Client Opened", "Your email client should open shortly with the email body pre-filled. Please manually attach the generated PDF if your client supports it, or download it and attach. (PDF downloaded to your browser's default location)", false, false, true);
+
+                // For the "download" part, trigger a download of the PDF in the browser
+                pdf.save(`Quality_Assessment_${record['Contact ID'] || 'Record'}.pdf`);
+
+
+            } catch (error) {
+                console.error("Error generating PDF or preparing email:", error);
+                hideMessageBox();
+                showMessageBox("Action Failed", `Could not generate PDF or open email client: ${error.message}. You might need to allow pop-ups for this site.`, true, false, true);
+            }
+        }
+
+
         // FINAL CONSOLIDATION: All event listeners and initial setup logic within DOMContentLoaded
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -2117,7 +2436,7 @@
                 initializeAppDisplay();
                 fetchDropdownOptionsData(); // Call this here directly
                 if (sessionStorage.getItem('loggedIn') === 'true' && currentUserId) {
-                   fetchRecordsAndWebhooks(); // Call this here directly
+                    fetchRecordsAndWebhooks(); // Call this here directly
                 }
             });
 
