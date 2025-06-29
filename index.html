@@ -601,6 +601,9 @@
                 <div class="flex items-center justify-between w-full mt-4">
                     <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION%0AGROUP" alt="ICEALION Logo" class="h-12 rounded-md">
                     <div class="flex space-x-4">
+                        <button type="button" id="pdfEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
+                            PDF & Email (Direct Send)
+                        </button>
                         <button type="button" id="pdfShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
                             PDF & Share
                         </button>
@@ -1358,6 +1361,7 @@
                     calculateScore(); // Recalculate score if questions are cleared
                 }
                 document.getElementById('pdfShareBtn').classList.add('hidden'); // Hide PDF & Share when form is shown
+                document.getElementById('pdfEmailDirectBtn').classList.add('hidden'); // Hide PDF & Email (Direct Send)
             } else if (tabName === 'database') {
                 if (databaseTab) databaseTab.classList.add('active');
                 if (databaseContent) databaseContent.style.display = 'block';
@@ -1864,6 +1868,7 @@
             if (latestSavedRecordId) {
                 // Keep the form fields as they are after saving, and show the PDF & Share button.
                 document.getElementById('pdfShareBtn').classList.remove('hidden'); // Show PDF & Share button
+                document.getElementById('pdfEmailDirectBtn').classList.remove('hidden'); // Show the new button
             }
         }; // END of window.saveFormToDB
 
@@ -1910,6 +1915,7 @@
             calculateScore();
 
             document.getElementById('pdfShareBtn').classList.add('hidden'); // Hide PDF & Share after form reset
+            document.getElementById('pdfEmailDirectBtn').classList.add('hidden'); // Hide new button after form reset
             latestSavedRecordId = null; // Clear latest saved record ID
         }
 
@@ -2311,7 +2317,9 @@
                         // Replace select/input fields with their current values as plain text
                         const valueSpan = document.createElement('span');
                         if (el.tagName === 'SELECT' && el.value) {
-                            valueSpan.textContent = el.options[el.selectedIndex].textContent;
+                            // For select, use textContent of selected option if it exists, otherwise value
+                            const selectedOption = el.querySelector(`option[value="${el.value}"]`);
+                            valueSpan.textContent = selectedOption ? selectedOption.textContent : el.value;
                         } else if (el.value) {
                             valueSpan.textContent = el.value;
                         } else {
@@ -2401,14 +2409,18 @@
                 }
 
                 // Trigger PDF download
-                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; // YYYY-MM-DD
+                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; //YYYY-MM-DD
                 pdf.save(pdfFileName);
 
                 // Navigate to Share Response tab and pre-fill fields
-                showTab('shareResponse'); // This will trigger populateShareResponseDropdown
-
-                // Set the selected record after the dropdown is populated
-                // This might need a small delay if populateShareResponseDropdown is slow
+                showTab('shareResponse'); // This will trigger populateShareResponseDropdown.
+                
+                // IMPORTANT: The following lines will run almost immediately.
+                // populateShareResponseDropdown is async and might take a moment.
+                // We trust that populateShareResponseDropdown will handle selecting
+                // `latestSavedRecordId` when it processes `filterableRecords`.
+                // A small setTimeout *could* be used here if there were still timing issues,
+                // but generally it's quick enough.
                 setTimeout(() => {
                     document.getElementById('select-record-to-share').value = latestSavedRecordId;
                     populateShareEmailFields(latestSavedRecordId);
@@ -2423,11 +2435,169 @@
                 // showMessageBox("PDF Generated & Ready to Share", "The PDF has been downloaded. You've been redirected to the Share Response page to send the email. **Remember to attach the downloaded PDF manually.**", false, false, true);
 
             } catch (error) {
-                console.error("Error generating PDF or preparing for sharing:", error);
+                console.error("Error generating PDF or navigating to share page:", error);
                 hideMessageBox();
                 showMessageBox("Action Failed", `Could not generate PDF or prepare for sharing: ${error.message}. Please try again.`, true, false, true);
             }
         }; // END of window.handlePdfAndShare function
+
+
+        // NEW: Function for "PDF & Email (Direct Send)" button
+        window.handlePdfAndDirectEmail = async function() {
+            if (!latestSavedRecordId) {
+                showMessageBox("Error", "Please save the evaluation form first to generate a PDF for direct email.", true, false, true);
+                return;
+            }
+
+            const record = allRecords.find(r => r.id === latestSavedRecordId);
+            if (!record) {
+                showMessageBox("Error", "Record not found for PDF generation. It might have been deleted or not correctly saved.", true, false, true);
+                return;
+            }
+
+            showMessageBox("Generating PDF for Email", "Please wait, generating PDF document and preparing email...", false, true, false);
+
+            try {
+                const auditFormContentDiv = document.getElementById('auditFormContent');
+
+                // Temporarily clone the form content for PDF generation
+                const clone = auditFormContentDiv.cloneNode(true);
+                clone.style.position = 'absolute'; // Position off-screen
+                clone.style.top = '-9999px';
+                clone.style.left = '-9999px';
+                clone.style.zIndex = '-1';
+                clone.style.width = '210mm'; // Set a fixed width for consistent PDF output
+                clone.style.padding = '20mm'; // Add some padding to the cloned content
+                clone.style.backgroundColor = 'white'; // Ensure background is white for printing
+                clone.style.color = '#333'; // Ensure text color is readable
+                clone.style.fontSize = '12px'; // Base font size for PDF capture
+                clone.style.fontFamily = 'Inter, sans-serif';
+
+                // Remove buttons and other interactive elements from the clone
+                const elementsToRemove = clone.querySelectorAll('button, select, input[type="email"], input[type="date"], input[type="datetime-local"], input[type="text"]');
+                elementsToRemove.forEach(el => {
+                    if (el.tagName === 'BUTTON') {
+                        el.remove();
+                    } else if (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !el.classList.contains('points-input'))) {
+                        const valueSpan = document.createElement('span');
+                        if (el.tagName === 'SELECT' && el.value) {
+                             const selectedOption = el.querySelector(`option[value="${el.value}"]`);
+                             valueSpan.textContent = selectedOption ? selectedOption.textContent : el.value;
+                        } else if (el.value) {
+                            valueSpan.textContent = el.value;
+                        } else {
+                            valueSpan.textContent = 'N/A';
+                        }
+                        valueSpan.style.borderBottom = '1px solid #ccc';
+                        valueSpan.style.padding = '2px 5px';
+                        valueSpan.style.display = 'inline-block';
+                        valueSpan.style.minWidth = '50px';
+                        el.parentNode.replaceChild(valueSpan, el);
+                    }
+                });
+                const remarksTextareas = clone.querySelectorAll('textarea.remarks-textarea');
+                remarksTextareas.forEach(textarea => {
+                    const originalText = textarea.value;
+                    const textDiv = document.createElement('div');
+                    textDiv.style.whiteSpace = 'pre-wrap';
+                    textDiv.style.wordBreak = 'break-word';
+                    textDiv.style.border = '1px solid #ccc';
+                    textDiv.style.padding = '5px';
+                    textDiv.style.minHeight = '48px';
+                    textDiv.textContent = originalText;
+                    textarea.parentNode.replaceChild(textDiv, textarea);
+                });
+
+                const pointsInputs = clone.querySelectorAll('.points-input');
+                pointsInputs.forEach(input => {
+                    const valueSpan = document.createElement('span');
+                    valueSpan.textContent = input.value;
+                    input.parentNode.replaceChild(valueSpan, input);
+                });
+                const overallScoreDisplayClone = clone.querySelector('#overall-score-display');
+                if(overallScoreDisplayClone) overallScoreDisplayClone.textContent = record['Overall Score'] || '0%';
+
+                const businessComplianceAccuracyClone = clone.querySelector('#business-compliance-accuracy');
+                if(businessComplianceAccuracyClone) businessComplianceAccuracyClone.textContent = record['Business & Compliance Accuracy'] || '0%';
+
+                const lastEvaluationsSection = clone.querySelector('.p-6:last-of-type');
+                if (lastEvaluationsSection) {
+                    lastEvaluationsSection.remove();
+                }
+
+                document.body.appendChild(clone);
+
+                const canvas = await html2canvas(clone, {
+                    scale: 2, // Higher scale for better quality
+                    useCORS: true,
+                    logging: false,
+                    x: clone.offsetLeft,
+                    y: clone.offsetTop,
+                    width: clone.offsetWidth,
+                    height: clone.offsetHeight
+                });
+
+                document.body.removeChild(clone);
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.8); // JPEG quality
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft >= 0) {
+                    position = heightLeft - pageHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                // Trigger PDF download first
+                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; //YYYY-MM-DD
+                pdf.save(pdfFileName);
+
+                // Now construct and open mailto link
+                const cerName = record['CER Name'] || 'Client';
+                const contactId = record['Contact ID'] || 'N/A';
+                const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
+                const overallScore = record['Overall Score'] || 'N/A';
+                const cerEmail = record['CER Email'] || cerNameEmailsMap[cerName] || '';
+
+                const emailSubject = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
+                const emailBody = `Dear ${cerName},\n\n` +
+                    `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
+                    `Your overall score for this interaction was ${overallScore}.\n\n` +
+                    `This feedback is provided to help you continue to improve service quality.\n\n` +
+                    `(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)\n\n` +
+                    `If you have any questions, please feel free to reach out.\n\n` +
+                    `Kind Regards,\n${loggedInUserName}`;
+
+                const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}` +
+                                   `?subject=${encodeURIComponent(emailSubject)}` +
+                                   `&body=${encodeURIComponent(emailBody)}`;
+
+                window.location.href = mailtoLink;
+
+                hideMessageBox();
+                showMessageBox("PDF Downloaded & Email Opened", `The PDF "${pdfFileName}" has been downloaded. Your email client should open shortly with pre-filled details. Please remember to manually attach the downloaded PDF.`, false, false, true);
+
+            } catch (error) {
+                console.error("Error generating PDF or preparing for direct email:", error);
+                hideMessageBox();
+                showMessageBox("Action Failed", `Could not generate PDF or prepare direct email: ${error.message}. Please try again.`, true, false, true);
+            }
+        };
 
 
         // EXPOSE TO GLOBAL WINDOW OBJECT
@@ -2492,6 +2662,7 @@
 
             const saveFormBtn = document.getElementById('saveFormBtn'); // Renamed
             const pdfShareBtn = document.getElementById('pdfShareBtn'); // Renamed
+            const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn'); // New button
             const assessmentForm = document.getElementById('assessment-form');
 
             const reviewerNameSelect = document.getElementById('reviewer-name');
@@ -2721,6 +2892,7 @@
             if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', window.sendShareResponseEmail); } // Call global function
             if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); } // Call global function
             if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); } // Call global function
+            if (pdfEmailDirectBtn) { pdfEmailDirectBtn.addEventListener('click', window.handlePdfAndDirectEmail); } // Call global function
 
 
             // Initial call to render questions if a role is pre-selected (e.g., from browser's autofill)
