@@ -153,19 +153,6 @@
             z-index: 100;
         }
 
-        .sidebar {
-            width: 125px; /* Reduced width to half */
-            background-color: #800080; /* Purple color */
-            color: white;
-            padding: 1rem 0; /* Vertical padding, no horizontal padding as links have it */
-            height: 100%; /* Take full height of the main-nav (which is 100vh) */
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        /* ... existing .sidebar ul and li styles ... */
-
         .sidebar ul li a {
             color: white;
             text-decoration: none;
@@ -1633,13 +1620,10 @@
                     const cancelBtn = document.createElement('button');
                     cancelBtn.textContent = 'Cancel';
                     cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-                    cancelBtn.onclick = () => { hideMessageBox(); }; // Just hide
-                    messageBoxContentElement.innerHTML = 'Are you sure you want to delete this webhook?'; // Reset content
-                    const buttonContainer = document.createElement('div');
-                    buttonContainer.className = 'mt-4';
-                    buttonContainer.appendChild(confirmBtn);
-                    buttonContainer.appendChild(cancelBtn);
-                    messageBoxContentElement.appendChild(buttonContainer);
+                    cancelBtn.onclick = () => { hideMessageBox(); messageBoxContentElement.innerHTML = originalMessageBoxContentHTML; };
+                    messageBoxContentElement.innerHTML = '';
+                    messageBoxContentElement.appendChild(confirmBtn);
+                    messageBoxContentElement.appendChild(cancelBtn);
                     messageBoxCloseBtnElement.classList.add('hidden');
                 });
             });
@@ -1865,8 +1849,8 @@
             latestSavedRecordId = await addRecordToFirestore(formData); // Store the ID
             if (latestSavedRecordId) {
                 // Clear the form fields after successful submission, except 'CER Role'
-                resetFormFieldsButKeepRole();
-                document.getElementById('pdfShareBtn').classList.remove('hidden'); // Show PDF & Share button
+                resetFormFieldsButKeepRole(); // This will also hide the PDF & Share button
+                // document.getElementById('pdfShareBtn').classList.remove('hidden'); // This line is not needed here
             }
         }; // END of window.saveFormToDB
 
@@ -2373,6 +2357,45 @@
         }; // END of window.handlePdfAndShare function
 
 
+        // EXPOSE TO GLOBAL WINDOW OBJECT
+        window.sendShareResponseEmail = async function() { // ADDED window.
+            const recordId = document.getElementById('select-record-to-share').value;
+            const toEmail = document.getElementById('share-email-to').value;
+            const subject = document.getElementById('share-email-subject').value;
+            const body = document.getElementById('share-email-body').value;
+            const shareEmailMessage = document.getElementById('shareEmailMessage');
+
+            shareEmailMessage.classList.add('hidden'); // Hide previous messages
+
+            if (!recordId || !toEmail || !subject || !body) {
+                shareEmailMessage.textContent = "Please select a record and ensure all email fields are filled.";
+                shareEmailMessage.classList.remove('hidden');
+                return;
+            }
+
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) {
+                shareEmailMessage.textContent = "Selected record not found. Please refresh and try again.";
+                shareEmailMessage.classList.remove('hidden');
+                return;
+            }
+
+            // Note: Direct PDF attachment via mailto is NOT possible client-side.
+            // This function will open the mail client with pre-filled subject/body.
+            // The user will be instructed to attach the downloaded PDF manually.
+
+            const mailtoLink = `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+            try {
+                window.location.href = mailtoLink;
+                showMessageBox("Email Client Opened", "Your email client should open shortly with the email body pre-filled. You will need to manually attach the PDF that was downloaded.", false, false, true);
+            } catch (e) {
+                console.error("Failed to open email client:", e);
+                showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+            }
+        }; // END of window.sendShareResponseEmail function
+
+
         // FINAL CONSOLIDATION: All event listeners and initial setup logic within DOMContentLoaded
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -2630,9 +2653,9 @@
                 });
             }
 
-            if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', sendShareResponseEmail); }
-            if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); } // Event listener for the Save button, calling global function
-            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); } // Event listener for PDF & Share, calling global function
+            if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', window.sendShareResponseEmail); } // Call global function
+            if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); } // Call global function
+            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); } // Call global function
 
 
             // Initial call to render questions if a role is pre-selected (e.g., from browser's autofill)
