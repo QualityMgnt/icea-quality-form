@@ -797,13 +797,15 @@
                 filterCerRole.appendChild(option);
             });
 
-            // Populate Year filter
-            filterYear.innerHTML = '<option value="">All Years</option>';
+            // Populate Year filter (only add new years if not already present)
+            const existingYears = Array.from(filterYear.options).map(opt => opt.value);
             Array.from(years).sort((a, b) => b - a).forEach(year => { // Sort descending
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                filterYear.appendChild(option);
+                if (!existingYears.includes(year)) {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    filterYear.appendChild(option);
+                }
             });
         }
 
@@ -1058,6 +1060,23 @@
             return { cerRoleCounts, autofailTypeCounts };
         }
 
+        // Helper to generate a consistent set of colors for pie chart
+        const chartColors = [
+            'rgba(255, 99, 132, 0.7)', // Red
+            'rgba(54, 162, 235, 0.7)', // Blue
+            'rgba(255, 206, 86, 0.7)', // Yellow
+            'rgba(75, 192, 192, 0.7)', // Green
+            'rgba(153, 102, 255, 0.7)',// Purple
+            'rgba(255, 159, 64, 0.7)', // Orange
+            'rgba(199, 199, 199, 0.7)',// Gray
+            'rgba(83, 102, 255, 0.7)', // Indigo
+            'rgba(255, 59, 48, 0.7)',  // Crimson
+            'rgba(0, 122, 255, 0.7)',  // Royal Blue
+            'rgba(52, 199, 89, 0.7)'   // Emerald Green
+        ];
+        const chartBorderColors = chartColors.map(color => color.replace('0.7', '1'));
+
+
         function renderCharts(records) {
             const { cerRoleCounts, autofailTypeCounts } = aggregateChartData(records);
 
@@ -1069,7 +1088,7 @@
                 autofailTypeChartInstance.destroy();
             }
 
-            // Chart for Autofail Per CER Role
+            // Chart for Autofail Per CER Role (Horizontal Bar)
             cerRoleChartInstance = new Chart(autofailPerCerRoleChartCanvas, {
                 type: 'bar',
                 data: {
@@ -1083,10 +1102,11 @@
                     }]
                 },
                 options: {
+                    indexAxis: 'y', // Make the bar chart horizontal
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: {
+                        x: {
                             beginAtZero: true,
                             title: {
                                 display: true,
@@ -1096,7 +1116,7 @@
                                 precision: 0 // Ensure integer ticks
                             }
                         },
-                        x: {
+                        y: {
                             title: {
                                 display: true,
                                 text: 'CER Role'
@@ -1111,43 +1131,40 @@
                 }
             });
 
-            // Chart for Autofail by Autofail Type
+            // Chart for Autofail by Autofail Type (Pie Chart)
             autofailTypeChartInstance = new Chart(autofailByTypeChartCanvas, {
-                type: 'bar',
+                type: 'pie', // Changed to pie chart
                 data: {
                     labels: Object.keys(autofailTypeCounts),
                     datasets: [{
                         label: 'Number of Autofails',
                         data: Object.values(autofailTypeCounts),
-                        backgroundColor: 'rgba(245, 124, 0, 0.7)', // ICEALION orange
-                        borderColor: 'rgba(245, 124, 0, 1)',
+                        backgroundColor: chartColors.slice(0, Object.keys(autofailTypeCounts).length), // Assign distinct colors
+                        borderColor: chartBorderColors.slice(0, Object.keys(autofailTypeCounts).length),
                         borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Count'
-                            },
-                            ticks: {
-                                precision: 0
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Autofail Type'
-                            }
-                        }
-                    },
                     plugins: {
                         legend: {
-                            display: false
+                            display: true, // Show legend for pie chart
+                            position: 'right', // Position legend to the right
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed;
+                                    }
+                                    return label;
+                                }
+                            }
                         }
                     }
                 }
