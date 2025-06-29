@@ -586,7 +586,7 @@
                 </div>
             </div>
         </form>
-
+        
         <div class="p-6 flex flex-col items-end">
                 <table class="score-summary-table w-full md:w-1/2 lg:w-1/3 text-right text-sm border-collapse border border-blue-500">
                     <tbody>
@@ -607,11 +607,11 @@
                 <div class="flex items-center justify-between w-full mt-4">
                     <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION%0AGROUP" alt="ICEALION Logo" class="h-12 rounded-md">
                     <div class="flex space-x-4">
-                        <button type="button" id="print-email-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                            PDF & Email
+                        <button type="button" id="pdfShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
+                            PDF & Share
                         </button>
-                        <button type="submit" id="submitFormToDBBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                            Submit
+                        <button type="submit" id="saveFormBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                            Save
                         </button>
                     </div>
                 </div>
@@ -706,7 +706,7 @@
         </div>
         <div class="p-6">
             <div class="mb-4">
-                <label for="select-record-to-share" class="block text-sm font-medium text-gray-700">Select Evaluation Record</label>
+                <label for="select-record-to-share" class="block text-sm top-field-label">Select Evaluation Record</label>
                 <select id="select-record-to-share" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
                     <option value="">-- Select a Record --</option>
                 </select>
@@ -714,23 +714,23 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label for="share-email-to" class="block text-sm font-medium text-gray-700">To (CER Email)</label>
+                    <label for="share-email-to" class="block text-sm top-field-label">To (CER Email)</label>
                     <input type="email" id="share-email-to" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-100" readonly>
                 </div>
                 <div>
-                    <label for="share-email-from" class="block text-sm font-medium text-gray-700">From (Your Name)</label>
+                    <label for="share-email-from" class="block text-sm top-field-label">From (Your Name)</label>
                     <input type="text" id="share-email-from" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-100" readonly>
                 </div>
             </div>
 
             <div class="mb-4">
-                <label for="share-email-subject" class="block text-sm font-medium text-gray-700">Subject</label>
+                <label for="share-email-subject" class="block text-sm top-field-label">Subject</label>
                 <input type="text" id="share-email-subject" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border">
             </div>
 
             <div class="mb-6">
-                <label for="share-email-body" class="block text-sm font-medium text-gray-700">Email Body</label>
-                <textarea id="share-email-body" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border"></textarea>
+                <label for="share-email-body" class="block text-sm top-field-label">Email Body</label>
+                <textarea id="share-email-body" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border remarks-textarea"></textarea>
             </div>
 
             <button id="sendShareEmailBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
@@ -1051,12 +1051,13 @@
         let isAuthReady = false; // Flag to indicate if Firebase Auth state has been determined
 
         let loggedInUserName = "Quality Evaluation Team";
+        let loggedInUserEmail = "anonymous"; // To store the logged in user's email
 
         // Global variables for total points (initialize to 0)
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
         let globalBusinessComplianceAccuracyValue = 0;
-
+        let latestSavedRecordId = null; // To store the ID of the last saved record
 
         // --- All Core Functions (Hoisted to top of module scope using `function` keyword) ---
         // (Order matters for hoisting with traditional `function` declarations)
@@ -1358,6 +1359,7 @@
                     document.getElementById('caQuestionsContainer').innerHTML = '';
                     calculateScore(); // Recalculate score if questions are cleared
                 }
+                document.getElementById('pdfShareBtn').classList.add('hidden'); // Hide PDF & Share when form is shown
             } else if (tabName === 'database') {
                 if (databaseTab) databaseTab.classList.add('active');
                 if (databaseContent) databaseContent.style.display = 'block';
@@ -1736,6 +1738,8 @@
                                  `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
                                  `Kind Regards,\nQuality Evaluation Team`;
 
+            // This function is still using mailto for direct email from database tab.
+            // The PDF & Share button will use the handlePdfAndShare logic.
             const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
             try {
@@ -1748,42 +1752,42 @@
         }
 
 
-        // Helper function for submitting form data to Firestore
+        /**
+         * Helper function for submitting form data to Firestore
+         * @param {Object} recordData The data object to save to Firestore.
+         * @returns {Promise<string|null>} Resolves with the new document ID on success, null on failure.
+         */
         async function addRecordToFirestore(recordData) {
             if (!db || !currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-                return false;
+                return null;
             }
             if (!EVALUATION_RECORDS_COLLECTION_PATH) {
                 console.error("Firestore collection path for records is not defined.");
                 showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
-                return false;
+                return null;
             }
 
-            showMessageBox("Submitting", "Saving record to database...", false, true, false);
+            showMessageBox("Saving", "Saving record to database...", false, true, false);
             try {
                 const docRef = await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
                     ...recordData,
                     submittedAt: new Date() // Use current date for submission
                 });
                 console.log("Record written with ID:", docRef.id);
-                showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
-                    initializeAuditForm(); // Reset form, which also re-renders questions/scores
-                    // No direct call to sendDataToWebhooks here; it's triggered when a new record is saved to Firestore
-                    // and you'd have a Cloud Function or another mechanism listen to Firestore for that.
-                });
-                return true;
+                showMessageBox("Success", "Form data saved successfully to database!", false, false, true);
+                return docRef.id; // Return the new record's ID
             } catch (e) {
                 console.error("Error adding document: ", e);
-                showMessageBox("Submission Failed", `Error saving data: ${e.message}`, true, false, true);
-                return false;
+                showMessageBox("Save Failed", `Error saving data: ${e.message}`, true, false, true);
+                return null;
             }
         }
 
         /**
-         * Collects form data and submits it.
+         * Collects form data and saves it. Then reveals the PDF & Share button.
          */
-        async function submitFormToDB() {
+        async function saveFormToDB() { // Renamed from submitFormToDB
             const form = document.getElementById('assessment-form');
             const contactId = document.getElementById('contact-id').value.trim();
             const clientName = document.getElementById('client-name').value.trim();
@@ -1804,7 +1808,7 @@
                 return;
             }
 
-            const autofailDescriptionInput = document.getElementById('autofail-description'); // Define here
+            const autofailDescriptionInput = document.getElementById('autofail-description');
             if (autofailType && !autofailDescription) {
                 showMessageBox("Validation Error", "Please provide a description for the selected Autofail Type.", true, false, true);
                 autofailDescriptionInput.style.borderColor = 'red';
@@ -1813,7 +1817,7 @@
                 autofailDescriptionInput.style.borderColor = '';
             }
 
-            const otherReviewerNameInput = document.getElementById('other-reviewer-name'); // Define here
+            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
             if (reviewerName === 'Other' && !otherReviewerName) {
                 showMessageBox("Validation Error", "Please enter the 'Other' reviewer's name.", true, false, true);
                 otherReviewerNameInput.style.borderColor = 'red';
@@ -1857,10 +1861,11 @@
                 formData[`${questionDesc} (Weightage)`] = weightageDisplay ? weightageDisplay.dataset.weightage : '';
             });
 
-            const success = await addRecordToFirestore(formData);
-            if (success) {
+            latestSavedRecordId = await addRecordToFirestore(formData); // Store the ID
+            if (latestSavedRecordId) {
                 // Clear the form fields after successful submission, except 'CER Role'
                 resetFormFieldsButKeepRole();
+                document.getElementById('pdfShareBtn').classList.remove('hidden'); // Show PDF & Share button
             }
         }
 
@@ -1905,6 +1910,9 @@
 
             // Recalculate score after resetting everything
             calculateScore();
+
+            document.getElementById('pdfShareBtn').classList.add('hidden'); // Hide PDF & Share after form reset
+            latestSavedRecordId = null; // Clear latest saved record ID
         }
 
         /**
@@ -2161,7 +2169,7 @@
 
             if (!recordId) {
                 shareEmailTo.value = '';
-                shareEmailFrom.value = loggedInUserName; // Your name remains
+                shareEmailFrom.value = loggedInUserEmail; // Use logged-in user's email
                 shareEmailSubject.value = 'Quality Assessment Feedback';
                 shareEmailBody.value = 'Dear CER,\n\nKindly find attached the Quality Assurance Audit Feedback. Your signature is required.\n\nKind Regards,\nQuality Evaluation Team';
                 return;
@@ -2176,7 +2184,7 @@
                 const cerEmail = record['CER Email'] || cerNameEmailsMap[cerName] || ''; // Prioritize record's email, then map
 
                 shareEmailTo.value = cerEmail;
-                shareEmailFrom.value = loggedInUserName;
+                shareEmailFrom.value = loggedInUserEmail; // Use logged-in user's email
                 shareEmailSubject.value = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
                 shareEmailBody.value = `Dear ${cerName},\n\n` +
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
@@ -2191,29 +2199,20 @@
             }
         }
 
-        async function sendShareResponseEmail() {
-            const recordId = document.getElementById('select-record-to-share').value;
-            const toEmail = document.getElementById('share-email-to').value;
-            const subject = document.getElementById('share-email-subject').value;
-            const body = document.getElementById('share-email-body').value;
-            const shareEmailMessage = document.getElementById('shareEmailMessage');
-
-            shareEmailMessage.classList.add('hidden'); // Hide previous messages
-
-            if (!recordId || !toEmail || !subject || !body) {
-                shareEmailMessage.textContent = "Please select a record and ensure all email fields are filled.";
-                shareEmailMessage.classList.remove('hidden');
+        // Handles PDF generation and navigation to share page
+        async function handlePdfAndShare() {
+            if (!latestSavedRecordId) {
+                showMessageBox("Error", "No record has been recently saved to generate a PDF for.", true, false, true);
                 return;
             }
 
-            const record = allRecords.find(r => r.id === recordId);
+            const record = allRecords.find(r => r.id === latestSavedRecordId);
             if (!record) {
-                shareEmailMessage.textContent = "Selected record not found. Please refresh and try again.";
-                shareEmailMessage.classList.remove('hidden');
+                showMessageBox("Error", "Recently saved record not found in data. Please try saving again.", true, false, true);
                 return;
             }
 
-            showMessageBox("Generating PDF & Email", "Please wait while we prepare the PDF and open your email client...", false, true, false);
+            showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
                 // Create a temporary div to render the form content for PDF
@@ -2224,6 +2223,7 @@
                 tempDiv.style.fontFamily = 'Inter, sans-serif';
                 tempDiv.style.fontSize = '12px';
                 tempDiv.style.color = '#333';
+                tempDiv.style.boxSizing = 'border-box'; // Include padding in width calculation
 
                 // Include general info
                 tempDiv.innerHTML += `
@@ -2232,11 +2232,14 @@
                         <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Contact ID:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Contact ID'] || ''}</td></tr>
                         <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Client Name:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Client Name'] || ''}</td></tr>
                         <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">CER Name:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['CER Name'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">CER Email:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['CER Email'] || ''}</td></tr>
                         <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">CER Role:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['CER Role'] || ''}</td></tr>
                         <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Call Date and Time:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Call Date and Time'] || ''}</td></tr>
                         <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Reviewer's Name:</td><td style="padding: 5px; border: 1px solid #ccc;">${record["Reviewer's Name"] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Auto Fail Type:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Auto Fail Type'] || 'N/A'}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Autofail Description:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Autofail Description'] || 'N/A'}</td></tr>
                         <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Evaluation Date:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Evaluation Date'] || ''}</td></tr>
-                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Call Duration:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Call Duration'] || ''}</td></tr>
+                        <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Call Duration:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Call Duration'] || 'N/A'}</td></tr>
                         <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Overall Score:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Overall Score'] || ''}</td></tr>
                         <tr><td style="padding: 5px; border: 1px solid #ccc; font-weight: bold;">Business & Compliance Accuracy:</td><td style="padding: 5px; border: 1px solid #ccc;">${record['Business & Compliance Accuracy'] || ''}</td></tr>
                     </table>
@@ -2266,7 +2269,7 @@
                     if (currentRoleQuestions && currentRoleQuestions[section]) {
                         currentRoleQuestions[section].forEach(q => {
                             const questionDesc = q.desc;
-                            const rating = record[`${questionDesc} (Rating)`] || 'N/A';
+                            const rating = record[`${questionDesc} (Rating)`] || '';
                             const points = record[`${questionDesc} (Points)`] || '0';
                             const remarks = record[`${questionDesc} (Remarks)`] || '';
                             tempDiv.innerHTML += `
@@ -2287,22 +2290,33 @@
                     <div style="margin-top: 30px; text-align: center; font-style: italic; color: #555;">
                         <p>This document is generated by the ICEA LION GROUP Quality Evaluation System.</p>
                         <p>For official use only. Please contact the Quality Evaluation Team for any queries.</p>
-                        <p style="margin-top: 20px;">Signature:__________________________</p>
-                        <p style="margin-top: 5px;">Date:__________________________</p>
+                        <p style="margin-top: 20px;">Signature: __________________________</p>
+                        <p style="margin-top: 5px;">Date: __________________________</p>
                     </div>
                 `;
 
                 document.body.appendChild(tempDiv); // Temporarily add to DOM for rendering
 
                 const canvas = await html2canvas(tempDiv, {
-                    scale: 2, // Increase scale for better resolution
+                    scale: 1, // Reduce scale to aim for smaller file size, trade-off with quality
                     useCORS: true, // If you have external images (like your logo)
-                    logging: true // Enable logging for debugging
+                    logging: false, // Turn off logging for production
+                    windowWidth: document.documentElement.offsetWidth, // Capture current window width
+                    windowHeight: document.documentElement.offsetHeight, // Capture current window height
+                    scrollX: 0, // Ensure capture starts from top-left
+                    scrollY: 0,
+                    x: tempDiv.offsetLeft, // Capture only the tempDiv content
+                    y: tempDiv.offsetTop,
+                    width: tempDiv.offsetWidth,
+                    height: tempDiv.offsetHeight
                 });
 
                 document.body.removeChild(tempDiv); // Remove temp div after canvas is created
 
-                const imgData = canvas.toDataURL('image/jpeg', 0.98); // Higher quality JPEG
+                // Try different formats/qualities to aim for < 700KB
+                // PNG is lossless but larger. JPEG is lossy but smaller.
+                // 0.8 is a good balance, can be reduced to 0.7 or 0.6 if needed.
+                const imgData = canvas.toDataURL('image/jpeg', 0.8); 
 
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
@@ -2330,27 +2344,26 @@
 
                 const pdfBlob = pdf.output('blob'); // Get PDF as a Blob
 
-                // Now, prepare for emailing using mailto, cannot attach directly this way
-                // This will open the user's default email client
-                const mailtoLink = `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                // Trigger PDF download
+                pdf.save(`Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString()}.pdf`);
 
-                // You CANNOT attach a file directly using mailto:
-                // For attaching files, you would need a server-side solution (e.g., Firebase Cloud Function
-                // that generates the PDF and sends the email with an attachment via SendGrid, Nodemailer, etc.)
+                // Navigate to Share Response tab and pre-fill fields
+                showTab('shareResponse');
+                document.getElementById('select-record-to-share').value = latestSavedRecordId; // Select the record in the dropdown
+                populateShareEmailFields(latestSavedRecordId); // This will pre-fill To/From/Subject/Body
 
-                window.open(mailtoLink, '_blank'); // Open email client in a new tab/window
+                // Update the email body to explain PDF attachment.
+                const shareEmailBody = document.getElementById('share-email-body');
+                shareEmailBody.value = shareEmailBody.value + `\n\n(Note: The PDF document has been downloaded to your device. Please attach it manually to this email before sending, if your email client supports this.)`;
+
 
                 hideMessageBox();
-                showMessageBox("Email Client Opened", "Your email client should open shortly with the email body pre-filled. Please manually attach the generated PDF if your client supports it, or download it and attach. (PDF downloaded to your browser's default location)", false, false, true);
-
-                // For the "download" part, trigger a download of the PDF in the browser
-                pdf.save(`Quality_Assessment_${record['Contact ID'] || 'Record'}.pdf`);
-
+                showMessageBox("PDF Generated", "The PDF has been downloaded. You've been redirected to the Share Response page to send the email. Remember to attach the downloaded PDF manually.", false, false, true);
 
             } catch (error) {
-                console.error("Error generating PDF or preparing email:", error);
+                console.error("Error generating PDF or navigating to share page:", error);
                 hideMessageBox();
-                showMessageBox("Action Failed", `Could not generate PDF or open email client: ${error.message}. You might need to allow pop-ups for this site.`, true, false, true);
+                showMessageBox("Action Failed", `Could not generate PDF or prepare for sharing: ${error.message}. Please try again.`, true, false, true);
             }
         }
 
@@ -2376,8 +2389,8 @@
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
 
-            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-            const printEmailBtn = document.getElementById('print-email-btn');
+            const saveFormBtn = document.getElementById('saveFormBtn'); // Renamed
+            const pdfShareBtn = document.getElementById('pdfShareBtn'); // Renamed
             const assessmentForm = document.getElementById('assessment-form');
 
             const reviewerNameSelect = document.getElementById('reviewer-name');
@@ -2404,6 +2417,7 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUserId = user.uid;
+                    loggedInUserEmail = user.email || "anonymous"; // Store logged-in user email
                     console.log("Firebase Auth State Changed (index.html): User logged in:", currentUserId);
 
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
@@ -2434,17 +2448,20 @@
                     currentUserId = null;
                     currentUserRole = null;
                     loggedInUserName = "Quality Evaluation Team";
+                    loggedInUserEmail = "anonymous"; // Reset email on logout
                     sessionStorage.removeItem('loggedIn');
 
                     try {
                         await signInAnonymously(auth);
                         currentUserId = auth.currentUser.uid;
                         currentUserRole = 'anonymous';
+                        loggedInUserEmail = auth.currentUser.email || "anonymous"; // Anonymous email
                         console.log("Signed in anonymously (index.html):", currentUserId);
                     } catch (anonError) {
                         console.error("Error signing in anonymously (index.html):", anonError);
                         currentUserId = null;
                         currentUserRole = null;
+                        loggedInUserEmail = "anonymous";
                     }
                 }
                 isAuthReady = true;
@@ -2610,8 +2627,8 @@
             }
 
             if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', sendShareResponseEmail); }
-            if (submitFormToDBBtn) { submitFormToDBBtn.addEventListener('click', submitFormToDB); }
-
+            if (saveFormBtn) { saveFormBtn.addEventListener('click', saveFormToDB); } // Event listener for the Save button
+            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', handlePdfAndShare); } // Event listener for PDF & Share
 
             // Initial call to render questions if a role is pre-selected (e.g., from browser's autofill)
             // This happens after dropdowns are populated by fetchDropdownOptionsData
