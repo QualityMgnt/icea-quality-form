@@ -2311,37 +2311,41 @@
 
                 // --- IMPORTANT: Replace live form elements with their static values in the clone ---
                 clone.querySelectorAll('input, select, textarea').forEach(el => {
-                    if (el.id === 'reviewer-name' || el.id === 'cer-name' || el.id === 'cer-role' || el.id === 'autofail-type' || el.classList.contains('rating-select')) {
-                        // For select/dropdowns, replace with text content of selected option
-                        const valueSpan = document.createElement('span');
+                    const valueSpan = document.createElement('span');
+                    valueSpan.style.display = 'inline-block'; // Make it behave like an input for layout
+                    valueSpan.style.width = 'calc(100% - 10px)'; // Adjust width if needed
+                    valueSpan.style.borderBottom = '1px solid #ccc'; // Simulate input appearance
+                    valueSpan.style.padding = '2px 5px';
+                    valueSpan.style.minWidth = '50px';
+                    valueSpan.style.verticalAlign = 'bottom'; // Align with labels
+
+                    if (el.tagName === 'SELECT') {
                         valueSpan.textContent = el.options[el.selectedIndex] ? el.options[el.selectedIndex].textContent : el.value;
-                        el.parentNode.replaceChild(valueSpan, el);
                     } else if (el.tagName === 'TEXTAREA') {
-                        // For textareas, replace with a div that preserves newlines
-                        const valueDiv = document.createElement('div');
-                        valueDiv.style.whiteSpace = 'pre-wrap';
-                        valueDiv.textContent = el.value;
-                        el.parentNode.replaceChild(valueDiv, el);
-                    } else if (el.tagName === 'INPUT') {
-                        // For other inputs, replace with a span
-                        const valueSpan = document.createElement('span');
+                        valueSpan.style.whiteSpace = 'pre-wrap'; // Preserve newlines
+                        valueSpan.style.wordBreak = 'break-word';
+                        valueSpan.style.minHeight = '48px'; // Keep min-height for textareas
                         valueSpan.textContent = el.value;
-                        el.parentNode.replaceChild(valueSpan, el);
+                    } else { // All other inputs (text, date, datetime-local, email, number)
+                        valueSpan.textContent = el.value;
                     }
+                    el.parentNode.replaceChild(valueSpan, el);
                 });
 
-                // Remove buttons from the clone
-                clone.querySelectorAll('button').forEach(btn => btn.remove());
+                // Remove buttons and other non-printable elements from the clone
+                clone.querySelectorAll('button, #lastEvaluationsContainer').forEach(element => element.remove());
+                // Remove the scores summary section as it's typically separate from the main form body in print
+                const scoresSectionClone = clone.querySelector('.p-4.rounded-lg.shadow-sm');
+                if (scoresSectionClone) {
+                    scoresSectionClone.remove();
+                }
 
-
-                // Append clone to body to be rendered by html2canvas
-                document.body.appendChild(clone);
+                document.body.appendChild(clone); // Append clone to body to be rendered by html2canvas
 
                 const canvas = await html2canvas(clone, {
                     scale: 2, // Higher scale for better quality, might increase file size
                     useCORS: true,
                     logging: false,
-                    // Capture only the clone's content
                     x: clone.offsetLeft,
                     y: clone.offsetTop,
                     width: clone.offsetWidth,
@@ -2383,12 +2387,6 @@
                 // Navigate to Share Response tab and pre-fill fields
                 showTab('shareResponse'); // This will trigger populateShareResponseDropdown.
                 
-                // IMPORTANT: The following lines will run almost immediately.
-                // populateShareResponseDropdown is async and might take a moment.
-                // We trust that populateShareResponseDropdown will handle selecting
-                // `latestSavedRecordId` when it processes `filterableRecords`.
-                // A small setTimeout *could* be used here if there were still timing issues,
-                // but generally it's quick enough.
                 setTimeout(() => {
                     document.getElementById('select-record-to-share').value = latestSavedRecordId;
                     populateShareEmailFields(latestSavedRecordId);
@@ -2400,8 +2398,6 @@
                 }, 100); // Small delay to ensure dropdown is fully rendered
 
                 hideMessageBox();
-                // showMessageBox("PDF Generated & Ready to Share", "The PDF has been downloaded. You've been redirected to the Share Response page to send the email. **Remember to attach the downloaded PDF manually.**", false, false, true);
-
             } catch (error) {
                 console.error("Error generating PDF or preparing for sharing:", error);
                 hideMessageBox();
@@ -2443,32 +2439,39 @@
 
                 // --- IMPORTANT: Replace live form elements with their static values in the clone ---
                 clone.querySelectorAll('input, select, textarea').forEach(el => {
-                    if (el.id === 'reviewer-name' || el.id === 'cer-name' || el.id === 'cer-role' || el.id === 'autofail-type' || el.classList.contains('rating-select')) {
-                        // For select/dropdowns, replace with text content of selected option
-                        const valueSpan = document.createElement('span');
+                    const valueSpan = document.createElement('span');
+                    valueSpan.style.display = 'inline-block'; // Make it behave like an input for layout
+                    valueSpan.style.width = 'calc(100% - 10px)'; // Adjust width if needed
+                    valueSpan.style.borderBottom = '1px solid #ccc'; // Simulate input appearance
+                    valueSpan.style.padding = '2px 5px';
+                    valueSpan.style.minWidth = '50px';
+                    valueSpan.style.verticalAlign = 'bottom'; // Align with labels
+
+                    if (el.tagName === 'SELECT') {
                         valueSpan.textContent = el.options[el.selectedIndex] ? el.options[el.selectedIndex].textContent : el.value;
-                        el.parentNode.replaceChild(valueSpan, el);
                     } else if (el.tagName === 'TEXTAREA') {
-                        // For textareas, replace with a div that preserves newlines
-                        const valueDiv = document.createElement('div');
-                        valueDiv.style.whiteSpace = 'pre-wrap';
-                        valueDiv.textContent = el.value;
-                        el.parentNode.replaceChild(valueDiv, el);
-                    } else if (el.tagName === 'INPUT') {
-                        // For other inputs, replace with a span
-                        const valueSpan = document.createElement('span');
+                        valueSpan.style.whiteSpace = 'pre-wrap'; // Preserve newlines
+                        valueSpan.style.wordBreak = 'break-word';
+                        valueSpan.style.minHeight = '48px'; // Keep min-height for textareas
                         valueSpan.textContent = el.value;
-                        el.parentNode.replaceChild(valueSpan, el);
+                    } else { // All other inputs (text, date, datetime-local, email, number)
+                        valueSpan.textContent = el.value;
                     }
+                    el.parentNode.replaceChild(valueSpan, el);
                 });
 
-                // Remove buttons from the clone
-                clone.querySelectorAll('button').forEach(btn => btn.remove());
+                // Remove buttons and other non-printable elements from the clone
+                clone.querySelectorAll('button, #lastEvaluationsContainer').forEach(element => element.remove());
+                // Remove the scores summary section as it's typically separate from the main form body in print
+                const scoresSectionClone = clone.querySelector('.p-4.rounded-lg.shadow-sm');
+                if (scoresSectionClone) {
+                    scoresSectionClone.remove();
+                }
 
                 document.body.appendChild(clone);
 
                 const canvas = await html2canvas(clone, {
-                    scale: 2, // Higher scale for better quality, might increase file size
+                    scale: 2, // Higher scale for better quality
                     useCORS: true,
                     logging: false,
                     x: clone.offsetLeft,
