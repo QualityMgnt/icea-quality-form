@@ -166,15 +166,15 @@
             color: white;
             text-decoration: none;
             font-weight: 500;
-            padding: 0.75rem 0.5rem;
+            padding: 0.75rem 0.5rem; /* Reduced horizontal padding for smaller sidebar */
             display: block; /* Make the whole area clickable */
             border-radius: 0;
             transition: background-color 0.3s ease;
-            display: flex;
-            flex-direction: column;
+            display: flex; /* Align icon and text */
+            flex-direction: column; /* Stack icon and text vertically for smaller width */
             align-items: center;
             gap: 0.25rem;
-            font-size: 0.75rem;
+            font-size: 0.75rem; /* Smaller font size */
             text-align: center;
         }
 
@@ -628,7 +628,7 @@
                     </thead>
                     <tbody id="lastEvaluationsTableBody">
                         <tr>
-                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">No previous evaluations found for this CER.</td>
+                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -700,7 +700,10 @@
         </div>
         <div class="p-6">
             <div class="mb-4">
-                <label for="select-record-to-share" class="block text-sm top-field-label">Select Evaluation Record</label>
+                <label for="select-record-search" class="block text-sm top-field-label">Search Record</label>
+                <input type="text" id="select-record-search" placeholder="Type to filter records..."
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input">
+                <label for="select-record-to-share" class="block text-sm top-field-label mt-2">Select Evaluation Record</label>
                 <select id="select-record-to-share" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border form-grid-input" required>
                     <option value="">-- Select a Record --</option>
                 </select>
@@ -724,7 +727,7 @@
 
             <div class="mb-6">
                 <label for="share-email-body" class="block text-sm top-field-label">Email Body</label>
-                <textarea id="share-email-body" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border remarks-textarea"></textarea>
+                <textarea id="share-email-body" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 border remarks-textarea" oninput="autoExpandTextarea(this)"></textarea>
             </div>
 
             <button id="sendShareEmailBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
@@ -784,6 +787,7 @@
             'autofailTypes': []
         };
         let cerNameEmailsMap = {};
+        let filterableRecords = []; // Added for share page search functionality
 
         // >>> UPDATED allRolesQuestions OBJECT with all hasNA set to true for N/A option availability <<<
         const allRolesQuestions = {
@@ -1477,18 +1481,21 @@
             records.forEach(record => {
                 const row = recordsTableBody.insertRow();
                 row.className = 'border-b border-gray-200';
-                // Robust date formatting: check if it's a Timestamp, then a Date object, otherwise try parsing
-                const submittedDate = record.submittedAt 
-                    ? (typeof record.submittedAt.toDate === 'function' 
-                        ? record.submittedAt.toDate().toLocaleString() 
-                        : (record.submittedAt instanceof Date 
-                            ? record.submittedAt.toLocaleString() 
-                            : new Date(record.submittedAt).toLocaleString()))
-                    : 'N/A';
+                let submittedDateFormatted = 'N/A';
+                if (record.submittedAt) {
+                    try {
+                        const dateObj = typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt);
+                        if (!isNaN(dateObj.getTime())) {
+                            submittedDateFormatted = dateObj.toLocaleString();
+                        }
+                    } catch (e) {
+                        console.warn("Failed to parse submittedAt date for record in table:", record.id, e);
+                    }
+                }
 
                 row.innerHTML = `
                     <td class="py-2 px-4"><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>
-                    <td class="py-2 px-4">${submittedDate}</td>
+                    <td class="py-2 px-4">${submittedDateFormatted}</td>
                     <td class="py-2 px-4">${record['Contact ID'] || ''}</td>
                     <td class="py-2 px-4">${record['Client Name'] || ''}</td>
                     <td class="py-2 px-4">${record['CER Name'] || ''}</td>
@@ -1855,8 +1862,7 @@
 
             latestSavedRecordId = await addRecordToFirestore(formData); // Store the ID
             if (latestSavedRecordId) {
-                // IMPORTANT: Removed resetFormFieldsButKeepRole() call from here
-                // to allow the PDF & Share button to appear with the current form data context.
+                // Keep the form fields as they are after saving, and show the PDF & Share button.
                 document.getElementById('pdfShareBtn').classList.remove('hidden'); // Show PDF & Share button
             }
         }; // END of window.saveFormToDB
@@ -1903,8 +1909,7 @@
             // Recalculate score after resetting everything
             calculateScore();
 
-            // IMPORTANT: Removed this line from here as it was causing the button to be hidden immediately after save.
-            // document.getElementById('pdfShareBtn').classList.add('hidden');
+            document.getElementById('pdfShareBtn').classList.add('hidden'); // Hide PDF & Share after form reset
             latestSavedRecordId = null; // Clear latest saved record ID
         }
 
@@ -1940,13 +1945,24 @@
                     const record = doc.data();
                     const row = lastEvaluationsTableBody.insertRow();
                     row.className = 'border-b border-gray-100';
-                    const submittedDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
+                    let submittedDateFormatted = 'N/A';
+                    if (record.submittedAt) {
+                        try {
+                            const dateObj = typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt);
+                            if (!isNaN(dateObj.getTime())) {
+                                submittedDateFormatted = dateObj.toLocaleDateString();
+                            }
+                        } catch (e) {
+                            console.warn("Failed to parse submittedAt date for last evaluations table:", record.id, e);
+                        }
+                    }
+
                     row.innerHTML = `
                         <td class="py-2 px-4 text-sm text-gray-800">${record['CER Name'] || 'N/A'}</td>
                         <td class="py-2 px-4 text-sm text-gray-800">${record['Overall Score'] || 'N/A'}</td>
                         <td class="py-2 px-4 text-sm text-gray-800">${record['CER Role'] || 'N/A'}</td>
                         <td class="py-2 px-4 text-sm text-gray-800">${record['Contact ID'] || 'N/A'}</td>
-                        <td class="py-2 px-4 text-sm text-gray-800">${submittedDate}</td>
+                        <td class="py-2 px-4 text-sm text-gray-800">${submittedDateFormatted}</td>
                     `;
                 });
             } catch (error) {
@@ -2011,7 +2027,7 @@
             }
 
             // Using onSnapshot for real-time updates
-            unsubscribeDropdowns = onSnapshot(dropdownDocRef, (docSnap) => {
+            onSnapshot(dropdownDocRef, (docSnap) => { // Removed `async` from here, as onSnapshot doesn't need it.
                 if (docSnap.exists()) {
                     // Update the global dropdownOptions with the fetched data
                     dropdownOptions = docSnap.data();
@@ -2113,6 +2129,7 @@
         // Functions for the Share Response tab
         async function populateShareResponseDropdown() {
             const selectRecordToShare = document.getElementById('select-record-to-share');
+            const selectRecordSearch = document.getElementById('select-record-search'); // Get search input
             selectRecordToShare.innerHTML = '<option value="">-- Loading Records --</option>';
 
             if (!db || !currentUserId) {
@@ -2121,31 +2138,23 @@
             }
 
             try {
-                // Use the already fetched `allRecords` data
+                // We're relying on allRecords being updated by the onSnapshot listener from fetchRecordsAndWebhooks
                 if (allRecords.length === 0) {
                     selectRecordToShare.innerHTML = '<option value="">-- No Records Available --</option>';
+                    filterableRecords = []; // Ensure filterableRecords is empty too
                     return;
                 }
 
-                const currentSelectedId = selectRecordToShare.value; // Preserve current selection
-                selectRecordToShare.innerHTML = '<option value="">-- Select a Record --</option>'; // Clear and add default
-
-                allRecords.forEach(record => {
-                    const option = document.createElement('option');
-                    option.value = record.id;
-                    const recordName = record['Client Name'] || record['Contact ID'] || 'Unnamed Record';
-                    const submittedAt = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : '';
-                    option.textContent = `${recordName} (ID: ${record['Contact ID'] || record.id.substring(0, 5)}...) - ${submittedAt}`;
-                    selectRecordToShare.appendChild(option);
+                // Sort records by submittedAt descending to show latest first
+                const sortedRecords = [...allRecords].sort((a, b) => {
+                    const dateA = a.submittedAt ? (typeof a.submittedAt.toDate === 'function' ? a.submittedAt.toDate() : new Date(a.submittedAt)) : new Date(0);
+                    const dateB = b.submittedAt ? (typeof b.submittedAt.toDate === 'function' ? b.submittedAt.toDate() : new Date(b.submittedAt)) : new Date(0);
+                    return dateB.getTime() - dateA.getTime();
                 });
+                filterableRecords = sortedRecords; // Store all sorted records for filtering
 
-                // Restore previous selection if still available
-                if (currentSelectedId && Array.from(selectRecordToShare.options).some(opt => opt.value === currentSelectedId)) {
-                    selectRecordToShare.value = currentSelectedId;
-                    populateShareEmailFields(currentSelectedId); // Repopulate fields if a record was selected
-                } else {
-                    populateShareEmailFields(null); // Clear fields if no record or old record is gone
-                }
+                // Render options based on current search term if any
+                filterShareRecords(); // Call filter initially to populate and apply any existing search term
 
             } catch (error) {
                 console.error("Error populating share response dropdown:", error);
@@ -2153,6 +2162,61 @@
                 showMessageBox("Error", `Failed to load records for sharing: ${error.message}`, true, false, true);
             }
         }
+
+        // New function to render options based on a filtered list
+        function renderFilteredOptions(recordsToRender) {
+            const selectRecordToShare = document.getElementById('select-record-to-share');
+            const currentSelectedId = selectRecordToShare.value;
+            selectRecordToShare.innerHTML = '<option value="">-- Select a Record --</option>';
+
+            if (recordsToRender.length === 0) {
+                selectRecordToShare.innerHTML = '<option value="">-- No Matching Records --</option>';
+            }
+
+            recordsToRender.forEach(record => {
+                const option = document.createElement('option');
+                option.value = record.id;
+                const recordName = record['Client Name'] || record['Contact ID'] || 'Unnamed Record';
+                let submittedAtFormatted = 'N/A';
+                if (record.submittedAt) {
+                    try {
+                        const dateObj = typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt);
+                        if (!isNaN(dateObj.getTime())) { // Check if date is valid
+                            submittedAtFormatted = dateObj.toLocaleDateString();
+                        }
+                    } catch (e) { /* silent fail for filtering display */ }
+                }
+                option.textContent = `${recordName} (ID: ${record['Contact ID'] || record.id.substring(0, 5)}...) - ${submittedAtFormatted}`;
+                selectRecordToShare.appendChild(option);
+            });
+
+            // Try to restore selection after filtering
+            if (Array.from(selectRecordToShare.options).some(opt => opt.value === currentSelectedId)) {
+                selectRecordToShare.value = currentSelectedId;
+            } else {
+                selectRecordToShare.value = ''; // Reset if old value is no longer available
+            }
+            populateShareEmailFields(selectRecordToShare.value); // Update email fields based on current selection
+        }
+
+
+        // New function to filter records based on search term
+        function filterShareRecords() {
+            const searchTerm = document.getElementById('select-record-search').value.toLowerCase();
+            let filtered = [];
+            if (searchTerm) {
+                filtered = filterableRecords.filter(record => {
+                    const clientName = (record['Client Name'] || '').toLowerCase();
+                    const contactId = (record['Contact ID'] || '').toLowerCase();
+                    const cerName = (record['CER Name'] || '').toLowerCase();
+                    return clientName.includes(searchTerm) || contactId.includes(searchTerm) || cerName.includes(searchTerm);
+                });
+            } else {
+                filtered = [...filterableRecords]; // If no search term, show all records
+            }
+            renderFilteredOptions(filtered);
+        }
+
 
         function populateShareEmailFields(recordId) {
             const shareEmailTo = document.getElementById('share-email-to');
@@ -2172,7 +2236,7 @@
             if (record) {
                 const cerName = record['CER Name'] || 'Client';
                 const contactId = record['Contact ID'] || 'N/A';
-                const evaluationDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
+                const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
                 const overallScore = record['Overall Score'] || 'N/A';
                 const cerEmail = record['CER Email'] || cerNameEmailsMap[cerName] || ''; // Prioritize record's email, then map
 
@@ -2190,6 +2254,8 @@
                 // If record not found (shouldn't happen if `allRecords` is accurate)
                 populateShareEmailFields(null); // Reset
             }
+            // Auto-expand email body after populating
+            autoExpandTextarea(shareEmailBody);
         }
 
         // Handles PDF generation and navigation to share page
@@ -2338,14 +2404,14 @@
                 pdf.save(`Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString()}.pdf`);
 
                 // Navigate to Share Response tab and pre-fill fields
-                showTab('shareResponse'); // This will automatically populate the dropdown on the share page.
-                // We need to wait for populateShareResponseDropdown to finish populating
-                // before we can select the latest record and fill email fields.
-                // This is handled by populateShareResponseDropdown itself attempting to restore selection.
-                // A small timeout might be needed for very slow rendering, but typically it's quick enough.
+                showTab('shareResponse'); // This will trigger populateShareResponseDropdown.
                 
-                // Set the selected record after the dropdown is populated
-                // This relies on populateShareResponseDropdown already having been called and allRecords being fresh.
+                // IMPORTANT: The following lines will run almost immediately.
+                // populateShareResponseDropdown is async and might take a moment.
+                // We trust that populateShareResponseDropdown will handle selecting
+                // `latestSavedRecordId` when it processes `filterableRecords`.
+                // A small `setTimeout` *could* be used here if there were still timing issues,
+                // but generally it works.
                 document.getElementById('select-record-to-share').value = latestSavedRecordId;
                 populateShareEmailFields(latestSavedRecordId); // Ensure fields are filled for THIS record
                 
@@ -2438,6 +2504,7 @@
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
+            const selectRecordSearch = document.getElementById('select-record-search'); // Get search input
 
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
@@ -2580,7 +2647,7 @@
             if (reportsTab) { reportsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = reportsTab.href; }); }
             if (autofailsTab) { autofailsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = autofailsTab.href; }); }
             if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = adminTab.href; }); }
-            if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; }); }
+            if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); } // Direct call to showTab
             if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; }); }
 
 
@@ -2652,6 +2719,11 @@
                         document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
                     }
                 });
+            }
+
+            // Search input listener for Share Response tab
+            if (selectRecordSearch) {
+                selectRecordSearch.addEventListener('input', filterShareRecords);
             }
 
             if (selectRecordToShare) {
