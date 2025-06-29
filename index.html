@@ -140,60 +140,68 @@
 
         /* Navigation styles */
         .main-nav {
-            width: auto; /* Width will be determined by sidebar */
-            background-color: transparent; /* Main nav itself won't have a background */
-            color: inherit;
-            padding: 0;
-            display: block; /* No longer a flex container at this level */
-            box-shadow: none;
-            height: calc(100vh - 48px); /* Adjusted height to account for new top header */
+            width: 125px; /* Fixed width for the sidebar */
+            background-color: #800080; /* Purple color */
+            color: white;
+            padding: 1rem 0; /* Vertical padding */
+            height: calc(100vh - 48px); /* Adjusted height for top header */
             position: fixed;
             top: 48px; /* Positioned below the new top header */
             left: 0;
             z-index: 100;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .main-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1; /* Allows the list to take available space */
         }
 
         .sidebar ul li a {
             color: white;
             text-decoration: none;
             font-weight: 500;
-            padding: 0.75rem 0.5rem; /* Reduced horizontal padding for smaller sidebar */
+            padding: 0.75rem 0.5rem;
             display: block; /* Make the whole area clickable */
             border-radius: 0;
             transition: background-color 0.3s ease;
-            display: flex; /* Align icon and text */
-            flex-direction: column; /* Stack icon and text vertically for smaller width */
+            display: flex;
+            flex-direction: column;
             align-items: center;
             gap: 0.25rem;
-            font-size: 0.75rem; /* Smaller font size */
+            font-size: 0.75rem;
             text-align: center;
         }
 
-        /* Keep the existing active/hover state, as it's a darker blue from the original theme. */
+        /* Keep the existing active/hover state, but maybe change color for purple theme */
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #0d47a1; /* This will remain the darker blue as it was */
+            background-color: #6a006a; /* A darker shade of purple for hover/active */
         }
 
         .logout-button {
             background-color: #f57c00; /* icealion-orange */
             color: white;
-            padding: 0.5rem 0.75rem; /* Adjusted padding */
+            padding: 0.5rem 0.75rem;
             border-radius: 0.375rem;
             font-weight: 600;
             cursor: pointer;
             border: none;
             transition: background-color 0.3s ease;
-            margin: 1rem auto; /* Center the button horizontally */
-            width: calc(100% - 2rem); /* Adjust width for margin on both sides (1rem * 2) */
-            font-size: 0.75rem; /* Smaller font size */
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
         }
         .logout-button:hover {
             background-color: #e65100;
         }
 
         /* Adjust main content containers to account for the sidebar width AND new top header height */
-        /* IMPORTANT: Make these rules specific to content divs */
         #auditFormContent.container.mx-auto,
         #databaseContent.container.mx-auto,
         #shareResponseContent.container.mx-auto {
@@ -207,23 +215,22 @@
         
         /* Login container redesign */
         .login-container {
-            position: fixed; /* Use fixed for full overlay */
+            position: fixed;
             top: 0;
             left: 0;
-            width: 100vw; /* Full viewport width */
-            height: 100vh; /* Full viewport height */
-            display: flex; /* Use flexbox to center content */
-            align-items: center; /* Center vertically */
-            justify-content: center; /* Center horizontally */
-            background-color: #f3f4f6; /* Match body background for seamless look */
-            z-index: 1000; /* Ensure it's on top */
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f3f4f6;
+            z-index: 1000;
         }
-        /* Adjust the inner login box size */
         .login-container .container.mx-auto {
-            max-width: 320px; /* Make the login form much smaller */
-            border-radius: 0.5rem; /* Rounded corners for the login box */
-            min-height: auto; /* Let height adapt to content */
-            margin: auto; /* Explicitly center the inner box within the flex container */
+            max-width: 320px;
+            border-radius: 0.5rem;
+            min-height: auto;
+            margin: auto;
         }
 
 
@@ -621,7 +628,7 @@
                     </thead>
                     <tbody id="lastEvaluationsTableBody">
                         <tr>
-                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
+                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">No previous evaluations found for this CER.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1848,9 +1855,9 @@
 
             latestSavedRecordId = await addRecordToFirestore(formData); // Store the ID
             if (latestSavedRecordId) {
-                // Clear the form fields after successful submission, except 'CER Role'
-                resetFormFieldsButKeepRole(); // This will also hide the PDF & Share button
-                // document.getElementById('pdfShareBtn').classList.remove('hidden'); // This line is not needed here
+                // IMPORTANT: Removed resetFormFieldsButKeepRole() call from here
+                // to allow the PDF & Share button to appear with the current form data context.
+                document.getElementById('pdfShareBtn').classList.remove('hidden'); // Show PDF & Share button
             }
         }; // END of window.saveFormToDB
 
@@ -1896,7 +1903,8 @@
             // Recalculate score after resetting everything
             calculateScore();
 
-            document.getElementById('pdfShareBtn').classList.add('hidden'); // Hide PDF & Share after form reset
+            // IMPORTANT: Removed this line from here as it was causing the button to be hidden immediately after save.
+            // document.getElementById('pdfShareBtn').classList.add('hidden');
             latestSavedRecordId = null; // Clear latest saved record ID
         }
 
