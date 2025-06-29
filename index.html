@@ -601,10 +601,10 @@
                 <div class="flex items-center justify-between w-full mt-4">
                     <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION%0AGROUP" alt="ICEALION Logo" class="h-12 rounded-md">
                     <div class="flex space-x-4">
-                        <button type="button" id="pdfEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
+                        <button type="button" id="pdfEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             PDF & Email (Direct Send)
                         </button>
-                        <button type="button" id="pdfShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
+                        <button type="button" id="pdfShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             PDF & Share
                         </button>
                         <button type="submit" id="saveFormBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
@@ -1360,8 +1360,8 @@
                     document.getElementById('caQuestionsContainer').innerHTML = '';
                     calculateScore(); // Recalculate score if questions are cleared
                 }
-                document.getElementById('pdfShareBtn').classList.add('hidden'); // Hide PDF & Share when form is shown
-                document.getElementById('pdfEmailDirectBtn').classList.add('hidden'); // Hide PDF & Email (Direct Send)
+                // PDF buttons visibility is now only handled by saveFormToDB/resetFormFieldsButKeepRole
+                // and their initial hidden state in HTML. No need to hide them here explicitly.
             } else if (tabName === 'database') {
                 if (databaseTab) databaseTab.classList.add('active');
                 if (databaseContent) databaseContent.style.display = 'block';
@@ -1914,8 +1914,9 @@
             // Recalculate score after resetting everything
             calculateScore();
 
-            document.getElementById('pdfShareBtn').classList.add('hidden'); // Hide PDF & Share after form reset
-            document.getElementById('pdfEmailDirectBtn').classList.add('hidden'); // Hide new button after form reset
+            // IMPORTANT: Removed this line from here as it was causing the button to be hidden immediately after save.
+            // document.getElementById('pdfShareBtn').classList.add('hidden');
+            // document.getElementById('pdfEmailDirectBtn').classList.add('hidden'); // Also hide new button on full reset
             latestSavedRecordId = null; // Clear latest saved record ID
         }
 
@@ -2308,63 +2309,30 @@
                 clone.style.fontSize = '12px'; // Base font size for PDF capture
                 clone.style.fontFamily = 'Inter, sans-serif';
 
-                // Remove buttons and other interactive elements from the clone
-                const elementsToRemove = clone.querySelectorAll('button, select, input[type="email"], input[type="date"], input[type="datetime-local"], input[type="text"]');
-                elementsToRemove.forEach(el => {
-                    if (el.tagName === 'BUTTON') {
-                        el.remove();
-                    } else if (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !el.classList.contains('points-input'))) {
-                        // Replace select/input fields with their current values as plain text
+                // --- IMPORTANT: Replace live form elements with their static values in the clone ---
+                clone.querySelectorAll('input, select, textarea').forEach(el => {
+                    if (el.id === 'reviewer-name' || el.id === 'cer-name' || el.id === 'cer-role' || el.id === 'autofail-type' || el.classList.contains('rating-select')) {
+                        // For select/dropdowns, replace with text content of selected option
                         const valueSpan = document.createElement('span');
-                        if (el.tagName === 'SELECT' && el.value) {
-                            // For select, use textContent of selected option if it exists, otherwise value
-                            const selectedOption = el.querySelector(`option[value="${el.value}"]`);
-                            valueSpan.textContent = selectedOption ? selectedOption.textContent : el.value;
-                        } else if (el.value) {
-                            valueSpan.textContent = el.value;
-                        } else {
-                            valueSpan.textContent = 'N/A'; // Or some other placeholder
-                        }
-                        valueSpan.style.borderBottom = '1px solid #ccc'; // Simulate input appearance
-                        valueSpan.style.padding = '2px 5px';
-                        valueSpan.style.display = 'inline-block';
-                        valueSpan.style.minWidth = '50px';
+                        valueSpan.textContent = el.options[el.selectedIndex] ? el.options[el.selectedIndex].textContent : el.value;
+                        el.parentNode.replaceChild(valueSpan, el);
+                    } else if (el.tagName === 'TEXTAREA') {
+                        // For textareas, replace with a div that preserves newlines
+                        const valueDiv = document.createElement('div');
+                        valueDiv.style.whiteSpace = 'pre-wrap';
+                        valueDiv.textContent = el.value;
+                        el.parentNode.replaceChild(valueDiv, el);
+                    } else if (el.tagName === 'INPUT') {
+                        // For other inputs, replace with a span
+                        const valueSpan = document.createElement('span');
+                        valueSpan.textContent = el.value;
                         el.parentNode.replaceChild(valueSpan, el);
                     }
                 });
-                 // Handle remarks textareas - they need to show their full content
-                 const remarksTextareas = clone.querySelectorAll('textarea.remarks-textarea');
-                 remarksTextareas.forEach(textarea => {
-                     const originalText = textarea.value;
-                     const textDiv = document.createElement('div');
-                     textDiv.style.whiteSpace = 'pre-wrap'; // Preserve line breaks
-                     textDiv.style.wordBreak = 'break-word';
-                     textDiv.style.border = '1px solid #ccc';
-                     textDiv.style.padding = '5px';
-                     textDiv.style.minHeight = '48px';
-                     textDiv.textContent = originalText;
-                     textarea.parentNode.replaceChild(textDiv, textarea);
-                 });
 
-                // Set actual values for dynamic elements like points and scores
-                const pointsInputs = clone.querySelectorAll('.points-input');
-                pointsInputs.forEach(input => {
-                    const valueSpan = document.createElement('span');
-                    valueSpan.textContent = input.value;
-                    input.parentNode.replaceChild(valueSpan, input);
-                });
-                // Update overall score and business compliance for display in PDF
-                const overallScoreDisplayClone = clone.querySelector('#overall-score-display');
-                if(overallScoreDisplayClone) overallScoreDisplayClone.textContent = record['Overall Score'] || '0%';
+                // Remove buttons from the clone
+                clone.querySelectorAll('button').forEach(btn => btn.remove());
 
-                const businessComplianceAccuracyClone = clone.querySelector('#business-compliance-accuracy');
-                if(businessComplianceAccuracyClone) businessComplianceAccuracyClone.textContent = record['Business & Compliance Accuracy'] || '0%';
-
-                // Remove the "Last 3 Evaluations" section from the clone if it should not be in PDF
-                const lastEvaluationsSection = clone.querySelector('.p-6:last-of-type'); // Adjust selector if needed
-                if (lastEvaluationsSection) {
-                    lastEvaluationsSection.remove();
-                }
 
                 // Append clone to body to be rendered by html2canvas
                 document.body.appendChild(clone);
@@ -2373,7 +2341,7 @@
                     scale: 2, // Higher scale for better quality, might increase file size
                     useCORS: true,
                     logging: false,
-                    // Specific coordinates to capture only the cloned content
+                    // Capture only the clone's content
                     x: clone.offsetLeft,
                     y: clone.offsetTop,
                     width: clone.offsetWidth,
@@ -2435,7 +2403,7 @@
                 // showMessageBox("PDF Generated & Ready to Share", "The PDF has been downloaded. You've been redirected to the Share Response page to send the email. **Remember to attach the downloaded PDF manually.**", false, false, true);
 
             } catch (error) {
-                console.error("Error generating PDF or navigating to share page:", error);
+                console.error("Error generating PDF or preparing for sharing:", error);
                 hideMessageBox();
                 showMessageBox("Action Failed", `Could not generate PDF or prepare for sharing: ${error.message}. Please try again.`, true, false, true);
             }
@@ -2473,62 +2441,34 @@
                 clone.style.fontSize = '12px'; // Base font size for PDF capture
                 clone.style.fontFamily = 'Inter, sans-serif';
 
-                // Remove buttons and other interactive elements from the clone
-                const elementsToRemove = clone.querySelectorAll('button, select, input[type="email"], input[type="date"], input[type="datetime-local"], input[type="text"]');
-                elementsToRemove.forEach(el => {
-                    if (el.tagName === 'BUTTON') {
-                        el.remove();
-                    } else if (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !el.classList.contains('points-input'))) {
+                // --- IMPORTANT: Replace live form elements with their static values in the clone ---
+                clone.querySelectorAll('input, select, textarea').forEach(el => {
+                    if (el.id === 'reviewer-name' || el.id === 'cer-name' || el.id === 'cer-role' || el.id === 'autofail-type' || el.classList.contains('rating-select')) {
+                        // For select/dropdowns, replace with text content of selected option
                         const valueSpan = document.createElement('span');
-                        if (el.tagName === 'SELECT' && el.value) {
-                             const selectedOption = el.querySelector(`option[value="${el.value}"]`);
-                             valueSpan.textContent = selectedOption ? selectedOption.textContent : el.value;
-                        } else if (el.value) {
-                            valueSpan.textContent = el.value;
-                        } else {
-                            valueSpan.textContent = 'N/A';
-                        }
-                        valueSpan.style.borderBottom = '1px solid #ccc';
-                        valueSpan.style.padding = '2px 5px';
-                        valueSpan.style.display = 'inline-block';
-                        valueSpan.style.minWidth = '50px';
+                        valueSpan.textContent = el.options[el.selectedIndex] ? el.options[el.selectedIndex].textContent : el.value;
+                        el.parentNode.replaceChild(valueSpan, el);
+                    } else if (el.tagName === 'TEXTAREA') {
+                        // For textareas, replace with a div that preserves newlines
+                        const valueDiv = document.createElement('div');
+                        valueDiv.style.whiteSpace = 'pre-wrap';
+                        valueDiv.textContent = el.value;
+                        el.parentNode.replaceChild(valueDiv, el);
+                    } else if (el.tagName === 'INPUT') {
+                        // For other inputs, replace with a span
+                        const valueSpan = document.createElement('span');
+                        valueSpan.textContent = el.value;
                         el.parentNode.replaceChild(valueSpan, el);
                     }
                 });
-                const remarksTextareas = clone.querySelectorAll('textarea.remarks-textarea');
-                remarksTextareas.forEach(textarea => {
-                    const originalText = textarea.value;
-                    const textDiv = document.createElement('div');
-                    textDiv.style.whiteSpace = 'pre-wrap';
-                    textDiv.style.wordBreak = 'break-word';
-                    textDiv.style.border = '1px solid #ccc';
-                    textDiv.style.padding = '5px';
-                    textDiv.style.minHeight = '48px';
-                    textDiv.textContent = originalText;
-                    textarea.parentNode.replaceChild(textDiv, textarea);
-                });
 
-                const pointsInputs = clone.querySelectorAll('.points-input');
-                pointsInputs.forEach(input => {
-                    const valueSpan = document.createElement('span');
-                    valueSpan.textContent = input.value;
-                    input.parentNode.replaceChild(valueSpan, input);
-                });
-                const overallScoreDisplayClone = clone.querySelector('#overall-score-display');
-                if(overallScoreDisplayClone) overallScoreDisplayClone.textContent = record['Overall Score'] || '0%';
-
-                const businessComplianceAccuracyClone = clone.querySelector('#business-compliance-accuracy');
-                if(businessComplianceAccuracyClone) businessComplianceAccuracyClone.textContent = record['Business & Compliance Accuracy'] || '0%';
-
-                const lastEvaluationsSection = clone.querySelector('.p-6:last-of-type');
-                if (lastEvaluationsSection) {
-                    lastEvaluationsSection.remove();
-                }
+                // Remove buttons from the clone
+                clone.querySelectorAll('button').forEach(btn => btn.remove());
 
                 document.body.appendChild(clone);
 
                 const canvas = await html2canvas(clone, {
-                    scale: 2, // Higher scale for better quality
+                    scale: 2, // Higher scale for better quality, might increase file size
                     useCORS: true,
                     logging: false,
                     x: clone.offsetLeft,
