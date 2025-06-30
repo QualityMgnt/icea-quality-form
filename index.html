@@ -601,10 +601,10 @@
                 <div class="flex items-center justify-between w-full mt-4">
                     <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION%0AGROUP" alt="ICEALION Logo" class="h-12 rounded-md">
                     <div class="flex space-x-4">
-                        <button type="button" id="pdfEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        <button type="button" id="pdfEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
                             PDF & Email (Direct Send)
                         </button>
-                        <button type="button" id="pdfShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        <button type="button" id="pdfShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
                             PDF & Share
                         </button>
                         <button type="submit" id="saveFormBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
@@ -1097,10 +1097,7 @@
                 const weightageDisplay = rowDiv.querySelector('.weightage-display');
                 const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
                 const questionText = selectElement.name.replace(' (Rating)', '');
-                // hasNA attribute is now ignored for dropdown rendering but still present on element
-                // for historical data or if future logic needs to differentiate.
-                // The current N/A handling grants points regardless of this flag as per request.
-
+                
                 if (!pointsElement || !weightageDisplay) {
                     console.warn(`Missing associated elements for select: ${selectElement.name}`);
                     return;
@@ -1113,7 +1110,8 @@
                 pointsElement.style.backgroundColor = '#e9ecef';
                 pointsElement.style.color = '#555';
 
-                if (rating === 'Yes' || rating === 'N/A') { // N/A now grants full points unconditionally
+                // N/A now grants full points unconditionally, effectively like a "Yes" for scoring
+                if (rating === 'Yes' || rating === 'N/A') { 
                     pointsForThisQuestion = weightage;
                     pointsElement.readOnly = false;
                     pointsElement.style.backgroundColor = '#fff';
@@ -1138,6 +1136,7 @@
                 currentTotalPoints += pointsForThisQuestion;
 
                 // Max possible points should not include questions rated as "Select Rating"
+                // but should include N/A as per the new requirement for calculation.
                 if (rating !== '') { // If any option other than the default placeholder is chosen
                     currentMaxPossiblePoints += weightage;
                 }
@@ -1149,7 +1148,7 @@
                         if (rating === 'Yes' || rating === 'N/A') { // N/A also gives points for compliance
                             complianceCurrentPoints += weightage;
                         }
-                        if (rating !== '') { // Only add to compliance max points if rated
+                        if (rating !== '') { // Only add to compliance max points if rated (not "Select Rating")
                              complianceMaxPoints += weightage;
                         }
                     }
@@ -1236,20 +1235,18 @@
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
                     else iconColorClass = 'icon-bg-yellow';
 
-                    // hasNA is no longer controlling the presence of the N/A option, but is retained as a data attribute
-                    const hasNAAttribute = q.hasNA ? 'data-has-na="true"' : '';
-
-
                     rowDiv.innerHTML = `
                         <div class="col-span-6 flex items-center gap-2 question-description">
                             <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
                             ${q.desc}
                         </div>
                         <div class="col-span-2">
-                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} ${hasNAAttribute}>
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} data-has-na="${q.hasNA}">
                                 <option value="">Select Rating</option>
-                                <option value="Yes" selected>Yes</option> <option value="No">No</option>
-                                <option value="N/A">N/A</option> </select>
+                                <option value="Yes" selected>Yes</option>
+                                <option value="No">No</option>
+                                <option value="N/A">N/A</option>
+                            </select>
                         </div>
                         <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
                         <div class="col-span-1 text-center">
@@ -1302,10 +1299,14 @@
                 messageBoxTitle.style.color = '#1a73e8';
             }
 
-            messageBoxCloseBtn.onclick = () => {
-                messageBoxOverlay.classList.add('hidden');
-                if (onClose) onClose();
-            };
+            // Remove previous event listener to prevent multiple calls
+            messageBoxCloseBtn.onclick = null; 
+            if (showCloseButton) {
+                messageBoxCloseBtn.onclick = () => {
+                    messageBoxOverlay.classList.add('hidden');
+                    if (onClose) onClose();
+                };
+            }
         }
 
         function hideMessageBox() {
@@ -1360,8 +1361,6 @@
                     document.getElementById('caQuestionsContainer').innerHTML = '';
                     calculateScore(); // Recalculate score if questions are cleared
                 }
-                // PDF buttons visibility is now only handled by saveFormToDB/resetFormFieldsButKeepRole
-                // and their initial hidden state in HTML. No need to hide them here explicitly.
             } else if (tabName === 'database') {
                 if (databaseTab) databaseTab.classList.add('active');
                 if (databaseContent) databaseContent.style.display = 'block';
@@ -1404,9 +1403,6 @@
             const recordsTableBody = document.getElementById('recordsTableBody');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const addWebhookBtn = document.getElementById('addWebhookBtn');
-            const webhookList = document.getElementById('webhookList');
 
             if (!db || !currentUserId) { // Use local scope db and currentUserId
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1557,7 +1553,7 @@
 
             if (recordIdsToDelete.length === 0) { showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true); return; }
 
-            const originalMessageBoxContentHTML = messageBoxContentElement.innerHTML;
+            const originalMessageBoxContentHTML = messageBoxContentElement.innerHTML; // Store original content to restore later
             showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
 
             const confirmBtn = document.createElement('button');
@@ -1579,14 +1575,14 @@
                     console.error("Error deleting documents: ", e);
                     showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
                 } finally {
-                    messageBoxContentElement.innerHTML = originalMessageBoxContentHTML;
+                    messageBoxContentElement.innerHTML = originalMessageBoxContentHTML; // Restore content after use
                 }
             };
             const cancelBtn = document.createElement('button');
             cancelBtn.textContent = 'Cancel';
             cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-            cancelBtn.onclick = () => { hideMessageBox(); messageBoxContentElement.innerHTML = originalMessageBoxContentHTML; };
-            messageBoxContentElement.innerHTML = '';
+            cancelBtn.onclick = () => { hideMessageBox(); messageBoxContentElement.innerHTML = originalMessageBoxContentHTML; }; // Restore content on cancel
+            messageBoxContentElement.innerHTML = ''; // Clear content before adding new buttons
             messageBoxContentElement.appendChild(confirmBtn);
             messageBoxContentElement.appendChild(cancelBtn);
             messageBoxCloseBtnElement.classList.add('hidden'); // Hide the default OK button
@@ -1619,6 +1615,7 @@
                     const webhookId = e.target.closest('button').dataset.webhookId;
                     const messageBoxContentElement = document.getElementById('messageBoxContent');
                     const messageBoxCloseBtnElement = document.getElementById('messageBoxCloseBtn');
+                    const originalMessageBoxContentHTML = messageBoxContentElement.innerHTML;
 
                     showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, false);
                     const confirmBtn = document.createElement('button');
@@ -1633,6 +1630,8 @@
                         } catch (e) {
                             console.error("Error deleting webhook: ", e);
                             showMessageBox("Failed to Delete Webhook", `Error: ${e.message}`, true, false, true);
+                        } finally {
+                            messageBoxContentElement.innerHTML = originalMessageBoxContentHTML;
                         }
                     };
                     const cancelBtn = document.createElement('button');
@@ -1706,7 +1705,12 @@
                             }
                         }
                     }
-                    detailsHtml += `<b>${key}:</b> ${JSON.stringify(value, null, 2).replace(/"/g, '')}\n`;
+                    // Handle objects and arrays more gracefully than just JSON.stringify
+                    if (typeof value === 'object' && value !== null) {
+                        detailsHtml += `<b>${key}:</b>\n${JSON.stringify(value, null, 2)}\n`;
+                    } else {
+                        detailsHtml += `<b>${key}:</b> ${value}\n`;
+                    }
                 }
             }
             detailsHtml += '</pre>';
@@ -1901,7 +1905,7 @@
             const allRatingSelects = form.querySelectorAll('.rating-select');
             allRatingSelects.forEach(selectElement => {
                 // Set default to "Yes" as per new requirement
-                selectElement.value = 'Yes'; 
+                selectElement.value = 'Yes';  
                 const remarksInput = selectElement.closest('.grid').querySelector('.remarks-textarea');
                 const pointsInput = selectElement.closest('.grid').querySelector('.points-input');
                 if (remarksInput) remarksInput.value = '';
@@ -1909,14 +1913,14 @@
             });
             
             // Re-render questions for the stored role to reset their state and points
-            renderQuestionsForRole(currentRole); 
+            renderQuestionsForRole(currentRole);  
 
             // Recalculate score after resetting everything
             calculateScore();
 
-            // IMPORTANT: Removed this line from here as it was causing the button to be hidden immediately after save.
-            // document.getElementById('pdfShareBtn').classList.add('hidden');
-            // document.getElementById('pdfEmailDirectBtn').classList.add('hidden'); // Also hide new button on full reset
+            // Hide PDF buttons after a full form reset (e.g., if user decides to start fresh)
+            document.getElementById('pdfShareBtn').classList.add('hidden');
+            document.getElementById('pdfEmailDirectBtn').classList.add('hidden');
             latestSavedRecordId = null; // Clear latest saved record ID
         }
 
@@ -2034,7 +2038,7 @@
             }
 
             // Using onSnapshot for real-time updates
-            onSnapshot(dropdownDocRef, (docSnap) => { // Removed `async` from here, as onSnapshot doesn't need it.
+            unsubscribeDropdowns = onSnapshot(dropdownDocRef, (docSnap) => { // Assign unsubscribe function here
                 if (docSnap.exists()) {
                     // Update the global dropdownOptions with the fetched data
                     dropdownOptions = docSnap.data();
@@ -2048,7 +2052,7 @@
                                 cerNameEmailsMap[cer.name] = cer.email;
                             } else if (typeof cer === 'string') {
                                 // Fallback for old string format, try to infer email or leave empty
-                                cerNameEmailsMap[cer] = ''; 
+                                cerNameEmailsMap[cer] = '';  
                             }
                         });
                     }
@@ -2122,7 +2126,7 @@
             // This is important for when the page loads with a role already selected or after data refresh.
             const initialCerRole = cerRoleSelect.value;
             if (initialCerRole) {
-                renderQuestionsForRole(initialCerRole); 
+                renderQuestionsForRole(initialCerRole);  
             } else {
                 // If no role is selected initially, clear question sections and reset score.
                 document.getElementById('cxQuestionsContainer').innerHTML = '';
@@ -2273,13 +2277,111 @@
             autoExpandTextarea(shareEmailBody);
         }
 
+        /**
+         * Takes a snapshot of the current form content and generates a PDF.
+         * This function handles the visual capture for PDF.
+         * @returns {Promise<string>} A promise that resolves with the base64 data URL of the generated PDF.
+         */
+        async function generateFormPdf() {
+            const auditFormContentDiv = document.getElementById('auditFormContent');
+
+            // Store original styles to revert later
+            const originalStyles = [];
+            const elementsToModify = auditFormContentDiv.querySelectorAll('input, select, textarea');
+
+            // Apply temporary styles for better PDF rendering
+            elementsToModify.forEach(el => {
+                // Store original styles
+                originalStyles.push({
+                    element: el,
+                    border: el.style.border,
+                    backgroundColor: el.style.backgroundColor,
+                    color: el.style.color,
+                    readOnly: el.readOnly,
+                    disabled: el.disabled,
+                    pointerEvents: el.style.pointerEvents,
+                    boxShadow: el.style.boxShadow,
+                    resize: el.style.resize
+                });
+
+                // Apply styles for PDF capture
+                el.style.border = '1px solid #ccc'; // Ensure border for clarity
+                el.style.backgroundColor = 'white'; // Solid background
+                el.style.color = '#333'; // Ensure dark text
+                el.readOnly = true; // Make non-interactive
+                el.disabled = true; // Make non-interactive
+                el.style.pointerEvents = 'none'; // Disable pointer events
+                el.style.boxShadow = 'none'; // Remove shadows for cleaner print
+                el.style.resize = 'none'; // Prevent resizing handles from appearing
+            });
+
+            // Temporarily hide buttons and the "Last 3 Evaluations" section for PDF capture
+            const buttonsContainer = auditFormContentDiv.querySelector('.flex.space-x-4');
+            const lastEvaluationsContainer = document.getElementById('lastEvaluationsContainer');
+            const scoresSection = auditFormContentDiv.querySelector('.p-4.rounded-lg.shadow-sm');
+
+            let originalButtonsDisplay = '';
+            if (buttonsContainer) {
+                originalButtonsDisplay = buttonsContainer.style.display;
+                buttonsContainer.style.display = 'none';
+            }
+            let originalLastEvaluationsDisplay = '';
+            if (lastEvaluationsContainer) {
+                originalLastEvaluationsDisplay = lastEvaluationsContainer.style.display;
+                lastEvaluationsContainer.style.display = 'none';
+            }
+            let originalScoresDisplay = '';
+            if (scoresSection) {
+                originalScoresDisplay = scoresSection.style.display;
+                scoresSection.style.display = 'none';
+            }
+
+
+            // Render the element to canvas
+            const canvas = await html2canvas(auditFormContentDiv, {
+                scale: 2, // Higher scale for better quality
+                useCORS: true,
+                logging: false,
+                // These options might be needed if the element is scrolled or has complex positioning
+                // x: auditFormContentDiv.offsetLeft,
+                // y: auditFormContentDiv.offsetTop,
+                // width: auditFormContentDiv.offsetWidth,
+                // height: auditFormContentDiv.offsetHeight,
+                windowWidth: auditFormContentDiv.scrollWidth,
+                windowHeight: auditFormContentDiv.scrollHeight,
+                // Attempt to make it render the full scrollable area
+                scrollY: -window.scrollY, // Correct scrolling for full content capture
+                scrollX: -window.scrollX,
+            });
+
+            // Revert styles and display properties
+            elementsToModify.forEach(elData => {
+                elData.element.style.border = elData.border;
+                elData.element.style.backgroundColor = elData.backgroundColor;
+                elData.element.style.color = elData.color;
+                elData.element.readOnly = elData.readOnly;
+                elData.element.disabled = elData.disabled;
+                elData.element.style.pointerEvents = elData.pointerEvents;
+                elData.element.style.boxShadow = elData.boxShadow;
+                elData.element.style.resize = elData.resize;
+            });
+
+            if (buttonsContainer) {
+                buttonsContainer.style.display = originalButtonsDisplay;
+            }
+            if (lastEvaluationsContainer) {
+                lastEvaluationsContainer.style.display = originalLastEvaluationsDisplay;
+            }
+            if (scoresSection) {
+                scoresSection.style.display = originalScoresDisplay;
+            }
+
+            return canvas.toDataURL('image/jpeg', 0.8); // Return base64 image data
+        }
+
+
         // Handles PDF generation and navigation to share page
         window.handlePdfAndShare = async function() {
-            // First, ensure all current form fields are captured.
-            // If the user clicked "Save" recently, `latestSavedRecordId` will hold it.
-            // If they clicked "PDF & Share" without saving recently, we need to consider if we should
-            // re-save the form first, or just generate a PDF of the *current state of the form*.
-            // For now, let's assume `latestSavedRecordId` holds the data for the PDF.
             if (!latestSavedRecordId) {
                 showMessageBox("Error", "Please save the evaluation form first to generate a PDF.", true, false, true);
                 return;
@@ -2294,67 +2396,7 @@
             showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
-                const auditFormContentDiv = document.getElementById('auditFormContent');
-
-                // Temporarily clone the form content to remove interactive elements before rendering to canvas
-                const clone = auditFormContentDiv.cloneNode(true);
-                clone.style.position = 'absolute'; // Position off-screen
-                clone.style.top = '-9999px';
-                clone.style.left = '-9999px';
-                clone.style.zIndex = '-1';
-                clone.style.width = '210mm'; // Set a fixed width for consistent PDF output
-                clone.style.padding = '20mm'; // Add some padding to the cloned content
-                clone.style.backgroundColor = 'white'; // Ensure background is white for printing
-                clone.style.color = '#333'; // Ensure text color is readable
-                clone.style.fontSize = '12px'; // Base font size for PDF capture
-                clone.style.fontFamily = 'Inter, sans-serif';
-
-                // --- IMPORTANT: Replace live form elements with their static values in the clone ---
-                clone.querySelectorAll('input, select, textarea').forEach(el => {
-                    const valueSpan = document.createElement('span');
-                    valueSpan.style.display = 'inline-block'; // Make it behave like an input for layout
-                    valueSpan.style.width = 'calc(100% - 10px)'; // Adjust width if needed
-                    valueSpan.style.borderBottom = '1px solid #ccc'; // Simulate input appearance
-                    valueSpan.style.padding = '2px 5px';
-                    valueSpan.style.minWidth = '50px';
-                    valueSpan.style.verticalAlign = 'bottom'; // Align with labels
-
-                    if (el.tagName === 'SELECT') {
-                        valueSpan.textContent = el.options[el.selectedIndex] ? el.options[el.selectedIndex].textContent : el.value;
-                    } else if (el.tagName === 'TEXTAREA') {
-                        valueSpan.style.whiteSpace = 'pre-wrap'; // Preserve newlines
-                        valueSpan.style.wordBreak = 'break-word';
-                        valueSpan.style.minHeight = '48px'; // Keep min-height for textareas
-                        valueSpan.textContent = el.value;
-                    } else { // All other inputs (text, date, datetime-local, email, number)
-                        valueSpan.textContent = el.value;
-                    }
-                    el.parentNode.replaceChild(valueSpan, el);
-                });
-
-                // Remove buttons and other non-printable elements from the clone
-                clone.querySelectorAll('button, #lastEvaluationsContainer').forEach(element => element.remove());
-                // Remove the scores summary section as it's typically separate from the main form body in print
-                const scoresSectionClone = clone.querySelector('.p-4.rounded-lg.shadow-sm');
-                if (scoresSectionClone) {
-                    scoresSectionClone.remove();
-                }
-
-                document.body.appendChild(clone); // Append clone to body to be rendered by html2canvas
-
-                const canvas = await html2canvas(clone, {
-                    scale: 2, // Higher scale for better quality, might increase file size
-                    useCORS: true,
-                    logging: false,
-                    x: clone.offsetLeft,
-                    y: clone.offsetTop,
-                    width: clone.offsetWidth,
-                    height: clone.offsetHeight
-                });
-
-                document.body.removeChild(clone); // Remove the clone after capture
-
-                const imgData = canvas.toDataURL('image/jpeg', 0.8); // 0.8 for good balance of quality and size
+                const imgData = await generateFormPdf(); // Use the new helper function
 
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
@@ -2365,7 +2407,8 @@
 
                 const imgWidth = 210; // A4 width in mm
                 const pageHeight = 297; // A4 height in mm
-                const imgHeight = canvas.height * imgWidth / canvas.width;
+                // Calculate imgHeight based on actual canvas dimensions to ensure proper scaling
+                const imgHeight = (canvas.height * imgWidth) / canvas.width; 
                 let heightLeft = imgHeight;
 
                 let position = 0;
@@ -2422,67 +2465,7 @@
             showMessageBox("Generating PDF for Email", "Please wait, generating PDF document and preparing email...", false, true, false);
 
             try {
-                const auditFormContentDiv = document.getElementById('auditFormContent');
-
-                // Temporarily clone the form content for PDF generation
-                const clone = auditFormContentDiv.cloneNode(true);
-                clone.style.position = 'absolute'; // Position off-screen
-                clone.style.top = '-9999px';
-                clone.style.left = '-9999px';
-                clone.style.zIndex = '-1';
-                clone.style.width = '210mm'; // Set a fixed width for consistent PDF output
-                clone.style.padding = '20mm'; // Add some padding to the cloned content
-                clone.style.backgroundColor = 'white'; // Ensure background is white for printing
-                clone.style.color = '#333'; // Ensure text color is readable
-                clone.style.fontSize = '12px'; // Base font size for PDF capture
-                clone.style.fontFamily = 'Inter, sans-serif';
-
-                // --- IMPORTANT: Replace live form elements with their static values in the clone ---
-                clone.querySelectorAll('input, select, textarea').forEach(el => {
-                    const valueSpan = document.createElement('span');
-                    valueSpan.style.display = 'inline-block'; // Make it behave like an input for layout
-                    valueSpan.style.width = 'calc(100% - 10px)'; // Adjust width if needed
-                    valueSpan.style.borderBottom = '1px solid #ccc'; // Simulate input appearance
-                    valueSpan.style.padding = '2px 5px';
-                    valueSpan.style.minWidth = '50px';
-                    valueSpan.style.verticalAlign = 'bottom'; // Align with labels
-
-                    if (el.tagName === 'SELECT') {
-                        valueSpan.textContent = el.options[el.selectedIndex] ? el.options[el.selectedIndex].textContent : el.value;
-                    } else if (el.tagName === 'TEXTAREA') {
-                        valueSpan.style.whiteSpace = 'pre-wrap'; // Preserve newlines
-                        valueSpan.style.wordBreak = 'break-word';
-                        valueSpan.style.minHeight = '48px'; // Keep min-height for textareas
-                        valueSpan.textContent = el.value;
-                    } else { // All other inputs (text, date, datetime-local, email, number)
-                        valueSpan.textContent = el.value;
-                    }
-                    el.parentNode.replaceChild(valueSpan, el);
-                });
-
-                // Remove buttons and other non-printable elements from the clone
-                clone.querySelectorAll('button, #lastEvaluationsContainer').forEach(element => element.remove());
-                // Remove the scores summary section as it's typically separate from the main form body in print
-                const scoresSectionClone = clone.querySelector('.p-4.rounded-lg.shadow-sm');
-                if (scoresSectionClone) {
-                    scoresSectionClone.remove();
-                }
-
-                document.body.appendChild(clone);
-
-                const canvas = await html2canvas(clone, {
-                    scale: 2, // Higher scale for better quality
-                    useCORS: true,
-                    logging: false,
-                    x: clone.offsetLeft,
-                    y: clone.offsetTop,
-                    width: clone.offsetWidth,
-                    height: clone.offsetHeight
-                });
-
-                document.body.removeChild(clone);
-
-                const imgData = canvas.toDataURL('image/jpeg', 0.8); // JPEG quality
+                const imgData = await generateFormPdf(); // Use the new helper function
 
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
@@ -2493,7 +2476,8 @@
 
                 const imgWidth = 210;
                 const pageHeight = 297;
-                const imgHeight = canvas.height * imgWidth / canvas.width;
+                // Calculate imgHeight based on actual canvas dimensions to ensure proper scaling
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 let heightLeft = imgHeight;
                 let position = 0;
 
@@ -2527,8 +2511,8 @@
                     `Kind Regards,\n${loggedInUserName}`;
 
                 const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}` +
-                                   `?subject=${encodeURIComponent(emailSubject)}` +
-                                   `&body=${encodeURIComponent(emailBody)}`;
+                                     `?subject=${encodeURIComponent(emailSubject)}` +
+                                     `&body=${encodeURIComponent(emailBody)}`;
 
                 window.location.href = mailtoLink;
 
@@ -2707,9 +2691,9 @@
                         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                             loginMessage.textContent = 'Invalid email or password.';
                         } else if (error.code === 'auth/invalid-email') {
-                             loginMessage.textContent = 'Please enter a valid email address.';
+                            loginMessage.textContent = 'Please enter a valid email address.';
                         } else if (error.code === 'auth/too-many-requests') {
-                             loginMessage.textContent = 'Too many login attempts. Please try again later.';
+                            loginMessage.textContent = 'Too many login attempts. Please try again later.';
                         }
                         else {
                             loginMessage.textContent = `Login failed: ${error.message}`;
@@ -2765,7 +2749,7 @@
 
 
             if (selectAllRecordsCheckbox) {
-                 selectAllRecordsCheckbox.addEventListener('change', () => {
+                   selectAllRecordsCheckbox.addEventListener('change', () => {
                     const isChecked = selectAllRecordsCheckbox.checked;
                     document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                         checkbox.checked = isChecked;
@@ -2813,12 +2797,22 @@
                 cerRoleSelect.addEventListener('change', (event) => {
                     const selectedRole = event.target.value;
                     renderQuestionsForRole(selectedRole); // Call the hoisted function
-                    // No need to call resetFormFieldsButKeepRole here if you just want to render questions
-                    // and keep other main fields as is when only role changes.
-                    // If you want to reset all question ratings and remarks when the role changes,
-                    // you would add a call like: resetQuestionRatingsAndRemarks();
                 });
             }
+
+            if (cerNameSelect) {
+                cerNameSelect.addEventListener('change', (event) => {
+                    const selectedCerName = event.target.value;
+                    const cerEmail = cerNameEmailsMap[selectedCerName] || '';
+                    cerEmailInput.value = cerEmail;
+                    if (selectedCerName) {
+                        fetchLastThreeEvaluations(selectedCerName);
+                    } else {
+                        document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
+                    }
+                });
+            }
+
 
             // Search input listener for Share Response tab
             if (selectRecordSearch) {
