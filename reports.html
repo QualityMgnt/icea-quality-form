@@ -126,9 +126,81 @@
             max-width: 900px; /* Limit width of reports content */
             margin: 0 auto; /* Center it */
         }
+
+        /* Message Box styles (copied from index.html for consistency) */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a73e8;
+        }
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .message-box button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .message-box button:hover {
+            background-color: #0d47a1;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1a73e8;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
+    <!-- Message Box Overlay (for loading, errors, confirmations) -->
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="spinner hidden"></div>
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseBtn" class="hidden">OK</button>
+        </div>
+    </div>
+
     <!-- Main Navigation / Sidebar -->
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
@@ -161,8 +233,8 @@
                 </p>
 
                 <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Sample Report Placeholder</h3>
-                <div class="border border-gray-300 p-4 rounded-md bg-gray-50 min-h-[200px] flex items-center justify-center text-gray-500">
-                    <p>Charts and data visualizations will appear here.</p>
+                <div id="reportDisplayArea" class="border border-gray-300 p-4 rounded-md bg-gray-50 min-h-[200px] flex items-center justify-center text-gray-500 text-center">
+                    <p>Click "Generate Report" to see data.</p>
                 </div>
 
                 <div class="mt-8">
@@ -182,7 +254,7 @@
                             <input type="month" id="dateRange" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
                         </div>
                     </div>
-                    <button class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
+                    <button id="generateReportBtn" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
                         Generate Report
                     </button>
                 </div>
@@ -193,8 +265,10 @@
 
     <!-- Firebase SDK (Basic setup for logout functionality and consistency) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signOut, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
 
         // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
@@ -210,13 +284,64 @@
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        // Initialize Firebase App and Services ONCE
+        let appInstance;
+        if (!getApps().length) {
+            appInstance = initializeApp(firebaseConfig);
+        } else {
+            appInstance = getApp();
+        }
+        const auth = getAuth(appInstance);
+        const db = getFirestore(appInstance); // Initialize Firestore
 
-        // Expose window.auth for consistency
         window.auth = auth;
         window.currentUserId = null;
         window.isAuthReady = false;
+
+        // Firestore Collection Path (consistent with index.html)
+        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+
+        // Message Box functions (copied from index.html for consistency)
+        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+            const messageBoxTitle = document.getElementById('messageBoxTitle');
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+
+            messageBoxTitle.textContent = title;
+            if (typeof message === 'string' && message.startsWith('<pre>')) {
+                messageBoxContent.innerHTML = message;
+                messageBoxContent.classList.add('message-box-content-pre');
+            } else {
+                messageBoxContent.textContent = message;
+                messageBoxContent.classList.remove('message-box-content-pre');
+            }
+
+            messageBoxOverlay.classList.remove('hidden');
+            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
+
+            if (isError) {
+                messageBoxTitle.style.color = '#dc2626';
+            } else {
+                messageBoxTitle.style.color = '#1a73e8';
+            }
+
+            messageBoxCloseBtn.onclick = null; 
+            if (showCloseButton) {
+                messageBoxCloseBtn.onclick = () => {
+                    messageBoxOverlay.classList.add('hidden');
+                    if (onClose) onClose();
+                };
+            }
+        }
+
+        function hideMessageBox() {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            messageBoxOverlay.classList.add('hidden');
+        }
+
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -257,11 +382,166 @@
             document.dispatchEvent(new CustomEvent('firebaseAuthReadyReportsPage')); // Custom event for this page
         });
 
+        // Function to generate and display reports
+        async function generateReport() {
+            const reportDisplayArea = document.getElementById('reportDisplayArea');
+            const reportType = document.getElementById('reportType').value;
+            const dateRange = document.getElementById('dateRange').value; // YYYY-MM format
+
+            if (!window.isAuthReady || !window.currentUserId) {
+                showMessageBox("Authentication Required", "Please wait for authentication to complete before generating reports.", false, true, false);
+                return;
+            }
+            if (!db) {
+                showMessageBox("Database Not Ready", "Firestore is not initialized.", true, false, true);
+                return;
+            }
+
+            showMessageBox("Generating Report", "Fetching data and preparing report...", false, true, false);
+
+            reportDisplayArea.innerHTML = '<p class="text-gray-500">Loading report data...</p>';
+
+            try {
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
+                const querySnapshot = await getDocs(recordsColRef);
+                const allRecords = [];
+                querySnapshot.forEach(doc => {
+                    allRecords.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (allRecords.length === 0) {
+                    reportDisplayArea.innerHTML = '<p class="text-gray-500">No evaluation records found to generate a report.</p>';
+                    hideMessageBox();
+                    return;
+                }
+
+                let filteredRecords = allRecords;
+
+                // Apply date range filter if selected
+                if (dateRange) {
+                    filteredRecords = allRecords.filter(record => {
+                        const submittedAt = record.submittedAt;
+                        if (!submittedAt) return false;
+
+                        let recordDate;
+                        try {
+                            recordDate = typeof submittedAt.toDate === 'function' ? submittedAt.toDate() : new Date(submittedAt);
+                            if (isNaN(recordDate.getTime())) return false; // Invalid date
+                        } catch (e) {
+                            return false; // Error parsing date
+                        }
+                        
+                        const recordMonth = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
+                        return recordMonth === dateRange;
+                    });
+                }
+
+                let reportHtml = '';
+                if (filteredRecords.length === 0) {
+                    reportHtml = `<p class="text-gray-500">No records found for the selected criteria (Report Type: ${reportType || 'All'}, Date Range: ${dateRange || 'All'}).</p>`;
+                } else {
+                    switch (reportType) {
+                        case 'overallScore':
+                            // Calculate average overall score
+                            let totalScore = 0;
+                            let validScoresCount = 0;
+                            filteredRecords.forEach(record => {
+                                const scoreStr = record['Overall Score'];
+                                if (scoreStr && scoreStr.endsWith('%')) {
+                                    const score = parseFloat(scoreStr.replace('%', ''));
+                                    if (!isNaN(score)) {
+                                        totalScore += score;
+                                        validScoresCount++;
+                                    }
+                                }
+                            });
+                            const averageScore = validScoresCount > 0 ? (totalScore / validScoresCount).toFixed(2) : 'N/A';
+                            reportHtml = `
+                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Overall Score Trend for ${dateRange || 'All Time'}</h4>
+                                <p class="text-2xl font-bold text-blue-700 mb-4">Average Overall Score: ${averageScore}%</p>
+                                <p class="text-sm text-gray-600">Based on ${validScoresCount} evaluations.</p>
+                                <div class="mt-4 text-left">
+                                    <h5 class="font-semibold">Recent Scores:</h5>
+                                    <ul class="list-disc list-inside">
+                                        ${filteredRecords.slice(0, 5).map(r => `<li>${r['CER Name'] || 'N/A'} - ${r['Overall Score'] || 'N/A'} (Contact ID: ${r['Contact ID'] || 'N/A'}, Date: ${r.submittedAt ? new Date(r.submittedAt.toDate()).toLocaleDateString() : 'N/A'})</li>`).join('')}
+                                    </ul>
+                                </div>
+                            `;
+                            break;
+                        case 'cerPerformance':
+                            // Group by CER Name and calculate average score
+                            const cerScores = {};
+                            filteredRecords.forEach(record => {
+                                const cerName = record['CER Name'];
+                                const scoreStr = record['Overall Score'];
+                                if (cerName && scoreStr && scoreStr.endsWith('%')) {
+                                    const score = parseFloat(scoreStr.replace('%', ''));
+                                    if (!isNaN(score)) {
+                                        if (!cerScores[cerName]) {
+                                            cerScores[cerName] = { total: 0, count: 0 };
+                                        }
+                                        cerScores[cerName].total += score;
+                                        cerScores[cerName].count++;
+                                    }
+                                }
+                            });
+
+                            reportHtml = `<h4 class="text-lg font-semibold text-gray-700 mb-2">CER Performance Breakdown for ${dateRange || 'All Time'}</h4>`;
+                            if (Object.keys(cerScores).length > 0) {
+                                reportHtml += `<ul class="list-disc list-inside text-left">`;
+                                for (const cerName in cerScores) {
+                                    const avg = (cerScores[cerName].total / cerScores[cerName].count).toFixed(2);
+                                    reportHtml += `<li><strong>${cerName}</strong>: Average Score ${avg}% (${cerScores[cerName].count} evaluations)</li>`;
+                                }
+                                reportHtml += `</ul>`;
+                            } else {
+                                reportHtml += `<p class="text-gray-500">No CER performance data found for the selected period.</p>`;
+                            }
+                            break;
+                        case 'autofailTrends':
+                            // Count autofail types
+                            const autofailCounts = {};
+                            filteredRecords.forEach(record => {
+                                const autofailType = record['Auto Fail Type'];
+                                if (autofailType) {
+                                    autofailCounts[autofailType] = (autofailCounts[autofailType] || 0) + 1;
+                                }
+                            });
+
+                            reportHtml = `<h4 class="text-lg font-semibold text-gray-700 mb-2">Autofail Trends for ${dateRange || 'All Time'}</h4>`;
+                            if (Object.keys(autofailCounts).length > 0) {
+                                reportHtml += `<ul class="list-disc list-inside text-left">`;
+                                for (const type in autofailCounts) {
+                                    reportHtml += `<li><strong>${type}</strong>: ${autofailCounts[type]} occurrences</li>`;
+                                }
+                                reportHtml += `</ul>`;
+                            } else {
+                                reportHtml += `<p class="text-gray-500">No autofail incidents recorded for the selected period.</p>`;
+                            }
+                            break;
+                        default:
+                            reportHtml = `<p class="text-gray-500">Please select a report type to generate a specific report.</p>`;
+                            break;
+                    }
+                }
+                
+                reportDisplayArea.innerHTML = reportHtml;
+                hideMessageBox();
+
+            } catch (error) {
+                console.error("Error generating report:", error);
+                reportDisplayArea.innerHTML = `<p class="text-red-500">Error generating report: ${error.message}</p>`;
+                hideMessageBox();
+                showMessageBox("Report Generation Failed", `Could not generate report: ${error.message}`, true, false, true);
+            }
+        }
+
 
         document.addEventListener('DOMContentLoaded', function() {
             const mainNav = document.getElementById('mainNav');
             const logoutBtn = document.getElementById('logoutBtn');
             const reportsContent = document.getElementById('reportsContent');
+            const generateReportBtn = document.getElementById('generateReportBtn'); // Get the button
 
             // --- Function to check login state and display content ---
             const checkLoginAndDisplayContent = () => {
@@ -310,6 +590,11 @@
             document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
             document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
             document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
+
+            // --- Generate Report Button Listener ---
+            if (generateReportBtn) {
+                generateReportBtn.addEventListener('click', generateReport);
+            }
         });
     </script>
 </body>
