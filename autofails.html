@@ -1,41 +1,1292 @@
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-    <div>
-        <label for="filterCerRole" class="block text-sm font-medium text-gray-700">Filter by CER Role</label>
-        <select id="filterCerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-            <option value="">All Roles</option>
-        </select>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autofail Records - ICEA LION GROUP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Base styles - consistent with index.html, users.html, admin.html */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ICEALION Branding Colors */
+        .icealion-blue {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .icealion-orange-text {
+            color: #f57c00;
+        }
+
+        /* Error/Message styles */
+        .error-message {
+            color: #dc2626; /* red-700 */
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.5rem; /* mt-2 */
+            text-align: center;
+        }
+
+        /* Navigation styles (consistent sidebar) */
+        .main-nav {
+            width: 125px; /* Fixed width for the sidebar */
+            background-color: #1a73e8; /* Blue color */
+            color: white;
+            padding: 1rem 0; /* Vertical padding */
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            display: flex; /* Ensure it's a flex container */
+            flex-direction: column; /* Stack items vertically */
+            justify-content: space-between; /* Push logout to bottom */
+        }
+
+        .main-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1; /* Allows the list to take available space */
+        }
+        .sidebar ul li {
+            margin-right: 0;
+            margin-bottom: 0.5rem;
+        }
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.75rem 0.5rem; /* Adjusted padding */
+            display: block;
+            border-radius: 0;
+            transition: background-color 0.3s ease;
+            display: flex;
+            flex-direction: column; /* Stack icon and text */
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem; /* Smaller font */
+            text-align: center;
+        }
+        .sidebar ul li a .fas {
+            margin-bottom: 0.25rem;
+            font-size: 1.2rem;
+        }
+
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: #0d47a1; /* Darker blue for hover/active */
+        }
+
+        .logout-button {
+            background-color: #f57c00;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
+        }
+        .logout-button:hover {
+            background-color: #e65100;
+        }
+
+        /* Main content area for autofails.html */
+        .main-content {
+            margin-left: 125px; /* Matches sidebar width */
+            width: calc(100% - 125px); /* Fills remaining space */
+            padding: 1.5rem;
+            min-height: 100vh;
+            box-sizing: border-box; /* Include padding in width */
+            display: block; /* Ensure content is visible by default */
+        }
+        .autofails-container {
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            max-width: 1200px; /* Adjusted for more content including charts */
+            margin: 0 auto; /* Center it */
+        }
+
+        /* Report specific styles */
+        .autofail-section {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+        .autofail-section h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1f2937; /* gray-800 */
+        }
+        .autofail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .autofail-table th, .autofail-table td {
+            border: 1px solid #e5e7eb; /* gray-300 */
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .autofail-table th {
+            background-color: #eff6ff; /* blue-50 */
+            font-weight: 600;
+            color: #1f2937; /* gray-800 */
+        }
+        .autofail-table tbody tr:nth-child(even) {
+            background-color: #f9fafb; /* gray-50 */
+        }
+        .autofail-table tbody tr:hover {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        .autofail-table .action-btn {
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin-right: 0.25rem;
+        }
+        .autofail-table .review-btn {
+            background-color: #4CAF50; /* Green */
+            color: white;
+        }
+        .autofail-table .review-btn:hover {
+            background-color: #388E3C;
+        }
+        .autofail-table .delete-btn {
+            background-color: #EF4444; /* Red */
+            color: white;
+        }
+        .autofail-table .delete-btn:hover {
+            background-color: #DC2626;
+        }
+        .autofail-table .email-btn {
+            background-color: #F57C00; /* Orange */
+            color: white;
+        }
+        .autofail-table .email-btn:hover {
+            background-color: #E65100;
+        }
+        /* Specific styles for modal/message box */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a73e8; /* icealion-blue */
+        }
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .message-box button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .message-box button:hover {
+            background-color: #0d47a1;
+        }
+
+        /* Review Modal Specific Styles */
+        .review-modal {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .review-modal label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            color: #333;
+        }
+        .review-modal input[type="text"],
+        .review-modal textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 0.375rem;
+            box-sizing: border-box; /* Include padding in width */
+        }
+        .review-modal .button-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .review-modal .button-group button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .review-modal .save-btn {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .review-modal .save-btn:hover {
+            background-color: #0d47a1;
+        }
+        .review-modal .cancel-btn {
+            background-color: #6b7280;
+            color: white;
+        }
+        .review-modal .cancel-btn:hover {
+            background-color: #4b5563;
+        }
+
+        /* NEW: Class for fixed chart dimensions */
+        .chart-container-fixed {
+            width: 512px; /* 480px canvas + 2*16px padding */
+            height: 320px; /* 288px canvas + 2*16px padding (adjust if title takes more space) */
+            padding: 16px; /* p-4 in Tailwind corresponds to 16px */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Align to start to keep title at top */
+            box-sizing: border-box; /* Include padding in the width/height */
+            overflow: hidden; /* Ensure nothing spills out */
+        }
+
+        /* Ensure the canvas itself is sized by Chart.js responsiveness */
+        .chart-container-fixed canvas {
+            max-width: 100%;
+            max-height: calc(100% - 1.5rem - 0.5rem); /* Account for h3 text-lg (1.125rem) and mb-2 (0.5rem) */
+            /* The Chart.js options responsive:true and maintainAspectRatio:false should handle scaling */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="spinner hidden"></div>
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseBtn" class="hidden">OK</button>
+        </div>
     </div>
-    <div>
-        <label for="filterCerName" class="block text-sm font-medium text-gray-700">Filter by CER Name</label>
-        <input type="text" id="filterCerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="Enter CER Name">
+
+    <div id="reviewModalOverlay" class="message-box-overlay hidden">
+        <div class="review-modal">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4 text-center">Edit Autofail Record</h3>
+            <form id="reviewEditForm">
+                <input type="hidden" id="editRecordId">
+                <div class="mb-4">
+                    <label for="editCerRole" class="block text-sm font-medium text-gray-700">CER Role</label>
+                    <input type="text" id="editCerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" readonly>
+                </div>
+                <div class="mb-4">
+                    <label for="editCerName" class="block text-sm font-medium text-gray-700">CER Name</label>
+                    <input type="text" id="editCerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" readonly>
+                </div>
+                <div class="mb-4">
+                    <label for="editContactId" class="block text-sm font-medium text-gray-700">Contact ID</label>
+                    <input type="text" id="editContactId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" readonly>
+                </div>
+                <div class="mb-4">
+                    <label for="editOverallScore" class="block text-sm font-medium text-gray-700">Overall Score (%)</label>
+                    <input type="text" id="editOverallScore" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="e.g., 90%">
+                </div>
+                <div class="mb-4">
+                    <label for="editAutofailType" class="block text-sm font-medium text-gray-700">Autofail Type</label>
+                    <input type="text" id="editAutofailType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="Leave empty to unmark autofail">
+                </div>
+                <div class="mb-4">
+                    <label for="editAutofailReason" class="block text-sm font-medium text-gray-700">Reason for Autofail</label>
+                    <textarea id="editAutofailReason" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="Leave empty to unmark autofail"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="button" id="saveReviewEditBtn" class="save-btn">Save Changes</button>
+                    <button type="button" id="cancelReviewEditBtn" class="cancel-btn">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
-    <div>
-        <label for="filterMonth" class="block text-sm font-medium text-gray-700">Filter by Month</label>
-        <select id="filterMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-            <option value="">All Months</option>
-            <option value="1">January</option>
-            <option value="2">February</option>
-            <option value="3">March</option>
-            <option value="4">April</option>
-            <option value="5">May</option>
-            <option value="6">June</option>
-            <option value="7">July</option>
-            <option value="8">August</option>
-            <option value="9">September</option>
-            <option value="10">October</option>
-            <option value="11">November</option>
-            <option value="12">December</option>
-        </select>
+
+
+    <nav class="main-nav" id="mainNav">
+        <div class="sidebar">
+            <ul>
+                <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li><a href="autofails.html" id="autofailsTab" class="active"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
+                <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button">Logout</button>
+        </div>
+    </nav>
+
+    <div class="main-content" id="autofailsContent">
+        <div class="autofails-container">
+            <div class="icealion-blue p-4 text-xl font-semibold text-center rounded-t-lg">
+                Autofail Records
+            </div>
+            <div class="p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Add New Autofail Record</h2>
+                <form id="addAutofailForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div>
+                        <label for="cerRole" class="block text-sm font-medium text-gray-700">CER Role</label>
+                        <input type="text" id="cerRole" name="cerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                    </div>
+                    <div>
+                        <label for="cerName" class="block text-sm font-medium text-gray-700">CER Name</label>
+                        <input type="text" id="cerName" name="cerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                    </div>
+                    <div>
+                        <label for="contactId" class="block text-sm font-medium text-gray-700">Contact ID</label>
+                        <input type="text" id="contactId" name="contactId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                    </div>
+                    <div>
+                        <label for="autofailType" class="block text-sm font-medium text-gray-700">Autofail Type</label>
+                        <input type="text" id="autofailType" name="autofailType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="autofailReason" class="block text-sm font-medium text-gray-700">Reason for Autofail</label>
+                        <textarea id="autofailReason" name="autofailReason" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required></textarea>
+                    </div>
+                    <div class="md:col-span-2 text-right">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                            Add Autofail Record
+                        </button>
+                    </div>
+                </form>
+                
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Autofail Analytics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-gray-50 rounded-lg shadow-sm chart-container-fixed">
+                        <h3 class="text-lg font-medium text-gray-700 mb-2 text-center">Autofails per CER Role</h3>
+                        <canvas id="autofailPerCerRoleChart"></canvas>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg shadow-sm chart-container-fixed">
+                        <h3 class="text-lg font-medium text-gray-700 mb-2 text-center">Autofails by Type</h3>
+                        <canvas id="autofailByTypeChart"></canvas>
+                    </div>
+                </div>
+
+
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-800">Existing Autofail Records</h2>
+                    <button id="generateReportBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        <i class="fas fa-file-csv mr-2"></i>Generate Autofail Report
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label for="filterCerRole" class="block text-sm font-medium text-gray-700">Filter by CER Role</label>
+                        <select id="filterCerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                            <option value="">All Roles</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filterCerName" class="block text-sm font-medium text-gray-700">Filter by CER Name</label>
+                        <input type="text" id="filterCerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="Enter CER Name">
+                    </div>
+                    <div>
+                        <label for="filterMonth" class="block text-sm font-medium text-gray-700">Filter by Month</label>
+                        <select id="filterMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                            <option value="">All Months</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filterYear" class="block text-sm font-medium text-gray-700">Filter by Year</label>
+                        <select id="filterYear" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                            <option value="">All Years</option>
+                            </select>
+                    </div>
+                    <div class="md:col-span-3 text-right">
+                        <button id="resetFiltersBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                            Reset Filters
+                        </button>
+                    </div>
+                </div>
+
+                <div id="autofailTableContainer" class="overflow-x-auto max-h-[70vh] rounded-lg border border-gray-200">
+                    <table class="autofail-table min-w-full">
+                        <thead>
+                            <tr>
+                                <th>CER Role</th>
+                                <th>CER Name</th>
+                                <th>Overall Score</th>
+                                <th>Contact ID</th>
+                                <th>Evaluation Date</th>
+                                <th>Autofail Type</th>
+                                <th>Reason for Autofail</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="autofailRecordsTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-gray-500">Loading autofail records...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-    <div>
-        <label for="filterYear" class="block text-sm font-medium text-gray-700">Filter by Year</label>
-        <select id="filterYear" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-            <option value="">All Years</option>
-            </select>
-    </div>
-    <div class="md:col-span-3 text-right">
-        <button id="resetFiltersBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-            Reset Filters
-        </button>
-    </div>
-</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, getDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        // --- Your Web App's Firebase Configuration ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+          authDomain: "icea-lion-qa.firebaseapp.com",
+          projectId: "icea-lion-qa",
+          storageBucket: "icea-lion-qa.firebasestorage.app",
+          messagingSenderId: "820082472004",
+          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+          measurementId: "G-1RJJTT3QET"
+        };
+
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        window.firebaseApp = initializeApp(firebaseConfig);
+        window.db = getFirestore(window.firebaseApp);
+        window.auth = getAuth(window.firebaseApp);
+        
+        // Expose ALL necessary Firestore functions globally
+        window.fsCollection = collection;
+        window.fsGetDocs = getDocs;
+        window.fsQuery = query;
+        window.fsWhere = where;
+        window.fsOrderBy = orderBy;
+        window.fsLimit = limit;
+        window.fsDoc = doc;
+        window.fsUpdateDoc = updateDoc;
+        window.fsDeleteDoc = deleteDoc;
+        window.fsAddDoc = addDoc;
+        window.fsServerTimestamp = serverTimestamp;
+        window.fsGetDoc = getDoc;
+        window.fsTimestamp = Timestamp; // Expose Timestamp for date queries
+
+        window.currentUserId = null;
+        window.currentUserRole = null; // Track current user's role
+        window.isAuthReady = false;
+
+        onAuthStateChanged(window.auth, async (user) => {
+            if (user) {
+                window.currentUserId = user.uid;
+                console.log("Firebase Auth State Changed (autofails.html): User logged in:", user.uid);
+                // Attempt to fetch role for informational purposes or future use, but not for access control on this page.
+                const userDocRef = window.fsDoc(window.db, `artifacts/${appId}/users/${user.uid}`);
+                try {
+                    const userDocSnap = await window.fsGetDoc(userDocRef);
+                    if (userDocSnap.exists()) {
+                        window.currentUserRole = userDocSnap.data().role;
+                    } else {
+                        window.currentUserRole = 'anonymous'; // Default if profile missing
+                    }
+                } catch (error) {
+                    console.error("Error fetching user role (autofails.html):", error);
+                    window.currentUserRole = 'anonymous';
+                }
+            } else {
+                console.log("Firebase Auth State Changed (autofails.html): No user logged in. Attempting anonymous sign-in.");
+                try {
+                    await signInAnonymously(window.auth);
+                    window.currentUserId = window.auth.currentUser.uid;
+                    window.currentUserRole = 'anonymous'; // Assign anonymous role
+                    console.log("Signed in anonymously (autofails.html):", window.currentUserId);
+                } catch (anonError) {
+                    console.error("Error signing in anonymously (autofails.html):", anonError);
+                    window.currentUserId = null; // Still no user
+                    window.currentUserRole = null; // No specific role
+                    // If even anonymous fails, the user might not be able to interact with Firestore.
+                    // A message or further redirect might be needed, but for now, we proceed with nulls.
+                }
+            }
+            window.isAuthReady = true;
+            document.dispatchEvent(new CustomEvent('firebaseAuthReadyAutofailsPage')); // Custom event for this page
+        });
+
+        // Define collection path
+        window.EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+
+    </script>
+    <script>
+        // --- GLOBAL DATA STORES ---
+        let autofailRecords = []; // Stores records fetched for this page
+        let cerRoleChartInstance = null;
+        let autofailTypeChartInstance = null;
+
+        // --- UI ELEMENTS ---
+        const mainNav = document.getElementById('mainNav');
+        const autofailsTab = document.getElementById('autofailsTab'); // Active tab will be set by JS
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        const autofailsContent = document.getElementById('autofailsContent');
+        const autofailRecordsTableBody = document.getElementById('autofailRecordsTableBody');
+        const generateReportBtn = document.getElementById('generateReportBtn'); // Report Button
+
+        const addAutofailForm = document.getElementById('addAutofailForm');
+        const cerRoleInput = document.getElementById('cerRole');
+        const cerNameInput = document.getElementById('cerName');
+        const contactIdInput = document.getElementById('contactId');
+        const autofailTypeInput = document.getElementById('autofailType');
+        const autofailReasonInput = document.getElementById('autofailReason');
+
+        const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+        const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+        const messageBoxTitle = document.getElementById('messageBoxTitle');
+        const messageBoxContent = document.getElementById('messageBoxContent');
+        const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+
+        // Review Modal Elements
+        const reviewModalOverlay = document.getElementById('reviewModalOverlay');
+        const reviewEditForm = document.getElementById('reviewEditForm');
+        const editRecordId = document.getElementById('editRecordId');
+        const editCerRole = document.getElementById('editCerRole');
+        const editCerName = document.getElementById('editCerName');
+        const editContactId = document.getElementById('editContactId');
+        const editOverallScore = document.getElementById('editOverallScore');
+        const editAutofailType = document.getElementById('editAutofailType');
+        const editAutofailReason = document.getElementById('editAutofailReason');
+        const saveReviewEditBtn = document.getElementById('saveReviewEditBtn');
+        const cancelReviewEditBtn = document.getElementById('cancelReviewEditBtn');
+
+        // Filter Elements
+        const filterCerRole = document.getElementById('filterCerRole');
+        // NEW: CER Name filter element
+        const filterCerName = document.getElementById('filterCerName');
+        const filterMonth = document.getElementById('filterMonth');
+        const filterYear = document.getElementById('filterYear');
+        const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+
+        // Chart Canvases
+        const autofailPerCerRoleChartCanvas = document.getElementById('autofailPerCerRoleChart');
+        const autofailByTypeChartCanvas = document.getElementById('autofailByTypeChart');
+
+
+        // --- MESSAGE BOX FUNCTIONS (replicated for self-contained page) ---
+        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            messageBoxTitle.textContent = title;
+            messageBoxContent.innerHTML = message; // Use innerHTML for custom buttons
+            messageBoxOverlay.classList.remove('hidden');
+            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
+
+            if (isError) {
+                messageBoxTitle.style.color = '#dc2626';
+            } else {
+                messageBoxTitle.style.color = '#1a73e8';
+            }
+
+            messageBoxCloseBtn.onclick = () => {
+                messageBoxOverlay.classList.add('hidden');
+                if (onClose) onClose();
+            };
+        }
+
+        function hideMessageBox() {
+            messageBoxOverlay.classList.add('hidden');
+        }
+
+        // --- REVIEW MODAL FUNCTIONS ---
+        function showReviewModal(record) {
+            editRecordId.value = record.id;
+            editCerRole.value = record['CER Role'] || '';
+            editCerName.value = record['CER Name'] || '';
+            editContactId.value = record['Contact ID'] || '';
+            editOverallScore.value = record['Total Pts.'] || '';
+            editAutofailType.value = record['Auto Fail Type'] || '';
+            editAutofailReason.value = record['Autofail Description'] || '';
+            reviewModalOverlay.classList.remove('hidden');
+        }
+
+        function hideReviewModal() {
+            reviewModalOverlay.classList.add('hidden');
+        }
+
+        // --- DATABASE FETCH AND RENDER FUNCTIONS ---
+
+        async function fetchAutofailRecords() {
+            if (!window.db || !window.currentUserId) {
+                showMessageBox("Initialization Issue", "Database connection not ready. Please ensure Firebase is configured correctly.", true, false, true);
+                autofailRecordsTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Database connection not ready.</td></tr>';
+                return;
+            }
+            if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
+                showMessageBox("Configuration Error", "Database path not set up. Check Firebase configuration.", true, false, true);
+                autofailRecordsTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-500">Configuration Error.</td></tr>';
+                return;
+            }
+
+            autofailRecordsTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-500">Loading autofail records...</td></tr>';
+            showMessageBox("Loading Records", "Fetching autofail records...", false, true, false);
+
+            try {
+                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+                let filters = [];
+                let orderBys = [];
+
+                // Always filter for records with an 'Auto Fail Type'
+                filters.push(window.fsWhere('Auto Fail Type', '!=', ''));
+                orderBys.push(window.fsOrderBy('Auto Fail Type', 'asc')); // Required for inequality filter
+
+                const selectedCerRole = filterCerRole.value;
+                const selectedCerName = filterCerName.value.trim(); // NEW: Get CER Name filter value
+                const selectedMonth = filterMonth.value;
+                const selectedYear = filterYear.value;
+
+                if (selectedCerRole) {
+                    filters.push(window.fsWhere('CER Role', '==', selectedCerRole));
+                }
+
+                // NEW: Add CER Name filter if provided
+                if (selectedCerName) {
+                    filters.push(window.fsWhere('CER Name', '==', selectedCerName));
+                }
+
+                if (selectedMonth && selectedYear) {
+                    const yearNum = parseInt(selectedYear);
+                    const monthNum = parseInt(selectedMonth);
+
+                    const startDate = new Date(yearNum, monthNum - 1, 1); // Month is 0-indexed
+                    const endDate = new Date(yearNum, monthNum, 0, 23, 59, 59, 999); // Last day of the month
+
+                    filters.push(window.fsWhere('submittedAt', '>=', window.fsTimestamp.fromDate(startDate)));
+                    filters.push(window.fsWhere('submittedAt', '<=', window.fsTimestamp.fromDate(endDate)));
+                    // Ensure submittedAt is ordered if used in range query
+                    if (!orderBys.some(o => o._field.toString() === 'submittedAt')) {
+                        orderBys.push(window.fsOrderBy('submittedAt', 'desc'));
+                    }
+                } else {
+                    // Default order if no specific month/year filter is applied,
+                    // but we need to ensure the order by used with inequality filter is still first.
+                    if (!orderBys.some(o => o._field.toString() === 'submittedAt')) { // Check if submittedAt is not already ordered
+                        orderBys.push(window.fsOrderBy('submittedAt', 'desc')); // Add default order
+                    }
+                }
+                
+                // Construct the query with all filters and orderBys
+                const q = window.fsQuery(recordsColRef, ...filters, ...orderBys);
+                
+                const querySnapshot = await window.fsGetDocs(q);
+                autofailRecords = [];
+                querySnapshot.forEach(doc => {
+                    autofailRecords.push({ id: doc.id, ...doc.data() });
+                });
+
+                console.log(`Fetched ${autofailRecords.length} autofail records.`);
+                renderAutofailTable(autofailRecords);
+                populateFilterOptions(autofailRecords); // Populate filters based on fetched data
+                renderCharts(autofailRecords); // Render charts with fetched data
+                hideMessageBox();
+
+            } catch (error) {
+                console.error("Error fetching autofail records:", error);
+                autofailRecordsTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Error loading records: ${error.message}</td></tr>`;
+                showMessageBox("Error", `Failed to load autofail records: ${error.message}`, true, false, true);
+            }
+        }
+
+        function renderAutofailTable(records) {
+            autofailRecordsTableBody.innerHTML = ''; // Clear previous content
+
+            if (records.length === 0) {
+                autofailRecordsTableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-500">No autofail records found.</td></tr>';
+                return;
+            }
+
+            records.forEach(record => {
+                const row = autofailRecordsTableBody.insertRow();
+                row.className = 'border-b border-gray-200';
+                row.innerHTML = `
+                    <td class="py-2 px-4">${record['CER Role'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${record['CER Name'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${record['Total Pts.'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${record['Contact ID'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${record['Evaluation Date'] || (record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A')}</td>
+                    <td class="py-2 px-4">${record['Auto Fail Type'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${record['Autofail Description'] || 'N/A'}</td>
+                    <td class="py-2 px-4 whitespace-nowrap">
+                        <button class="action-btn review-btn" data-id="${record.id}">Review</button>
+                        <button class="action-btn delete-btn" data-id="${record.id}">Delete</button>
+                        <button class="action-btn email-btn" data-id="${record.id}">Email</button>
+                    </td>
+                `;
+            });
+
+            // Attach event listeners to buttons
+            document.querySelectorAll('.review-btn').forEach(button => {
+                button.addEventListener('click', (e) => reviewAutofailRecord(e.target.dataset.id));
+            });
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', (e) => deleteAutofailRecord(e.target.dataset.id));
+            });
+            document.querySelectorAll('.email-btn').forEach(button => {
+                button.addEventListener('click', (e) => emailAutofailRecord(e.target.dataset.id));
+            });
+        }
+
+        // --- FILTER FUNCTIONS ---
+        function populateFilterOptions(records) {
+            const cerRoles = new Set();
+            const years = new Set();
+
+            records.forEach(record => {
+                if (record['CER Role']) {
+                    cerRoles.add(record['CER Role']);
+                }
+                if (record.submittedAt) {
+                    try {
+                        const date = typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt);
+                        if (!isNaN(date.getTime())) {
+                            years.add(date.getFullYear().toString());
+                        }
+                    } catch (e) {
+                        console.warn("Failed to parse submittedAt date for filter:", record.id, e);
+                    }
+                }
+            });
+
+            // Populate CER Role filter
+            filterCerRole.innerHTML = '<option value="">All Roles</option>';
+            Array.from(cerRoles).sort().forEach(role => {
+                const option = document.createElement('option');
+                option.value = role;
+                option.textContent = role;
+                filterCerRole.appendChild(option);
+            });
+
+            // Populate Year filter (only add new years if not already present)
+            const currentYear = new Date().getFullYear();
+            for (let i = 0; i < 6; i++) { // Current year and 5 previous years
+                const year = currentYear - i;
+                if (!years.has(year.toString())) { // Only add if not already in records (from initial fetch)
+                    years.add(year.toString());
+                }
+            }
+            // Clear existing years first if refreshing filters
+            filterYear.innerHTML = '<option value="">All Years</option>';
+            Array.from(years).sort((a, b) => b - a).forEach(year => { // Sort descending
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                filterYear.appendChild(option);
+            });
+        }
+
+        function applyFilters() {
+            fetchAutofailRecords();
+        }
+
+        function resetFilters() {
+            filterCerRole.value = '';
+            filterCerName.value = ''; // NEW: Clear CER Name filter
+            filterMonth.value = '';
+            filterYear.value = '';
+            fetchAutofailRecords();
+        }
+
+        // --- ACTION BUTTON FUNCTIONS ---
+
+        async function reviewAutofailRecord(recordId) {
+            const record = autofailRecords.find(r => r.id === recordId);
+            if (!record) {
+                showMessageBox("Error", "Record not found for review.", true, false, true);
+                return;
+            }
+            showReviewModal(record);
+        }
+
+        async function saveReviewEdit() {
+            const recordId = editRecordId.value;
+            const newOverallScore = editOverallScore.value;
+            const newAutofailType = editAutofailType.value;
+            const newAutofailReason = editAutofailReason.value;
+
+            if (!recordId) {
+                showMessageBox("Error", "No record selected for editing.", true, false, true);
+                return;
+            }
+
+            const recordRef = window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, recordId);
+            showMessageBox("Saving Changes", "Updating record...", false, true, false);
+
+            try {
+                await window.fsUpdateDoc(recordRef, {
+                    'Total Pts.': newOverallScore, // Update overall score
+                    'Auto Fail Type': newAutofailType, // Allow editing/clearing autofail type
+                    'Autofail Description': newAutofailReason // Allow editing/clearing autofail reason
+                });
+                hideReviewModal(); // Hide modal before showing success message
+                showMessageBox("Success", "Record updated successfully.", false, false, true, () => {
+                    fetchAutofailRecords(); // Refresh the list
+                });
+            } catch (error) {
+                console.error("Error updating record:", error);
+                showMessageBox("Error", `Failed to update record: ${error.message}`, true, false, true);
+            }
+        }
+
+
+        async function deleteAutofailRecord(recordId) {
+            const recordRef = window.fsDoc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, recordId);
+            showMessageBox("Confirm Delete", "Are you sure you want to delete this autofail record permanently?", false, false, false);
+            
+            // Create custom confirm/cancel buttons for the message box
+            const confirmDeleteBtn = document.createElement('button');
+            confirmDeleteBtn.textContent = 'Delete';
+            confirmDeleteBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
+            confirmDeleteBtn.onclick = async () => {
+                hideMessageBox();
+                showMessageBox("Deleting Record", "Deleting autofail record...", false, true, false);
+                try {
+                    await window.fsDeleteDoc(recordRef);
+                    showMessageBox("Success", "Record deleted successfully.", false, false, true, () => {
+                        fetchAutofailRecords(); // Refresh the list
+                    });
+                } catch (error) {
+                    console.error("Error deleting record:", error);
+                    showMessageBox("Error", `Failed to delete record: ${error.message}`, true, false, true);
+                }
+            };
+
+            const cancelDeleteBtn = document.createElement('button');
+            cancelDeleteBtn.textContent = 'Cancel';
+            cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
+            cancelDeleteBtn.onclick = () => hideMessageBox();
+
+            // Clear previous message box content and append new buttons
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'mt-4';
+            buttonContainer.appendChild(confirmDeleteBtn);
+            buttonContainer.appendChild(cancelDeleteBtn);
+            messageBoxContent.innerHTML = ''; // Clear existing text
+            messageBoxContent.appendChild(document.createTextNode('Are you sure you want to delete this autofail record permanently?'));
+            messageBoxContent.appendChild(buttonContainer);
+
+            // Ensure the main close button is hidden when custom buttons are shown
+            messageBoxCloseBtn.classList.add('hidden');
+        }
+
+        function emailAutofailRecord(recordId) {
+            const record = autofailRecords.find(r => r.id === recordId);
+            if (!record) {
+                showMessageBox("Error", "Record not found for email.", true, false, true);
+                return;
+            }
+
+            const cerName = record['CER Name'] || 'N/A';
+            const contactId = record['Contact ID'] || 'N/A';
+            const autofailType = record['Auto Fail Type'] || 'N/A';
+            const autofailDescription = record['Autofail Description'] || 'No description provided.';
+            const overallScore = record['Total Pts.'] || 'N/A'; // Using 'Total Pts.' as 'Overall Score'
+            const evaluationDate = record['Evaluation Date'] || (record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A');
+
+            const subject = `Autofail Feedback - ${cerName} - Contact ID: ${contactId}`;
+            const body = `Dear ${cerName},\n\n` +
+                                `This email is regarding an autofail detected in your recent evaluation.\n\n` +
+                                `Contact ID: ${contactId}\n` +
+                                `Evaluation Date: ${evaluationDate}\n` +
+                                `Overall Score: ${overallScore}\n` +
+                                `Autofail Type: ${autofailType}\n` +
+                                `Reason for Autofail: ${autofailDescription}\n\n` +
+                                `Please review this feedback and reach out to your supervisor for further discussion.\n\n` +
+                                `Kind Regards,\nQuality Evaluation Team`;
+
+            const mailtoLink = `mailto:${cerName.replace(/\s/g, '').toLowerCase()}@icealion.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // Example email, adjust as needed
+
+            try {
+                window.location.href = mailtoLink;
+                showMessageBox("Email Client Opened", "Your email client should open shortly. Please review and send the email.", false, false, true);
+            } catch (e) {
+                console.error("Failed to open email client:", e);
+                showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
+            }
+        }
+
+        // --- ADD NEW AUTOFAIL RECORD FUNCTION ---
+        async function addNewAutofailRecord(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            if (!window.db || !window.currentUserId) {
+                showMessageBox("Error", "Database not ready. Cannot add record.", true, false, true);
+                return;
+            }
+
+            const newRecord = {
+                'CER Role': cerRoleInput.value,
+                'CER Name': cerNameInput.value,
+                'Contact ID': contactIdInput.value,
+                'Auto Fail Type': autofailTypeInput.value,
+                'Autofail Description': autofailReasonInput.value,
+                'Total Pts.': '0%', // Autofails should have 0% score
+                'Overall Score': '0%', // Ensure overall score is also 0% for consistency with form logic
+                'Evaluation Date': new Date().toLocaleDateString('en-CA'), // Capture current date (YYYY-MM-DD)
+                submittedAt: window.fsServerTimestamp() // Firestore server timestamp
+            };
+
+            // Basic client-side validation
+            if (!newRecord['CER Role'] || !newRecord['CER Name'] || !newRecord['Contact ID'] || !newRecord['Auto Fail Type'] || !newRecord['Autofail Description']) {
+                showMessageBox("Missing Information", "All fields are required to add a new autofail record.", true, false, true);
+                return;
+            }
+
+
+            showMessageBox("Adding Record", "Submitting new autofail record...", false, true, false);
+
+            try {
+                const recordsColRef = window.fsCollection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH);
+                await window.fsAddDoc(recordsColRef, newRecord);
+
+                showMessageBox("Success", "New autofail record added successfully!", false, false, true, () => {
+                    addAutofailForm.reset(); // Clear the form
+                    fetchAutofailRecords(); // Refresh the table and charts
+                });
+            } catch (error) {
+                console.error("Error adding new autofail record:", error);
+                showMessageBox("Error", `Failed to add autofail record: ${error.message}`, true, false, true);
+            }
+        }
+
+        // --- GENERATE AUTOFAIL REPORT FUNCTION ---
+        function generateAutofailReport() {
+            if (autofailRecords.length === 0) {
+                showMessageBox("No Data", "There are no autofail records to generate a report.", false, false, true);
+                return;
+            }
+            
+            showMessageBox("Generating Report", "Preparing autofail report...", false, true, false);
+
+            try {
+                const headers = [
+                    "CER Role", "CER Name", "Overall Score", "Contact ID",
+                    "Evaluation Date", "Autofail Type", "Reason for Autofail", "Submitted At"
+                ];
+
+                const csvRows = [];
+                csvRows.push(headers.map(header => `"${header}"`).join(',')); // Add quoted headers
+
+                autofailRecords.forEach(record => {
+                    let submittedAtFormatted = '';
+                    if (record.submittedAt) {
+                        try {
+                            const dateObj = typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt);
+                            if (!isNaN(dateObj.getTime())) {
+                                submittedAtFormatted = dateObj.toLocaleString();
+                            }
+                        } catch (e) {
+                            console.warn("Failed to parse submittedAt date for CSV:", record.id, e);
+                        }
+                    }
+
+                    const row = [
+                        record['CER Role'] || '',
+                        record['CER Name'] || '',
+                        record['Total Pts.'] || '',
+                        record['Contact ID'] || '',
+                        record['Evaluation Date'] || '',
+                        record['Auto Fail Type'] || '',
+                        record['Autofail Description'] || '',
+                        submittedAtFormatted
+                    ];
+                    // Escape double quotes and wrap each field in double quotes
+                    csvRows.push(row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','));
+                });
+
+                const csvString = csvRows.join('\n');
+                const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `autofail_report_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(link); // Append to body for Firefox compatibility
+                link.click(); // Trigger download
+                document.body.removeChild(link); // Clean up the link
+
+                showMessageBox("Report Generated", "Autofail report downloaded successfully!", false, false, true);
+
+            } catch (error) {
+                console.error("Error generating report:", error);
+                showMessageBox("Error", `Failed to generate report: ${error.message}`, true, false, true);
+            }
+        }
+
+        // --- CHARTING FUNCTIONS ---
+
+        function aggregateChartData(records) {
+            const cerRoleCounts = {};
+            const autofailTypeCounts = {};
+
+            records.forEach(record => {
+                const role = record['CER Role'] || 'Unknown Role';
+                const type = record['Auto Fail Type'] || 'Unknown Type';
+
+                cerRoleCounts[role] = (cerRoleCounts[role] || 0) + 1;
+                autofailTypeCounts[type] = (autofailTypeCounts[type] || 0) + 1;
+            });
+            return { cerRoleCounts, autofailTypeCounts };
+        }
+
+        // Helper to generate a consistent set of colors for pie chart
+        const chartColors = [
+            'rgba(255, 99, 132, 0.7)', // Red
+            'rgba(54, 162, 235, 0.7)', // Blue
+            'rgba(255, 206, 86, 0.7)', // Yellow
+            'rgba(75, 192, 192, 0.7)', // Green
+            'rgba(153, 102, 255, 0.7)',// Purple
+            'rgba(255, 159, 64, 0.7)', // Orange
+            'rgba(199, 199, 199, 0.7)',// Gray
+            'rgba(83, 102, 255, 0.7)', // Indigo
+            'rgba(255, 59, 48, 0.7)',  // Crimson
+            'rgba(0, 122, 255, 0.7)',  // Royal Blue
+            'rgba(52, 199, 89, 0.7)'   // Emerald Green
+        ];
+        const chartBorderColors = chartColors.map(color => color.replace('0.7', '1'));
+
+
+        function renderCharts(records) {
+            const { cerRoleCounts, autofailTypeCounts } = aggregateChartData(records);
+
+            // Destroy existing charts if they exist
+            if (cerRoleChartInstance) {
+                cerRoleChartInstance.destroy();
+            }
+            if (autofailTypeChartInstance) {
+                autofailTypeChartInstance.destroy();
+            }
+
+            // Chart for Autofail Per CER Role (Horizontal Bar)
+            cerRoleChartInstance = new Chart(autofailPerCerRoleChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(cerRoleCounts),
+                    datasets: [{
+                        label: 'Number of Autofails',
+                        data: Object.values(cerRoleCounts),
+                        backgroundColor: 'rgba(26, 115, 232, 0.7)', // ICEALION blue
+                        borderColor: 'rgba(26, 115, 232, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Make the bar chart horizontal
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Count'
+                            },
+                            ticks: {
+                                precision: 0 // Ensure integer ticks
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'CER Role'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Chart for Autofail by Autofail Type (Pie Chart)
+            autofailTypeChartInstance = new Chart(autofailByTypeChartCanvas, {
+                type: 'pie', // Changed to pie chart
+                data: {
+                    labels: Object.keys(autofailTypeCounts),
+                    datasets: [{
+                        label: 'Number of Autofails',
+                        data: Object.values(autofailTypeCounts),
+                        backgroundColor: chartColors.slice(0, Object.keys(autofailTypeCounts).length), // Assign distinct colors
+                        borderColor: chartBorderColors.slice(0, Object.keys(autofailTypeCounts).length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true, // Show legend for pie chart
+                            position: 'right', // Position legend to the right
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // --- INITIALIZATION ---
+        function initializeAutofailsPage() {
+            mainNav.style.display = 'block'; // Show sidebar
+            autofailsContent.style.display = 'block'; // Show main content
+
+            // Set active state for sidebar tab
+            document.querySelectorAll('.sidebar ul li a').forEach(link => {
+                link.classList.remove('active');
+                if (link.href.includes('autofails.html')) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Populate years for filter (e.g., current year + last 5 years)
+            // This logic is now within populateFilterOptions and will be called after fetch.
+            // Keeping it here for initial population on first load, before records are fetched.
+            const currentYear = new Date().getFullYear();
+            filterYear.innerHTML = '<option value="">All Years</option>'; // Clear existing
+            for (let i = 0; i < 6; i++) { // Current year and 5 previous years
+                const year = currentYear - i;
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                filterYear.appendChild(option);
+            }
+
+            fetchAutofailRecords(); // Fetch records on page load
+        }
+
+        // --- EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Autofails DOM fully loaded and parsed.");
+
+            // Listen for Firebase Auth readiness
+            document.addEventListener('firebaseAuthReadyAutofailsPage', initializeAutofailsPage);
+            
+            // If the DOM is already complete and auth is already ready (e.g., cached session),
+            // call initializeAutofailsPage directly.
+            if (document.readyState === 'complete' && window.isAuthReady) {
+                initializeAutofailsPage();
+            } else {
+                // If not ready, explicitly hide content until auth is confirmed
+                autofailsContent.style.display = 'none';
+                mainNav.style.display = 'none';
+            }
+
+            logoutBtn.addEventListener('click', async function() {
+                sessionStorage.removeItem('loggedIn'); // Clear custom login state
+                await signOut(window.auth); // Sign out from Firebase Auth
+                window.location.href = 'index.html'; // Redirect to the main login page
+            });
+
+            // Add event listener for the new autofail form
+            addAutofailForm.addEventListener('submit', addNewAutofailRecord);
+
+            // Add event listener for the generate report button
+            generateReportBtn.addEventListener('click', generateAutofailReport);
+
+            // Add event listeners for review modal buttons
+            saveReviewEditBtn.addEventListener('click', saveReviewEdit);
+            cancelReviewEditBtn.addEventListener('click', hideReviewModal);
+
+            // Add event listeners for filter changes
+            filterCerRole.addEventListener('change', applyFilters);
+            filterCerName.addEventListener('input', applyFilters); // NEW: Add event listener for CER Name filter input
+            filterMonth.addEventListener('change', applyFilters);
+            filterYear.addEventListener('change', applyFilters);
+            resetFiltersBtn.addEventListener('click', resetFilters);
+
+            // --- Navigation Link Event Listeners (for other pages) ---
+            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
+            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
+            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
+            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
+            document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
+            document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
+
+        });
+    </script>
+</body>
+</html>
