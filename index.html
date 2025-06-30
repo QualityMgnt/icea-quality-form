@@ -2280,7 +2280,7 @@
         /**
          * Takes a snapshot of the current form content and generates a PDF.
          * This function handles the visual capture for PDF.
-         * @returns {Promise<string>} A promise that resolves with the base64 data URL of the generated PDF.
+         * @returns {Promise<HTMLCanvasElement>} A promise that resolves with the generated canvas element.
          */
         async function generateFormPdf() {
             const auditFormContentDiv = document.getElementById('auditFormContent');
@@ -2291,28 +2291,30 @@
 
             // Apply temporary styles for better PDF rendering
             elementsToModify.forEach(el => {
-                // Store original styles
-                originalStyles.push({
-                    element: el,
-                    border: el.style.border,
-                    backgroundColor: el.style.backgroundColor,
-                    color: el.style.color,
-                    readOnly: el.readOnly,
-                    disabled: el.disabled,
-                    pointerEvents: el.style.pointerEvents,
-                    boxShadow: el.style.boxShadow,
-                    resize: el.style.resize
-                });
+                // Check if el.style exists before trying to access its properties
+                if (el && el.style) {
+                    originalStyles.push({
+                        element: el,
+                        border: el.style.border,
+                        backgroundColor: el.style.backgroundColor,
+                        color: el.style.color,
+                        readOnly: el.readOnly,
+                        disabled: el.disabled,
+                        pointerEvents: el.style.pointerEvents,
+                        boxShadow: el.style.boxShadow,
+                        resize: el.style.resize
+                    });
 
-                // Apply styles for PDF capture
-                el.style.border = '1px solid #ccc'; // Ensure border for clarity
-                el.style.backgroundColor = 'white'; // Solid background
-                el.style.color = '#333'; // Ensure dark text
-                el.readOnly = true; // Make non-interactive
-                el.disabled = true; // Make non-interactive
-                el.style.pointerEvents = 'none'; // Disable pointer events
-                el.style.boxShadow = 'none'; // Remove shadows for cleaner print
-                el.style.resize = 'none'; // Prevent resizing handles from appearing
+                    // Apply styles for PDF capture
+                    el.style.border = '1px solid #ccc'; // Ensure border for clarity
+                    el.style.backgroundColor = 'white'; // Solid background
+                    el.style.color = '#333'; // Ensure dark text
+                    el.readOnly = true; // Make non-interactive
+                    el.disabled = true; // Make non-interactive
+                    el.style.pointerEvents = 'none'; // Disable pointer events
+                    el.style.boxShadow = 'none'; // Remove shadows for cleaner print
+                    el.style.resize = 'none'; // Prevent resizing handles from appearing
+                }
             });
 
             // Temporarily hide buttons and the "Last 3 Evaluations" section for PDF capture
@@ -2342,28 +2344,24 @@
                 scale: 2, // Higher scale for better quality
                 useCORS: true,
                 logging: false,
-                // These options might be needed if the element is scrolled or has complex positioning
-                // x: auditFormContentDiv.offsetLeft,
-                // y: auditFormContentDiv.offsetTop,
-                // width: auditFormContentDiv.offsetWidth,
-                // height: auditFormContentDiv.offsetHeight,
                 windowWidth: auditFormContentDiv.scrollWidth,
                 windowHeight: auditFormContentDiv.scrollHeight,
-                // Attempt to make it render the full scrollable area
                 scrollY: -window.scrollY, // Correct scrolling for full content capture
                 scrollX: -window.scrollX,
             });
 
             // Revert styles and display properties
-            elementsToModify.forEach(elData => {
-                elData.element.style.border = elData.border;
-                elData.element.style.backgroundColor = elData.backgroundColor;
-                elData.element.style.color = elData.color;
-                elData.element.readOnly = elData.readOnly;
-                elData.element.disabled = elData.disabled;
-                elData.element.style.pointerEvents = elData.pointerEvents;
-                elData.element.style.boxShadow = elData.boxShadow;
-                elData.element.style.resize = elData.resize;
+            originalStyles.forEach(elData => {
+                if (elData.element && elData.element.style) { // Double-check existence before reverting
+                    elData.element.style.border = elData.border;
+                    elData.element.style.backgroundColor = elData.backgroundColor;
+                    elData.element.style.color = elData.color;
+                    elData.element.readOnly = elData.readOnly;
+                    elData.element.disabled = elData.disabled;
+                    elData.element.style.pointerEvents = elData.pointerEvents;
+                    elData.element.style.boxShadow = elData.boxShadow;
+                    elData.element.style.resize = elData.resize;
+                }
             });
 
             if (buttonsContainer) {
@@ -2376,7 +2374,7 @@
                 scoresSection.style.display = originalScoresDisplay;
             }
 
-            return canvas.toDataURL('image/jpeg', 0.8); // Return base64 image data
+            return canvas; // Return the canvas element directly
         }
 
 
@@ -2396,7 +2394,8 @@
             showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
-                const imgData = await generateFormPdf(); // Use the new helper function
+                const canvas = await generateFormPdf(); // Get the canvas element
+                const imgData = canvas.toDataURL('image/jpeg', 0.8); // Convert canvas to image data
 
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
@@ -2465,7 +2464,8 @@
             showMessageBox("Generating PDF for Email", "Please wait, generating PDF document and preparing email...", false, true, false);
 
             try {
-                const imgData = await generateFormPdf(); // Use the new helper function
+                const canvas = await generateFormPdf(); // Get the canvas element
+                const imgData = canvas.toDataURL('image/jpeg', 0.8); // Convert canvas to image data
 
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
@@ -2476,7 +2476,6 @@
 
                 const imgWidth = 210;
                 const pageHeight = 297;
-                // Calculate imgHeight based on actual canvas dimensions to ensure proper scaling
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 let heightLeft = imgHeight;
                 let position = 0;
