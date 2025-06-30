@@ -1,754 +1,232 @@
-// database.js
-
-// Import specific Firestore functions needed for database operations.
-// These are not exposed via 'window' in index.html's module, so import directly here.
-// Note: If you were to use these functions like window.fsCollection, you would not need these imports.
-// But to keep database.js self-contained for database operations, it's better to import them here.
-import { collection, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-
-
-// --- GLOBAL DATA STORES (specific to database.js) ---
-export let allRecords = []; // Records fetched from Firestore for display
-export let allWebhooks = []; // Webhooks fetched from Firestore for display
-
-// --- DATABASE SERVICE FUNCTIONS (Exported for use in index.html) ---
-
-/**
- * Fetches records and webhooks from Firestore in real-time.
- * It uses global window.db, window.currentUserId, and collection paths.
- * It also calls globally available UI functions like showMessageBox, hideMessageBox,
- * and rendering functions that are expected to be available in the main script.
- */
-export async function fetchRecordsAndWebhooks() {
-    // Get elements inside the function to ensure DOM is loaded and current
-    const recordsTableBody = document.getElementById('recordsTableBody'); 
-    const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-    const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-    const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-    const addWebhookBtn = document.getElementById('addWebhookBtn');
-    const webhookList = document.getElementById('webhookList');
-
-    if (!window.db || !window.currentUserId) {
-        window.showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-        return;
-    }
-
-    if (!window.EVALUATION_RECORDS_COLLECTION_PATH || !window.WEBHOOKS_COLLECTION_PATH) {
-        console.error("Firestore collection paths are not defined. Firebase initialization might be incomplete.");
-        window.showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
-        return;
-    }
-    
-    // Unsubscribe previous listeners to prevent duplicates if function called multiple times
-    if (window.unsubscribeRecords) window.unsubscribeRecords(); // Access global unsubscribe
-    if (window.unsubscribeWebhooks) window.unsubscribeWebhooks(); // Access global unsubscribe
-    
-    window.showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
-
-    try {
-        const recordsColRef = collection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH); 
-        window.unsubscribeRecords = onSnapshot(recordsColRef, (snapshot) => { 
-            allRecords = [];
-            snapshot.forEach(doc => { 
-                allRecords.push({ id: doc.id, ...doc.data() });
-            });
-            console.log("Records updated:", allRecords.length, "records.");
-            renderRecordsTable(allRecords); // Call internal rendering function
-            window.hideMessageBox(); // Access global hide message box
-        }, (error) => {
-            console.error("Error listening to records:", error);
-            window.showMessageBox("Error Loading Records", `Could not load records: ${error.message}`, true, false, true);
-        });
-
-        const webhooksColRef = collection(window.db, window.WEBHOOKS_COLLECTION_PATH); 
-        window.unsubscribeWebhooks = onSnapshot(webhooksColRef, (snapshot) => { 
-            allWebhooks = [];
-            snapshot.forEach(doc => { 
-                allWebhooks.push({ id: doc.id, ...doc.data() });
-            });
-            console.log("Webhooks updated:", allWebhooks.length, "webhooks.");
-            renderWebhookList(allWebhooks); // Call internal rendering function
-            window.hideMessageBox(); // Access global hide message box
-        }, (error) => {
-            console.error("Error listening to webhooks:", error);
-            window.showMessageBox("Error Loading Webhooks", `Could not load webhooks: ${error.message}`, true, false, true);
-        });
-
-    } catch (error) {
-        console.error("Error setting up Firestore listeners:", error);
-        window.showMessageBox("Initialization Error", `Failed to setup database listeners: ${error.message}`, true, false, true);
-    }
-}
-
-/**
- * Adds a new evaluation record to Firestore.
- */
-export async function addRecordToFirestore(recordData) {
-    if (!window.db || !window.currentUserId) {
-        window.showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-        return false;
-    }
-    if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
-        console.error("Firestore collection path for records is not defined.");
-        window.showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
-        return false;
-    }
-
-    window.showMessageBox("Submitting", "Saving record to database...", false, true, false);
-    try {
-        const docRef = await addDoc(collection(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH), { 
-            ...recordData,
-            submittedAt: new Date().toISOString() // Add a server timestamp
-        });
-        console.log("Record written with ID:", docRef.id);
-        window.showMessageBox("Success", "Form data submitted successfully to database!", false, false, true, () => {
-            window.resetForm(); // Call global reset form
-            sendDataToWebhooks(recordData); // Call internal webhook sender
-        });
-        return true;
-    } catch (e) {
-        console.error("Error adding document: ", e);
-        window.showMessageBox("Submission Failed", `Error saving data: ${e.message}`, true, false, true);
-        return false;
-    }
-}
-
-/**
- * Deletes selected records from Firestore.
- */
-export async function deleteSelectedRecords() {
-    // Get elements inside the function to ensure DOM is loaded and current
-    const messageBoxContent = document.getElementById('messageBoxContent');
-    const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn'); // Access here
-    const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox'); // Access here
-
-    if (!window.db || !window.currentUserId) {
-        window.showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-        return;
-    }
-    if (!window.EVALUATION_RECORDS_COLLECTION_PATH) {
-        console.error("Firestore collection path for records is not defined for deletion.");
-        window.showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true);
-        return;
-    }
-
-    const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-    const recordIdsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
-
-    if (recordIdsToDelete.length === 0) {
-        window.showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true);
-        return;
-    }
-
-    const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
-
-    window.showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, false);
-    
-    const confirmDeleteBtn = document.createElement('button');
-    confirmDeleteBtn.textContent = 'Delete';
-    confirmDeleteBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-    confirmDeleteBtn.onclick = async () => {
-        window.hideMessageBox();
-        window.showMessageBox("Deleting", "Deleting selected records...", false, true, false);
-        try {
-            const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, id)));
-            await Promise.all(deletePromises);
-            console.log("Selected records deleted successfully.");
-            window.showMessageBox("Success", "Selected records deleted.", false, false, true);
-            selectAllRecordsCheckbox.checked = false; // Uncheck select all
-            updateDeleteButtonState(); // Call internal state update
-        } catch (e) {
-            console.error("Error deleting documents: ", e);
-            window.showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
-        } finally {
-            messageBoxContent.innerHTML = originalMessageBoxContentHTML;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Assessment Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Add any custom styles here */
+        .tab-button.active {
+            @apply bg-blue-600 text-white;
         }
-    };
-
-    const cancelDeleteBtn = document.createElement('button');
-    cancelDeleteBtn.textContent = 'Cancel';
-    cancelDeleteBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-    cancelDeleteBtn.onclick = () => {
-        window.hideMessageBox();
-        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-    };
-
-    messageBoxContent.innerHTML = '';
-    messageBoxContent.appendChild(confirmDeleteBtn);
-    messageBoxContent.appendChild(cancelDeleteBtn);
-    
-    // Re-assign messageBoxCloseBtn onclick to ensure cleanup
-    const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-    messageBoxCloseBtn.onclick = () => {
-        window.hideMessageBox();
-        messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-    };
-}
-
-/**
- * Adds a new webhook URL to Firestore.
- */
-export async function addWebhook() {
-    // Get elements inside the function to ensure DOM is loaded and current
-    const newWebhookUrlInput = document.getElementById('newWebhookUrlInput'); // Access here
-
-    if (!window.db || !window.currentUserId) {
-        window.showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-        return;
-    }
-    if (!window.WEBHOOKS_COLLECTION_PATH) {
-        console.error("Firestore collection path for webhooks is not defined.");
-        window.showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
-        return;
-    }
-    
-    const webhookUrl = newWebhookUrlInput.value.trim();
-    if (!webhookUrl) {
-        window.showMessageBox("Invalid URL", "Please enter a valid webhook URL.", true, false, true);
-        return;
-    }
-    if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
-        window.showMessageBox("Invalid URL", "Webhook URL must start with http:// or https://", true, false, true);
-        return;
-    }
-    if (allWebhooks.some(hook => hook.url === webhookUrl)) { // Uses global allWebhooks
-        window.showMessageBox("Duplicate URL", "This webhook URL is already added.", false, false, true);
-        newWebhookUrlInput.value = '';
-        return;
-    }
-
-    window.showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
-    try {
-        await addDoc(collection(window.db, window.WEBHOOKS_COLLECTION_PATH), { url: webhookUrl });
-        newWebhookUrlInput.value = '';
-        window.showMessageBox("Success", "Webhook added successfully!", false, false, true);
-    } catch (e) {
-        console.error("Error adding webhook: ", e);
-        window.showMessageBox("Failed to Add Webhook", `Error: ${e.message}`, true, false, true);
-    }
-}
-
-/**
- * Deletes a specific webhook from Firestore.
- */
-export async function deleteWebhook(webhookId) {
-    if (!window.db || !window.currentUserId) {
-        window.showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
-        return;
-    }
-    if (!window.WEBHOOKS_COLLECTION_PATH) {
-        console.error("Firestore collection path for webhooks is not defined for deletion.");
-        window.showMessageBox("Error", "Webhooks path not set up. Check Firebase configuration.", true, false, true);
-        return;
-    }
-    window.showMessageBox("Deleting Webhook", "Removing webhook...", false, true, false);
-    try {
-        await deleteDoc(doc(window.db, window.WEBHOOKS_COLLECTION_PATH, webhookId));
-        window.showMessageBox("Success", "Webhook deleted successfully!", false, false, true);
-    } catch (e) {
-        console.error("Error deleting webhook: ", e);
-        window.showMessageBox("Failed to Delete Webhook", `Error: ${e.message}`, true, false, true);
-    }
-}
-
-/**
- * Sends record data to all configured webhooks.
- */
-export async function sendDataToWebhooks(recordData) {
-    if (allWebhooks.length === 0) {
-        console.log("No webhooks configured. Skipping webhook dispatch.");
-        return;
-    }
-    console.log(`Sending data to ${allWebhooks.length} webhook(s)...`);
-    const webhookPromises = allWebhooks.map(async (webhook) => {
-        try {
-            const response = await fetch(webhook.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(recordData)
-            });
-            const result = await response.text();
-            console.log(`Webhook to ${webhook.url} response:`, response.status, result);
-            if (!response.ok) {
-                console.error(`Webhook to ${webhook.url} failed: ${response.status} - ${result}`);
-            }
-        } catch (error) {
-            console.error(`Error sending to webhook ${webhook.url}:`, error);
+        .tab-button {
+            @apply text-blue-700 hover:bg-blue-100;
         }
-    });
-    await Promise.allSettled(webhookPromises);
-    console.log("All webhook dispatches attempted.");
-}
-
-// --- INTERNAL RENDERING & UI STATE FUNCTIONS (Used by database.js) ---
-
-/**
- * Renders the evaluation records table.
- */
-function renderRecordsTable(records) {
-    const recordsTableBody = document.getElementById('recordsTableBody');
-    const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-    const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-
-    recordsTableBody.innerHTML = '';
-    if (records.length === 0) {
-        recordsTableBody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
-            </tr>
-        `;
-        deleteSelectedRecordsBtn.disabled = true;
-        selectAllRecordsCheckbox.checked = false;
-        selectAllRecordsCheckbox.disabled = true;
-        return;
-    }
-
-    selectAllRecordsCheckbox.disabled = false;
-
-    records.forEach(record => {
-        const row = recordsTableBody.insertRow();
-        row.className = 'border-b border-gray-200';
-        row.insertCell().innerHTML = `<input type="checkbox" class="record-checkbox" data-record-id="${record.id}">`;
-        row.insertCell().textContent = record.submittedAt ? new Date(record.submittedAt).toLocaleString() : 'N/A';
-        row.insertCell().textContent = record['Contact ID'] || '';
-        row.insertCell().textContent = record['Client Name'] || '';
-        row.insertCell().textContent = record['CER Name'] || '';
-        row.insertCell().textContent = record['Overall Score'] || '';
-        row.insertCell().innerHTML = `
-            <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
-        `;
-    });
-
-    document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', updateDeleteButtonState);
-    });
-    document.querySelectorAll('.delete-record-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const recordId = e.target.dataset.recordId;
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const originalMessageBoxContentHTML = messageBoxContent.innerHTML; // Store original content
-
-            window.showMessageBox("Confirm Delete", "Are you sure you want to delete this record?", false, false, false);
-            const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = 'Delete';
-            confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-            confirmBtn.onclick = async () => {
-                window.hideMessageBox();
-                window.showMessageBox("Deleting", "Deleting record...", false, true, false);
-                try {
-                    await deleteDoc(doc(window.db, window.EVALUATION_RECORDS_COLLECTION_PATH, recordId));
-                    window.showMessageBox("Success", "Record deleted successfully.", false, false, true);
-                } catch (error) {
-                    window.showMessageBox("Deletion Failed", `Error: ${error.message}`, true, false, true);
-                } finally {
-                    messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-                }
-            };
-            const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-            cancelBtn.onclick = () => {
-                window.hideMessageBox();
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-            };
-
-            messageBoxContent.innerHTML = '';
-            messageBoxContent.appendChild(confirmBtn);
-            messageBoxContent.appendChild(cancelBtn);
-
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            messageBoxCloseBtn.onclick = () => {
-                window.hideMessageBox();
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-            };
-        });
-    });
-
-    updateDeleteButtonState();
-}
-
-/**
- * Updates the state of the "Delete Selected" button.
- */
-function updateDeleteButtonState() {
-    const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-    const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
-    deleteSelectedRecordsBtn.disabled = checkedCount === 0;
-}
-
-/**
- * Renders the list of configured webhooks.
- */
-function renderWebhookList(webhooks) {
-    const webhookList = document.getElementById('webhookList');
-    webhookList.innerHTML = '';
-    if (webhooks.length === 0) {
-        webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
-        return;
-    }
-
-    webhooks.forEach(hook => {
-        const webhookDiv = document.createElement('div');
-        webhookDiv.innerHTML = `
-            <span>${hook.url}</span>
-            <button class="delete-webhook-btn bg-red-400 hover:bg-red-500 text-white p-1 rounded-md text-xs" data-webhook-id="${hook.id}">
-                <i class="fas fa-times"></i> Delete
-            </button>
-        `;
-        webhookList.appendChild(webhookDiv);
-    });
-
-    document.querySelectorAll('.delete-webhook-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const webhookId = e.target.closest('button').dataset.webhookId;
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const originalMessageBoxContentHTML = messageBoxContent.innerHTML;
-
-            window.showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, false);
-            const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = 'Delete';
-            confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-            confirmBtn.onclick = async () => {
-                window.hideMessageBox();
-                window.showMessageBox("Deleting", "Deleting webhook...", false, true, false);
-                await deleteWebhook(webhookId); // Call external deleteWebhook
-                window.hideMessageBox();
-            };
-            const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-            cancelBtn.onclick = () => {
-                window.hideMessageBox();
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-            };
-
-            messageBoxContent.innerHTML = '';
-            messageBoxContent.appendChild(confirmBtn);
-            messageBoxContent.appendChild(cancelBtn);
-
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            messageBoxCloseBtn.onclick = () => {
-                window.hideMessageBox();
-                messageBoxContent.innerHTML = originalMessageBoxContentHTML;
-            };
-        });
-    });
-}
-
-
-        // --- DOMContentLoaded Listener (attaches event handlers, makes initial calls) ---
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM fully loaded and parsed. Main script starting.");
-
-            // --- Get Firebase objects and functions from window ---
-            // These variables will now correctly receive the Firebase instances and functions
-            // once they are initialized and exposed by the module script.
-            let db = window.db; 
-            let auth = window.auth;
-            let currentUserId = window.currentUserId;
-            let isAuthReady = window.isAuthReady; 
-
-
-            // Collection paths (These need to be obtained from window)
-            const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-            const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-
-
-            // --- UI Elements (Get references to DOM elements here) ---
-            const loginForm = document.getElementById('loginForm');
-            const loginMessage = document.getElementById('loginMessage');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-
-            const auditFormTab = document.getElementById('auditFormTab');
-            const databaseTab = document.getElementById('databaseTab');
-            const logoutBtn = document.getElementById('logoutBtn');
-
-            const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-            const printEmailBtn = document.getElementById('print-email-btn');
-            const assessmentForm = document.getElementById('assessment-form');
-
-            const reviewerNameSelect = document.getElementById('reviewer-name');
-            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
-            const cerRoleSelect = document.getElementById('cer-role');
-
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const addWebhookBtn = document.getElementById('addWebhookBtn');
-
-            // --- EVENT LISTENERS (Attach to DOM elements) ---
-            loginForm.addEventListener('submit', function(event) {
-                event.preventDefault();
-                loginMessage.classList.add('hidden');
-
-                const CORRECT_USERNAME = 'Supervisor';
-                const CORRECT_PASSWORD = 'Supervisor';
-
-                if (usernameInput.value === CORRECT_USERNAME && passwordInput.value === CORRECT_PASSWORD) {
-                    sessionStorage.setItem('loggedIn', 'true');
-                    initializeApp(); // Calls the top-level initializeApp
-                } else {
-                    loginMessage.textContent = 'Invalid Username or Password. Please try again.';
-                    loginMessage.classList.remove('hidden');
-                }
-            });
-
-            logoutBtn.addEventListener('click', function() {
-                sessionStorage.removeItem('loggedIn');
-                // Unsubscribe Firestore listeners on logout to prevent memory leaks
-                if (unsubscribeRecords) unsubscribeRecords();
-                if (unsubscribeWebhooks) unsubscribeWebhooks();
-                window.location.reload(); // Reload to show login page
-            });
-
-            // Diagnostic log for tab elements
-            console.log("Audit Form Tab Element:", auditFormTab);
-            console.log("Database Tab Element:", databaseTab);
-
-            // Attaching tab click listeners
-            if (auditFormTab) {
-                auditFormTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    console.log("Audit Form Tab CLICKED!"); // Diagnostic log
-                    showTab('auditForm');
-                });
-            } else {
-                console.error("Audit Form Tab element not found!");
-            }
-            
-            if (databaseTab) {
-                databaseTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    console.log("Database Tab CLICKED!"); // Diagnostic log
-                    showTab('database');
-                });
-            } else {
-                console.error("Database Tab element not found!");
-            }
-
-
-            reviewerNameSelect.addEventListener('change', () => {
-                if (reviewerNameSelect.value === 'Other') {
-                    otherReviewerNameInput.classList.remove('hidden');
-                    otherReviewerNameInput.setAttribute('required', 'required');
-                } else {
-                    otherReviewerNameInput.classList.add('hidden');
-                    otherReviewerNameInput.value = '';
-                    otherReviewerNameInput.removeAttribute('required');
-                    otherReviewerNameInput.style.borderColor = '';
-                }
-            });
-
-            cerRoleSelect.addEventListener('change', (event) => {
-                const selectedRole = event.target.value;
-                renderQuestionsForRole(selectedRole); // Calls the top-level renderQuestionsForRole
-                resetFormFieldsButKeepRole(); // Calls the top-level resetFormFieldsButKeepRole
-            });
-
-            submitFormToDBBtn.addEventListener('click', async (event) => { // Now submits to DB
-                event.preventDefault();
-                console.log("Submit to Database button clicked.");
-
-                const requiredInputs = assessmentForm.querySelectorAll('[required]:not(.hidden)');
-                let allRequiredFilled = true;
-                for (const input of requiredInputs) {
-                    if (input.value.trim() === '' || (input.tagName === 'SELECT' && input.value === '')) {
-                        allRequiredFilled = false;
-                        input.style.borderColor = 'red';
-                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        input.focus();
-                        showMessageBox("Validation Error", "Please fill out all required fields.", true, false, true);
-                        return;
-                    } else {
-                        input.style.borderColor = '';
-                    }
-                }
-
-                // Dynamically collect all relevant form data based on current DOM
-                const formDataForSubmission = {};
-                const basicInfoInputs = document.querySelectorAll('.p-6.grid.grid-cols-1 input, .p-6.grid.grid-cols-1 select');
-                basicInfoInputs.forEach(input => {
-                    if (input.name) {
-                        if (input.type === 'datetime-local' || input.type === 'date') {
-                            formDataForSubmission[input.name] = input.value;
-                        } else if (input.id === 'other-reviewer-name' && input.classList.contains('hidden')) {
-                            return;
-                        } else {
-                            formDataForSubmission[input.name] = input.value.trim();
-                        }
-                    }
-                });
-
-                const overallScoreDisplay = document.getElementById('overall-score-display');
-                const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
-                const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
-
-
-                formDataForSubmission['Overall Score'] = overallScoreDisplay.textContent;
-                formDataForSubmission['Business & Compliance Accuracy'] = businessComplianceAccuracyDisplay.textContent;
-                formDataForSubmission['Total Pts.'] = globalTotalPoints;
-                formDataForSubmission['Available Pts.'] = globalMaxPossiblePoints;
-                formDataForSubmission['Final Score'] = overallFinalPercentageDisplay.textContent;
-
-                const dynamicSelects = document.querySelectorAll('.rating-select');
-                dynamicSelects.forEach(selectElement => {
-                    const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
-                    if (rowDiv) {
-                        const pointsElement = rowDiv.querySelector('.points-input');
-                        const remarksElement = rowDiv.querySelector('.remarks-textarea');
-                        formDataForSubmission[selectElement.name] = selectElement.value;
-                        if (pointsElement) {
-                            formDataForSubmission[pointsElement.name] = pointsElement.value;
-                        }
-                        if (remarksElement) {
-                            formDataForSubmission[remarksElement.name] = remarksElement.value.trim();
-                        }
-                    }
-                });
-                console.log("Collected Data for Submission:", formDataForSubmission);
-
-                await addRecordToFirestore(formDataForSubmission); // Calls top-level addRecordToFirestore
-            });
-
-
-            printEmailBtn.addEventListener('click', async () => {
-                console.log('PDF & Email button clicked - Attempting PDF generation and Email...');
-
-                const auditFormContent = document.getElementById('auditFormContent');
-                if (!auditFormContent) {
-                    console.error('Error: Form container not found for PDF generation.');
-                    showMessageBox("Error", "Could not find the form to generate PDF. Please try again.", true, false, true);
-                    return;
-                }
-
-                const mainNav = document.getElementById('mainNav');
-                const printEmailBtn = document.getElementById('print-email-btn');
-                const submitFormToDBBtn = document.getElementById('submitFormToDBBtn');
-                const contactIdInput = document.getElementById('contact-id');
-                const cerNameSelect = document.getElementById('cer-name');
-                const evaluationDateInput = document.getElementById('review-date');
-                const reviewerNameSelect = document.getElementById('reviewer-name');
-                const otherReviewerNameInput = document.getElementById('other-reviewer-name');
-
-
-                const elementsToHide = [mainNav, printEmailBtn, submitFormToDBBtn];
-                const originalDisplays = [];
-                elementsToHide.forEach(el => {
-                    if (el) {
-                        originalDisplays.push({ el: el, display: el.style.display });
-                        el.style.display = 'none';
-                    }
-                });
-                console.log("Elements hidden for PDF capture.");
-
-                try {
-                    const canvas = await html2canvas(auditFormContent, {
-                        scale: 2,
-                        useCORS: true,
-                        logging: false
-                    });
-                    console.log("html2canvas capture complete.");
-
-                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
-                    const imgWidth = 210;
-                    const pageHeight = 297;
-                    const imgHeight = canvas.height * imgWidth / canvas.width;
-                    let heightLeft = imgHeight;
-
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    console.log("jsPDF initialized.");
-
-                    let position = 0;
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                    heightLeft -= pageHeight;
-
-                    while (heightLeft > -1) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-                        heightLeft -= pageHeight;
-                    }
-                    console.log("PDF images added.");
-
-                    const contactIdForPdf = contactIdInput.value || 'UnknownContact';
-                    const cerNameForPdf = cerNameSelect.value || 'UnknownCER';
-                    const reviewDateForPdf = evaluationDateInput.value || 'UnknownDate';
-                    pdf.save(`QA_Form_${contactIdForPdf}_${cerNameForPdf}_${reviewDateForPdf}.pdf`);
-                    console.log("PDF saved.");
-
-                    const cerNameVal = cerNameSelect.value;
-                    const evaluationDateVal = evaluationDateInput.value;
-                    const overallScoreVal = overallFinalPercentageDisplay.textContent; // Use corrected ID
-                    const contactIdVal = contactIdInput.value;
-                    const reviewerNameVal = reviewerNameSelect.value === 'Other' ? otherReviewerNameInput.value : reviewerNameSelect.value;
-
-                    const subject = `Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'} - CER: ${cerNameVal || 'N/A'} - Date: ${evaluationDateVal || 'N/A'}.\n\nOverall Score: ${overallScoreVal || 'N/A'}`;
-                    const body = `Dear Team,\n\nPlease find the attached Quality Assessment Form for Contact ID: ${contactIdVal || 'N/A'},\nCER: ${cerNameVal || 'N/A'},\nEvaluated on: ${evaluationDateVal || 'N/A'}.\n\nThe overall score is: ${overallScoreVal || 'N/A'}.\n\nRegards,\n${reviewerNameVal || 'Reviewer'}`;
-
-                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}`;
-                    window.location.href = mailtoLink;
-                    showMessageBox("PDF Generated", "PDF generated and downloaded. Please attach the PDF manually to your email client.", false, false, true);
-
-                } catch (error) {
-                    console.error("Critical Error during PDF generation or mailto attempt:", error);
-                    showMessageBox("PDF Error", `Failed to generate PDF or open email client: ${error.message}`, true, false, true);
-                } finally {
-                    originalDisplays.forEach(({ el, display }) => {
-                        if (el) el.style.display = display;
-                    });
-                    console.log("Elements restored.");
-                }
-            });
-
-
-            // Initial trigger for app setup after DOM is ready
-            // Listen for the custom event fired when Firebase auth is ready
-            document.addEventListener('firebaseAuthReady', () => {
-                // Ensure the global db and auth objects are correctly referenced after Firebase is ready
-                let db = window.db; 
-                let auth = window.auth;
-                let currentUserId = window.currentUserId;
-                let isAuthReady = window.isAuthReady; 
-
-                // Update collection path variables, which depend on window.appId being set by module script
-                const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-                const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-                
-                console.log("Firebase Auth is ready. Current User ID:", currentUserId);
-                initializeApp(); // Calls the top-level initializeApp
-
-                // If already logged in, fetch initial records
-                if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks(); // Call initially once logged in
-                }
-            });
-
-            // Fallback initialization if DOMContentLoaded fires after firebaseAuthReady (e.g., fast load)
-            if (document.readyState === 'complete' && window.isAuthReady !== null) { 
-                let db = window.db; // Get global references
-                let auth = window.auth;
-                let currentUserId = window.currentUserId;
-                let isAuthReady = window.isAuthReady;
-
-                const EVALUATION_RECORDS_COLLECTION_PATH = window.EVALUATION_RECORDS_COLLECTION_PATH;
-                const WEBHOOKS_COLLECTION_PATH = window.WEBHOOKS_COLLECTION_PATH;
-
-                console.log("Firebase Auth was already ready on DOMContentLoaded. Initializing app directly.");
-                initializeApp(); // Calls the top-level initializeApp
-                if (sessionStorage.getItem('loggedIn') === 'true') {
-                   fetchRecordsAndWebhooks(); // Call initially once logged in
-                }
-            } else {
-                console.log("Waiting for firebaseAuthReady event (or DOMContentLoaded if it's already ready)...");
-            }
-        });
-    </script>
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <div id="messageBox" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h3 id="messageBoxTitle" class="text-xl font-semibold mb-4"></h3>
+            <p id="messageBoxContent" class="text-gray-700 mb-4"></p>
+            <div class="flex justify-end space-x-2">
+                <button id="messageBoxCloseBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dataMappingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-semibold mb-4">Map Uploaded Data Fields</h3>
+            <p class="mb-4 text-gray-700">Please match the columns from your uploaded file to the corresponding database fields. Only mapped fields will be imported.</p>
+
+            <div id="mappingFieldsContainer" class="space-y-4">
+                </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancelMappingBtn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md">Cancel</button>
+                <button id="confirmUploadBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Confirm Upload</button>
+            </div>
+        </div>
+    </div>
+
+
+    <section id="loginSection" class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label for="username" class="block text-gray-700 text-sm font-bold mb-2">Username:</label>
+                    <input type="text" id="username" name="username" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
+                    <input type="password" id="password" name="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" required>
+                </div>
+                <p id="loginMessage" class="text-red-500 text-xs italic mb-4 hidden"></p>
+                <div class="flex items-center justify-between">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">
+                        Login
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <div id="appContent" class="flex-grow flex flex-col hidden">
+        <nav id="mainNav" class="bg-blue-700 p-4 text-white flex justify-between items-center shadow-lg">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="text-2xl font-bold">QA Form Tool</div>
+                <div class="flex space-x-4">
+                    <button id="auditFormTab" class="tab-button active py-2 px-4 rounded-md">Audit Form</button>
+                    <button id="databaseTab" class="tab-button py-2 px-4 rounded-md">Database</button>
+                    <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="flex-grow p-6">
+            <section id="auditFormContent" class="tab-content">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800 text-center">Contact Center Quality Assessment Form</h2>
+                <form id="assessment-form" class="bg-white p-8 rounded-lg shadow-lg mb-8">
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 border-b pb-8">
+                        <h3 class="col-span-full text-2xl font-semibold mb-4 text-gray-700">Basic Information</h3>
+                        <div>
+                            <label for="contact-id" class="block text-gray-700 text-sm font-bold mb-2">Contact ID:</label>
+                            <input type="text" id="contact-id" name="Contact ID" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                        </div>
+                        <div>
+                            <label for="client-name" class="block text-gray-700 text-sm font-bold mb-2">Client Name:</label>
+                            <input type="text" id="client-name" name="Client Name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                        </div>
+                        <div>
+                            <label for="cer-name" class="block text-gray-700 text-sm font-bold mb-2">CER Name:</label>
+                            <input type="text" id="cer-name" name="CER Name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                        </div>
+                        <div>
+                            <label for="review-date" class="block text-gray-700 text-sm font-bold mb-2">Evaluation Date:</label>
+                            <input type="date" id="review-date" name="Evaluation Date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                        </div>
+                        <div>
+                            <label for="review-time" class="block text-gray-700 text-sm font-bold mb-2">Evaluation Time:</label>
+                            <input type="time" id="review-time" name="Evaluation Time" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                        </div>
+                        <div>
+                            <label for="reviewer-name" class="block text-gray-700 text-sm font-bold mb-2">Reviewer Name:</label>
+                            <select id="reviewer-name" name="Reviewer Name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                                <option value="">Select Reviewer</option>
+                                <option value="Supervisor A">Supervisor A</option>
+                                <option value="Supervisor B">Supervisor B</option>
+                                <option value="Other">Other (Specify)</option>
+                            </select>
+                            <input type="text" id="other-reviewer-name" name="Other Reviewer Name" placeholder="Specify Reviewer Name" class="mt-2 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline hidden">
+                        </div>
+                        <div>
+                            <label for="cer-role" class="block text-gray-700 text-sm font-bold mb-2">CER Role:</label>
+                            <select id="cer-role" name="CER Role" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                                <option value="">Select Role</option>
+                                <option value="Inbound">Inbound</option>
+                                <option value="Outbound">Outbound</option>
+                                <option value="Chat">Chat</option>
+                                <option value="Email">Email</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="questions-container">
+                        </div>
+
+                    <div class="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg shadow-md">
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Overall Scores</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-lg">
+                            <div class="flex justify-between items-center py-2 px-4 bg-white rounded-md shadow-sm">
+                                <span class="font-medium text-gray-700">Overall Score (Points):</span>
+                                <span id="overall-score-display" class="font-bold text-blue-700">0</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 px-4 bg-white rounded-md shadow-sm">
+                                <span class="font-medium text-gray-700">Total Available Points:</span>
+                                <span id="max-possible-points-display" class="font-bold text-gray-700">0</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 px-4 bg-white rounded-md shadow-sm">
+                                <span class="font-medium text-gray-700">Business & Compliance Accuracy:</span>
+                                <span id="business-compliance-accuracy" class="font-bold text-blue-700">0%</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 px-4 bg-white rounded-md shadow-sm col-span-full">
+                                <span class="font-medium text-gray-700">Overall Final Percentage:</span>
+                                <span id="overall-final-percentage-display" class="font-bold text-green-700 text-2xl">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-end space-x-4">
+                        <button type="button" id="print-email-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md shadow-md flex items-center">
+                            <i class="fas fa-print mr-2"></i> Print / Email PDF
+                        </button>
+                        <button type="submit" id="submitFormToDBBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md flex items-center">
+                            <i class="fas fa-database mr-2"></i> Submit to Database
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <section id="databaseContent" class="tab-content hidden">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800 text-center">Evaluation Records</h2>
+
+                <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">Upload Data</h3>
+                    <div class="mb-4">
+                        <label for="fileUploadInput" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md cursor-pointer inline-block">
+                            Upload Data (CSV/JSON/XLSX)
+                        </label>
+                        <input type="file" id="fileUploadInput" accept=".csv, .json, .xlsx" class="hidden">
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2">Accepted formats: CSV, JSON (array of objects), Excel (.xlsx - basic support).</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-700">All Records</h3>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="selectAllRecordsCheckbox" class="form-checkbox h-5 w-5 text-blue-600 rounded">
+                            <label for="selectAllRecordsCheckbox" class="text-gray-700">Select All</label>
+                            <button id="deleteSelectedRecordsBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                Delete Selected
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                            <thead>
+                                <tr class="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
+                                    <th class="py-3 px-6 text-left"></th>
+                                    <th class="py-3 px-6 text-left">Submitted At</th>
+                                    <th class="py-3 px-6 text-left">Contact ID</th>
+                                    <th class="py-3 px-6 text-left">Client Name</th>
+                                    <th class="py-3 px-6 text-left">CER Name</th>
+                                    <th class="py-3 px-6 text-left">Overall Score</th>
+                                    <th class="py-3 px-6 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsTableBody" class="text-gray-600 text-sm font-light">
+                                <tr><td colspan="7" class="text-center py-4 text-gray-500">Loading records...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-700">Webhook Management</h3>
+                    <div class="flex mb-4">
+                        <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)" class="flex-grow shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <button id="addWebhookBtn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-r-md shadow-md">Add Webhook</button>
+                    </div>
+                    <div id="webhookList" class="space-y-2 text-gray-800">
+                        <p class="text-sm text-gray-500 text-center">Loading webhooks...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="firebase-init.js"></script>
+
+    <script type="module" src="main.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-</body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    </body>
 </html>
