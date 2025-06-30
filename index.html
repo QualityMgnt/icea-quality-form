@@ -6,7 +6,6 @@
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
@@ -1309,7 +1308,7 @@
             }
 
             // Remove previous event listener to prevent multiple calls
-            messageBoxCloseBtn.onclick = null; 
+            messageBoxCloseBtn.onclick = null;  
             if (showCloseButton) {
                 messageBoxCloseBtn.onclick = () => {
                     messageBoxOverlay.classList.add('hidden');
@@ -2333,7 +2332,7 @@
             // Temporarily hide buttons and the "Last 3 Evaluations" section for PDF capture
             const buttonsContainer = auditFormContentDiv.querySelector('.flex.space-x-4');
             const lastEvaluationsContainer = document.getElementById('lastEvaluationsContainer');
-            const scoresSection = auditFormContentDiv.querySelector('.p-4.rounded-lg.shadow-sm');
+            // NO LONGER HIDING scoresSection: const scoresSection = auditFormContentDiv.querySelector('.p-4.rounded-lg.shadow-sm');
 
             let originalButtonsDisplay = '';
             if (buttonsContainer) {
@@ -2345,22 +2344,23 @@
                 originalLastEvaluationsDisplay = lastEvaluationsContainer.style.display;
                 lastEvaluationsContainer.style.display = 'none';
             }
-            let originalScoresDisplay = '';
-            if (scoresSection) {
-                originalScoresDisplay = scoresSection.style.display;
-                scoresSection.style.display = 'none';
-            }
+            // NO LONGER HIDING scoresSection
+            // let originalScoresDisplay = '';
+            // if (scoresSection) {
+            //     originalScoresDisplay = scoresSection.style.display;
+            //     scoresSection.style.display = 'none';
+            // }
 
+            // Ensure the main content div's overflow is visible for accurate capture
+            const originalAuditFormOverflow = auditFormContentDiv.style.overflow;
+            auditFormContentDiv.style.overflow = 'visible';
 
             // Render the element to canvas
             const canvas = await html2canvas(auditFormContentDiv, {
                 scale: 2, // Higher scale for better quality
                 useCORS: true,
                 logging: false,
-                windowWidth: auditFormContentDiv.scrollWidth,
-                windowHeight: auditFormContentDiv.scrollHeight,
-                scrollY: -window.scrollY, // Correct scrolling for full content capture
-                scrollX: -window.scrollX,
+                // Removed windowWidth, windowHeight, scrollY, scrollX as overflow:visible should handle it
             });
 
             // Revert styles and display properties
@@ -2369,7 +2369,7 @@
                 if (elData.element && elData.element.style) {
                     elData.element.style.border = elData.border;
                     elData.element.style.backgroundColor = elData.backgroundColor;
-                    elData.element.style.color = elData.element.color;
+                    elData.element.style.color = elData.color; // Corrected: use elData.color
                     elData.element.readOnly = elData.readOnly;
                     elData.element.disabled = elData.element.disabled;
                     elData.element.style.pointerEvents = elData.pointerEvents;
@@ -2384,9 +2384,13 @@
             if (lastEvaluationsContainer) {
                 lastEvaluationsContainer.style.display = originalLastEvaluationsDisplay;
             }
-            if (scoresSection) {
-                scoresSection.style.display = originalScoresDisplay;
-            }
+            // NO LONGER HIDING scoresSection
+            // if (scoresSection) {
+            //     scoresSection.style.display = originalScoresDisplay;
+            // }
+
+            // Revert main content div's overflow
+            auditFormContentDiv.style.overflow = originalAuditFormOverflow;
 
             return canvas; // Return the canvas element directly
         }
@@ -2421,7 +2425,7 @@
                 const imgWidth = 210; // A4 width in mm
                 const pageHeight = 297; // A4 height in mm
                 // Calculate imgHeight based on actual canvas dimensions to ensure proper scaling
-                const imgHeight = (canvas.height * imgWidth) / canvas.width; 
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;  
                 let heightLeft = imgHeight;
 
                 let position = 0;
