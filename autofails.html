@@ -292,6 +292,25 @@
         .review-modal .cancel-btn:hover {
             background-color: #4b5563;
         }
+
+        /* NEW: Class for fixed chart dimensions */
+        .chart-container-fixed {
+            width: 512px; /* 480px canvas + 2*16px padding */
+            height: 320px; /* 288px canvas + 2*16px padding (adjust if title takes more space) */
+            padding: 16px; /* p-4 in Tailwind corresponds to 16px */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Align to start to keep title at top */
+            box-sizing: border-box; /* Include padding in the width/height */
+        }
+
+        /* Ensure the canvas itself is sized by Chart.js responsiveness */
+        .chart-container-fixed canvas {
+            max-width: 100%;
+            max-height: calc(100% - 1.5rem - 0.5rem); /* Account for h3 text-lg (1.125rem) and mb-2 (0.5rem) */
+            /* The Chart.js options responsive:true and maintainAspectRatio:false should handle scaling */
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -394,13 +413,13 @@
                 
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Autofail Analytics</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-gray-50 p-4 rounded-lg shadow-sm flex flex-col items-center justify-center" style="height: 300px; width: 500px; overflow: hidden;">
+                    <div class="bg-gray-50 rounded-lg shadow-sm chart-container-fixed">
                         <h3 class="text-lg font-medium text-gray-700 mb-2 text-center">Autofails per CER Role</h3>
-                        <canvas id="autofailPerCerRoleChart" width="480" height="288"></canvas>
+                        <canvas id="autofailPerCerRoleChart"></canvas>
                     </div>
-                    <div class="bg-gray-50 p-4 rounded-lg shadow-sm flex flex-col items-center justify-center" style="height: 300px; width: 500px; overflow: hidden;">
+                    <div class="bg-gray-50 rounded-lg shadow-sm chart-container-fixed">
                         <h3 class="text-lg font-medium text-gray-700 mb-2 text-center">Autofails by Type</h3>
-                        <canvas id="autofailByTypeChart" width="480" height="288"></canvas>
+                        <canvas id="autofailByTypeChart"></canvas>
                     </div>
                 </div>
 
@@ -794,14 +813,20 @@
             });
 
             // Populate Year filter (only add new years if not already present)
-            const existingYears = Array.from(filterYear.options).map(opt => opt.value);
-            Array.from(years).sort((a, b) => b - a).forEach(year => { // Sort descending
-                if (!existingYears.includes(year)) {
-                    const option = document.createElement('option');
-                    option.value = year;
-                    option.textContent = year;
-                    filterYear.appendChild(option);
+            const currentYear = new Date().getFullYear();
+            for (let i = 0; i < 6; i++) { // Current year and 5 previous years
+                const year = currentYear - i;
+                if (!years.has(year.toString())) { // Only add if not already in records (from initial fetch)
+                    years.add(year.toString());
                 }
+            }
+            // Clear existing years first if refreshing filters
+            filterYear.innerHTML = '<option value="">All Years</option>';
+            Array.from(years).sort((a, b) => b - a).forEach(year => { // Sort descending
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                filterYear.appendChild(option);
             });
         }
 
@@ -1182,7 +1207,10 @@
             });
 
             // Populate years for filter (e.g., current year + last 5 years)
+            // This logic is now within populateFilterOptions and will be called after fetch.
+            // Keeping it here for initial population on first load, before records are fetched.
             const currentYear = new Date().getFullYear();
+            filterYear.innerHTML = '<option value="">All Years</option>'; // Clear existing
             for (let i = 0; i < 6; i++) { // Current year and 5 previous years
                 const year = currentYear - i;
                 const option = document.createElement('option');
