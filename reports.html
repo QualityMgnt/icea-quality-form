@@ -190,6 +190,34 @@
         .hidden {
             display: none !important;
         }
+
+        /* Table Matrix specific styles */
+        .audits-matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .audits-matrix-table th, .audits-matrix-table td {
+            border: 1px solid #e5e7eb; /* gray-300 */
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+        .audits-matrix-table th {
+            background-color: #eff6ff; /* blue-50 */
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .audits-matrix-table tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        .audits-matrix-table tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+        .audits-matrix-table .total-row {
+            font-weight: bold;
+            background-color: #e0f2f7; /* Light blue */
+        }
     </style>
 </head>
 <body>
@@ -234,7 +262,7 @@
                     NOTE: Report generation would typically involve fetching aggregated data from Firestore and using a charting library (e.g., Chart.js, D3.js) to visualize the data.
                 </p>
 
-                <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Sample Report Placeholder</h3>
+                <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Reports Display Area</h3>
                 <div id="reportDisplayArea" class="border border-gray-300 p-4 rounded-md bg-gray-50 min-h-[200px] flex items-center justify-center text-gray-500 text-center">
                     <p>Click "Generate Report" to see data.</p>
                 </div>
@@ -246,9 +274,12 @@
                             <label for="reportType" class="block text-sm font-medium text-gray-700">Report Type:</label>
                             <select id="reportType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
                                 <option value="">Select a report</option>
-                                <option value="overallScore">Overall Score Trends</option>
-                                <option value="cerPerformance">CER Performance Breakdown</option>
+                                <option value="overallScoreByMonth">Overall Score By Month</option>
+                                <option value="cerRoleOverallScoreByMonth">Overall Score by CER Role (Monthly)</option>
+                                <option value="cerRoleOverallScore">Overall Score for Each CER Role</option>
+                                <option value="evaluationsByCERName">Count of Evaluations by CER Name</option>
                                 <option value="autofailTrends">Autofail Trends</option>
+                                <option value="auditsByCERMonthMatrix">Audits by CER Name & Month (Matrix)</option>
                             </select>
                         </div>
                         <div>
@@ -303,10 +334,13 @@
         // Firestore Collection Path (consistent with index.html)
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
 
-        // Variable to hold the Chart.js instance for CER Performance
+        // Variables to hold Chart.js instances
         let cerPerformanceChart = null;
-        // Variable to hold the Chart.js instance for Autofail Trends
         let autofailTrendsChart = null;
+        let overallScoreByMonthChart = null;
+        let cerRoleOverallScoreByMonthChart = null;
+        let cerRoleOverallScoreChart = null;
+        let evaluationsByCERNameChart = null;
 
 
         // Message Box functions (copied from index.html for consistency)
@@ -420,14 +454,13 @@
             showMessageBox("Generating Report", "Fetching data and preparing report...", false, true, false);
 
             // Destroy previous chart instances if they exist
-            if (cerPerformanceChart) {
-                cerPerformanceChart.destroy();
-                cerPerformanceChart = null;
-            }
-            if (autofailTrendsChart) { // Destroy Autofail chart
-                autofailTrendsChart.destroy();
-                autofailTrendsChart = null;
-            }
+            if (cerPerformanceChart) { cerPerformanceChart.destroy(); cerPerformanceChart = null; }
+            if (autofailTrendsChart) { autofailTrendsChart.destroy(); autofailTrendsChart = null; }
+            if (overallScoreByMonthChart) { overallScoreByMonthChart.destroy(); overallScoreByMonthChart = null; }
+            if (cerRoleOverallScoreByMonthChart) { cerRoleOverallScoreByMonthChart.destroy(); cerRoleOverallScoreByMonthChart = null; }
+            if (cerRoleOverallScoreChart) { cerRoleOverallScoreChart.destroy(); cerRoleOverallScoreChart = null; }
+            if (evaluationsByCERNameChart) { evaluationsByCERNameChart.destroy(); evaluationsByCERNameChart = null; }
+
             reportDisplayArea.innerHTML = '<p class="text-gray-500">Loading report data...</p>';
 
 
@@ -462,127 +495,341 @@
                     reportHtml = `<p class="text-gray-500">No records found for the selected criteria (Report Type: ${reportType || 'All'}, Date Range: ${dateRange || 'All'}).</p>`;
                 } else {
                     switch (reportType) {
-                        case 'overallScore':
-                            // Calculate average overall score
-                            let totalScore = 0;
-                            let validScoresCount = 0;
+                        case 'overallScoreByMonth':
+                            const monthlyScores = {};
                             filteredRecords.forEach(record => {
-                                const scoreStr = record['Overall Score'];
-                                if (scoreStr && scoreStr.endsWith('%')) {
-                                    const score = parseFloat(scoreStr.replace('%', ''));
-                                    if (!isNaN(score)) {
-                                        totalScore += score;
-                                        validScoresCount++;
+                                const recordDate = safeToDate(record.submittedAt);
+                                if (recordDate) {
+                                    const monthKey = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
+                                    const scoreStr = record['Overall Score'];
+                                    if (scoreStr && scoreStr.endsWith('%')) {
+                                        const score = parseFloat(scoreStr.replace('%', ''));
+                                        if (!isNaN(score)) {
+                                            if (!monthlyScores[monthKey]) {
+                                                monthlyScores[monthKey] = { total: 0, count: 0 };
+                                            }
+                                            monthlyScores[monthKey].total += score;
+                                            monthlyScores[monthKey].count++;
+                                        }
                                     }
                                 }
                             });
-                            const averageScore = validScoresCount > 0 ? (totalScore / validScoresCount).toFixed(2) : 'N/A';
+
+                            const monthLabels = Object.keys(monthlyScores).sort();
+                            const monthData = monthLabels.map(month => (monthlyScores[month].total / monthlyScores[month].count).toFixed(2));
+
                             reportHtml = `
-                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Overall Score Trend for ${dateRange || 'All Time'}</h4>
-                                <p class="text-2xl font-bold text-blue-700 mb-4">Average Overall Score: ${averageScore}%</p>
-                                <p class="text-sm text-gray-600">Based on ${validScoresCount} evaluations.</p>
-                                <div class="mt-4 text-left">
-                                    <h5 class="font-semibold">Recent Scores:</h5>
-                                    <ul class="list-disc list-inside">
-                                        ${filteredRecords.slice(0, 5).map(r => {
-                                            const formattedDate = safeToDate(r.submittedAt) ? safeToDate(r.submittedAt).toLocaleDateString() : 'N/A';
-                                            return `<li>${r['CER Name'] || 'N/A'} - ${r['Overall Score'] || 'N/A'} (Contact ID: ${r['Contact ID'] || 'N/A'}, Date: ${formattedDate})</li>`;
-                                        }).join('')}
-                                    </ul>
+                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Overall Score By Month for ${dateRange || 'All Time'}</h4>
+                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
+                                    <canvas id="overallScoreByMonthChart"></canvas>
                                 </div>
                             `;
                             reportDisplayArea.innerHTML = reportHtml;
-                            break;
-                        case 'cerPerformance':
-                            // Group by CER Name and calculate average score
-                            const cerScores = {};
-                            filteredRecords.forEach(record => {
-                                const cerName = record['CER Name'];
-                                const scoreStr = record['Overall Score'];
-                                if (cerName && scoreStr && scoreStr.endsWith('%')) {
-                                    const score = parseFloat(scoreStr.replace('%', ''));
-                                    if (!isNaN(score)) {
-                                        if (!cerScores[cerName]) {
-                                            cerScores[cerName] = { total: 0, count: 0 };
-                                        }
-                                        cerScores[cerName].total += score;
-                                        cerScores[cerName].count++;
-                                    }
-                                }
-                            });
 
-                            const cerLabels = [];
-                            const cerData = [];
-                            for (const cerName in cerScores) {
-                                cerLabels.push(`${cerName} (${cerScores[cerName].count} evals)`);
-                                cerData.push((cerScores[cerName].total / cerScores[cerName].count).toFixed(2));
-                            }
-
-                            reportHtml = `
-                                <h4 class="text-lg font-semibold text-gray-700 mb-2">CER Performance Breakdown for ${dateRange || 'All Time'}</h4>
-                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
-                                    <canvas id="cerPerformanceChart"></canvas>
-                                </div>
-                            `;
-                            reportDisplayArea.innerHTML = reportHtml; // Render canvas first
-
-                            const ctx = document.getElementById('cerPerformanceChart').getContext('2d');
-                            cerPerformanceChart = new Chart(ctx, {
-                                type: 'bar',
-                                data: {
-                                    labels: cerLabels,
-                                    datasets: [{
-                                        label: 'Average Score (%)',
-                                        data: cerData,
-                                        backgroundColor: [
-                                            'rgba(26, 115, 232, 0.6)', /* icealion-blue */
-                                            'rgba(245, 124, 0, 0.6)',  /* icealion-orange */
-                                            'rgba(75, 192, 192, 0.6)',
-                                            'rgba(153, 102, 255, 0.6)',
-                                            'rgba(255, 159, 64, 0.6)'
-                                        ],
-                                        borderColor: [
-                                            'rgba(26, 115, 232, 1)',
-                                            'rgba(245, 124, 0, 1)',
-                                            'rgba(75, 192, 192, 1)',
-                                            'rgba(153, 102, 255, 1)',
-                                            'rgba(255, 159, 64, 1)'
-                                        ],
-                                        borderWidth: 1
-                                    }]
-                                },
-                                options: {
-                                    indexAxis: 'y', // This makes it a horizontal bar chart
-                                    responsive: true,
-                                    maintainAspectRatio: false, // Allow canvas to resize based on parent
-                                    plugins: {
-                                        title: {
-                                            display: true,
-                                            text: 'CER Average Performance'
-                                        },
-                                        legend: {
-                                            display: false
-                                        }
+                            if (monthLabels.length > 0) {
+                                const ctx = document.getElementById('overallScoreByMonthChart').getContext('2d');
+                                overallScoreByMonthChart = new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: monthLabels,
+                                        datasets: [{
+                                            label: 'Average Overall Score (%)',
+                                            data: monthData,
+                                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                            borderColor: 'rgba(75, 192, 192, 1)',
+                                            borderWidth: 1
+                                        }]
                                     },
-                                    scales: {
-                                        x: {
-                                            beginAtZero: true,
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
                                             title: {
                                                 display: true,
-                                                text: 'Average Score (%)'
+                                                text: 'Overall Score Trends by Month'
                                             },
-                                            max: 100 // Scores are percentages
+                                            legend: {
+                                                display: true
+                                            }
                                         },
-                                        y: {
-                                            title: {
-                                                display: true,
-                                                text: 'CER Name'
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                title: {
+                                                    display: true,
+                                                    text: 'Average Score (%)'
+                                                },
+                                                max: 100
                                             }
                                         }
                                     }
+                                });
+                            } else {
+                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No data for Overall Score By Month for the selected period.</p>`;
+                            }
+                            break;
+
+                        case 'cerRoleOverallScoreByMonth':
+                            const cerRoleMonthlyScores = {}; // { 'CER Role': { 'YYYY-MM': { total: 0, count: 0 } } }
+                            const allMonths = new Set();
+                            const allRoles = new Set();
+
+                            filteredRecords.forEach(record => {
+                                const recordDate = safeToDate(record.submittedAt);
+                                const cerRole = record['CER Role'];
+                                const scoreStr = record['Overall Score'];
+
+                                if (recordDate && cerRole && scoreStr && scoreStr.endsWith('%')) {
+                                    const monthKey = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
+                                    const score = parseFloat(scoreStr.replace('%', ''));
+
+                                    if (!isNaN(score)) {
+                                        if (!cerRoleMonthlyScores[cerRole]) {
+                                            cerRoleMonthlyScores[cerRole] = {};
+                                        }
+                                        if (!cerRoleMonthlyScores[cerRole][monthKey]) {
+                                            cerRoleMonthlyScores[cerRole][monthKey] = { total: 0, count: 0 };
+                                        }
+                                        cerRoleMonthlyScores[cerRole][monthKey].total += score;
+                                        cerRoleMonthlyScores[cerRole][monthKey].count++;
+                                        
+                                        allMonths.add(monthKey);
+                                        allRoles.add(cerRole);
+                                    }
                                 }
                             });
+
+                            const sortedMonths = Array.from(allMonths).sort();
+                            const sortedRoles = Array.from(allRoles).sort();
+                            const datasets = sortedRoles.map(role => {
+                                return {
+                                    label: role,
+                                    data: sortedMonths.map(month => {
+                                        const data = cerRoleMonthlyScores[role]?.[month];
+                                        return data ? (data.total / data.count).toFixed(2) : null;
+                                    }),
+                                    backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`, // Random color
+                                    borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
+                                    borderWidth: 1
+                                };
+                            });
+
+                            reportHtml = `
+                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Overall Score by CER Role (Monthly) for ${dateRange || 'All Time'}</h4>
+                                <div style="width: 100%; height: 450px; display: flex; justify-content: center; align-items: center;">
+                                    <canvas id="cerRoleOverallScoreByMonthChart"></canvas>
+                                </div>
+                            `;
+                            reportDisplayArea.innerHTML = reportHtml;
+
+                            if (sortedMonths.length > 0 && sortedRoles.length > 0) {
+                                const ctx = document.getElementById('cerRoleOverallScoreByMonthChart').getContext('2d');
+                                cerRoleOverallScoreByMonthChart = new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: sortedMonths,
+                                        datasets: datasets
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            title: {
+                                                display: true,
+                                                text: 'Average Overall Score by CER Role and Month'
+                                            },
+                                            legend: {
+                                                display: true,
+                                                position: 'top'
+                                            }
+                                        },
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                title: {
+                                                    display: true,
+                                                    text: 'Average Score (%)'
+                                                },
+                                                max: 100
+                                            },
+                                            x: {
+                                                title: {
+                                                    display: true,
+                                                    text: 'Month'
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            } else {
+                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No data for Overall Score by CER Role (Monthly) for the selected period.</p>`;
+                            }
                             break;
+
+                        case 'cerRoleOverallScore':
+                            const cerRoleScores = {};
+                            filteredRecords.forEach(record => {
+                                const cerRole = record['CER Role'];
+                                const scoreStr = record['Overall Score'];
+                                if (cerRole && scoreStr && scoreStr.endsWith('%')) {
+                                    const score = parseFloat(scoreStr.replace('%', ''));
+                                    if (!isNaN(score)) {
+                                        if (!cerRoleScores[cerRole]) {
+                                            cerRoleScores[cerRole] = { total: 0, count: 0 };
+                                        }
+                                        cerRoleScores[cerRole].total += score;
+                                        cerRoleScores[cerRole].count++;
+                                    }
+                                }
+                            });
+
+                            const cerRoleLabels = Object.keys(cerRoleScores).sort();
+                            const cerRoleData = cerRoleLabels.map(role => (cerRoleScores[role].total / cerRoleScores[role].count).toFixed(2));
+
+                            reportHtml = `
+                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Overall Score for Each CER Role for ${dateRange || 'All Time'}</h4>
+                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
+                                    <canvas id="cerRoleOverallScoreChart"></canvas>
+                                </div>
+                            `;
+                            reportDisplayArea.innerHTML = reportHtml;
+
+                            if (cerRoleLabels.length > 0) {
+                                const ctx = document.getElementById('cerRoleOverallScoreChart').getContext('2d');
+                                cerRoleOverallScoreChart = new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: cerRoleLabels,
+                                        datasets: [{
+                                            label: 'Average Overall Score (%)',
+                                            data: cerRoleData,
+                                            backgroundColor: [
+                                                'rgba(26, 115, 232, 0.6)',
+                                                'rgba(245, 124, 0, 0.6)',
+                                                'rgba(75, 192, 192, 0.6)',
+                                                'rgba(153, 102, 255, 0.6)',
+                                                'rgba(255, 159, 64, 0.6)',
+                                                'rgba(192, 75, 192, 0.6)'
+                                            ],
+                                            borderColor: [
+                                                'rgba(26, 115, 232, 1)',
+                                                'rgba(245, 124, 0, 1)',
+                                                'rgba(75, 192, 192, 1)',
+                                                'rgba(153, 102, 255, 1)',
+                                                'rgba(255, 159, 64, 1)',
+                                                'rgba(192, 75, 192, 1)'
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Horizontal bar chart
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            title: {
+                                                display: true,
+                                                text: 'Average Overall Score by CER Role'
+                                            },
+                                            legend: {
+                                                display: false
+                                            }
+                                        },
+                                        scales: {
+                                            x: {
+                                                beginAtZero: true,
+                                                title: {
+                                                    display: true,
+                                                    text: 'Average Score (%)'
+                                                },
+                                                max: 100
+                                            },
+                                            y: {
+                                                title: {
+                                                    display: true,
+                                                    text: 'CER Role'
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            } else {
+                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No data for Overall Score for Each CER Role for the selected period.</p>`;
+                            }
+                            break;
+
+                        case 'evaluationsByCERName':
+                            const cerEvaluationCounts = {};
+                            filteredRecords.forEach(record => {
+                                const cerName = record['CER Name'];
+                                if (cerName) {
+                                    cerEvaluationCounts[cerName] = (cerEvaluationCounts[cerName] || 0) + 1;
+                                }
+                            });
+
+                            const cerNameLabels = Object.keys(cerEvaluationCounts).sort();
+                            const cerNameData = cerNameLabels.map(name => cerEvaluationCounts[name]);
+
+                            reportHtml = `
+                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Count of Evaluations by CER Name for ${dateRange || 'All Time'}</h4>
+                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
+                                    <canvas id="evaluationsByCERNameChart"></canvas>
+                                </div>
+                            `;
+                            reportDisplayArea.innerHTML = reportHtml;
+
+                            if (cerNameLabels.length > 0) {
+                                const ctx = document.getElementById('evaluationsByCERNameChart').getContext('2d');
+                                evaluationsByCERNameChart = new Chart(ctx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: cerNameLabels,
+                                        datasets: [{
+                                            label: 'Number of Evaluations',
+                                            data: cerNameData,
+                                            backgroundColor: 'rgba(54, 162, 235, 0.6)', /* Blue */
+                                            borderColor: 'rgba(54, 162, 235, 1)',
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Horizontal bar chart
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            title: {
+                                                display: true,
+                                                text: 'Number of Evaluations by CER Name'
+                                            },
+                                            legend: {
+                                                display: false
+                                            }
+                                        },
+                                        scales: {
+                                            x: {
+                                                beginAtZero: true,
+                                                title: {
+                                                    display: true,
+                                                    text: 'Count'
+                                                },
+                                                ticks: {
+                                                    stepSize: 1
+                                                }
+                                            },
+                                            y: {
+                                                title: {
+                                                    display: true,
+                                                    text: 'CER Name'
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            } else {
+                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No evaluation data for CER Name for the selected period.</p>`;
+                            }
+                            break;
+                            
                         case 'autofailTrends':
                             // Count autofail types
                             const autofailCounts = {};
@@ -655,6 +902,79 @@
                                 reportDisplayArea.innerHTML = `<p class="text-gray-500">No autofail incidents recorded for the selected period.</p>`;
                             }
                             break;
+
+                        case 'auditsByCERMonthMatrix':
+                            const auditMatrix = {}; // { 'CER Name': { 'YYYY-MM': count } }
+                            const allUniqueMonths = new Set();
+                            const allUniqueCERs = new Set();
+
+                            filteredRecords.forEach(record => {
+                                const recordDate = safeToDate(record.submittedAt);
+                                const cerName = record['CER Name'];
+
+                                if (recordDate && cerName) {
+                                    const monthKey = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
+                                    
+                                    if (!auditMatrix[cerName]) {
+                                        auditMatrix[cerName] = {};
+                                    }
+                                    auditMatrix[cerName][monthKey] = (auditMatrix[cerName][monthKey] || 0) + 1;
+                                    
+                                    allUniqueMonths.add(monthKey);
+                                    allUniqueCERs.add(cerName);
+                                }
+                            });
+
+                            const sortedUniqueMonths = Array.from(allUniqueMonths).sort();
+                            const sortedUniqueCERs = Array.from(allUniqueCERs).sort();
+
+                            reportHtml = `
+                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Number of Audits by CER Name and Month for ${dateRange || 'All Time'}</h4>
+                                <div class="overflow-x-auto">
+                                    <table class="audits-matrix-table">
+                                        <thead>
+                                            <tr>
+                                                <th>CER Name</th>
+                                                ${sortedUniqueMonths.map(month => `<th>${month}</th>`).join('')}
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${sortedUniqueCERs.map(cer => {
+                                                let rowTotal = 0;
+                                                const monthlyCounts = sortedUniqueMonths.map(month => {
+                                                    const count = auditMatrix[cer][month] || 0;
+                                                    rowTotal += count;
+                                                    return `<td>${count}</td>`;
+                                                }).join('');
+                                                return `
+                                                    <tr>
+                                                        <td style="text-align: left; font-weight: bold;">${cer}</td>
+                                                        ${monthlyCounts}
+                                                        <td>${rowTotal}</td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                            <tr class="total-row">
+                                                <td style="text-align: left;">Total</td>
+                                                ${sortedUniqueMonths.map(month => {
+                                                    let columnTotal = 0;
+                                                    sortedUniqueCERs.forEach(cer => {
+                                                        columnTotal += (auditMatrix[cer]?.[month] || 0);
+                                                    });
+                                                    return `<td>${columnTotal}</td>`;
+                                                }).join('')}
+                                                <td>
+                                                    ${filteredRecords.length}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                            reportDisplayArea.innerHTML = reportHtml;
+                            break;
+
                         default:
                             reportHtml = `<p class="text-gray-500">Please select a report type to generate a specific report.</p>`;
                             reportDisplayArea.innerHTML = reportHtml;
