@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js CDN for graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
 
     <style>
         /* Base styles - consistent with index.html, users.html, admin.html */
@@ -301,6 +303,9 @@
         // Firestore Collection Path (consistent with index.html)
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
 
+        // Variable to hold the Chart.js instance
+        let cerPerformanceChart = null;
+
         // Message Box functions (copied from index.html for consistency)
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
@@ -382,6 +387,18 @@
             document.dispatchEvent(new CustomEvent('firebaseAuthReadyReportsPage')); // Custom event for this page
         });
 
+        // Helper function to safely convert Firestore Timestamp or other types to Date object
+        function safeToDate(timestamp) {
+            if (!timestamp) return null;
+            if (typeof timestamp.toDate === 'function') {
+                return timestamp.toDate();
+            } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+                const date = new Date(timestamp);
+                return isNaN(date.getTime()) ? null : date;
+            }
+            return null;
+        }
+
         // Function to generate and display reports
         async function generateReport() {
             const reportDisplayArea = document.getElementById('reportDisplayArea');
@@ -399,7 +416,13 @@
 
             showMessageBox("Generating Report", "Fetching data and preparing report...", false, true, false);
 
+            // Destroy previous chart instance if it exists
+            if (cerPerformanceChart) {
+                cerPerformanceChart.destroy();
+                cerPerformanceChart = null;
+            }
             reportDisplayArea.innerHTML = '<p class="text-gray-500">Loading report data...</p>';
+
 
             try {
                 const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
@@ -416,26 +439,7 @@
                 }
 
                 let filteredRecords = allRecords.filter(record => {
-                    const submittedAt = record.submittedAt;
-                    if (!submittedAt) return false;
-
-                    let recordDate = null;
-                    try {
-                        // Safely convert Firestore Timestamp or string/number to Date object
-                        if (typeof submittedAt.toDate === 'function') {
-                            recordDate = submittedAt.toDate();
-                        } else if (typeof submittedAt === 'string' || typeof submittedAt === 'number') {
-                            recordDate = new Date(submittedAt);
-                        }
-                        
-                        if (recordDate && isNaN(recordDate.getTime())) { // Check if date is valid
-                            recordDate = null; // Invalidate if not a valid date
-                        }
-                    } catch (e) {
-                        console.warn("Error parsing submittedAt date for filtering:", submittedAt, e);
-                        recordDate = null; // Fallback to null if parsing fails
-                    }
-                    
+                    const recordDate = safeToDate(record.submittedAt);
                     if (!recordDate) return false; // Exclude record if date could not be parsed
 
                     // Apply date range filter if selected
@@ -474,18 +478,7 @@
                                     <h5 class="font-semibold">Recent Scores:</h5>
                                     <ul class="list-disc list-inside">
                                         ${filteredRecords.slice(0, 5).map(r => {
-                                            let rDate = null;
-                                            try {
-                                                if (r.submittedAt && typeof r.submittedAt.toDate === 'function') {
-                                                    rDate = r.submittedAt.toDate();
-                                                } else if (r.submittedAt && (typeof r.submittedAt === 'string' || typeof r.submittedAt === 'number')) {
-                                                    rDate = new Date(r.submittedAt);
-                                                }
-                                                if (rDate && isNaN(rDate.getTime())) rDate = null; // Invalidate if not a valid date
-                                            } catch (e) {
-                                                rDate = null;
-                                            }
-                                            const formattedDate = rDate ? rDate.toLocaleDateString() : 'N/A';
+                                            const formattedDate = safeToDate(r.submittedAt) ? safeToDate(r.submittedAt).toLocaleDateString() : 'N/A';
                                             return `<li>${r['CER Name'] || 'N/A'} - ${r['Overall Score'] || 'N/A'} (Contact ID: ${r['Contact ID'] || 'N/A'}, Date: ${formattedDate})</li>`;
                                         }).join('')}
                                     </ul>
@@ -510,17 +503,77 @@
                                 }
                             });
 
-                            reportHtml = `<h4 class="text-lg font-semibold text-gray-700 mb-2">CER Performance Breakdown for ${dateRange || 'All Time'}</h4>`;
-                            if (Object.keys(cerScores).length > 0) {
-                                reportHtml += `<ul class="list-disc list-inside text-left">`;
-                                for (const cerName in cerScores) {
-                                    const avg = (cerScores[cerName].total / cerScores[cerName].count).toFixed(2);
-                                    reportHtml += `<li><strong>${cerName}</strong>: Average Score ${avg}% (${cerScores[cerName].count} evaluations)</li>`;
-                                }
-                                reportHtml += `</ul>`;
-                            } else {
-                                reportHtml += `<p class="text-gray-500">No CER performance data found for the selected period.</p>`;
+                            const cerLabels = [];
+                            const cerData = [];
+                            for (const cerName in cerScores) {
+                                cerLabels.push(`${cerName} (${cerScores[cerName].count} evals)`);
+                                cerData.push((cerScores[cerName].total / cerScores[cerName].count).toFixed(2));
                             }
+
+                            reportHtml = `
+                                <h4 class="text-lg font-semibold text-gray-700 mb-2">CER Performance Breakdown for ${dateRange || 'All Time'}</h4>
+                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
+                                    <canvas id="cerPerformanceChart"></canvas>
+                                </div>
+                            `;
+                            reportDisplayArea.innerHTML = reportHtml; // Render canvas first
+
+                            const ctx = document.getElementById('cerPerformanceChart').getContext('2d');
+                            cerPerformanceChart = new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: cerLabels,
+                                    datasets: [{
+                                        label: 'Average Score (%)',
+                                        data: cerData,
+                                        backgroundColor: [
+                                            'rgba(26, 115, 232, 0.6)', /* icealion-blue */
+                                            'rgba(245, 124, 0, 0.6)',  /* icealion-orange */
+                                            'rgba(75, 192, 192, 0.6)',
+                                            'rgba(153, 102, 255, 0.6)',
+                                            'rgba(255, 159, 64, 0.6)'
+                                        ],
+                                        borderColor: [
+                                            'rgba(26, 115, 232, 1)',
+                                            'rgba(245, 124, 0, 1)',
+                                            'rgba(75, 192, 192, 1)',
+                                            'rgba(153, 102, 255, 1)',
+                                            'rgba(255, 159, 64, 1)'
+                                        ],
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    indexAxis: 'y', // This makes it a horizontal bar chart
+                                    responsive: true,
+                                    maintainAspectRatio: false, // Allow canvas to resize based on parent
+                                    plugins: {
+                                        title: {
+                                            display: true,
+                                            text: 'CER Average Performance'
+                                        },
+                                        legend: {
+                                            display: false
+                                        }
+                                    },
+                                    scales: {
+                                        x: {
+                                            beginAtZero: true,
+                                            title: {
+                                                display: true,
+                                                text: 'Average Score (%)'
+                                            },
+                                            max: 100 // Scores are percentages
+                                        },
+                                        y: {
+                                            title: {
+                                                display: true,
+                                                text: 'CER Name'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
                             break;
                         case 'autofailTrends':
                             // Count autofail types
@@ -542,14 +595,15 @@
                             } else {
                                 reportHtml += `<p class="text-gray-500">No autofail incidents recorded for the selected period.</p>`;
                             }
+                            reportDisplayArea.innerHTML = reportHtml;
                             break;
                         default:
                             reportHtml = `<p class="text-gray-500">Please select a report type to generate a specific report.</p>`;
+                            reportDisplayArea.innerHTML = reportHtml;
                             break;
                     }
                 }
                 
-                reportDisplayArea.innerHTML = reportHtml;
                 hideMessageBox();
 
             } catch (error) {
