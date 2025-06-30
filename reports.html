@@ -415,26 +415,34 @@
                     return;
                 }
 
-                let filteredRecords = allRecords;
+                let filteredRecords = allRecords.filter(record => {
+                    const submittedAt = record.submittedAt;
+                    if (!submittedAt) return false;
 
-                // Apply date range filter if selected
-                if (dateRange) {
-                    filteredRecords = allRecords.filter(record => {
-                        const submittedAt = record.submittedAt;
-                        if (!submittedAt) return false;
-
-                        let recordDate;
-                        try {
-                            recordDate = typeof submittedAt.toDate === 'function' ? submittedAt.toDate() : new Date(submittedAt);
-                            if (isNaN(recordDate.getTime())) return false; // Invalid date
-                        } catch (e) {
-                            return false; // Error parsing date
+                    let recordDate;
+                    try {
+                        // Safely convert Firestore Timestamp or string to Date object
+                        if (typeof submittedAt.toDate === 'function') {
+                            recordDate = submittedAt.toDate();
+                        } else if (typeof submittedAt === 'string' || typeof submittedAt === 'number') {
+                            recordDate = new Date(submittedAt);
+                        } else {
+                            return false; // Unknown type for submittedAt
                         }
                         
+                        if (isNaN(recordDate.getTime())) return false; // Invalid date
+                    } catch (e) {
+                        console.warn("Error parsing submittedAt date for filtering:", submittedAt, e);
+                        return false; // Error parsing date, exclude record
+                    }
+                    
+                    // Apply date range filter if selected
+                    if (dateRange) {
                         const recordMonth = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
                         return recordMonth === dateRange;
-                    });
-                }
+                    }
+                    return true; // If no dateRange, include all records
+                });
 
                 let reportHtml = '';
                 if (filteredRecords.length === 0) {
@@ -463,7 +471,20 @@
                                 <div class="mt-4 text-left">
                                     <h5 class="font-semibold">Recent Scores:</h5>
                                     <ul class="list-disc list-inside">
-                                        ${filteredRecords.slice(0, 5).map(r => `<li>${r['CER Name'] || 'N/A'} - ${r['Overall Score'] || 'N/A'} (Contact ID: ${r['Contact ID'] || 'N/A'}, Date: ${r.submittedAt ? new Date(r.submittedAt.toDate()).toLocaleDateString() : 'N/A'})</li>`).join('')}
+                                        ${filteredRecords.slice(0, 5).map(r => {
+                                            let rDate;
+                                            try {
+                                                if (typeof r.submittedAt.toDate === 'function') {
+                                                    rDate = r.submittedAt.toDate();
+                                                } else if (typeof r.submittedAt === 'string' || typeof r.submittedAt === 'number') {
+                                                    rDate = new Date(r.submittedAt);
+                                                }
+                                            } catch (e) {
+                                                rDate = null;
+                                            }
+                                            const formattedDate = rDate ? rDate.toLocaleDateString() : 'N/A';
+                                            return `<li>${r['CER Name'] || 'N/A'} - ${r['Overall Score'] || 'N/A'} (Contact ID: ${r['Contact ID'] || 'N/A'}, Date: ${formattedDate})</li>`;
+                                        }).join('')}
                                     </ul>
                                 </div>
                             `;
