@@ -303,8 +303,11 @@
         // Firestore Collection Path (consistent with index.html)
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
 
-        // Variable to hold the Chart.js instance
+        // Variable to hold the Chart.js instance for CER Performance
         let cerPerformanceChart = null;
+        // Variable to hold the Chart.js instance for Autofail Trends
+        let autofailTrendsChart = null;
+
 
         // Message Box functions (copied from index.html for consistency)
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
@@ -416,10 +419,14 @@
 
             showMessageBox("Generating Report", "Fetching data and preparing report...", false, true, false);
 
-            // Destroy previous chart instance if it exists
+            // Destroy previous chart instances if they exist
             if (cerPerformanceChart) {
                 cerPerformanceChart.destroy();
                 cerPerformanceChart = null;
+            }
+            if (autofailTrendsChart) { // Destroy Autofail chart
+                autofailTrendsChart.destroy();
+                autofailTrendsChart = null;
             }
             reportDisplayArea.innerHTML = '<p class="text-gray-500">Loading report data...</p>';
 
@@ -484,6 +491,7 @@
                                     </ul>
                                 </div>
                             `;
+                            reportDisplayArea.innerHTML = reportHtml;
                             break;
                         case 'cerPerformance':
                             // Group by CER Name and calculate average score
@@ -585,17 +593,67 @@
                                 }
                             });
 
-                            reportHtml = `<h4 class="text-lg font-semibold text-gray-700 mb-2">Autofail Trends for ${dateRange || 'All Time'}</h4>`;
-                            if (Object.keys(autofailCounts).length > 0) {
-                                reportHtml += `<ul class="list-disc list-inside text-left">`;
-                                for (const type in autofailCounts) {
-                                    reportHtml += `<li><strong>${type}</strong>: ${autofailCounts[type]} occurrences</li>`;
-                                }
-                                reportHtml += `</ul>`;
+                            const autofailLabels = Object.keys(autofailCounts);
+                            const autofailData = Object.values(autofailCounts);
+
+                            reportHtml = `
+                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Autofail Trends for ${dateRange || 'All Time'}</h4>
+                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
+                                    <canvas id="autofailTrendsChart"></canvas>
+                                </div>
+                            `;
+                            reportDisplayArea.innerHTML = reportHtml; // Render canvas first
+
+                            if (autofailLabels.length > 0) {
+                                const ctxAutofail = document.getElementById('autofailTrendsChart').getContext('2d');
+                                autofailTrendsChart = new Chart(ctxAutofail, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: autofailLabels,
+                                        datasets: [{
+                                            label: 'Number of Occurrences',
+                                            data: autofailData,
+                                            backgroundColor: 'rgba(255, 99, 132, 0.6)', /* Reddish for autofails */
+                                            borderColor: 'rgba(255, 99, 132, 1)',
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        indexAxis: 'y', // Horizontal bar chart
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            title: {
+                                                display: true,
+                                                text: 'Autofail Occurrences'
+                                            },
+                                            legend: {
+                                                display: false
+                                            }
+                                        },
+                                        scales: {
+                                            x: {
+                                                beginAtZero: true,
+                                                title: {
+                                                    display: true,
+                                                    text: 'Occurrences'
+                                                },
+                                                ticks: {
+                                                    stepSize: 1, // Ensure whole numbers for counts
+                                                }
+                                            },
+                                            y: {
+                                                title: {
+                                                    display: true,
+                                                    text: 'Autofail Type'
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
                             } else {
-                                reportHtml += `<p class="text-gray-500">No autofail incidents recorded for the selected period.</p>`;
+                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No autofail incidents recorded for the selected period.</p>`;
                             }
-                            reportDisplayArea.innerHTML = reportHtml;
                             break;
                         default:
                             reportHtml = `<p class="text-gray-500">Please select a report type to generate a specific report.</p>`;
