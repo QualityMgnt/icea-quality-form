@@ -419,29 +419,31 @@
                     const submittedAt = record.submittedAt;
                     if (!submittedAt) return false;
 
-                    let recordDate;
+                    let recordDate = null;
                     try {
-                        // Safely convert Firestore Timestamp or string to Date object
+                        // Safely convert Firestore Timestamp or string/number to Date object
                         if (typeof submittedAt.toDate === 'function') {
                             recordDate = submittedAt.toDate();
                         } else if (typeof submittedAt === 'string' || typeof submittedAt === 'number') {
                             recordDate = new Date(submittedAt);
-                        } else {
-                            return false; // Unknown type for submittedAt
                         }
                         
-                        if (isNaN(recordDate.getTime())) return false; // Invalid date
+                        if (recordDate && isNaN(recordDate.getTime())) { // Check if date is valid
+                            recordDate = null; // Invalidate if not a valid date
+                        }
                     } catch (e) {
                         console.warn("Error parsing submittedAt date for filtering:", submittedAt, e);
-                        return false; // Error parsing date, exclude record
+                        recordDate = null; // Fallback to null if parsing fails
                     }
                     
+                    if (!recordDate) return false; // Exclude record if date could not be parsed
+
                     // Apply date range filter if selected
                     if (dateRange) {
                         const recordMonth = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
                         return recordMonth === dateRange;
                     }
-                    return true; // If no dateRange, include all records
+                    return true; // If no dateRange, include all records with valid dates
                 });
 
                 let reportHtml = '';
@@ -472,13 +474,14 @@
                                     <h5 class="font-semibold">Recent Scores:</h5>
                                     <ul class="list-disc list-inside">
                                         ${filteredRecords.slice(0, 5).map(r => {
-                                            let rDate;
+                                            let rDate = null;
                                             try {
-                                                if (typeof r.submittedAt.toDate === 'function') {
+                                                if (r.submittedAt && typeof r.submittedAt.toDate === 'function') {
                                                     rDate = r.submittedAt.toDate();
-                                                } else if (typeof r.submittedAt === 'string' || typeof r.submittedAt === 'number') {
+                                                } else if (r.submittedAt && (typeof r.submittedAt === 'string' || typeof r.submittedAt === 'number')) {
                                                     rDate = new Date(r.submittedAt);
                                                 }
+                                                if (rDate && isNaN(rDate.getTime())) rDate = null; // Invalidate if not a valid date
                                             } catch (e) {
                                                 rDate = null;
                                             }
