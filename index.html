@@ -223,7 +223,7 @@
         
         /* Login container redesign */
         .login-container {
-            position: fixed;
+            position: fixed; /* Keep it fixed even when not visible initially */
             top: 0;
             left: 0;
             width: 100vw;
@@ -233,6 +233,13 @@
             justify-content: center;
             background-color: #f3f4f6;
             z-index: 1000;
+            visibility: hidden; /* Start hidden to prevent flicker */
+            opacity: 0; /* Start invisible */
+            transition: visibility 0s, opacity 0.3s ease; /* Transition for smooth display */
+        }
+        .login-container.visible {
+            visibility: visible;
+            opacity: 1;
         }
         .login-container .container.mx-auto {
             max-width: 320px;
@@ -454,7 +461,6 @@
                 <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="#" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li><a href="nps.html" id="npsFeedbackTab"><i class="fas fa-comments"></i> NPS Feedback</a></li> <!-- NEW NPS TAB -->
                 <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
                 <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li> </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
@@ -787,12 +793,10 @@
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         const DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
-        const NPS_EVALUATIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/nps_evaluations`; // NEW NPS Evaluation Collection
 
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
-        let allRecords = []; // For main evaluations
-        let allNpsRecords = []; // For NPS records from Google Sheet
+        let allRecords = [];
         let allWebhooks = [];
         let dropdownOptions = { // Initialize with default structure
             'cerNames': [],
@@ -801,7 +805,7 @@
             'autofailTypes': []
         };
         let cerNameEmailsMap = {};
-        let filterableRecords = []; // Added for share page search functionality (now includes NPS)
+        let filterableRecords = []; // Added for share page search functionality
 
         // >>> UPDATED allRolesQuestions OBJECT with all hasNA set to true for N/A option availability <<<
         const allRolesQuestions = {
@@ -1069,9 +1073,7 @@
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
         let globalBusinessComplianceAccuracyValue = 0;
-        let latestSavedRecordId = null; // To store the ID of the last saved record (can be main or NPS)
-        let latestSavedRecordIsNps = false; // Flag to indicate if the latest saved record is an NPS evaluation
-
+        let latestSavedRecordId = null; // To store the ID of the last saved record
 
         // --- All Core Functions (Hoisted to top of module scope using `function` keyword) ---
         // (Order matters for hoisting with traditional `function` declarations)
@@ -1336,7 +1338,6 @@
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
-            const npsFeedbackTab = document.getElementById('npsFeedbackTab'); // NEW NPS TAB
 
             const auditFormContent = document.getElementById('auditFormContent');
             const databaseContent = document.getElementById('databaseContent');
@@ -1352,7 +1353,6 @@
             if (reportsTab) reportsTab.classList.remove('active');
             if (autofailsTab) autofailsTab.classList.remove('active');
             if (adminTab) adminTab.classList.remove('active');
-            if (npsFeedbackTab) npsFeedbackTab.classList.remove('active'); // NEW NPS TAB
 
 
             // Hide all content sections for this index.html
@@ -1388,15 +1388,8 @@
                 if (shareResponseTab) shareResponseTab.classList.add('active');
                 if (shareResponseContent) shareResponseContent.style.display = 'block';
                 if (db && currentUserId) {
-                    // Check if we navigated from NPS module
-                    const npsShareData = sessionStorage.getItem('npsShareData');
-                    if (npsShareData) {
-                        const { recordId, isNpsRecord } = JSON.parse(npsShareData);
-                        sessionStorage.removeItem('npsShareData'); // Clear it after reading
-                        populateShareResponseDropdown(recordId, isNpsRecord);
-                    } else {
-                        populateShareResponseDropdown(); // Regular population
-                    }
+                    fetchRecordsAndWebhooks(); // Ensure allRecords is up-to-date before populating dropdown
+                    populateShareResponseDropdown();
                 } else {
                     showMessageBox("Share Response Not Ready", "Waiting for authentication to load records for sharing.", false, true, false);
                 }
@@ -1414,10 +1407,6 @@
             } else if (tabName === 'admin') {
                 if (adminTab) adminTab.classList.add('active');
                 window.location.href = 'admin.html';
-            }
-            else if (tabName === 'npsFeedback') { // NEW NPS TAB Logic
-                if (npsFeedbackTab) npsFeedbackTab.classList.add('active');
-                window.location.href = 'nps.html'; // Navigate to the new NPS page
             }
         }
 
@@ -1898,7 +1887,6 @@
             });
 
             latestSavedRecordId = await addRecordToFirestore(formData); // Store the ID
-            latestSavedRecordIsNps = false; // This is a main evaluation form
             if (latestSavedRecordId) {
                 // Keep the form fields as they are after saving, and show the PDF & Share button.
                 document.getElementById('pdfShareBtn').classList.remove('hidden'); // Show PDF & Share button
@@ -1958,7 +1946,6 @@
             document.getElementById('pdfShareBtn').classList.add('hidden');
             document.getElementById('pdfEmailDirectBtn').classList.add('hidden');
             latestSavedRecordId = null; // Clear latest saved record ID
-            latestSavedRecordIsNps = false;
         }
 
         /**
@@ -2035,7 +2022,8 @@
             const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
 
             if (user && isLoggedInFromSession === 'true') { // Check both session flag and actual Firebase user
-                loginPage.style.display = 'none';
+                loginPage.classList.remove('visible'); // Hide login page smoothly
+                loginPage.style.display = 'none'; // Ensure display is none for layout
                 mainNav.style.display = 'block';
                 // Show the tab that was active or default to 'auditForm'
                 const activeHash = window.location.hash.substring(1); // Get hash from URL
@@ -2043,15 +2031,13 @@
                     showTab('database');
                 } else if (activeHash === 'shareResponse') {
                     showTab('shareResponse');
-                } else if (activeHash === 'npsFeedback') { // Handle direct navigation to NPS
-                    showTab('npsFeedback'); // This will redirect to nps.html
-                }
-                else {
+                } else {
                     showTab('auditForm'); // Default to audit form
                 }
             } else {
                 // If not logged in or session is invalid, show login page
-                loginPage.style.display = 'flex';
+                loginPage.classList.add('visible'); // Show login page smoothly
+                loginPage.style.display = 'flex'; // Ensure flex for centering
                 mainNav.style.display = 'none';
                 auditFormContent.style.display = 'none';
                 databaseContent.style.display = 'none';
@@ -2178,8 +2164,7 @@
 
 
         // Functions for the Share Response tab
-        // Modified to accept recordId and isNpsRecord for pre-selection
-        async function populateShareResponseDropdown(preSelectedRecordId = null, isNpsRecord = false) {
+        async function populateShareResponseDropdown() {
             const selectRecordToShare = document.getElementById('select-record-to-share');
             const selectRecordSearch = document.getElementById('select-record-search'); // Get search input
             selectRecordToShare.innerHTML = '<option value="">-- Loading Records --</option>';
@@ -2190,44 +2175,23 @@
             }
 
             try {
-                // Ensure both record types are fetched
-                // allRecords is already updated by its onSnapshot listener
-                // We need to fetch NPS records here if not already available
-                if (allNpsRecords.length === 0) {
-                    // This is a simplified fetch for NPS records for the share module.
-                    // The nps.html will have its own onSnapshot listener.
-                    const npsSnapshot = await getDocs(collection(db, NPS_EVALUATIONS_COLLECTION_PATH));
-                    allNpsRecords = [];
-                    npsSnapshot.forEach(doc => {
-                        allNpsRecords.push({ id: doc.id, isNps: true, ...doc.data() });
-                    });
+                // We're relying on allRecords being updated by the onSnapshot listener from fetchRecordsAndWebhooks
+                if (allRecords.length === 0) {
+                    selectRecordToShare.innerHTML = '<option value="">-- No Records Available --</option>';
+                    filterableRecords = []; // Ensure filterableRecords is empty too
+                    return;
                 }
 
-                // Combine and sort records
-                const combinedRecords = [
-                    ...allRecords.map(rec => ({ ...rec, isNps: false, displayType: 'Main' })),
-                    ...allNpsRecords.map(rec => ({ ...rec, isNps: true, displayType: 'NPS' }))
-                ].sort((a, b) => {
+                // Sort records by submittedAt descending to show latest first
+                const sortedRecords = [...allRecords].sort((a, b) => {
                     const dateA = a.submittedAt ? (typeof a.submittedAt.toDate === 'function' ? a.submittedAt.toDate() : new Date(a.submittedAt)) : new Date(0);
                     const dateB = b.submittedAt ? (typeof b.submittedAt.toDate === 'function' ? b.submittedAt.toDate() : new Date(b.submittedAt)) : new Date(0);
                     return dateB.getTime() - dateA.getTime();
                 });
-                
-                filterableRecords = combinedRecords; // Store all sorted records for filtering
+                filterableRecords = sortedRecords; // Store all sorted records for filtering
 
                 // Render options based on current search term if any
                 filterShareRecords(); // Call filter initially to populate and apply any existing search term
-
-                // Attempt to pre-select if an ID was passed
-                if (preSelectedRecordId) {
-                    const targetOption = selectRecordToShare.querySelector(`option[value="${preSelectedRecordId}"]`);
-                    if (targetOption) {
-                        selectRecordToShare.value = preSelectedRecordId;
-                        populateShareEmailFields(preSelectedRecordId, isNpsRecord);
-                    } else {
-                        console.warn(`Pre-selected record ID ${preSelectedRecordId} not found in dropdown.`);
-                    }
-                }
 
             } catch (error) {
                 console.error("Error populating share response dropdown:", error);
@@ -2249,10 +2213,7 @@
             recordsToRender.forEach(record => {
                 const option = document.createElement('option');
                 option.value = record.id;
-                // Determine display name based on record type
-                let recordName = record['Client Name'] || record['Customer Contact ID'] || record['Contact ID'] || 'Unnamed Record';
-                let typePrefix = record.isNps ? '[NPS] ' : '';
-
+                const recordName = record['Client Name'] || record['Contact ID'] || 'Unnamed Record';
                 let submittedAtFormatted = 'N/A';
                 if (record.submittedAt) {
                     try {
@@ -2262,7 +2223,7 @@
                         }
                     } catch (e) { /* silent fail for filtering display */ }
                 }
-                option.textContent = `${typePrefix}${recordName} (ID: ${record['Contact ID'] || record['Customer Contact ID'] || record.id.substring(0, 5)}...) - ${submittedAtFormatted}`;
+                option.textContent = `${recordName} (ID: ${record['Contact ID'] || record.id.substring(0, 5)}...) - ${submittedAtFormatted}`;
                 selectRecordToShare.appendChild(option);
             });
 
@@ -2272,8 +2233,7 @@
             } else {
                 selectRecordToShare.value = ''; // Reset if old value is no longer available
             }
-            // Ensure email fields are updated after rendering options
-            populateShareEmailFields(selectRecordToShare.value); 
+            populateShareEmailFields(selectRecordToShare.value); // Update email fields based on current selection
         }
 
 
@@ -2286,9 +2246,6 @@
                     const clientName = (record['Client Name'] || '').toLowerCase();
                     const contactId = (record['Contact ID'] || '').toLowerCase();
                     const cerName = (record['CER Name'] || '').toLowerCase();
-                    const customerContactId = (record['Customer Contact ID'] || '').toLowerCase(); // For NPS
-                    const agentHandled = (record['Agent Handled'] || '').toLowerCase(); // For NPS
-                    
                     // Add other fields to search if needed
                     const reviewDate = record['Evaluation Date'] ? String(record['Evaluation Date']).toLowerCase() : '';
                     const overallScore = record['Overall Score'] ? String(record['Overall Score']).toLowerCase() : '';
@@ -2296,8 +2253,6 @@
                     return clientName.includes(searchTerm) ||
                            contactId.includes(searchTerm) ||
                            cerName.includes(searchTerm) ||
-                           customerContactId.includes(searchTerm) || // Search NPS specific field
-                           agentHandled.includes(searchTerm) || // Search NPS specific field
                            reviewDate.includes(searchTerm) ||
                            overallScore.includes(searchTerm);
                 });
@@ -2307,7 +2262,7 @@
             renderFilteredOptions(filtered);
         }
 
-        // Modified to handle both main and NPS records
+
         function populateShareEmailFields(recordId) {
             const shareEmailTo = document.getElementById('share-email-to');
             const shareEmailFrom = document.getElementById('share-email-from');
@@ -2318,40 +2273,23 @@
                 shareEmailTo.value = '';
                 shareEmailFrom.value = loggedInUserEmail; // Use logged-in user's email
                 shareEmailSubject.value = 'Quality Assessment Feedback';
-                shareEmailBody.value = 'Dear Agent,\n\nKindly find attached the Quality Assurance Audit Feedback. Your signature is required.\n\nKind Regards,\nQuality Evaluation Team';
+                shareEmailBody.value = 'Dear CER,\n\nKindly find attached the Quality Assurance Audit Feedback. Your signature is required.\n\nKind Regards,\nQuality Evaluation Team';
                 return;
             }
 
-            // Find the record from combined filterableRecords
-            const record = filterableRecords.find(r => r.id === recordId);
+            const record = allRecords.find(r => r.id === recordId);
             if (record) {
-                let recipientName = 'Agent';
-                let contactIdentifier = 'N/A';
-                let evaluationDate = 'N/A';
-                let overallScore = 'N/A';
-                let recipientEmail = '';
+                const cerName = record['CER Name'] || 'Client';
+                const contactId = record['Contact ID'] || 'N/A';
+                const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
+                const overallScore = record['Overall Score'] || 'N/A';
+                const cerEmail = record['CER Email'] || cerNameEmailsMap[cerName] || ''; // Prioritize record's email, then map
 
-                if (record.isNps) {
-                    recipientName = record['Agent Handled'] || 'Agent';
-                    contactIdentifier = record['Customer Contact ID'] || 'N/A';
-                    evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
-                    overallScore = record['Review Score'] || 'N/A';
-                    // For NPS, try to get agent email from cerNameEmailsMap based on 'Agent Handled'
-                    recipientEmail = cerNameEmailsMap[record['Agent Handled']] || ''; 
-                } else {
-                    // Main evaluation record
-                    recipientName = record['CER Name'] || 'Client';
-                    contactIdentifier = record['Contact ID'] || 'N/A';
-                    evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
-                    overallScore = record['Overall Score'] || 'N/A';
-                    recipientEmail = record['CER Email'] || cerNameEmailsMap[recipientName] || '';
-                }
-
-                shareEmailTo.value = recipientEmail;
+                shareEmailTo.value = cerEmail;
                 shareEmailFrom.value = loggedInUserEmail; // Use logged-in user's email
-                shareEmailSubject.value = `Quality Assessment Feedback - ${recipientName} - Contact ID: ${contactIdentifier}`;
-                shareEmailBody.value = `Dear ${recipientName},\n\n` +
-                    `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactIdentifier}, evaluated on ${evaluationDate}. ` +
+                shareEmailSubject.value = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
+                shareEmailBody.value = `Dear ${cerName},\n\n` +
+                    `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
                     `Your overall score for this interaction was ${overallScore}.\n\n` +
                     `We encourage you to review the attached PDF for full details and provide your signature. ` +
                     `This feedback is provided to help you continue to improve service quality.\n\n` +
@@ -2370,12 +2308,12 @@
          * This function handles the visual capture for PDF.
          * @returns {Promise<HTMLCanvasElement>} A promise that resolves with the generated canvas element.
          */
-        async function generateFormPdf(formContentDivId) {
-            const formContentDiv = document.getElementById(formContentDivId);
+        async function generateFormPdf() {
+            const auditFormContentDiv = document.getElementById('auditFormContent');
 
             // Store original styles to revert later
             const originalStyles = [];
-            const elementsToModify = formContentDiv.querySelectorAll('input, select, textarea');
+            const elementsToModify = auditFormContentDiv.querySelectorAll('input, select, textarea');
 
             // Apply temporary styles for better PDF rendering
             elementsToModify.forEach(el => {
@@ -2407,31 +2345,33 @@
             });
 
             // Temporarily hide buttons and the "Last 3 Evaluations" section for PDF capture
-            const buttonsContainer = formContentDiv.querySelector('.flex.space-x-4'); // For main form
-            const npsButtonsContainer = formContentDiv.querySelector('.p-6.flex.justify-end.space-x-4'); // For NPS form
-            const lastEvaluationsContainer = document.getElementById('lastEvaluationsContainer'); // Only in main form
+            const buttonsContainer = auditFormContentDiv.querySelector('.flex.space-x-4');
+            const lastEvaluationsContainer = document.getElementById('lastEvaluationsContainer');
+            // NO LONGER HIDING scoresSection: const scoresSection = auditFormContentDiv.querySelector('.p-4.rounded-lg.shadow-sm');
 
             let originalButtonsDisplay = '';
             if (buttonsContainer) {
                 originalButtonsDisplay = buttonsContainer.style.display;
                 buttonsContainer.style.display = 'none';
-            } else if (npsButtonsContainer) { // Handle NPS specific buttons
-                originalButtonsDisplay = npsButtonsContainer.style.display;
-                npsButtonsContainer.style.display = 'none';
             }
-
             let originalLastEvaluationsDisplay = '';
             if (lastEvaluationsContainer) {
                 originalLastEvaluationsDisplay = lastEvaluationsContainer.style.display;
                 lastEvaluationsContainer.style.display = 'none';
             }
-            
+            // NO LONGER HIDING scoresSection
+            // let originalScoresDisplay = '';
+            // if (scoresSection) {
+            //     originalScoresDisplay = scoresSection.style.display;
+            //     scoresSection.style.display = 'none';
+            // }
+
             // Ensure the main content div's overflow is visible for accurate capture
-            const originalFormOverflow = formContentDiv.style.overflow;
-            formContentDiv.style.overflow = 'visible';
+            const originalAuditFormOverflow = auditFormContentDiv.style.overflow;
+            auditFormContentDiv.style.overflow = 'visible';
 
             // Render the element to canvas
-            const canvas = await html2canvas(formContentDiv, {
+            const canvas = await html2canvas(auditFormContentDiv, {
                 scale: 2, // Higher scale for better quality
                 useCORS: true,
                 logging: false,
@@ -2446,7 +2386,7 @@
                     elData.element.style.backgroundColor = elData.backgroundColor;
                     elData.element.style.color = elData.color; // Corrected: use elData.color
                     elData.element.readOnly = elData.readOnly;
-                    elData.element.disabled = elData.element.disabled;
+                    elData.element.disabled = elData.disabled;
                     elData.element.style.pointerEvents = elData.pointerEvents;
                     elData.element.style.boxShadow = elData.boxShadow;
                     elData.element.style.resize = elData.resize;
@@ -2455,15 +2395,17 @@
 
             if (buttonsContainer) {
                 buttonsContainer.style.display = originalButtonsDisplay;
-            } else if (npsButtonsContainer) {
-                npsButtonsContainer.style.display = originalButtonsDisplay;
             }
             if (lastEvaluationsContainer) {
                 lastEvaluationsContainer.style.display = originalLastEvaluationsDisplay;
             }
-            
+            // NO LONGER HIDING scoresSection
+            // if (scoresSection) {
+            //     scoresSection.style.display = originalScoresDisplay;
+            // }
+
             // Revert main content div's overflow
-            formContentDiv.style.overflow = originalFormOverflow;
+            auditFormContentDiv.style.overflow = originalAuditFormOverflow;
 
             return canvas; // Return the canvas element directly
         }
@@ -2476,15 +2418,7 @@
                 return;
             }
 
-            let record;
-            let formContentDivId = 'auditFormContent'; // Default for main form
-            if (latestSavedRecordIsNps) {
-                record = allNpsRecords.find(r => r.id === latestSavedRecordId);
-                formContentDivId = 'npsEvaluationModalContent'; // The modal content for NPS
-            } else {
-                record = allRecords.find(r => r.id === latestSavedRecordId);
-            }
-            
+            const record = allRecords.find(r => r.id === latestSavedRecordId);
             if (!record) {
                 showMessageBox("Error", "Record not found for PDF generation. It might have been deleted or not correctly saved.", true, false, true);
                 return;
@@ -2493,7 +2427,7 @@
             showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
-                const canvas = await generateFormPdf(formContentDivId); // Pass the ID of the content to capture
+                const canvas = await generateFormPdf(); // Get the canvas element
                 const imgData = canvas.toDataURL('image/jpeg', 0.8); // Convert canvas to image data
 
                 const { jsPDF } = window.jspdf;
@@ -2522,21 +2456,21 @@
                 }
 
                 // Trigger PDF download
-                const contactIdentifier = record['Contact ID'] || record['Customer Contact ID'] || 'Record';
-                const pdfFileName = `Quality_Assessment_${contactIdentifier}_${new Date().toLocaleDateString('en-CA')}.pdf`; //YYYY-MM-DD
+                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; //YYYY-MM-DD
                 pdf.save(pdfFileName);
-
-                // Store data in sessionStorage for the share module
-                sessionStorage.setItem('shareData', JSON.stringify({
-                    recordId: latestSavedRecordId,
-                    isNpsRecord: latestSavedRecordIsNps
-                }));
 
                 // Navigate to Share Response tab and pre-fill fields
                 showTab('shareResponse'); // This will trigger populateShareResponseDropdown.
                 
-                // No need for setTimeout here, as the populateShareResponseDropdown will be called
-                // by showTab and it will use the sessionStorage data.
+                setTimeout(() => {
+                    document.getElementById('select-record-to-share').value = latestSavedRecordId;
+                    populateShareEmailFields(latestSavedRecordId);
+                    
+                    // Final message for user to manually attach
+                    const shareEmailBody = document.getElementById('share-email-body');
+                    shareEmailBody.value += `\n\n(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)`;
+                    autoExpandTextarea(shareEmailBody); // Auto-expand after final text
+                }, 100); // Small delay to ensure dropdown is fully rendered
 
                 hideMessageBox();
             } catch (error) {
@@ -2554,15 +2488,7 @@
                 return;
             }
 
-            let record;
-            let formContentDivId = 'auditFormContent'; // Default for main form
-            if (latestSavedRecordIsNps) {
-                record = allNpsRecords.find(r => r.id === latestSavedRecordId);
-                formContentDivId = 'npsEvaluationModalContent'; // The modal content for NPS
-            } else {
-                record = allRecords.find(r => r.id === latestSavedRecordId);
-            }
-
+            const record = allRecords.find(r => r.id === latestSavedRecordId);
             if (!record) {
                 showMessageBox("Error", "Record not found for PDF generation. It might have been deleted or not correctly saved.", true, false, true);
                 return;
@@ -2571,7 +2497,7 @@
             showMessageBox("Generating PDF for Email", "Please wait, generating PDF document and preparing email...", false, true, false);
 
             try {
-                const canvas = await generateFormPdf(formContentDivId); // Pass the ID of the content to capture
+                const canvas = await generateFormPdf(); // Get the canvas element
                 const imgData = canvas.toDataURL('image/jpeg', 0.8); // Convert canvas to image data
 
                 const { jsPDF } = window.jspdf;
@@ -2597,33 +2523,18 @@
                 }
 
                 // Trigger PDF download first
-                const contactIdentifier = record['Contact ID'] || record['Customer Contact ID'] || 'Record';
-                const pdfFileName = `Quality_Assessment_${contactIdentifier}_${new Date().toLocaleDateString('en-CA')}.pdf`; //YYYY-MM-DD
+                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; //YYYY-MM-DD
                 pdf.save(pdfFileName);
 
                 // Now construct and open mailto link
-                let recipientName = 'Agent';
-                let contactId = 'N/A';
-                let evaluationDate = 'N/A';
-                let overallScore = 'N/A';
-                let recipientEmail = '';
+                const cerName = record['CER Name'] || 'Client';
+                const contactId = record['Contact ID'] || 'N/A';
+                const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
+                const overallScore = record['Overall Score'] || 'N/A';
+                const cerEmail = record['CER Email'] || cerNameEmailsMap[cerName] || '';
 
-                if (record.isNps) {
-                    recipientName = record['Agent Handled'] || 'Agent';
-                    contactId = record['Customer Contact ID'] || 'N/A';
-                    evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
-                    overallScore = record['Review Score'] || 'N/A';
-                    recipientEmail = cerNameEmailsMap[record['Agent Handled']] || '';
-                } else {
-                    recipientName = record['CER Name'] || 'Client';
-                    contactId = record['Contact ID'] || 'N/A';
-                    evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
-                    overallScore = record['Overall Score'] || 'N/A';
-                    recipientEmail = record['CER Email'] || cerNameEmailsMap[recipientName] || '';
-                }
-
-                const emailSubject = `Quality Assessment Feedback - ${recipientName} - Contact ID: ${contactId}`;
-                const emailBody = `Dear ${recipientName},\n\n` +
+                const emailSubject = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
+                const emailBody = `Dear ${cerName},\n\n` +
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
                     `Your overall score for this interaction was ${overallScore}.\n\n` +
                     `(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)\n\n` +
@@ -2631,7 +2542,7 @@
                     `If you have any questions, please feel free to reach out.\n\n` +
                     `Kind Regards,\n${loggedInUserName}`;
 
-                const mailtoLink = `mailto:${encodeURIComponent(recipientEmail)}` +
+                const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}` +
                                      `?subject=${encodeURIComponent(emailSubject)}` +
                                      `&body=${encodeURIComponent(emailBody)}`;
 
@@ -2664,8 +2575,7 @@
                 return;
             }
 
-            // Determine if it's a main record or NPS record
-            const record = filterableRecords.find(r => r.id === recordId);
+            const record = allRecords.find(r => r.id === recordId);
             if (!record) {
                 shareEmailMessage.textContent = "Selected record not found. Please refresh and try again.";
                 shareEmailMessage.classList.remove('hidden');
@@ -2708,7 +2618,6 @@
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
-            const npsFeedbackTab = document.getElementById('npsFeedbackTab'); // NEW NPS TAB
 
             const saveFormBtn = document.getElementById('saveFormBtn'); // Renamed
             const pdfShareBtn = document.getElementById('pdfShareBtn'); // Renamed
@@ -2745,6 +2654,17 @@
                 reviewDateInput.value = `${year}-${month}-${day}`;
             }
 
+            // Initial state: hide main content and show spinner/loading if auth not ready
+            // The login-container starts with `visibility: hidden; opacity: 0;` in CSS
+            // This prevents a flash of unstyled content or login screen before auth state is known.
+            document.getElementById('auditFormContent').style.display = 'none';
+            document.getElementById('databaseContent').style.display = 'none';
+            document.getElementById('shareResponseContent').style.display = 'none';
+            document.getElementById('mainNav').style.display = 'none';
+            document.getElementById('loginPage').style.display = 'flex'; // Keep flex to center, but hide with visibility/opacity
+            document.getElementById('loginPage').classList.remove('visible'); // Ensure it's hidden initially
+
+
             // --- Firebase Auth State Listener (Centralized) ---
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
@@ -2775,6 +2695,10 @@
                         currentUserRole = 'Guest';
                         loggedInUserName = user.email || "Quality Evaluation Team";
                     }
+                    // Crucial: Only show the app content AFTER authentication and role are determined
+                    initializeAppDisplay();
+                    fetchDropdownOptionsData(); // Call this here directly
+                    fetchRecordsAndWebhooks(); // Call this here directly
                 } else {
                     console.log("Firebase Auth State Changed (index.html): No user logged in.");
                     currentUserId = null;
@@ -2783,25 +2707,25 @@
                     loggedInUserEmail = "anonymous"; // Reset email on logout
                     sessionStorage.removeItem('loggedIn');
 
+                    // Attempt anonymous sign-in if no user, to allow read access to public data (like dropdowns)
                     try {
                         await signInAnonymously(auth);
                         currentUserId = auth.currentUser.uid;
-                        currentUserRole = 'anonymous';
+                        currentUserRole = 'anonymous'; // Assign anonymous role
                         loggedInUserEmail = auth.currentUser.email || "anonymous"; // Anonymous email
                         console.log("Signed in anonymously (index.html):", currentUserId);
+                        initializeAppDisplay(); // Initialize app display for anonymous user (will show login)
+                        fetchDropdownOptionsData(); // Fetch dropdowns for anonymous user
                     } catch (anonError) {
                         console.error("Error signing in anonymously (index.html):", anonError);
                         currentUserId = null;
                         currentUserRole = null;
                         loggedInUserEmail = "anonymous";
+                        // If anonymous sign-in also fails, ensure login page is visible
+                        initializeAppDisplay();
                     }
                 }
-                isAuthReady = true;
-                initializeAppDisplay();
-                fetchDropdownOptionsData(); // Call this here directly
-                if (sessionStorage.getItem('loggedIn') === 'true' && currentUserId) {
-                    fetchRecordsAndWebhooks(); // Call this here directly
-                }
+                isAuthReady = true; // Auth state is now determined
             });
 
 
@@ -2815,9 +2739,11 @@
                     const enteredPassword = passwordInput.value;
 
                     try {
+                        await signOut(auth); // Sign out any anonymous user first
                         await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
                         sessionStorage.setItem('loggedIn', 'true');
-                        window.location.reload();
+                        // No need for window.location.reload() here, onAuthStateChanged will handle UI update
+                        // after a successful login.
                     } catch (error) {
                         console.error("Firebase Login Error:", error);
                         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -2863,11 +2789,12 @@
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async function() {
                     sessionStorage.removeItem('loggedIn');
+                    // Unsubscribe from real-time listeners to prevent memory leaks and unnecessary data fetching
                     if (unsubscribeRecords) unsubscribeRecords();
                     if (unsubscribeWebhooks) unsubscribeWebhooks();
                     if (unsubscribeDropdowns) unsubscribeDropdowns();
                     await signOut(auth);
-                    window.location.reload();
+                    // onAuthStateChanged will detect logout and re-initialize app display to login page
                 });
             }
 
@@ -2876,7 +2803,6 @@
             if (reportsTab) { reportsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = reportsTab.href; }); }
             if (autofailsTab) { autofailsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = autofailsTab.href; }); }
             if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = adminTab.href; }); }
-            if (npsFeedbackTab) { npsFeedbackTab.addEventListener('click', (e) => { e.preventDefault(); showTab('npsFeedback'); }); } // NEW NPS TAB
             if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); } // Direct call to showTab
             if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; }); }
 
