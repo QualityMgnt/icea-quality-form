@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - ICEA LION GROUP</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
@@ -22,6 +19,14 @@
             background-color: #f3f4f6;
             margin: 0;
             padding: 0;
+            /* Start hidden to prevent flicker until auth check is done */
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
         }
 
         /* ICEALION Branding Colors */
@@ -35,25 +40,45 @@
 
         /* Navigation styles (copied from index.html for consistent sidebar) */
         .main-nav {
-            width: auto;
-            background-color: transparent;
-            color: inherit;
-            padding: 0;
-            display: block;
-            box-shadow: none;
-            height: 100vh;
+            width: 125px; /* Fixed width for the sidebar */
+            background-color: #800080; /* Purple color */
+            color: white;
+            padding: 1rem 0; /* Vertical padding */
+            height: calc(100vh - 48px); /* Adjusted height for top header */
+            position: fixed;
+            top: 48px; /* Positioned below the new top header */
+            left: 0;
+            z-index: 100;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        /* Top Header (copied from index.html for consistent header) */
+        .top-header {
             position: fixed;
             top: 0;
             left: 0;
-            z-index: 100;
+            width: 100%;
+            height: 48px; /* Adjust height as needed */
+            background-color: #800080; /* Purple color */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            z-index: 1000; /* Ensure it's above everything */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .sidebar {
-            width: 125px; /* Half width */
-            background-color: #1a73e8;
+
+        .sidebar { /* Re-applying width from main-nav for clarity */
+            width: 125px; 
+            background-color: #800080; /* Changed to purple for consistency */
             color: white;
             padding: 1rem 0;
-            height: 100%;
+            height: 100%; /* Keep 100% within main-nav's calc(100vh - 48px) */
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
@@ -90,9 +115,11 @@
             font-size: 1.2rem;
         }
 
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
-            background-color: #0d47a1;
+        .sidebar ul li a:hover {
+            background-color: #6a006a; /* Darker purple on hover */
+        }
+        .sidebar ul li a.active { /* Specific style for active tab */
+            background-color: #6a006a; /* Darker purple when active */
         }
 
         .logout-button {
@@ -117,18 +144,18 @@
             margin-left: 125px; /* Matches sidebar width */
             width: calc(100% - 125px); /* Fills remaining space */
             padding: 1.5rem;
-            min-height: 100vh;
+            min-height: calc(100vh - 48px); /* Adjust for top header */
             box-sizing: border-box; /* Include padding in width */
-            display: none; /* Hidden by default until authenticated */
+            background-color: #f3f4f6; /* Default page background */
         }
         .users-container {
             background-color: white;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 0.5rem;
             overflow: hidden;
-            margin-bottom: 2rem;
             max-width: 900px; /* Limit width of users content */
             margin: 0 auto; /* Center it */
+            margin-top: 2rem; /* Add some top margin to content block */
         }
 
         /* Login Container (re-used for this page) */
@@ -143,6 +170,14 @@
             justify-content: center;
             background-color: rgba(243, 244, 246, 0.95); /* Opaque background */
             z-index: 1000; /* Ensure it's on top */
+            /* Start hidden to prevent flicker */
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
+        .login-container.visible {
+            visibility: visible;
+            opacity: 1;
         }
 
         /* Error/Message styles */
@@ -201,25 +236,25 @@
     </style>
 </head>
 <body>
-    <!-- Main Navigation / Sidebar -->
+    <div class="top-header">
+        ICEA LION QUALITY EVALUATION AND MONITORING
+    </div>
+
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
             <ul>
-                <!-- Ensure these paths are correct relative to users.html -->
                 <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
                 <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
                 <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li><a href="users.html" id="usersTab" class="active"><i class="fas fa-users"></i> Users</a></li> <!-- Active on this page -->
-                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li><a href="nps.html" id="npsFeedbackTab"><i class="fas fa-comments"></i> NPS Feedback</a></li> <li><a href="users.html" id="usersTab" class="active"><i class="fas fa-users"></i> Users</a></li> <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
     </nav>
 
-    <!-- Login Page (Only shown if not authenticated as Admin) -->
-    <div class="login-container" id="loginPage" style="display: none;">
+    <div class="login-container" id="loginPage">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
                 <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
@@ -247,7 +282,6 @@
         </div>
     </div>
 
-    <!-- Main Content Area for Users -->
     <div class="main-content" id="usersContent">
         <div class="users-container">
             <div class="icealion-blue p-4 text-xl font-semibold text-center">
@@ -308,7 +342,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDK and custom script for users.html -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signOut, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
@@ -353,7 +386,6 @@
                 window.currentUserId = user.uid;
                 console.log("Firebase Auth State Changed (users.html): User logged in:", user.uid);
 
-                // Fetch user role from Firestore (where roles are stored, or from custom claims if available after token refresh)
                 const userDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
                 try {
                     const userDocSnap = await getDoc(userDocRef);
@@ -361,12 +393,11 @@
                         window.currentUserRole = userDocSnap.data().role;
                         console.log("User role fetched (users.html):", window.currentUserRole);
                     } else {
-                        // If no profile, try to get custom claims (may not be fresh if no token refresh)
-                        const idTokenResult = await user.getIdTokenResult(true); // Force refresh token
+                        const idTokenResult = await user.getIdTokenResult(true); 
                         if (idTokenResult.claims.role) {
                             window.currentUserRole = idTokenResult.claims.role;
                         } else {
-                            window.currentUserRole = 'Guest'; // Default if profile and claims missing
+                            window.currentUserRole = 'Guest'; 
                         }
                         console.warn("User profile not found in Firestore for UID:", user.uid, "Checking claims, defaulting to Guest role if not found.");
                     }
@@ -375,28 +406,15 @@
                     window.currentUserRole = 'Guest';
                 }
             } else {
-                console.log("Firebase Auth State Changed (users.html): No user logged in. Redirecting to login.");
-                // If no user is logged in, and no initial token to try, redirect to main login
-                if (!sessionStorage.getItem('loggedIn')) { // Only redirect if not already logged in via session
-                     window.location.href = 'index.html'; // Redirect to the main login page
-                     return;
-                }
-                // If sessionStorage says loggedIn but Firebase auth is not, try anonymous sign-in as a last resort
-                // or assume session is stale and force re-login by redirecting.
-                // For simplicity, if session is active but auth object is null, we try anonymous,
-                // but for robust login, redirect to `index.html` after a delay if `user` is null.
-                try {
-                    // Try to sign in anonymously if no user object (could be a refresh issue)
-                    await signInAnonymously(auth);
-                    window.currentUserId = auth.currentUser.uid;
-                    console.log("Signed in anonymously (users.html) as fallback:", window.currentUserId);
-                } catch (anonError) {
-                    console.error("Error signing in anonymously (users.html):", anonError);
-                    // If anonymous fails, really force a re-login
-                    sessionStorage.removeItem('loggedIn');
-                    window.location.href = 'index.html';
-                    return;
-                }
+                console.log("Firebase Auth State Changed (users.html): No user logged in.");
+                window.currentUserId = null;
+                window.currentUserRole = null; // Reset role if no user
+                sessionStorage.removeItem('loggedIn'); // Ensure session is cleared if Firebase reports no user
+
+                // If not logged in, always attempt to redirect to main login page.
+                // The main index.html will then handle anonymous sign-in or proper login.
+                window.location.href = 'index.html'; 
+                return; // Stop execution here to prevent further unauthorized access attempts
             }
             window.isAuthReady = true;
             document.dispatchEvent(new CustomEvent('firebaseAuthReadyUsersPage')); // Custom event for this page
@@ -408,10 +426,10 @@
             const mainNav = document.getElementById('mainNav');
             const usersContent = document.getElementById('usersContent');
             const logoutBtn = document.getElementById('logoutBtn');
-            const loginForm = document.getElementById('loginForm');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const loginMessage = document.getElementById('loginMessage');
+            const loginForm = document.getElementById('loginForm'); // This form is now redundant but kept for reference
+            const usernameInput = document.getElementById('username'); // These inputs are redundant
+            const passwordInput = document.getElementById('password'); // These inputs are redundant
+            const loginMessage = document.getElementById('loginMessage'); // This message is redundant
 
             // User management elements
             const newUsernameInput = document.getElementById('new-user-email');
@@ -424,78 +442,72 @@
             // --- Utility Functions ---
             const showMessage = (element, message, type) => {
                 element.textContent = message;
-                element.classList.remove('hidden', 'error', 'success');
-                element.classList.add(type);
+                element.classList.remove('hidden', 'error', 'success'); // Remove specific classes
+                element.classList.remove('error-message', 'success-message'); // Also remove base classes
+                element.classList.add(type === 'error' ? 'error-message' : 'success-message'); // Add correct base class
+                element.classList.remove('hidden'); // Ensure it's visible
                 setTimeout(() => { element.classList.add('hidden'); }, 3000); // Hide after 3 seconds
             };
 
-            const showLoginErrorMessage = (message) => {
-                loginMessage.textContent = message;
-                loginMessage.classList.remove('hidden');
-            };
+            // This login form is removed from HTML, but keeping logic for robustness if it was reintroduced
+            if (loginForm) { // Check if element exists before adding listener
+                 loginForm.addEventListener('submit', async function(event) {
+                    event.preventDefault(); // Prevent default form submission
+                    showMessage(loginMessage, '', 'hidden'); // Clear previous messages
 
-            const hideLoginErrorMessage = () => {
-                loginMessage.classList.add('hidden');
-                loginMessage.textContent = '';
-            };
+                    const enteredEmail = usernameInput.value;
+                    const enteredPassword = passwordInput.value;
 
-
-            // --- Login/Authentication Logic for this page ---
-            // This login form is only for re-authentication on this specific page if session is lost
-            loginForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-                hideLoginErrorMessage();
-
-                const enteredEmail = usernameInput.value; // It's an email field now
-                const enteredPassword = passwordInput.value;
-
-                try {
-                    // *** Use Firebase signInWithEmailAndPassword for actual authentication ***
-                    const userCredential = await signInWithEmailAndPassword(auth, enteredEmail, enteredPassword);
-                    sessionStorage.setItem('loggedIn', 'true'); // Set session storage flag
-                    window.location.reload(); // Reload to trigger onAuthStateChanged and full page init
-                } catch (error) {
-                    console.error("Firebase Login Error:", error);
-                    // Display more user-friendly error messages based on Firebase error codes
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                        showLoginErrorMessage('Invalid email or password.');
-                    } else if (error.code === 'auth/invalid-email') {
-                        showLoginErrorMessage('Please enter a valid email address.');
-                    } else if (error.code === 'auth/too-many-requests') {
-                        showLoginErrorMessage('Too many login attempts. Please try again later.');
+                    try {
+                        await signInWithEmailAndPassword(auth, enteredEmail, enteredPassword);
+                        sessionStorage.setItem('loggedIn', 'true'); 
+                        // The onAuthStateChanged listener will handle the UI update/redirection
+                    } catch (error) {
+                        console.error("Firebase Login Error:", error);
+                        let msg = "Login failed. Please try again.";
+                        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                            msg = 'Invalid email or password.';
+                        } else if (error.code === 'auth/invalid-email') {
+                            msg = 'Please enter a valid email address.';
+                        } else if (error.code === 'auth/too-many-requests') {
+                            msg = 'Too many login attempts. Please try again later.';
+                        }
+                        showMessage(loginMessage, msg, 'error');
                     }
-                    else {
-                        showLoginErrorMessage(`Login failed: ${error.message}`);
-                    }
-                }
-            });
+                });
+            }
 
 
             // --- Initializer Function for Users Page Content ---
             const initializeUsersPageContent = () => {
-                // Check if user is logged in via sessionStorage AND Firebase Auth is ready AND user has 'admin' role
+                // Only show content if session is active AND auth is ready AND user is an admin
                 if (sessionStorage.getItem('loggedIn') === 'true' && window.isAuthReady && window.currentUserRole === 'admin') {
-                    loginPage.style.display = 'none'; // Hide login
+                    loginPage.classList.remove('visible'); // Hide login with transition
+                    loginPage.style.display = 'none'; // Ensure display is none for layout
                     mainNav.style.display = 'block'; // Show sidebar
                     usersContent.style.display = 'block'; // Show user content
-                    // Highlight the current tab
-                    document.querySelectorAll('.sidebar ul li a').forEach(link => {
-                        link.classList.remove('active');
-                        if (link.href.includes('users.html')) {
-                            link.classList.add('active');
-                        }
-                    });
+                    
+                    // Highlight the current tab (Users) - already done in CSS via `class="active"`
+                    // document.getElementById('usersTab').classList.add('active'); 
+
                     fetchAndRenderUsers(); // Fetch users from Cloud Function for display
                 } else {
-                    // If not logged in as admin, show login page and hide content
-                    loginPage.style.display = 'flex';
+                    // If not logged in as admin, explicitly show login page and hide content
+                    loginPage.classList.add('visible'); // Show login with transition
+                    loginPage.style.display = 'flex'; // Ensure flex for centering
                     mainNav.style.display = 'none';
                     usersContent.style.display = 'none';
-                    // Optional: If window.isAuthReady is true but role is not admin, provide specific message
-                    if (window.isAuthReady && window.currentUserRole !== 'admin') {
-                         showLoginErrorMessage("Access Denied: You must be an Admin to access this page.");
+                    
+                    // Provide specific access denied message if role is not admin but logged in
+                    if (window.isAuthReady && sessionStorage.getItem('loggedIn') === 'true' && window.currentUserRole !== 'admin') {
+                        showMessage(loginMessage, "Access Denied: You must be an Admin to access this page.", 'error');
+                    } else if (window.isAuthReady && sessionStorage.getItem('loggedIn') !== 'true') {
+                         // If auth is ready but not logged in via session, prompt for login directly
+                         showMessage(loginMessage, "Please log in to access user management.", 'error');
                     }
                 }
+                 // Finally, reveal the body content once the page state is determined
+                 document.body.classList.add('loaded');
             };
 
             // Listen for firebaseAuthReadyUsersPage event before initializing the page content
@@ -504,11 +516,6 @@
             // Fallback for fast loads where auth might be ready before DOMContentLoaded
             if (document.readyState === 'complete' && window.isAuthReady !== null) {
                 initializeUsersPageContent();
-            } else {
-                // If not ready, explicitly hide content until auth is confirmed
-                 usersContent.style.display = 'none';
-                 mainNav.style.display = 'none';
-                 loginPage.style.display = 'flex'; // Show login immediately if not logged in
             }
 
 
@@ -558,7 +565,8 @@
                 }
             });
 
-            async function deleteUser(uid, email) {
+            // Make deleteUser function globally accessible for table buttons
+            window.deleteUser = async function(uid, email) { 
                 if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
                     return;
                 }
@@ -578,6 +586,12 @@
             async function fetchAndRenderUsers() {
                 userTableBody.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>';
                 try {
+                    // Check if current user has admin role before attempting to fetch users
+                    if (window.currentUserRole !== 'admin') {
+                        userTableBody.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-red-500">You do not have permission to view users. (Admin access required)</td></tr>';
+                        return; // Exit if not admin
+                    }
+
                     const result = await getUsersWithRolesCallable();
                     const users = result.data.users || [];
                     console.log("Fetched users:", users);
@@ -592,25 +606,16 @@
                     users.forEach(user => {
                         const row = userTableBody.insertRow();
                         row.className = 'border-b border-gray-200';
-                        // Add data-uid to the row for easy access if needed for other actions
                         row.dataset.uid = user.uid;
                         row.innerHTML = `
                             <td class="py-2 px-4">${user.email || 'N/A'}</td>
                             <td class="py-2 px-4">${user.role || 'N/A'}</td>
                             <td class="py-2 px-4 text-xs font-mono text-gray-600">${user.uid}</td>
                             <td class="py-2 px-4">
-                                <button class="action-btn delete-btn bg-red-500 hover:bg-red-600 text-white" data-uid="${user.uid}" data-email="${user.email}">Delete</button>
+                                <button class="action-btn delete-btn bg-red-500 hover:bg-red-600 text-white" 
+                                    onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
                             </td>
                         `;
-                    });
-
-                    // Attach delete event listeners to newly rendered buttons
-                    document.querySelectorAll('.user-table .delete-btn').forEach(button => {
-                        button.addEventListener('click', (e) => {
-                            const uidToDelete = e.target.dataset.uid;
-                            const emailToDelete = e.target.dataset.email;
-                            deleteUser(uidToDelete, emailToDelete);
-                        });
                     });
 
                 } catch (error) {
@@ -627,6 +632,7 @@
             document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
             document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
             document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
+            document.getElementById('npsFeedbackTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'nps.html'; }); // Corrected NPS link
             document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
 
         });
