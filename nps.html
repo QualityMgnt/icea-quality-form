@@ -18,6 +18,14 @@
             background-color: #f3f4f6;
             margin: 0;
             padding: 0;
+            /* Start hidden to prevent flicker */
+            visibility: hidden; 
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
         }
 
         /* ICEALION Branding Colors */
@@ -359,7 +367,6 @@
         ICEA LION QUALITY EVALUATION AND MONITORING
     </div>
 
-    <!-- Global Message Box (used by both index.html and nps.html) -->
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
         <div class="message-box">
             <div id="messageBoxSpinner" class="spinner hidden"></div>
@@ -377,8 +384,7 @@
                 <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li><a href="#" id="npsFeedbackTab" class="active"><i class="fas fa-comments"></i> NPS Feedback</a></li> <!-- NEW NPS TAB -->
-                <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="#" id="npsFeedbackTab" class="active"><i class="fas fa-comments"></i> NPS Feedback</a></li> <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
                 <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
@@ -391,7 +397,6 @@
         </div>
         <div class="p-6">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">NPS Records from Google Sheet</h2>
-            <!-- Table for NPS records -->
             <div id="npsTableContainer" class="overflow-x-auto max-h-[70vh]">
                 <table class="min-w-full">
                     <thead>
@@ -414,14 +419,11 @@
         </div>
     </div>
 
-    <!-- NPS Evaluation Form Modal (similar to messageBoxOverlay) -->
     <div id="npsEvaluationModalOverlay" class="message-box-overlay hidden">
         <div class="message-box max-w-2xl">
             <h3 id="npsEvaluationModalTitle">NPS Evaluation Form</h3>
             <div id="npsEvaluationModalContent" class="text-left">
-                <!-- Dynamic form content will be injected here -->
                 <form id="nps-evaluation-form">
-                    <!-- Top fields for NPS evaluation form -->
                     <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="nps-contact-id" class="block top-field-label">Contact ID</label>
@@ -463,7 +465,6 @@
                         </div>
                     </div>
 
-                    <!-- Questions section for NPS evaluation -->
                     <div class="mt-4">
                         <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
                             <i class="fas fa-question-circle tile-icon"></i> NPS Evaluation Questions
@@ -477,8 +478,7 @@
                                 <div class="col-span-2">Remarks</div>
                             </div>
                             <div id="npsQuestionsContainer">
-                                <!-- NPS specific questions will be injected here -->
-                            </div>
+                                </div>
                         </div>
                     </div>
 
@@ -531,8 +531,8 @@
         const db = getFirestore(appInstance);
 
         // Define Firebase Collection Paths
-        const NPS_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/nps_records`; // For Google Sheet data
-        const NPS_EVALUATIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/nps_evaluations`; // For NPS evaluation forms
+        const NPS_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/nps_records`; // For Google Sheet data synced to Firestore
+        const NPS_EVALUATIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/nps_evaluations`; // For NPS evaluation forms (new collection)
         const DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
@@ -630,6 +630,8 @@
          * Fetches NPS records from Google Sheet and syncs with Firestore.
          */
         async function fetchAndSyncNpsRecords() {
+            // This URL MUST be published as CSV or accessible via Google Apps Script Web App
+            // Direct client-side fetch from gviz/tq URL might have CORS issues in production.
             const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/12nM9NKEs-b4Uhs_tw-8ZXbBEhdEDP39XAYHHwrMKdfY/gviz/tq?tqx=out:csv&gid=0';
             showMessageBox("Loading NPS Data", "Fetching records from Google Sheet...", false, true, false);
 
@@ -643,7 +645,7 @@
 
                 // Sync with Firestore
                 await syncGoogleSheetDataToFirestore(parsedData);
-                hideMessageBox();
+                hideMessageBox(); // Hide loading message after sync is initiated
             } catch (error) {
                 console.error("Error fetching or syncing Google Sheet data:", error);
                 showMessageBox("Error", `Failed to load NPS data from Google Sheet: ${error.message}. Please ensure the sheet is published to web as CSV and accessible.`, true, false, true);
@@ -695,10 +697,11 @@
 
         /**
          * Syncs Google Sheet data to Firestore, creating new records or updating existing ones.
+         * The Firestore `onSnapshot` listener will handle re-rendering the table after sync.
          */
         async function syncGoogleSheetDataToFirestore(sheetData) {
             if (!db || !currentUserId) {
-                showMessageBox("Error", "Database not ready for sync. Please log in.", true, false, true);
+                console.error("Database not ready for sync. Skipping.");
                 return;
             }
 
@@ -706,7 +709,7 @@
             const batch = db.batch(); // Use a batch for atomic writes
 
             for (const row of sheetData) {
-                const contactId = row['Customer Contact ID'];
+                const contactId = row['Customer Contact ID']; // Make sure this key matches your Google Sheet header
                 if (!contactId) {
                     console.warn("Skipping row due to missing 'Customer Contact ID':", row);
                     continue;
@@ -718,12 +721,12 @@
 
                 const recordData = {
                     'Customer Contact ID': contactId,
-                    'Customer Positive Feedback': row['Customer Positive Feedback'] || '',
-                    'Area of improvement': row['Area of improvement'] || '',
-                    'Nps Rating': row['Nps Rating'] || '',
+                    'Positive Feedback': row['Positive Feedback'] || '', // Match column names exactly
+                    'Area of Improvement': row['Area of Improvement'] || '', // Match column names exactly
+                    'NPS Rating': row['NPS Rating'] || '', // Match column names exactly
                     'Agent Handled': row['Agent Handled'] || 'Unassigned', // Default to 'Unassigned'
-                    'Status': row['Status'] || 'Pending', // Default to 'Pending'
-                    'Review Score': row['Review Score'] || 'N/A', // Default to 'N/A'
+                    'Status': row['Status'] || 'Pending', // Default to 'Pending' if not in sheet
+                    'Review Score': row['Review Score'] || 'N/A', // Default to 'N/A' if not in sheet
                     'lastUpdated': new Date() // Track last update time
                 };
 
@@ -733,26 +736,29 @@
                     const newDocRef = doc(npsRecordsColRef); // Auto-generate ID
                     batch.set(newDocRef, recordData);
                 } else {
-                    // Existing record: update if necessary
+                    // Existing record: update if necessary (only specific fields that are source-controlled by sheet)
                     querySnapshot.forEach(document => {
                         const existingData = document.data();
                         let needsUpdate = false;
 
-                        // Check if any relevant field has changed in Google Sheet
-                        if (existingData['Customer Positive Feedback'] !== recordData['Customer Positive Feedback'] ||
-                            existingData['Area of improvement'] !== recordData['Area of improvement'] ||
-                            existingData['Nps Rating'] !== recordData['Nps Rating']) {
+                        // Compare fields that are primarily managed by the Google Sheet
+                        if (existingData['Positive Feedback'] !== recordData['Positive Feedback'] ||
+                            existingData['Area of Improvement'] !== recordData['Area of Improvement'] ||
+                            existingData['NPS Rating'] !== recordData['NPS Rating']) {
                             needsUpdate = true;
                         }
 
-                        // Only update Agent Handled if it's currently 'Unassigned' in Firestore
-                        // or if the Google Sheet explicitly provides a different value
+                        // Also update Agent Handled if the sheet provides a different value,
+                        // or if it was previously unassigned and the sheet now provides a value.
                         if (existingData['Agent Handled'] === 'Unassigned' && recordData['Agent Handled'] !== 'Unassigned') {
                             needsUpdate = true;
                         } else if (existingData['Agent Handled'] !== recordData['Agent Handled'] && recordData['Agent Handled'] !== 'Unassigned') {
-                             // If agent handled changed in sheet and it's not unassigned, update
                              needsUpdate = true;
                         }
+
+                        // Do NOT blindly update 'Status' or 'Review Score' from the sheet if they are managed by the app
+                        // The current code structure updates Status and Review Score from the app's side in `saveNpsEvaluation`
+                        // So, we only update if `needsUpdate` is true based on the other fields.
 
                         if (needsUpdate) {
                             batch.update(document.ref, recordData);
@@ -761,52 +767,79 @@
                 }
             }
             await batch.commit();
-            console.log("Google Sheet data synced with Firestore.");
-            // The onSnapshot listener will now automatically re-render the table.
+            console.log("Google Sheet data sync batch committed.");
+            // The onSnapshot listener (fetchNpsRecordsFromFirestore) will now automatically re-render the table.
         }
 
         /**
          * Listens to real-time updates from NPS records in Firestore and renders the table.
+         * This is the primary function responsible for displaying data in the table.
          */
         async function fetchNpsRecordsFromFirestore() {
+            const npsRecordsTableBody = document.getElementById('npsRecordsTableBody');
+            npsRecordsTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">Loading NPS records from Firestore...</td></tr>`;
+
             if (!db || !currentUserId) {
-                console.warn("Firestore not ready for fetching NPS records.");
+                console.warn("Firestore not ready or user not authenticated. Cannot fetch NPS records.");
+                npsRecordsTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Authentication required to load NPS records.</td></tr>`;
                 return;
             }
 
-            if (unsubscribeNpsRecords) unsubscribeNpsRecords();
+            if (unsubscribeNpsRecords) {
+                unsubscribeNpsRecords(); // Unsubscribe previous listener to prevent duplicates
+            }
 
-            const npsRecordsColRef = collection(db, NPS_RECORDS_COLLECTION_PATH);
-            unsubscribeNpsRecords = onSnapshot(npsRecordsColRef, (snapshot) => {
-                allNpsRecordsFromFirestore = [];
-                const today = new Date();
-                snapshot.forEach(doc => {
-                    const record = { id: doc.id, ...doc.data() };
-                    // Auto-update status to "Overdue" if pending for more than 7 days
-                    if (record.Status === 'Pending' && record.receivedDate) {
-                        const receivedDate = typeof record.receivedDate.toDate === 'function' ? record.receivedDate.toDate() : new Date(record.receivedDate);
-                        const oneWeekAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
-                        if (receivedDate < oneWeekAgo) {
-                            record.Status = 'Overdue';
-                            // Optionally, update Firestore directly here to persist the overdue status
-                            updateDoc(doc.ref, { Status: 'Overdue', lastUpdated: new Date() }).catch(e => console.error("Error updating NPS status to Overdue:", e));
+            try {
+                const npsRecordsColRef = collection(db, NPS_RECORDS_COLLECTION_PATH);
+                // Order by 'receivedDate' (timestamp of when the record was first added to Firestore from the sheet)
+                // If you don't have a 'receivedDate' field, choose another meaningful timestamp or remove orderBy.
+                const q = query(npsRecordsColRef, orderBy('receivedDate', 'desc')); 
+
+                unsubscribeNpsRecords = onSnapshot(q, (snapshot) => {
+                    allNpsRecordsFromFirestore = []; // Clear previous data
+                    const today = new Date();
+                    snapshot.forEach(doc => {
+                        const record = { id: doc.id, ...doc.data() };
+                        
+                        // Auto-update status to "Overdue" if pending for more than 7 days
+                        // Ensure 'receivedDate' exists and is a valid date for this logic to work
+                        if (record.Status === 'Pending' && record.receivedDate) {
+                            const receivedDate = typeof record.receivedDate.toDate === 'function' ? record.receivedDate.toDate() : new Date(record.receivedDate);
+                            // Check if receivedDate is valid before calculating difference
+                            if (!isNaN(receivedDate.getTime())) {
+                                const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000;
+                                if ((today.getTime() - receivedDate.getTime()) > sevenDaysInMillis) {
+                                    record.Status = 'Overdue';
+                                    // IMPORTANT: This updates the local 'record' object.
+                                    // To persist this "Overdue" status in Firestore, you need to call updateDoc.
+                                    // This should ideally be done by a server-side function (Cloud Function) for robustness,
+                                    // but can be done client-side if rules allow:
+                                    // updateDoc(doc(db, NPS_RECORDS_COLLECTION_PATH, record.id), { Status: 'Overdue', lastUpdated: new Date() }).catch(e => console.error("Error updating NPS status to Overdue:", e));
+                                }
+                            }
                         }
-                    }
-                    allNpsRecordsFromFirestore.push(record);
+                        allNpsRecordsFromFirestore.push(record);
+                    });
+                    renderNpsRecordsTable(allNpsRecordsFromFirestore);
+                }, (error) => {
+                    console.error("Error listening to NPS records from Firestore:", error);
+                    npsRecordsTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Error fetching live NPS data: ${error.message}</td></tr>`;
+                    showMessageBox("Error Loading NPS", `Could not load live NPS data: ${error.message}`, true, false, true);
                 });
-                renderNpsRecordsTable(allNpsRecordsFromFirestore);
-            }, (error) => {
-                console.error("Error listening to NPS records:", error);
-                showMessageBox("Error Loading NPS Records", `Could not load NPS records: ${error.message}`, true, false, true);
-            });
+            } catch (e) {
+                console.error("Failed to set up onSnapshot for NPS records:", e);
+                npsRecordsTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Initialization Error: ${e.message}</td></tr>`;
+            }
         }
+
 
         /**
          * Renders the NPS records table.
+         * @param {Array<Object>} records - Array of NPS record objects.
          */
         function renderNpsRecordsTable(records) {
             const npsRecordsTableBody = document.getElementById('npsRecordsTableBody');
-            npsRecordsTableBody.innerHTML = '';
+            npsRecordsTableBody.innerHTML = ''; // Clear existing rows
 
             if (records.length === 0) {
                 npsRecordsTableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">No NPS records found.</td></tr>`;
@@ -826,12 +859,12 @@
 
                 row.innerHTML = `
                     <td class="py-2 px-4">${record['Customer Contact ID'] || 'N/A'}</td>
-                    <td class="py-2 px-4">${record['Customer Positive Feedback'] || 'N/A'}</td>
-                    <td class="py-2 px-4">${record['Area of improvement'] || 'N/A'}</td>
-                    <td class="py-2 px-4">${record['Nps Rating'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${record['Positive Feedback'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${record['Area of Improvement'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${record['NPS Rating'] || 'N/A'}</td>
                     <td class="py-2 px-4 editable-cell" data-field="Agent Handled" data-id="${record.id}">${record['Agent Handled'] || 'Unassigned'}</td>
                     <td class="py-2 px-4">
-                        <select class="nps-status-select ${statusClass}" data-id="${record.id}">
+                        <select class="nps-status-select ${statusClass}" data-id="${record.id}" data-original-status="${record.Status}">
                             <option value="Pending" ${record.Status === 'Pending' ? 'selected' : ''}>Pending</option>
                             <option value="Completed" ${record.Status === 'Completed' ? 'selected' : ''}>Completed</option>
                             <option value="Overdue" ${record.Status === 'Overdue' ? 'selected' : ''}>Overdue</option>
@@ -869,7 +902,7 @@
 
             const originalText = cell.textContent.trim();
             const recordId = cell.dataset.id;
-            const field = cell.dataset.field;
+            const field = cell.dataset.field; // "Agent Handled"
 
             cell.innerHTML = `<input type="text" value="${originalText}" class="w-full p-1 border rounded-md text-sm">`;
             const input = cell.querySelector('input');
@@ -880,7 +913,7 @@
 
             const saveChanges = async () => {
                 const newText = input.value.trim();
-                cell.textContent = newText;
+                cell.textContent = newText; // Optimistic update
                 cell.classList.remove('editing');
 
                 if (newText !== originalText) {
@@ -911,16 +944,32 @@
             const select = event.target;
             const recordId = select.dataset.id;
             const newStatus = select.value;
+            const originalStatus = select.dataset.originalStatus; // Get original status
 
             try {
                 const docRef = doc(db, NPS_RECORDS_COLLECTION_PATH, recordId);
                 await updateDoc(docRef, { Status: newStatus, lastUpdated: new Date() });
+                // Update the data-original-status attribute for future reference
+                select.dataset.originalStatus = newStatus;
+                
+                // Update the class based on new status for styling
+                select.classList.remove('status-completed', 'status-pending', 'status-overdue', 'status-default');
+                if (newStatus === 'Completed') {
+                    select.classList.add('status-completed');
+                } else if (newStatus === 'Pending') {
+                    select.classList.add('status-pending');
+                } else if (newStatus === 'Overdue') {
+                    select.classList.add('status-overdue');
+                } else {
+                    select.classList.add('status-default');
+                }
+                
                 showMessageBox("Status Updated", `Record status changed to ${newStatus}.`, false, false, true);
             } catch (e) {
                 console.error("Error updating NPS record status:", e);
                 showMessageBox("Update Failed", `Failed to update status: ${e.message}`, true, false, true);
                 // Revert dropdown if update fails
-                select.value = select.dataset.originalStatus || 'Pending';
+                select.value = originalStatus; // Revert to original status
             }
         }
 
@@ -944,12 +993,13 @@
                 showMessageBox("Error", "NPS record not found for evaluation.", true, false, true);
                 return;
             }
-            currentNpsRecordBeingEvaluated = record; // Store for later use
+            currentNpsRecordBeingEvaluated = record; // Store for later use in save function
 
             // Populate top fields
             npsContactIdInput.value = record['Customer Contact ID'] || '';
             npsAgentHandledInput.value = record['Agent Handled'] || '';
             
+            // Set review date to current date
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -1073,4 +1123,401 @@
                 if (rating === 'Yes' || rating === 'N/A') {
                     pointsForThisQuestion = weightage;
                     pointsElement.readOnly = false;
-                    pointsElement.style.backgroundCo
+                    pointsElement.style.backgroundColor = '#fff';
+                } else if (rating === 'No') {
+                    pointsForThisQuestion = 0;
+                    pointsElement.readOnly = true;
+
+                    if (isAutofailQuestion) {
+                        pointsElement.style.backgroundColor = '#fca5a5';
+                        pointsElement.style.color = '#dc2626';
+                        autofailQuestionTriggered = true;
+                    } else {
+                        pointsElement.style.backgroundColor = '#e0e0e0';
+                    }
+                } else { // Handle empty selection ("Select Rating")
+                    pointsForThisQuestion = 0;
+                    pointsElement.readOnly = true;
+                    pointsElement.style.backgroundColor = '#e9ecef';
+                }
+
+                pointsElement.value = pointsForThisQuestion;
+                currentTotalPoints += pointsForThisQuestion;
+
+                if (rating !== '') { 
+                    currentMaxPossiblePoints += weightage;
+                }
+            });
+
+            let overallPercentage = 0;
+            if (autofailQuestionTriggered || autofailTypeSelected) {
+                overallPercentage = 0;
+            } else {
+                if (currentMaxPossiblePoints > 0) {
+                    overallPercentage = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
+                } else {
+                    overallPercentage = 0;
+                }
+            }
+            overallScoreDisplay.textContent = `${overallPercentage}%`;
+        }
+
+        /**
+         * Saves the NPS evaluation form data to Firestore.
+         */
+        async function saveNpsEvaluation() {
+            const npsEvaluationForm = document.getElementById('nps-evaluation-form');
+            if (!currentNpsRecordBeingEvaluated) {
+                showMessageBox("Error", "No NPS record selected for evaluation.", true, false, true);
+                return;
+            }
+
+            const npsContactId = document.getElementById('nps-contact-id').value.trim();
+            const npsAgentHandled = document.getElementById('nps-agent-handled').value.trim();
+            const npsReviewDate = document.getElementById('nps-review-date').value;
+            const npsReviewerName = document.getElementById('nps-reviewer-name').value;
+            const npsAutofailType = document.getElementById('nps-autofail-type').value;
+            const npsAutofailDescription = document.getElementById('nps-autofail-description').value.trim();
+            const npsOverallScore = document.getElementById('nps-overall-score-display').textContent;
+
+            // Basic validation
+            if (!npsReviewerName || !npsReviewDate) {
+                showMessageBox("Validation Error", "Please fill in all required fields in the evaluation form.", true, false, true);
+                return;
+            }
+            if (npsAutofailType && !npsAutofailDescription) {
+                showMessageBox("Validation Error", "Please provide a description for the selected Autofail Type.", true, false, true);
+                document.getElementById('nps-autofail-description').style.borderColor = 'red';
+                return;
+            } else {
+                document.getElementById('nps-autofail-description').style.borderColor = '';
+            }
+
+            const evaluationData = {
+                'Original NPS Record ID': currentNpsRecordBeingEvaluated.id,
+                'Customer Contact ID': npsContactId,
+                'Agent Handled': npsAgentHandled,
+                'Evaluation Date': npsReviewDate,
+                'Reviewer\'s Name': npsReviewerName,
+                'Auto Fail Type': npsAutofailType,
+                'Autofail Description': npsAutofailDescription,
+                'NPS Evaluation Score': npsOverallScore,
+                'Evaluated By User ID': currentUserId,
+                'Evaluated By User Email': loggedInUserEmail,
+                'submittedAt': new Date()
+            };
+
+            const allRatingSelects = npsEvaluationForm.querySelectorAll('.rating-select');
+            allRatingSelects.forEach(selectElement => {
+                const questionDesc = selectElement.name.replace(' (Rating)', '');
+                const rating = selectElement.value;
+                const remarksInput = selectElement.closest('.grid').querySelector('.remarks-textarea');
+                const pointsInput = selectElement.closest('.grid').querySelector('.points-input');
+                const weightageDisplay = selectElement.closest('.grid').querySelector('.weightage-display');
+                
+                evaluationData[`${questionDesc} (Rating)`] = rating;
+                evaluationData[`${questionDesc} (Points)`] = pointsInput ? pointsInput.value : '';
+                evaluationData[`${questionDesc} (Remarks)`] = remarksInput ? remarksInput.value : '';
+                evaluationData[`${questionDesc} (Weightage)`] = weightageDisplay ? weightageDisplay.dataset.weightage : '';
+            });
+
+            showMessageBox("Saving Evaluation", "Saving NPS evaluation...", false, true, false);
+
+            try {
+                // 1. Save the new NPS evaluation form record
+                const docRef = await addDoc(collection(db, NPS_EVALUATIONS_COLLECTION_PATH), evaluationData);
+                console.log("NPS Evaluation saved with ID:", docRef.id);
+
+                // 2. Update the original NPS record's status and score
+                const originalNpsDocRef = doc(db, NPS_RECORDS_COLLECTION_PATH, currentNpsRecordBeingEvaluated.id);
+                await updateDoc(originalNpsDocRef, {
+                    'Status': 'Completed', // Mark as completed after evaluation
+                    'Review Score': npsOverallScore, // Update with the score from the evaluation
+                    'lastUpdated': new Date() // Update last updated time
+                });
+                console.log("Original NPS record updated to 'Completed' with score.");
+
+                showMessageBox("Success", "NPS Evaluation saved and original record updated!", false, false, true, closeNpsEvaluationModal);
+
+            } catch (e) {
+                console.error("Error saving NPS evaluation:", e);
+                showMessageBox("Save Failed", `Failed to save NPS evaluation: ${e.message}`, true, false, true);
+            }
+        }
+
+        /**
+         * Handles the PDF generation and sharing for NPS evaluations.
+         */
+        async function handleNpsPdfAndShare() {
+             if (!currentNpsRecordBeingEvaluated) {
+                showMessageBox("Error", "No NPS evaluation selected to generate PDF.", true, false, true);
+                return;
+            }
+
+            showMessageBox("Generating PDF", "Please wait, generating PDF document for NPS evaluation...", false, true, false);
+
+            try {
+                const npsEvaluationModalContentDiv = document.getElementById('npsEvaluationModalContent');
+                // Temporarily hide buttons for PDF capture
+                const buttonsContainer = npsEvaluationModalContentDiv.querySelector('.p-6.flex.justify-end.space-x-4');
+                let originalButtonsDisplay = '';
+                if (buttonsContainer) {
+                    originalButtonsDisplay = buttonsContainer.style.display;
+                    buttonsContainer.style.display = 'none';
+                }
+
+                const canvas = await html2canvas(npsEvaluationModalContentDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                });
+                const imgData = canvas.toDataURL('image/jpeg', 0.8);
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - pageHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                const pdfFileName = `NPS_Evaluation_${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
+                pdf.save(pdfFileName);
+
+                // Revert button display
+                if (buttonsContainer) {
+                    buttonsContainer.style.display = originalButtonsDisplay;
+                }
+                
+                // Prepare email (manual attachment reminder)
+                const subject = `NPS Evaluation Feedback - ${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'N/A'}`;
+                const body = `Dear Team,\n\nPlease find the NPS evaluation attached for Contact ID: ${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'N/A'}.\n\n(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)\n\nKind Regards,\n${loggedInUserName}`;
+                
+                window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                hideMessageBox();
+                showMessageBox("PDF Downloaded & Email Opened", `The PDF "${pdfFileName}" has been downloaded. Your email client should open shortly. Please remember to manually attach the downloaded PDF.`, false, false, true);
+
+            } catch (error) {
+                console.error("Error generating NPS PDF or preparing for sharing:", error);
+                hideMessageBox();
+                showMessageBox("Action Failed", `Could not generate NPS PDF or prepare for sharing: ${error.message}. Please try again.`, true, false, true);
+            }
+        }
+
+        // Placeholder for share functionality - you can expand this
+        function shareNpsEvaluation(npsRecordId) {
+            const record = allNpsRecordsFromFirestore.find(r => r.id === npsRecordId);
+            if (!record) {
+                showMessageBox("Error", "NPS record not found for sharing.", true, false, true);
+                return;
+            }
+            showMessageBox("Share NPS Record", `Would initiate sharing for NPS Record ID: ${record['Customer Contact ID']}. (Implementation needed)`, false, false, true);
+            // You would typically generate a PDF here for the record and then allow sharing via email
+            // or by generating a shareable link if you store PDFs in cloud storage.
+        }
+
+        // Helper to populate a single select element (copied from index.html for consistency)
+        const populateSelect = (selectElement, optionsArray, type) => {
+            const currentSelectedValue = selectElement.value; // Preserve current selection if possible
+            let defaultOptionText = 'Select ' + (type === 'cerNames' ? 'CER' : type.replace('Names', '').replace('Types', '').replace('Roles', ''));
+            selectElement.innerHTML = `<option value="">${defaultOptionText}</option>`;
+            
+            if (Array.isArray(optionsArray)) {
+                optionsArray.forEach(option => {
+                    const value = (type === 'cerNames' && typeof option === 'object' && option.name) ? option.name : option;
+                    const optionElement = document.createElement('option');
+                    optionElement.value = value;
+                    optionElement.textContent = value;
+                    selectElement.appendChild(optionElement);
+                });
+            } else {
+                console.warn(`Dropdown options for ${type} is not an array:`, optionsArray);
+            }
+
+            // Attempt to restore previous selection
+            if (Array.from(selectElement.options).some(opt => opt.value === currentSelectedValue)) {
+                selectElement.value = currentSelectedValue;
+            } else {
+                selectElement.value = ''; // Reset if old value is no longer available
+            }
+        };
+
+        // Function to fetch and populate dropdown options from Firestore (copied from index.html)
+        async function fetchDropdownOptionsData() {
+            if (!db) {
+                console.warn("Firestore not ready for fetching dropdowns.");
+                return;
+            }
+            if (!DROPDOWN_DATA_COLLECTION_PATH) {
+                console.error("Dropdowns collection path is not defined.");
+                return;
+            }
+
+            const dropdownDocRef = doc(db, DROPDOWN_DATA_COLLECTION_PATH, 'general_options');
+
+            if (unsubscribeDropdowns) {
+                unsubscribeDropdowns(); 
+            }
+
+            unsubscribeDropdowns = onSnapshot(dropdownDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    dropdownOptions = docSnap.data();
+                    console.log("Dropdown data updated from Firestore:", dropdownOptions);
+                    // Rebuild cerNameEmailsMap if needed (likely not directly used on NPS page)
+                    if (dropdownOptions.cerNames && Array.isArray(dropdownOptions.cerNames)) {
+                        dropdownOptions.cerNames.forEach(cer => {
+                            if (typeof cer === 'object' && cer.name && cer.email) {
+                                cerNameEmailsMap[cer.name] = cer.email;
+                            }
+                        });
+                    }
+                } else {
+                    console.warn("Dropdown options document does not exist.");
+                    dropdownOptions = { cerNames: [], cerRoles: [], reviewerNames: [], autofailTypes: [] };
+                    cerNameEmailsMap = {};
+                }
+                 // Populate dropdowns in the modal once options are loaded
+                const npsReviewerNameSelect = document.getElementById('nps-reviewer-name');
+                const npsAutofailTypeSelect = document.getElementById('nps-autofail-type');
+                populateSelect(npsReviewerNameSelect, dropdownOptions.reviewerNames, 'reviewerNames');
+                populateSelect(npsAutofailTypeSelect, dropdownOptions.autofailTypes, 'autofailTypes');
+            }, (error) => {
+                console.error("Error listening to dropdown data:", error);
+            });
+        }
+
+
+        // --- Event Listeners and Initial Load ---
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("NPS DOM fully loaded and parsed. Script starting.");
+
+            // Set up navigation links in the sidebar
+            document.querySelectorAll('.main-nav ul li a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    // Prevent default behavior only if it's an internal hash link on index.html
+                    // or if it's the current NPS page's own '#' link
+                    if (href === '#' || href.startsWith('index.html#')) {
+                        e.preventDefault();
+                        if (href === '#') { // If it's just '#' for the current page
+                            // Do nothing, already on NPS page
+                            console.log("Already on NPS page.");
+                        } else { // It's an index.html hash link, navigate to index.html and then show tab
+                            window.location.href = href;
+                        }
+                    } else { // It's an external .html page link (reports.html, users.html, admin.html, etc.)
+                        // Let default behavior happen (browser navigates to the new page)
+                    }
+                });
+            });
+
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async function() {
+                    sessionStorage.removeItem('loggedIn');
+                    if (unsubscribeNpsRecords) unsubscribeNpsRecords();
+                    if (unsubscribeNpsEvaluations) unsubscribeNpsEvaluations();
+                    if (unsubscribeDropdowns) unsubscribeDropdowns();
+                    await signOut(auth);
+                    window.location.href = 'index.html'; // Redirect to login
+                });
+            }
+
+            // Set active class for NPS tab
+            const npsFeedbackTab = document.getElementById('npsFeedbackTab');
+            if (npsFeedbackTab) {
+                npsFeedbackTab.classList.add('active');
+            }
+
+            // Attach listeners for the NPS Evaluation Modal buttons
+            const npsCloseModalBtn = document.getElementById('npsCloseModalBtn');
+            if (npsCloseModalBtn) {
+                npsCloseModalBtn.addEventListener('click', closeNpsEvaluationModal);
+            }
+            const npsSaveAndPdfBtn = document.getElementById('npsSaveAndPdfBtn');
+            if (npsSaveAndPdfBtn) {
+                npsSaveAndPdfBtn.addEventListener('click', saveNpsEvaluation); // First save
+                // You might want to chain PDF generation after successful save, or have a separate button
+                // npsSaveAndPdfBtn.addEventListener('click', handleNpsPdfAndShare); // This would trigger PDF too
+            }
+            const npsShareBtn = document.getElementById('npsShareBtn');
+            if (npsShareBtn) {
+                 npsShareBtn.addEventListener('click', handleNpsPdfAndShare); // Assuming this button generates and shares PDF
+            }
+
+            // Autofail description toggle in NPS modal
+            const npsAutofailTypeSelect = document.getElementById('nps-autofail-type');
+            const npsAutofailDescriptionContainer = document.getElementById('npsAutofailDescriptionContainer');
+            const npsAutofailDescriptionInput = document.getElementById('nps-autofail-description');
+            if (npsAutofailTypeSelect) {
+                npsAutofailTypeSelect.addEventListener('change', () => {
+                    if (npsAutofailTypeSelect.value !== '') {
+                        npsAutofailDescriptionContainer.classList.remove('hidden');
+                        npsAutofailDescriptionInput.setAttribute('required', 'required');
+                    } else {
+                        npsAutofailDescriptionContainer.classList.add('hidden');
+                        npsAutofailDescriptionInput.value = '';
+                        npsAutofailDescriptionInput.removeAttribute('required');
+                    }
+                    calculateNpsEvaluationScore(); // Recalculate score when autofail type changes
+                });
+            }
+
+
+            // Initial authentication check
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                    const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
+
+                    if (isLoggedInFromSession === 'true') {
+                        console.log("NPS Page: User is logged in, proceeding with data fetches.");
+                        // Fetch dropdown options for form populating
+                        await fetchDropdownOptionsData();
+                        // Fetch Google Sheet data and sync to Firestore
+                        await fetchAndSyncNpsRecords();
+                        // Then set up real-time listener for Firestore NPS records
+                        await fetchNpsRecordsFromFirestore();
+                        document.body.classList.add('loaded'); // Reveal content
+                    } else {
+                        console.warn("NPS Page: Firebase user detected but session invalid. Redirecting to login.");
+                        await signOut(auth);
+                        window.location.href = 'index.html';
+                    }
+                } else {
+                    console.log("NPS Page: No user logged in. Attempting anonymous sign-in for public data access.");
+                    try {
+                        await signInAnonymously(auth);
+                        currentUserId = auth.currentUser.uid;
+                        console.log("NPS Page: Signed in anonymously. Fetching dropdowns and NPS records.");
+                        await fetchDropdownOptionsData();
+                        await fetchNpsRecordsFromFirestore(); // Anonymous user can only read if rules allow
+                        // We still try to sync from Google Sheet, but writes might fail if rules aren't permissive for anonymous
+                        await fetchAndSyncNpsRecords(); // Attempt sync even if anonymous (writes may fail without rule changes)
+                        document.body.classList.add('loaded'); // Reveal content
+                    } catch (anonError) {
+                        console.error("NPS Page: Anonymous sign-in failed. Redirecting to login.", anonError);
+                        window.location.href = 'index.html';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
