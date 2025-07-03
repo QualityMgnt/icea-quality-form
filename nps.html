@@ -627,76 +627,33 @@
         // --- Core NPS Module Logic ---
 
         /**
-         * Fetches NPS records from Google Sheet and syncs with Firestore.
+         * Fetches NPS records from Google Sheet via Apps Script proxy and syncs with Firestore.
          */
         async function fetchAndSyncNpsRecords() {
-            // This URL MUST be published as CSV or accessible via Google Apps Script Web App
-            // Direct client-side fetch from gviz/tq URL might have CORS issues in production.
-            const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/12nM9NKEs-b4Uhs_tw-8ZXbBEhdEDP39XAYHHwrMKdfY/gviz/tq?tqx=out:csv&gid=0';
-            showMessageBox("Loading NPS Data", "Fetching records from Google Sheet...", false, true, false);
+            // Your new Google Apps Script Web App URL
+            const googleSheetProxyUrl = 'https://script.google.com/macros/s/AKfycbwx323_-uWhKgpY4DnDYfdYfRwnzTcxdAevVVnDBYnXaizO5REvMHnnAuUDpU3issPi/exec';
+            showMessageBox("Loading NPS Data", "Fetching records from Google Sheet via proxy...", false, true, false);
 
             try {
-                const response = await fetch(googleSheetUrl);
+                const response = await fetch(googleSheetProxyUrl);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const csvText = await response.text();
-                const parsedData = parseCsv(csvText);
+                // The Apps Script now returns JSON directly
+                const parsedData = await response.json(); 
 
-                // Sync with Firestore
                 await syncGoogleSheetDataToFirestore(parsedData);
                 hideMessageBox(); // Hide loading message after sync is initiated
             } catch (error) {
-                console.error("Error fetching or syncing Google Sheet data:", error);
-                showMessageBox("Error", `Failed to load NPS data from Google Sheet: ${error.message}. Please ensure the sheet is published to web as CSV and accessible.`, true, false, true);
+                console.error("Error fetching or syncing Google Sheet data via proxy:", error);
+                showMessageBox("Error", `Failed to load NPS data: ${error.message}. Please ensure the Apps Script Web App is deployed correctly and accessible.`, true, false, true);
             }
         }
+        
+        // Removed parseCsv() and parseCsvLine() as data is now JSON from Apps Script.
 
         /**
-         * Parses CSV text into an array of objects.
-         */
-        function parseCsv(csv) {
-            const lines = csv.trim().split('\n');
-            if (lines.length === 0) return [];
-
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            const data = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                const values = parseCsvLine(lines[i]);
-                if (values.length === headers.length) {
-                    const row = {};
-                    headers.forEach((header, index) => {
-                        row[header] = values[index];
-                    });
-                    data.push(row);
-                }
-            }
-            return data;
-        }
-
-        // Helper to parse a single CSV line, handling commas within quoted fields
-        function parseCsvLine(line) {
-            const result = [];
-            let inQuote = false;
-            let currentField = '';
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                if (char === '"') {
-                    inQuote = !inQuote;
-                } else if (char === ',' && !inQuote) {
-                    result.push(currentField.trim().replace(/^"|"$/g, '')); // Remove quotes from start/end
-                    currentField = '';
-                } else {
-                    currentField += char;
-                }
-            }
-            result.push(currentField.trim().replace(/^"|"$/g, ''));
-            return result;
-        }
-
-        /**
-         * Syncs Google Sheet data to Firestore, creating new records or updating existing ones.
+         * Syncs Google Sheet data (now as JSON) to Firestore, creating new records or updating existing ones.
          * The Firestore `onSnapshot` listener will handle re-rendering the table after sync.
          */
         async function syncGoogleSheetDataToFirestore(sheetData) {
@@ -709,7 +666,8 @@
             const batch = db.batch(); // Use a batch for atomic writes
 
             for (const row of sheetData) {
-                const contactId = row['Customer Contact ID']; // Make sure this key matches your Google Sheet header
+                // Ensure these keys exactly match the column headers in your Google Sheet
+                const contactId = row['Customer Contact ID']; 
                 if (!contactId) {
                     console.warn("Skipping row due to missing 'Customer Contact ID':", row);
                     continue;
@@ -814,7 +772,7 @@
                                     // To persist this "Overdue" status in Firestore, you need to call updateDoc.
                                     // This should ideally be done by a server-side function (Cloud Function) for robustness,
                                     // but can be done client-side if rules allow:
-                                    // updateDoc(doc(db, NPS_RECORDS_COLLECTION_PATH, record.id), { Status: 'Overdue', lastUpdated: new Date() }).catch(e => console.error("Error updating NPS status to Overdue:", e));
+                                    updateDoc(doc(db, NPS_RECORDS_COLLECTION_PATH, record.id), { Status: 'Overdue', lastUpdated: new Date() }).catch(e => console.error("Error updating NPS status to Overdue:", e));
                                 }
                             }
                         }
@@ -1194,7 +1152,7 @@
             }
 
             const evaluationData = {
-                'Original NPS Record ID': currentNpsRecordBeingEvaluated.id,
+                'Original NPS Record ID': currentNpsRecordBeingEvaluated.id, // Reference to the document in nps_records
                 'Customer Contact ID': npsContactId,
                 'Agent Handled': npsAgentHandled,
                 'Evaluation Date': npsReviewDate,
@@ -1224,11 +1182,11 @@
             showMessageBox("Saving Evaluation", "Saving NPS evaluation...", false, true, false);
 
             try {
-                // 1. Save the new NPS evaluation form record
+                // 1. Save the new NPS evaluation form record to NPS_EVALUATIONS_COLLECTION_PATH
                 const docRef = await addDoc(collection(db, NPS_EVALUATIONS_COLLECTION_PATH), evaluationData);
                 console.log("NPS Evaluation saved with ID:", docRef.id);
 
-                // 2. Update the original NPS record's status and score
+                // 2. Update the original NPS record's status and review score in NPS_RECORDS_COLLECTION_PATH
                 const originalNpsDocRef = doc(db, NPS_RECORDS_COLLECTION_PATH, currentNpsRecordBeingEvaluated.id);
                 await updateDoc(originalNpsDocRef, {
                     'Status': 'Completed', // Mark as completed after evaluation
@@ -1296,7 +1254,7 @@
                     heightLeft -= pageHeight;
                 }
 
-                const pdfFileName = `NPS_Evaluation_${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
+                const pdfFileName = `NPS_Evaluation_${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; // YYYY-MM-DD
                 pdf.save(pdfFileName);
 
                 // Revert button display
