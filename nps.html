@@ -504,7 +504,8 @@
         // Firebase Imports
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        // Import `writeBatch` specifically for batch operations
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -540,12 +541,11 @@
         let allNpsRecordsFromFirestore = []; // Stores NPS records synced from Google Sheet
         let allNpsEvaluations = []; // Stores completed NPS evaluation forms
         let dropdownOptions = {
-            'cerNames': [],
-            'cerRoles': [],
-            'reviewerNames': [],
+            'reviewerNames': [], // Only reviewerNames and autofailTypes are needed here
             'autofailTypes': []
         };
-        let cerNameEmailsMap = {};
+        // cerNames and cerRoles (and cerNameEmailsMap) are likely not needed directly in nps.html unless you populate dropdowns with them.
+        // If needed, they should be fetched via dropdownOptions.
 
         let currentUserId = null;
         let currentUserRole = null;
@@ -663,7 +663,8 @@
             }
 
             const npsRecordsColRef = collection(db, NPS_RECORDS_COLLECTION_PATH);
-            const batch = db.batch(); // Use a batch for atomic writes
+            // Corrected: Call writeBatch() from the Firebase Firestore module
+            const batch = writeBatch(db); 
 
             for (const row of sheetData) {
                 // Ensure these keys exactly match the column headers in your Google Sheet
@@ -1254,7 +1255,7 @@
                     heightLeft -= pageHeight;
                 }
 
-                const pdfFileName = `NPS_Evaluation_${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; // YYYY-MM-DD
+                const pdfFileName = `NPS_Evaluation_${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; //YYYY-MM-DD
                 pdf.save(pdfFileName);
 
                 // Revert button display
@@ -1298,6 +1299,8 @@
             
             if (Array.isArray(optionsArray)) {
                 optionsArray.forEach(option => {
+                    // This 'cerNames' check might not be needed if NPS only populates simple strings
+                    // But keeping it for robustness if dropdownOptions structure varies.
                     const value = (type === 'cerNames' && typeof option === 'object' && option.name) ? option.name : option;
                     const optionElement = document.createElement('option');
                     optionElement.value = value;
@@ -1335,20 +1338,16 @@
 
             unsubscribeDropdowns = onSnapshot(dropdownDocRef, (docSnap) => {
                 if (docSnap.exists()) {
-                    dropdownOptions = docSnap.data();
+                    const data = docSnap.data();
+                    // Only assign the specific properties needed for NPS dropdowns
+                    dropdownOptions.reviewerNames = data.reviewerNames || [];
+                    dropdownOptions.autofailTypes = data.autofailTypes || [];
+
                     console.log("Dropdown data updated from Firestore:", dropdownOptions);
-                    // Rebuild cerNameEmailsMap if needed (likely not directly used on NPS page)
-                    if (dropdownOptions.cerNames && Array.isArray(dropdownOptions.cerNames)) {
-                        dropdownOptions.cerNames.forEach(cer => {
-                            if (typeof cer === 'object' && cer.name && cer.email) {
-                                cerNameEmailsMap[cer.name] = cer.email;
-                            }
-                        });
-                    }
+                    // No need for cerNameEmailsMap on NPS page, so not rebuilding it here.
                 } else {
                     console.warn("Dropdown options document does not exist.");
-                    dropdownOptions = { cerNames: [], cerRoles: [], reviewerNames: [], autofailTypes: [] };
-                    cerNameEmailsMap = {};
+                    dropdownOptions = { reviewerNames: [], autofailTypes: [] }; // Reset to empty specifically needed parts
                 }
                  // Populate dropdowns in the modal once options are loaded
                 const npsReviewerNameSelect = document.getElementById('nps-reviewer-name');
