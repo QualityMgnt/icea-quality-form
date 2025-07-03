@@ -18,6 +18,15 @@
             background-color: #f3f4f6; /* bg-gray-100 */
             margin: 0; /* Remove default body margin */
             padding: 0; /* Remove default body padding */
+            /* Add this to hide content until authenticated */
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
+
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
         }
 
         /* ICEALION Branding Colors */
@@ -233,19 +242,14 @@
             justify-content: center;
             background-color: #f3f4f6;
             z-index: 1000;
-            visibility: hidden; /* Start hidden to prevent flicker */
-            opacity: 0; /* Start invisible */
-            transition: visibility 0s, opacity 0.3s ease; /* Transition for smooth display */
+            /* Start hidden to prevent flicker - visibility/opacity handled by JS */
+            visibility: hidden; 
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease; 
         }
         .login-container.visible {
             visibility: visible;
             opacity: 1;
-        }
-        .login-container .container.mx-auto {
-            max-width: 320px;
-            border-radius: 0.5rem;
-            min-height: auto;
-            margin: auto;
         }
 
 
@@ -462,7 +466,9 @@
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="#" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
                 <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li> </ul>
+                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li> 
+                <li><a href="nps.html" id="npsTab"><i class="fas fa-comment-alt"></i> NPS</a></li> 
+            </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
     </nav>
@@ -614,7 +620,7 @@
                     </tbody>
                 </table>
                 <div class="flex items-center justify-between w-full mt-4">
-                    <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION%0AGROUP" alt="ICEALION Logo" class="h-12 rounded-md">
+                    <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
                     <div class="flex space-x-4">
                         <button type="button" id="pdfEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
                             PDF & Email (Direct Send)
@@ -1338,6 +1344,7 @@
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
+            const npsTab = document.getElementById('npsTab'); // Reference to the NPS tab
 
             const auditFormContent = document.getElementById('auditFormContent');
             const databaseContent = document.getElementById('databaseContent');
@@ -1353,6 +1360,7 @@
             if (reportsTab) reportsTab.classList.remove('active');
             if (autofailsTab) autofailsTab.classList.remove('active');
             if (adminTab) adminTab.classList.remove('active');
+            if (npsTab) npsTab.classList.remove('active'); // Deactivate NPS tab
 
 
             // Hide all content sections for this index.html
@@ -1407,6 +1415,9 @@
             } else if (tabName === 'admin') {
                 if (adminTab) adminTab.classList.add('active');
                 window.location.href = 'admin.html';
+            } else if (tabName === 'nps') { // Handle NPS tab
+                if (npsTab) npsTab.classList.add('active');
+                window.location.href = 'nps.html'; // Navigate to nps.html
             }
         }
 
@@ -2031,7 +2042,10 @@
                     showTab('database');
                 } else if (activeHash === 'shareResponse') {
                     showTab('shareResponse');
-                } else {
+                } else if (activeHash === 'nps') { // Handle NPS tab
+                    showTab('nps');
+                }
+                else {
                     showTab('auditForm'); // Default to audit form
                 }
             } else {
@@ -2043,6 +2057,8 @@
                 databaseContent.style.display = 'none';
                 shareResponseContent.style.display = 'none';
             }
+            // Once the display logic is resolved, reveal the body
+            document.body.classList.add('loaded');
         }
 
 
@@ -2362,7 +2378,7 @@
             // NO LONGER HIDING scoresSection
             // let originalScoresDisplay = '';
             // if (scoresSection) {
-            //     originalScoresDisplay = scoresSection.style.display;
+            //     scoresSection.style.display = originalScoresDisplay;
             //     scoresSection.style.display = 'none';
             // }
 
@@ -2618,6 +2634,7 @@
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
+            const npsTab = document.getElementById('npsTab'); // Reference to the NPS tab
 
             const saveFormBtn = document.getElementById('saveFormBtn'); // Renamed
             const pdfShareBtn = document.getElementById('pdfShareBtn'); // Renamed
@@ -2653,17 +2670,6 @@
                 const day = String(today.getDate()).padStart(2, '0');
                 reviewDateInput.value = `${year}-${month}-${day}`;
             }
-
-            // Initial state: hide main content and show spinner/loading if auth not ready
-            // The login-container starts with `visibility: hidden; opacity: 0;` in CSS
-            // This prevents a flash of unstyled content or login screen before auth state is known.
-            document.getElementById('auditFormContent').style.display = 'none';
-            document.getElementById('databaseContent').style.display = 'none';
-            document.getElementById('shareResponseContent').style.display = 'none';
-            document.getElementById('mainNav').style.display = 'none';
-            document.getElementById('loginPage').style.display = 'flex'; // Keep flex to center, but hide with visibility/opacity
-            document.getElementById('loginPage').classList.remove('visible'); // Ensure it's hidden initially
-
 
             // --- Firebase Auth State Listener (Centralized) ---
             onAuthStateChanged(auth, async (user) => {
@@ -2805,6 +2811,7 @@
             if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = adminTab.href; }); }
             if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); } // Direct call to showTab
             if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; }); }
+            if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('nps'); }); } // NPS tab listener
 
 
             if (selectAllRecordsCheckbox) {
