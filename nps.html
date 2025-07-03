@@ -1104,7 +1104,6 @@
 
             selectAllNpsRecordsCheckbox.disabled = false;
 
-            // Populate agent filter dropdown with unique agent names from ALL records
             const agentFilterSelect = document.getElementById('agentFilter');
             const currentAgentFilterValue = agentFilterSelect.value; 
             const uniqueAgents = [...new Set(allNpsRecordsFromFirestore.map(record => record['Agent Handled'] || 'Unassigned'))].sort();
@@ -1133,7 +1132,6 @@
                     statusClass = 'status-overdue';
                 }
 
-                // Format receivedDate for display
                 let formattedReceivedDate = 'N/A';
                 if (record.receivedDate) {
                     try {
@@ -1202,11 +1200,11 @@
             }
 
             // Calculate average score per agent
-            const agentScores = {}; // { 'AgentName': { totalScore: 0, count: 0 } }
+            const agentScores = {}; 
 
             records.forEach(record => {
                 const agent = record['Agent Handled'] || 'Unassigned';
-                const score = parseFloat(String(record['Review Score']).replace('%', '')); // Convert "75%" to 75
+                const score = parseFloat(String(record['Review Score']).replace('%', '')); 
 
                 if (!isNaN(score)) {
                     if (!agentScores[agent]) {
@@ -1217,10 +1215,10 @@
                 }
             });
 
-            const labels = Object.keys(agentScores).sort(); // Sorted agent names
+            const labels = Object.keys(agentScores).sort(); 
             const data = labels.map(agent => {
                 const avg = agentScores[agent].totalScore / agentScores[agent].count;
-                return parseFloat(avg.toFixed(1)); // Average, rounded to 1 decimal place
+                return parseFloat(avg.toFixed(1)); 
             });
 
             npsChartInstance = new Chart(ctx, {
@@ -1231,13 +1229,13 @@
                         label: 'Average Overall Score',
                         data: data,
                         backgroundColor: [
-                            'rgba(26, 115, 232, 0.8)', // icealion-blue, slightly transparent
-                            'rgba(245, 124, 0, 0.8)',  // icealion-orange, slightly transparent
-                            'rgba(76, 175, 80, 0.8)',  // green
-                            'rgba(255, 193, 7, 0.8)',  // yellow
-                            'rgba(156, 39, 176, 0.8)', // purple
-                            'rgba(3, 169, 244, 0.8)',  // light blue
-                            'rgba(255, 87, 34, 0.8)'   // deep orange
+                            'rgba(26, 115, 232, 0.8)', 
+                            'rgba(245, 124, 0, 0.8)',  
+                            'rgba(76, 175, 80, 0.8)',  
+                            'rgba(255, 193, 7, 0.8)',  
+                            'rgba(156, 39, 176, 0.8)', 
+                            'rgba(3, 169, 244, 0.8)',  
+                            'rgba(255, 87, 34, 0.8)'   
                         ],
                         borderColor: [
                             'rgba(26, 115, 232, 1)',
@@ -1252,7 +1250,7 @@
                     }]
                 },
                 options: {
-                    indexAxis: 'x', // Changed to 'x' for vertical bar chart
+                    indexAxis: 'x', 
                     responsive: true,
                     maintainAspectRatio: false, 
                     plugins: {
@@ -1269,22 +1267,22 @@
                         }
                     },
                     scales: {
-                        y: { // y-axis for scores now
+                        y: { 
                             beginAtZero: true,
                             title: {
                                 display: true,
                                 text: 'Average Score (%)'
                             },
-                            max: 100 // Scores are out of 100
+                            max: 100 
                         },
-                        x: { // x-axis for agents now
+                        x: { 
                             title: {
                                 display: true,
                                 text: 'Agent Handled'
                             },
                             ticks: {
-                                autoSkip: false, // Prevent labels from being skipped
-                                maxRotation: 90, // Rotate labels if they overlap
+                                autoSkip: false, 
+                                maxRotation: 90, 
                                 minRotation: 90
                             }
                         }
@@ -1307,7 +1305,7 @@
         /**
          * Deletes selected NPS records from Firestore.
          */
-        async function deleteSelectedNpsRecords() {
+        window.deleteSelectedNpsRecords = async function() { // Made global
             const checkedCheckboxes = document.querySelectorAll('.nps-record-checkbox:checked');
             const idsToDelete = Array.from(checkedCheckboxes).map(cb => cb.dataset.recordId);
 
@@ -1408,7 +1406,7 @@
         /**
          * Updates the status of an NPS record in Firestore.
          */
-        async function updateNpsRecordStatus(event) {
+        function updateNpsRecordStatus(event) {
             const select = event.target;
             const recordId = select.dataset.id;
             const newStatus = select.value;
@@ -1416,7 +1414,7 @@
 
             try {
                 const docRef = doc(db, NPS_RECORDS_COLLECTION_PATH, recordId);
-                await updateDoc(docRef, { Status: newStatus, lastUpdated: new Date() });
+                updateDoc(docRef, { Status: newStatus, lastUpdated: new Date() });
                 select.dataset.originalStatus = newStatus;
                 
                 select.classList.remove('status-completed', 'status-pending', 'status-overdue', 'status-default');
@@ -1714,7 +1712,7 @@
         /**
          * Generates a PDF of the NPS evaluation modal content and prompts for sharing.
          */
-        async function handleNpsPdfAndShare() {
+        window.handleNpsPdfAndShare = async function() { // Made global
              if (!currentNpsRecordBeingEvaluated) {
                 showMessageBox("Error", "No NPS evaluation selected to generate PDF.", true, false, true);
                 return;
@@ -1724,7 +1722,6 @@
 
             try {
                 const npsEvaluationModalContentDiv = document.getElementById('npsEvaluationModalContent');
-                // Temporarily hide buttons for PDF capture
                 const buttonsContainer = npsEvaluationModalContentDiv.querySelector('.p-6.flex.justify-end.space-x-4');
                 let originalButtonsDisplay = '';
                 if (buttonsContainer) {
@@ -1732,7 +1729,6 @@
                     buttonsContainer.style.display = 'none';
                 }
 
-                // Capture only the modal content
                 const canvas = await html2canvas(npsEvaluationModalContentDiv, {
                     scale: 2, 
                     useCORS: true,
@@ -1772,7 +1768,6 @@
                 const pdfFileName = `NPS_Evaluation_${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; 
                 pdf.save(pdfFileName);
 
-                // Revert button display
                 if (buttonsContainer) {
                     buttonsContainer.style.display = originalButtonsDisplay;
                 }
@@ -1792,7 +1787,9 @@
             }
         }
 
-        // Placeholder for share functionality - you can expand this
+        /**
+         * Placeholder for share functionality - you can expand this
+         */
         function shareNpsEvaluation(npsRecordId) {
             const record = allNpsRecordsFromFirestore.find(r => r.id === npsRecordId);
             if (!record) {
@@ -1802,7 +1799,9 @@
             showMessageBox("Share NPS Record", `Would initiate sharing for NPS Record ID: ${record['Customer Contact ID']}. (Implementation needed)`, false, false, true);
         }
 
-        // Helper to populate a single select element (copied from index.html for consistency)
+        /**
+         * Helper to populate a single select element.
+         */
         const populateSelect = (selectElement, optionsArray, type) => {
             const currentSelectedValue = selectElement.value; 
             let defaultOptionText = 'Select ' + (type === 'cerNames' ? 'CER' : type.replace('Names', '').replace('Types', '').replace('Roles', ''));
@@ -1827,7 +1826,9 @@
             }
         };
 
-        // Function to fetch and populate dropdown options from Firestore 
+        /**
+         * Function to fetch and populate dropdown options from Firestore.
+         */
         async function fetchDropdownOptionsData() {
             if (!db) {
                 console.warn("Firestore not ready for fetching dropdowns.");
@@ -1876,7 +1877,7 @@
             const statusFilterSelect = document.getElementById('statusFilter');
             const applyFiltersBtn = document.getElementById('applyFiltersBtn');
             const clearFiltersBtn = document.getElementById('clearFiltersBtn');
-            const downloadNpsRecordsBtn = document.getElementById('downloadNpsRecordsBtn'); // New button
+            const downloadNpsRecordsBtn = document.getElementById('downloadNpsRecordsBtn'); 
 
             // Set up main navigation links
             document.querySelectorAll('.main-nav ul li a').forEach(link => {
@@ -1925,7 +1926,7 @@
             }
             const npsShareBtn = document.getElementById('npsShareBtn');
             if (npsShareBtn) {
-                 npsShareBtn.addEventListener('click', handleNpsPdfAndShare); 
+                 npsShareBtn.addEventListener('click', window.handleNpsPdfAndShare); // Global reference
             }
 
             // Autofail description toggle in NPS modal
@@ -1958,8 +1959,8 @@
             if (clearFiltersBtn) {
                 clearFiltersBtn.addEventListener('click', () => {
                     dateFilterInput.value = '';
-                    agentFilterSelect.value = ''; // Reset to "All Agents"
-                    statusFilterSelect.value = ''; // Reset to "All Statuses"
+                    agentFilterSelect.value = ''; 
+                    statusFilterSelect.value = ''; 
                     currentNpsFilters.date = '';
                     currentNpsFilters.agent = '';
                     currentNpsFilters.status = '';
@@ -1969,7 +1970,7 @@
 
             // Event listener for Download button
             if (downloadNpsRecordsBtn) {
-                downloadNpsRecordsBtn.addEventListener('click', downloadNpsRecordsAsCsv);
+                downloadNpsRecordsBtn.addEventListener('click', window.downloadNpsRecordsAsCsv); // Global reference
             }
 
             // Listeners for Select All checkbox and Delete Selected button
@@ -1987,7 +1988,7 @@
             }
 
             if (deleteSelectedNpsRecordsBtn) {
-                deleteSelectedNpsRecordsBtn.addEventListener('click', deleteSelectedNpsRecords);
+                deleteSelectedNpsRecordsBtn.addEventListener('click', window.deleteSelectedNpsRecords); // Global reference
             }
 
             // Initial authentication check
