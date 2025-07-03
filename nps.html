@@ -365,6 +365,10 @@
         }
 
         /* Styles for the new NPS Evaluation Modal */
+        .message-box.max-w-2xl { /* Applied to the modal container */
+            max-width: 800px; /* Wider modal */
+            width: 90%; /* Responsive width */
+        }
         #npsEvaluationModalContent {
             max-height: 70vh; /* Make the content area scrollable */
             overflow-y: auto;
@@ -425,12 +429,18 @@
             padding: 1rem 0;
             margin-bottom: 1rem;
             border-bottom: 1px solid #e5e7eb;
+            align-items: center; /* Vertically align items */
+        }
+        .filter-bar div {
+            display: flex;
+            align-items: center;
         }
         .filter-bar label {
             font-size: 0.875rem; /* text-sm */
             font-weight: 500;
             color: #4b5563; /* gray-700 */
             margin-right: 0.5rem;
+            white-space: nowrap; /* Prevent label from wrapping */
         }
         .filter-bar input[type="date"],
         .filter-bar select {
@@ -520,6 +530,11 @@
                 <div>
                     <button id="applyFiltersBtn">Apply Filters</button>
                     <button id="clearFiltersBtn">Clear Filters</button>
+                </div>
+                <div>
+                    <button id="downloadNpsRecordsBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        <i class="fas fa-download mr-2"></i>Download Records
+                    </button>
                 </div>
             </div>
 
@@ -956,7 +971,7 @@
                         }
 
                         // Status and Review Score are usually managed by the app evaluations, not by CSV sync,
-                        // UNLESS you specifically want the CSV to always be the master for them.
+                        // UNLESS you explicitly want the CSV to override them.
                         // For this code, the evaluation form updates them. If CSV should override, uncomment below.
                         /*
                         if (existingData['Status'] !== recordData['Status']) {
@@ -987,10 +1002,12 @@
 
             // Filter by Date
             if (currentNpsFilters.date) {
-                const filterDate = currentNpsFilters.date; // YYYY-MM-DD
+                const filterDate = currentNpsFilters.date; //YYYY-MM-DD format
                 recordsToDisplay = recordsToDisplay.filter(record => {
                     if (!record.receivedDate) return false;
                     const recordDate = typeof record.receivedDate.toDate === 'function' ? record.receivedDate.toDate() : new Date(record.receivedDate);
+                    // Ensure valid date object before converting to ISO string
+                    if (isNaN(recordDate.getTime())) return false; 
                     return recordDate.toISOString().substring(0, 10) === filterDate;
                 });
             }
@@ -1019,11 +1036,11 @@
          */
         async function fetchNpsRecordsFromFirestore() {
             const npsRecordsTableBody = document.getElementById('npsRecordsTableBody');
-            npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-gray-500">Loading NPS records from Firestore...</td></tr>`; // Updated colspan
+            npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-gray-500">Loading NPS records from Firestore...</td></tr>`; 
 
             if (!db || !currentUserId) {
                 console.warn("Firestore not ready or user not authenticated. Cannot fetch NPS records.");
-                npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-red-500">Authentication required to load NPS records.</td></tr>`; // Updated colspan
+                npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-red-500">Authentication required to load NPS records.</td></tr>`; 
                 return;
             }
 
@@ -1041,7 +1058,6 @@
                     snapshot.forEach(doc => {
                         const record = { id: doc.id, ...doc.data() };
                         
-                        // Auto-update status to "Overdue" if pending for more than 7 days
                         if (record.Status === 'Pending' && record.receivedDate) {
                             const receivedDate = typeof record.receivedDate.toDate === 'function' ? record.receivedDate.toDate() : new Date(record.receivedDate);
                             if (!isNaN(receivedDate.getTime())) {
@@ -1054,16 +1070,15 @@
                         }
                         allNpsRecordsFromFirestore.push(record);
                     });
-                    // After fetching all records, apply filters and render
                     applyNpsFiltersAndRender(); 
                 }, (error) => {
                     console.error("Error listening to NPS records from Firestore:", error);
-                    npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-red-500">Error fetching live NPS data: ${error.message}</td></tr>`; // Updated colspan
+                    npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-red-500">Error fetching live NPS data: ${error.message}</td></tr>`; 
                     showMessageBox("Error Loading NPS", `Could not load live NPS data: ${error.message}`, true, false, true);
                 });
             } catch (e) {
                 console.error("Failed to set up onSnapshot for NPS records:", e);
-                npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-red-500">Initialization Error: ${e.message}</td></tr>`; // Updated colspan
+                npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-red-500">Initialization Error: ${e.message}</td></tr>`; 
             }
         }
 
@@ -1080,7 +1095,7 @@
             npsRecordsTableBody.innerHTML = ''; 
 
             if (records.length === 0) {
-                npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-gray-500">No matching NPS records found.</td></tr>`; // Updated colspan
+                npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-gray-500">No matching NPS records found.</td></tr>`; 
                 selectAllNpsRecordsCheckbox.disabled = true;
                 deleteSelectedNpsRecordsBtn.disabled = true;
                 selectAllNpsRecordsCheckbox.checked = false;
@@ -1089,9 +1104,9 @@
 
             selectAllNpsRecordsCheckbox.disabled = false;
 
-            // Populate agent filter dropdown unique values
+            // Populate agent filter dropdown with unique agent names from ALL records
             const agentFilterSelect = document.getElementById('agentFilter');
-            const currentAgentFilterValue = agentFilterSelect.value; // Preserve current selection
+            const currentAgentFilterValue = agentFilterSelect.value; 
             const uniqueAgents = [...new Set(allNpsRecordsFromFirestore.map(record => record['Agent Handled'] || 'Unassigned'))].sort();
             agentFilterSelect.innerHTML = '<option value="">All Agents</option>';
             uniqueAgents.forEach(agent => {
@@ -1100,11 +1115,10 @@
                 option.textContent = agent;
                 agentFilterSelect.appendChild(option);
             });
-            // Restore agent filter selection
             if (currentAgentFilterValue && uniqueAgents.includes(currentAgentFilterValue)) {
                 agentFilterSelect.value = currentAgentFilterValue;
             } else {
-                agentFilterSelect.value = currentNpsFilters.agent; // Set to current filter, which might be ""
+                agentFilterSelect.value = currentNpsFilters.agent; 
             }
 
 
@@ -1125,7 +1139,7 @@
                     try {
                         const dateObj = typeof record.receivedDate.toDate === 'function' ? record.receivedDate.toDate() : new Date(record.receivedDate);
                         if (!isNaN(dateObj.getTime())) {
-                            formattedReceivedDate = dateObj.toLocaleDateString(); // e.g., 7/3/2025
+                            formattedReceivedDate = dateObj.toLocaleDateString(); 
                         }
                     } catch (e) {
                         console.warn("Failed to parse receivedDate for NPS record in table:", record.id, e);
@@ -1135,7 +1149,8 @@
                 row.innerHTML = `
                     <td class="py-2 px-4"><input type="checkbox" class="nps-record-checkbox" data-record-id="${record.id}"></td>
                     <td class="py-2 px-4">${record['Customer Contact ID'] || 'N/A'}</td>
-                    <td class="py-2 px-4">${formattedReceivedDate}</td> <td class="py-2 px-4">${record['Positive Feedback'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${formattedReceivedDate}</td> 
+                    <td class="py-2 px-4">${record['Positive Feedback'] || 'N/A'}</td>
                     <td class="py-2 px-4">${record['Area of Improvement'] || 'N/A'}</td>
                     <td class="py-2 px-4">${record['NPS Rating'] || 'N/A'}</td>
                     <td class="py-2 px-4 editable-cell" data-field="Agent Handled" data-id="${record.id}">${record['Agent Handled'] || 'Unassigned'}</td>
@@ -1170,11 +1185,11 @@
                 button.addEventListener('click', (e) => shareNpsEvaluation(e.target.dataset.id));
             });
 
-            updateDeleteButtonState(); // Ensure delete button state is correct after rendering
+            updateDeleteButtonState(); 
         }
 
         /**
-         * Renders the horizontal bar graph for Agent Handled vs Average Overall Score.
+         * Renders the vertical bar graph for Agent Handled vs Average Overall Score.
          * @param {Array<Object>} records - The records to use for generating the graph.
          */
         function renderNpsBarGraph(records) {
@@ -1216,13 +1231,13 @@
                         label: 'Average Overall Score',
                         data: data,
                         backgroundColor: [
-                            'rgba(26, 115, 232, 0.6)', // icealion-blue, slightly transparent
-                            'rgba(245, 124, 0, 0.6)',  // icealion-orange, slightly transparent
-                            'rgba(76, 175, 80, 0.6)',  // green
-                            'rgba(255, 193, 7, 0.6)',  // yellow
-                            'rgba(156, 39, 176, 0.6)', // purple
-                            'rgba(3, 169, 244, 0.6)',  // light blue
-                            'rgba(255, 87, 34, 0.6)'   // deep orange
+                            'rgba(26, 115, 232, 0.8)', // icealion-blue, slightly transparent
+                            'rgba(245, 124, 0, 0.8)',  // icealion-orange, slightly transparent
+                            'rgba(76, 175, 80, 0.8)',  // green
+                            'rgba(255, 193, 7, 0.8)',  // yellow
+                            'rgba(156, 39, 176, 0.8)', // purple
+                            'rgba(3, 169, 244, 0.8)',  // light blue
+                            'rgba(255, 87, 34, 0.8)'   // deep orange
                         ],
                         borderColor: [
                             'rgba(26, 115, 232, 1)',
@@ -1237,12 +1252,12 @@
                     }]
                 },
                 options: {
-                    indexAxis: 'y', // Horizontal bar chart
+                    indexAxis: 'x', // Changed to 'x' for vertical bar chart
                     responsive: true,
-                    maintainAspectRatio: false, // Allows setting custom canvas size
+                    maintainAspectRatio: false, 
                     plugins: {
                         legend: {
-                            display: false, // No legend needed for single dataset
+                            display: false, 
                         },
                         title: {
                             display: true,
@@ -1254,7 +1269,7 @@
                         }
                     },
                     scales: {
-                        x: {
+                        y: { // y-axis for scores now
                             beginAtZero: true,
                             title: {
                                 display: true,
@@ -1262,10 +1277,15 @@
                             },
                             max: 100 // Scores are out of 100
                         },
-                        y: {
+                        x: { // x-axis for agents now
                             title: {
                                 display: true,
                                 text: 'Agent Handled'
+                            },
+                            ticks: {
+                                autoSkip: false, // Prevent labels from being skipped
+                                maxRotation: 90, // Rotate labels if they overlap
+                                minRotation: 90
                             }
                         }
                     }
@@ -1303,12 +1323,11 @@
                     false,
                     false,
                     true,
-                    () => resolve(false) // On close (OK button), resolve false
+                    () => resolve(false) 
                 );
-                // Custom buttons for confirmation
                 const messageBoxContentElement = document.getElementById('messageBoxContent');
                 const messageBoxCloseBtnElement = document.getElementById('messageBoxCloseBtn');
-                messageBoxCloseBtnElement.classList.add('hidden'); // Hide default OK
+                messageBoxCloseBtnElement.classList.add('hidden'); 
                 const confirmBtn = document.createElement('button');
                 confirmBtn.textContent = 'Delete';
                 confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
@@ -1317,7 +1336,7 @@
                 cancelBtn.textContent = 'Cancel';
                 cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
                 cancelBtn.onclick = () => { hideMessageBox(); resolve(false); };
-                messageBoxContentElement.innerHTML = ''; // Clear existing content
+                messageBoxContentElement.innerHTML = ''; 
                 messageBoxContentElement.appendChild(confirmBtn);
                 messageBoxContentElement.appendChild(cancelBtn);
             });
@@ -1333,9 +1352,8 @@
                 });
                 await batch.commit();
                 showMessageBox("Success", "Selected records deleted successfully!", false, false, true, () => {
-                    document.getElementById('selectAllNpsRecordsCheckbox').checked = false; // Deselect all
-                    updateDeleteButtonState(); // Update button state
-                    // onSnapshot listener will re-render the table
+                    document.getElementById('selectAllNpsRecordsCheckbox').checked = false; 
+                    updateDeleteButtonState(); 
                 });
             } catch (e) {
                 console.error("Error deleting NPS documents: ", e);
@@ -1464,7 +1482,7 @@
                 </tr>
             `;
 
-            renderNpsEvaluationQuestions(); // Renders the evaluation questions
+            renderNpsEvaluationQuestions(); 
 
             npsAutofailTypeSelect.value = '';
             npsAutofailDescriptionInput.value = '';
@@ -1858,6 +1876,7 @@
             const statusFilterSelect = document.getElementById('statusFilter');
             const applyFiltersBtn = document.getElementById('applyFiltersBtn');
             const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+            const downloadNpsRecordsBtn = document.getElementById('downloadNpsRecordsBtn'); // New button
 
             // Set up main navigation links
             document.querySelectorAll('.main-nav ul li a').forEach(link => {
@@ -1946,6 +1965,11 @@
                     currentNpsFilters.status = '';
                     applyNpsFiltersAndRender();
                 });
+            }
+
+            // Event listener for Download button
+            if (downloadNpsRecordsBtn) {
+                downloadNpsRecordsBtn.addEventListener('click', downloadNpsRecordsAsCsv);
             }
 
             // Listeners for Select All checkbox and Delete Selected button
