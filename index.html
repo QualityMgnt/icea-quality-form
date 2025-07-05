@@ -364,10 +364,6 @@
             transition: background-color 0.3s ease;
             margin-right: 0.25rem;
         }
-        #databaseTableContainer .delete-record-btn {
-            background-color: #ef4444;
-            color: white;
-        }
         #databaseTableContainer .delete-record-btn:hover {
             background-color: #dc2626;
         }
@@ -543,6 +539,11 @@
             <div>
                 <label for="duration" class="block top-field-label">Call Duration</label>
                 <input type="text" id="duration" name="Call Duration" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" placeholder="e.g., 30 mins">
+            </div>
+
+            <!-- NEW: Container for dynamically added custom fields -->
+            <div id="customFieldsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 col-span-full">
+                <!-- Custom fields will be rendered here -->
             </div>
         </div>
 
@@ -812,7 +813,8 @@
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
         const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
-        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations'); // NEW: Questions config doc
+        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
+        const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations'); // NEW: Custom fields config doc
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
         let allRecords = [];
@@ -823,14 +825,16 @@
             'reviewerNames': [],
             'autofailTypes': []
         };
-        let allRolesQuestions = {}; // NEW: This will store the dynamic question structure from Firestore
+        let allRolesQuestions = {};
+        let customFormFields = []; // NEW: Stores custom form field configurations
         let cerNameEmailsMap = {};
         let filterableRecords = [];
 
         let unsubscribeRecords = null;
         let unsubscribeWebhooks = null;
         let unsubscribeDropdowns = null;
-        let unsubscribeQuestions = null; // NEW: Unsubscribe for questions listener
+        let unsubscribeQuestions = null;
+        let unsubscribeCustomFields = null; // NEW: Unsubscribe for custom fields listener
 
         let currentUserRole = null;
         let currentUserId = null;
@@ -981,12 +985,10 @@
                 }
             }
 
-            // Get questions for the selected role, or a 'Default' set if available, otherwise empty
             const roleQuestions = allRolesQuestions[role] || allRolesQuestions['Default'] || {};
 
             if (Object.keys(roleQuestions).length === 0) {
                 console.warn(`No questions defined for role: ${role} or 'Default'. Displaying empty sections.`);
-                // Display a message in each section if no questions are found
                 for (const key in questionContainers) {
                     if (questionContainers[key]) {
                         questionContainers[key].innerHTML = `<div class="text-center text-gray-500 py-4">No questions configured for this section.</div>`;
@@ -1018,7 +1020,6 @@
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
                     else iconColorClass = 'icon-bg-yellow';
 
-                    // Determine selected attribute for default rating
                     const yesSelected = q.defaultRating === 'Yes' ? 'selected' : '';
                     const noSelected = q.defaultRating === 'No' ? 'selected' : '';
                     const naSelected = q.defaultRating === 'N/A' ? 'selected' : '';
@@ -1142,7 +1143,6 @@
                 if (cerRoleSelect && cerRoleSelect.value) {
                     renderQuestionsForRole(cerRoleSelect.value);
                 } else {
-                    // If no role selected, clear question containers
                     document.getElementById('cxQuestionsContainer').innerHTML = '';
                     document.getElementById('psQuestionsContainer').innerHTML = '';
                     document.getElementById('caQuestionsContainer').innerHTML = '';
@@ -1592,6 +1592,7 @@
             const reviewDate = document.getElementById('review-date').value;
             const duration = document.getElementById('duration').value.trim();
 
+            // Validate static fields
             if (!contactId || !clientName || !cerName || !cerRole || !callDateTime || !reviewerName || !reviewDate) {
                 showMessageBox("Validation Error", "Please fill in all required top-level fields.", true, false, true);
                 return;
@@ -1634,6 +1635,20 @@
                 'Evaluated By User ID': currentUserId,
                 'Evaluated By User Email': auth.currentUser ? auth.currentUser.email : 'anonymous'
             };
+
+            // Collect data from dynamically generated custom fields
+            for (const fieldConfig of customFormFields) {
+                const element = document.getElementById(fieldConfig.id);
+                if (element) {
+                    if (fieldConfig.required && !element.value.trim()) {
+                        showMessageBox("Validation Error", `Please fill in the required field: ${fieldConfig.label}`, true, false, true);
+                        element.style.borderColor = 'red'; // Highlight the missing field
+                        return;
+                    }
+                    formData[fieldConfig.label] = element.value.trim(); // Use label as key for storage
+                    element.style.borderColor = ''; // Reset border color
+                }
+            }
 
             const allRatingSelects = form.querySelectorAll('.rating-select');
             allRatingSelects.forEach(selectElement => {
@@ -1684,11 +1699,19 @@
 
             document.getElementById('duration').value = '';
 
+            // Reset dynamically added custom fields
+            for (const fieldConfig of customFormFields) {
+                const element = document.getElementById(fieldConfig.id);
+                if (element) {
+                    element.value = '';
+                    element.style.borderColor = ''; // Clear any validation highlighting
+                }
+            }
+
             const allRatingSelects = form.querySelectorAll('.rating-select');
             allRatingSelects.forEach(selectElement => {
-                // Reset to default rating from the loaded questions data
                 const questionDesc = selectElement.name.replace(' (Rating)', '');
-                let defaultRating = 'Yes'; // Fallback default
+                let defaultRating = 'Yes';
                 const roleQuestions = allRolesQuestions[currentRole] || allRolesQuestions['Default'];
                 if (roleQuestions) {
                     for (const section in roleQuestions) {
@@ -1855,7 +1878,7 @@
             });
         }
 
-        // NEW: Function to fetch and populate questions from Firestore
+        // Function to fetch and populate questions from Firestore
         async function fetchQuestionsData() {
             if (!db) {
                 console.warn("Firestore not ready for fetching questions.");
@@ -1874,12 +1897,10 @@
                     console.warn("Questions configuration document does not exist. Initializing with empty object locally.");
                     allRolesQuestions = {};
                 }
-                // Re-render questions if a role is already selected
                 const cerRoleSelect = document.getElementById('cer-role');
                 if (cerRoleSelect && cerRoleSelect.value) {
                     renderQuestionsForRole(cerRoleSelect.value);
                 } else {
-                    // If no role selected, clear question containers
                     document.getElementById('cxQuestionsContainer').innerHTML = '';
                     document.getElementById('psQuestionsContainer').innerHTML = '';
                     document.getElementById('caQuestionsContainer').innerHTML = '';
@@ -1889,6 +1910,32 @@
                 console.error("Error listening to questions data:", error);
             });
         }
+
+        // NEW: Function to fetch and render custom form fields from Firestore
+        async function fetchCustomFieldsData() {
+            if (!db) {
+                console.warn("Firestore not ready for fetching custom fields.");
+                return;
+            }
+
+            if (unsubscribeCustomFields) {
+                unsubscribeCustomFields();
+            }
+
+            unsubscribeCustomFields = onSnapshot(CUSTOM_FIELDS_CONFIG_DOC_REF, (docSnap) => {
+                if (docSnap.exists() && docSnap.data().fields) {
+                    customFormFields = docSnap.data().fields.sort((a, b) => a.order - b.order); // Sort by order
+                    console.log("Custom form fields data updated from Firestore:", customFormFields);
+                } else {
+                    console.warn("Custom form fields configuration document does not exist or is empty. Initializing with empty array locally.");
+                    customFormFields = [];
+                }
+                renderCustomFormFields(); // Render the custom fields in the form
+            }, (error) => {
+                console.error("Error listening to custom fields data:", error);
+            });
+        }
+
 
         // Function to populate all dropdowns in the form
         function populateAllDropdownsInForm() {
@@ -1939,6 +1986,60 @@
                 document.getElementById('caQuestionsContainer').innerHTML = '';
                 calculateScore();
             }
+        }
+
+        // NEW: Function to dynamically render custom form fields
+        function renderCustomFormFields() {
+            const container = document.getElementById('customFieldsContainer');
+            if (!container) return;
+
+            container.innerHTML = ''; // Clear existing fields
+
+            customFormFields.forEach(field => {
+                const fieldDiv = document.createElement('div');
+                fieldDiv.className = 'col-span-1'; // Tailwind for grid column
+
+                const labelElement = document.createElement('label');
+                labelElement.htmlFor = field.id;
+                labelElement.className = 'block top-field-label';
+                labelElement.textContent = field.label;
+                fieldDiv.appendChild(labelElement);
+
+                if (field.type === 'text') {
+                    const inputElement = document.createElement('input');
+                    inputElement.type = 'text';
+                    inputElement.id = field.id;
+                    inputElement.name = field.label; // Use label as name for form data collection
+                    inputElement.className = 'mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600';
+                    if (field.required) {
+                        inputElement.setAttribute('required', 'required');
+                    }
+                    fieldDiv.appendChild(inputElement);
+                } else if (field.type === 'select') {
+                    const selectElement = document.createElement('select');
+                    selectElement.id = field.id;
+                    selectElement.name = field.label; // Use label as name for form data collection
+                    selectElement.className = 'mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600';
+                    if (field.required) {
+                        selectElement.setAttribute('required', 'required');
+                    }
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = "";
+                    defaultOption.textContent = `-- Select ${field.label} --`;
+                    selectElement.appendChild(defaultOption);
+
+                    if (Array.isArray(field.options)) {
+                        field.options.forEach(optionText => {
+                            const optionElement = document.createElement('option');
+                            optionElement.value = optionText;
+                            optionElement.textContent = optionText;
+                            selectElement.appendChild(optionElement);
+                        });
+                    }
+                    fieldDiv.appendChild(selectElement);
+                }
+                container.appendChild(fieldDiv);
+            });
         }
 
 
@@ -2418,8 +2519,9 @@
                         loggedInUserName = user.email || "Quality Evaluation Team";
                     }
                     initializeAppDisplay();
-                    fetchDropdownOptionsData(); // Fetch general dropdowns
-                    fetchQuestionsData(); // NEW: Fetch dynamic questions
+                    fetchDropdownOptionsData();
+                    fetchQuestionsData();
+                    fetchCustomFieldsData(); // NEW: Fetch custom fields
                     fetchRecordsAndWebhooks();
                 } else {
                     console.log("Firebase Auth State Changed (index.html): No user logged in.");
@@ -2437,7 +2539,8 @@
                         console.log("Signed in anonymously (index.html):", currentUserId);
                         initializeAppDisplay();
                         fetchDropdownOptionsData();
-                        fetchQuestionsData(); // NEW: Fetch dynamic questions for anonymous
+                        fetchQuestionsData();
+                        fetchCustomFieldsData(); // NEW: Fetch custom fields for anonymous
                     } catch (anonError) {
                         console.error("Error signing in anonymously (index.html):", anonError);
                         currentUserId = null;
@@ -2511,7 +2614,8 @@
                     if (unsubscribeRecords) unsubscribeRecords();
                     if (unsubscribeWebhooks) unsubscribeWebhooks();
                     if (unsubscribeDropdowns) unsubscribeDropdowns();
-                    if (unsubscribeQuestions) unsubscribeQuestions(); // NEW
+                    if (unsubscribeQuestions) unsubscribeQuestions();
+                    if (unsubscribeCustomFields) unsubscribeCustomFields(); // NEW
                     await signOut(auth);
                 });
             }
