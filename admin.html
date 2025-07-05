@@ -204,7 +204,9 @@
 
         .form-group-admin input[type="text"],
         .form-group-admin input[type="email"], /* Added for email field */
-        .form-group-admin select {
+        .form-group-admin input[type="number"], /* Added for weightage */
+        .form-group-admin select,
+        .form-group-admin textarea { /* Added for question description */
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #cbd5e0;
@@ -215,7 +217,9 @@
 
         .form-group-admin input[type="text"]:focus,
         .form-group-admin input[type="email"]:focus,
-        .form-group-admin select:focus {
+        .form-group-admin input[type="number"]:focus,
+        .form-group-admin select:focus,
+        .form-group-admin textarea:focus {
             outline: none;
             border-color: #4299e1;
             box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
@@ -302,6 +306,13 @@
             padding: 4px 8px;
             font-size: 0.8em;
         }
+        /* Flex container for checkbox and label */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -355,15 +366,15 @@
     <div class="main-content" id="adminContent">
         <div class="admin-container">
             <div class="icealion-blue p-4 text-xl font-semibold text-center">
-                Admin Panel - Dropdown Management
+                Admin Panel - Configuration
             </div>
             <div class="p-6">
                 <p class="text-gray-700 mb-6">
-                    Use this section to manage the dynamic dropdown options that appear on the Quality Assessment Form.
+                    Use this section to manage the dynamic dropdown options and assessment questions.
                 </p>
 
                 <div class="admin-section mb-6">
-                    <h2>Select Dropdown Type</h2>
+                    <h2>Manage General Dropdowns</h2>
                     <div class="form-group-admin">
                         <label for="dropdownTypeSelect">Choose a dropdown to manage:</label>
                         <select id="dropdownTypeSelect" class="block w-full">
@@ -374,27 +385,84 @@
                             <option value="autofailTypes">Autofail Types</option>
                         </select>
                     </div>
+
+                    <div id="manageDropdownValuesSection" style="display: none;">
+                        <h3 id="currentDropdownTitle" class="text-lg font-semibold text-gray-800 mb-2">Manage Items</h3>
+                        <div class="form-group-admin">
+                            <label>Current Items:</label>
+                            <ul id="currentDropdownItems" class="current-items-list">
+                                <li>No items loaded. Select a dropdown type.</li>
+                            </ul>
+                        </div>
+
+                        <div class="form-group-admin mt-4">
+                            <label for="newDropdownValue">Add New Item:</label>
+                            <input type="text" id="newDropdownValue" placeholder="Enter new item name">
+                            <input type="email" id="newDropdownEmail" class="mt-2" placeholder="Enter email (for CER Names only)" style="display: none;">
+                        </div>
+
+                        <button class="admin-btn admin-btn-primary" id="addDropdownValueBtn">Add Item</button>
+                        <button class="admin-btn admin-btn-danger ml-2" id="removeDropdownValueBtn">Remove Selected Items</button>
+                        <div id="dropdownMessage" class="admin-message hidden"></div>
+                    </div>
                 </div>
 
-                <div class="admin-section" id="manageDropdownValuesSection" style="display: none;">
-                    <h2 id="currentDropdownTitle">Manage Items</h2>
-                    <div class="form-group-admin">
-                        <label>Current Items:</label>
-                        <ul id="currentDropdownItems" class="current-items-list">
-                            <li>No items loaded. Select a dropdown type.</li>
+                <div class="admin-section">
+                    <h2>Manage Questions</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-group-admin">
+                            <label for="questionRoleSelect">CER Role:</label>
+                            <select id="questionRoleSelect" class="block w-full">
+                                <option value="">-- Select CER Role --</option>
+                                </select>
+                        </div>
+                        <div class="form-group-admin">
+                            <label for="questionSectionSelect">Section Type:</label>
+                            <select id="questionSectionSelect" class="block w-full">
+                                <option value="">-- Select Section --</option>
+                                <option value="CUSTOMER EXPERIENCE">CUSTOMER EXPERIENCE</option>
+                                <option value="PROBLEM SOLVING SKILLS">PROBLEM SOLVING SKILLS</option>
+                                <option value="COMPLIANCE AND BUSINESS CRITICAL ACCURACY">COMPLIANCE AND BUSINESS CRITICAL ACCURACY</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="manageQuestionsSubsection" style="display: none;">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2 mt-4">Current Questions for Selected Role & Section:</h3>
+                        <ul id="currentQuestionsList" class="current-items-list">
+                            <li>Select a CER Role and Section to view questions.</li>
                         </ul>
-                    </div>
 
-                    <div class="form-group-admin mt-4">
-                        <label for="newDropdownValue">Add New Item:</label>
-                        <input type="text" id="newDropdownValue" placeholder="Enter new item name">
-                        <input type="email" id="newDropdownEmail" class="mt-2" placeholder="Enter email (for CER Names only)" style="display: none;">
-                    </div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2 mt-6">Add New Question:</h3>
+                        <div class="form-group-admin">
+                            <label for="newQuestionDescription">Description:</label>
+                            <textarea id="newQuestionDescription" rows="2" placeholder="Enter question description"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-group-admin">
+                                <label for="newQuestionWeightage">Weightage:</label>
+                                <input type="number" id="newQuestionWeightage" min="1" max="100" placeholder="e.g., 10">
+                            </div>
+                            <div class="form-group-admin">
+                                <label for="newQuestionDefaultRating">Default Rating:</label>
+                                <select id="newQuestionDefaultRating" class="block w-full">
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                    <option value="N/A">N/A</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="newQuestionAutofail" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                            <label for="newQuestionAutofail" class="font-medium text-gray-700">Autofail (if rated 'No')</label>
+                        </div>
 
-                    <button class="admin-btn admin-btn-primary" id="addDropdownValueBtn">Add Item</button>
-                    <button class="admin-btn admin-btn-danger ml-2" id="removeDropdownValueBtn">Remove Selected Items</button>
-                    <div id="dropdownMessage" class="admin-message hidden"></div>
+                        <button class="admin-btn admin-btn-primary" id="addQuestionBtn">Add Question</button>
+                        <button class="admin-btn admin-btn-danger ml-2" id="removeQuestionBtn">Remove Selected Questions</button>
+                        <div id="questionMessage" class="admin-message hidden"></div>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -402,17 +470,17 @@
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js"; // Added setDoc
+        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
-          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-          authDomain: "icea-lion-qa.firebaseapp.com",
-          projectId: "icea-lion-qa",
-          storageBucket: "icea-lion-qa.firebasestorage.app",
-          messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b667faf811", // Corrected appId for consistency
-          measurementId: "G-1RJJTT3QET"
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811", // Corrected appId for consistency
+            measurementId: "G-1RJJTT3QET"
         };
 
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
@@ -428,19 +496,21 @@
         const db = getFirestore(appInstance);
 
         // Define Firestore Paths
-        // This is the correct document reference based on your desired path
         const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
-        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`; // Path to user profiles for role check
+        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations'); // NEW
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
         // Global variables for admin page state
-        let currentDropdownData = { // Initialize with default structure
+        let currentDropdownData = {
             cerNames: [],
             cerRoles: [],
             reviewerNames: [],
             autofailTypes: []
         };
+        let allRolesQuestions = {}; // NEW: This will store the dynamic question structure
         let currentUserRole = null;
         let unsubscribeDropdownListener = null;
+        let unsubscribeQuestionsListener = null; // NEW: Listener for questions
 
         // --- Utility Functions ---
         const showMessage = (element, message, type) => {
@@ -466,10 +536,8 @@
             const mainNav = document.getElementById('mainNav');
             const adminContent = document.getElementById('adminContent');
 
-            // Wait for auth to be fully loaded and user role determined
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    // Fetch user role from Firestore profile
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                     try {
                         const userDocSnap = await getDoc(userProfileDocRef);
@@ -484,8 +552,7 @@
                         currentUserRole = 'Guest';
                     }
 
-                    // Removed the 'admin' role check here for page access as requested
-                    if (sessionStorage.getItem('loggedIn') === 'true') { // Now any logged in user can view admin.html
+                    if (sessionStorage.getItem('loggedIn') === 'true') {
                         loginPage.style.display = 'none';
                         mainNav.style.display = 'block';
                         adminContent.style.display = 'block';
@@ -496,44 +563,36 @@
                             }
                         });
                         setupDropdownsListener(); // Start listening to dropdown changes from Firestore
+                        setupQuestionsListener(); // NEW: Start listening to questions changes from Firestore
                     } else {
-                        // User logged in but session is inconsistent, or not allowed based on session
-                        sessionStorage.removeItem('loggedIn'); // Clear potentially stale session
+                        sessionStorage.removeItem('loggedIn');
                         loginPage.style.display = 'flex';
                         mainNav.style.display = 'none';
                         adminContent.style.display = 'none';
                         showLoginErrorMessage("Access Denied: Please log in to access this page.");
-                        // Sign out if not admin (this would be where you'd redirect if role-based restriction was desired)
-                        // For now, if 'loggedIn' session isn't true, just show login.
-                        if(user) signOut(auth); // Ensure user is signed out if session is inconsistent
+                        if(user) signOut(auth);
                     }
                 } else {
-                    // No Firebase user, show login page
                     loginPage.style.display = 'flex';
                     mainNav.style.display = 'none';
                     adminContent.style.display = 'none';
-                    sessionStorage.removeItem('loggedIn'); // Clear session
-                    // No anonymous sign-in here, as admin page generally requires explicit login
+                    sessionStorage.removeItem('loggedIn');
                 }
             });
         };
 
-
-        // Setup real-time listener for dropdown options document
+        // Setup real-time listener for general dropdown options document
         const setupDropdownsListener = () => {
             if (unsubscribeDropdownListener) {
-                unsubscribeDropdownListener(); // Unsubscribe previous listener if exists
+                unsubscribeDropdownListener();
             }
 
             unsubscribeDropdownListener = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
                 if (docSnap.exists()) {
-                    // Update the global currentDropdownData with the fetched data
                     currentDropdownData = docSnap.data();
-                    console.log("Dropdown data updated from Firestore:", currentDropdownData);
+                    console.log("General dropdown data updated from Firestore:", currentDropdownData);
                 } else {
-                    console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
-                    // If document doesn't exist, set local data to empty arrays.
-                    // This will allow `setDoc` to create it on the first add.
+                    console.warn("General dropdown options document does not exist. Initializing with empty arrays locally.");
                     currentDropdownData = {
                         cerNames: [],
                         cerRoles: [],
@@ -541,31 +600,55 @@
                         autofailTypes: []
                     };
                 }
-                // Call render with the current selected type, or an empty string if nothing selected yet
                 const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
                 if (dropdownTypeSelect) {
                     renderCurrentDropdownItems(dropdownTypeSelect.value);
+                    populateQuestionRoleSelect(currentDropdownData.cerRoles); // Populate CER Roles for question management
                 } else {
-                    renderCurrentDropdownItems(''); // Pass empty string if element not ready
+                    renderCurrentDropdownItems('');
                 }
             }, (error) => {
-                console.error("Error listening to dropdown data:", error);
-                showMessage(document.getElementById('dropdownMessage'), "Error loading dropdown data. Please check console.", 'error');
+                console.error("Error listening to general dropdown data:", error);
+                showMessage(document.getElementById('dropdownMessage'), "Error loading general dropdown data. Please check console.", 'error');
             });
         };
 
+        // NEW: Setup real-time listener for questions configuration document
+        const setupQuestionsListener = () => {
+            if (unsubscribeQuestionsListener) {
+                unsubscribeQuestionsListener();
+            }
 
-        // --- Helper to render items into the ul ---
+            unsubscribeQuestionsListener = onSnapshot(QUESTIONS_CONFIG_DOC_REF, (docSnap) => {
+                if (docSnap.exists()) {
+                    allRolesQuestions = docSnap.data();
+                    console.log("Questions data updated from Firestore:", allRolesQuestions);
+                } else {
+                    console.warn("Questions configuration document does not exist. Initializing with empty object locally.");
+                    allRolesQuestions = {}; // Default to empty object
+                }
+                const questionRoleSelect = document.getElementById('questionRoleSelect');
+                const questionSectionSelect = document.getElementById('questionSectionSelect');
+                if (questionRoleSelect && questionSectionSelect) {
+                    renderCurrentQuestions(questionRoleSelect.value, questionSectionSelect.value);
+                } else {
+                    renderCurrentQuestions('', '');
+                }
+            }, (error) => {
+                console.error("Error listening to questions data:", error);
+                showMessage(document.getElementById('questionMessage'), "Error loading questions data. Please check console.", 'error');
+            });
+        };
+
+        // --- Helper to render general dropdown items ---
         function renderCurrentDropdownItems(typeToRender) {
             const currentDropdownItemsList = document.getElementById('currentDropdownItems');
             if (!currentDropdownItemsList) {
-                console.warn("UI elements for dropdown items not found during renderCurrentDropdownItems. This might happen before DOM is fully ready or if page is not admin.html.");
-                return; // Exit if elements aren't ready
+                return;
             }
 
-            currentDropdownItemsList.innerHTML = ''; // Clear existing list
+            currentDropdownItemsList.innerHTML = '';
 
-            // Safely access the array, defaulting to an empty array if undefined or the type is invalid
             const items = currentDropdownData[typeToRender] || [];
 
             if (items.length === 0) {
@@ -576,15 +659,15 @@
             items.forEach(item => {
                 const li = document.createElement('li');
                 let displayText = item;
-                let valueToStore = item; // Default for non-CER names
+                let valueToStore = item;
 
                 if (typeToRender === 'cerNames' && typeof item === 'object' && item.name) {
                     displayText = `${item.name} (${item.email || 'No Email'})`;
-                    valueToStore = { name: item.name, email: item.email || '' }; // Ensure consistent object structure for removal
+                    valueToStore = { name: item.name, email: item.email || '' };
                 }
 
                 li.innerHTML = `<span class="item-text">${displayText}</span>`;
-                li.dataset.value = JSON.stringify(valueToStore); // Store the actual value for removal
+                li.dataset.value = JSON.stringify(valueToStore);
 
                 li.addEventListener('click', () => {
                     li.classList.toggle('selected');
@@ -593,10 +676,67 @@
             });
         }
 
+        // NEW: Function to populate CER Roles dropdown in Question Management section
+        function populateQuestionRoleSelect(cerRoles) {
+            const questionRoleSelect = document.getElementById('questionRoleSelect');
+            const currentSelectedValue = questionRoleSelect.value;
+            questionRoleSelect.innerHTML = '<option value="">-- Select CER Role --</option>';
+            if (Array.isArray(cerRoles)) {
+                cerRoles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = role;
+                    questionRoleSelect.appendChild(option);
+                });
+            }
+            if (Array.from(questionRoleSelect.options).some(opt => opt.value === currentSelectedValue)) {
+                questionRoleSelect.value = currentSelectedValue;
+            } else {
+                questionRoleSelect.value = '';
+            }
+        }
+
+        // NEW: Function to render questions for selected Role and Section
+        function renderCurrentQuestions(role, section) {
+            const currentQuestionsList = document.getElementById('currentQuestionsList');
+            const manageQuestionsSubsection = document.getElementById('manageQuestionsSubsection');
+
+            if (!currentQuestionsList) return; // Defensive check
+
+            currentQuestionsList.innerHTML = ''; // Clear previous list
+
+            if (!role || !section) {
+                currentQuestionsList.innerHTML = '<li>Select a CER Role and Section to view questions.</li>';
+                manageQuestionsSubsection.style.display = 'none';
+                return;
+            }
+
+            manageQuestionsSubsection.style.display = 'block';
+            const questions = (allRolesQuestions[role] && allRolesQuestions[role][section]) || [];
+
+            if (questions.length === 0) {
+                currentQuestionsList.innerHTML = '<li>No questions configured for this Role and Section.</li>';
+                return;
+            }
+
+            questions.forEach(q => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="item-text">
+                        ${q.desc} (W: ${q.weightage}, Def: ${q.defaultRating}, Autofail: ${q.autofail ? 'Yes' : 'No'})
+                    </span>
+                `;
+                li.dataset.questionData = JSON.stringify(q); // Store full question object
+                li.addEventListener('click', () => {
+                    li.classList.toggle('selected');
+                });
+                currentQuestionsList.appendChild(li);
+            });
+        }
+
 
         // --- DOMContentLoaded Event Listener ---
         document.addEventListener('DOMContentLoaded', function() {
-            // Get UI elements (within DOMContentLoaded to ensure they exist)
             const loginButton = document.getElementById('loginButton');
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
@@ -605,12 +745,25 @@
             const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
             const manageDropdownValuesSection = document.getElementById('manageDropdownValuesSection');
             const currentDropdownTitle = document.getElementById('currentDropdownTitle');
-            const currentDropdownItems = document.getElementById('currentDropdownItems'); // Corrected use
+            const currentDropdownItems = document.getElementById('currentDropdownItems');
             const newDropdownValueInput = document.getElementById('newDropdownValue');
             const newDropdownEmailInput = document.getElementById('newDropdownEmail');
             const addDropdownValueBtn = document.getElementById('addDropdownValueBtn');
             const removeDropdownValueBtn = document.getElementById('removeDropdownValueBtn');
             const dropdownMessage = document.getElementById('dropdownMessage');
+
+            // NEW Elements for Question Management
+            const questionRoleSelect = document.getElementById('questionRoleSelect');
+            const questionSectionSelect = document.getElementById('questionSectionSelect');
+            const manageQuestionsSubsection = document.getElementById('manageQuestionsSubsection');
+            const currentQuestionsList = document.getElementById('currentQuestionsList');
+            const newQuestionDescriptionInput = document.getElementById('newQuestionDescription');
+            const newQuestionWeightageInput = document.getElementById('newQuestionWeightage');
+            const newQuestionAutofailCheckbox = document.getElementById('newQuestionAutofail');
+            const newQuestionDefaultRatingSelect = document.getElementById('newQuestionDefaultRating');
+            const addQuestionBtn = document.getElementById('addQuestionBtn');
+            const removeQuestionBtn = document.getElementById('removeQuestionBtn');
+            const questionMessage = document.getElementById('questionMessage');
 
             // Initialize the page view based on login state
             initializeAdminPage();
@@ -619,16 +772,15 @@
             // --- Login Button Listener ---
             if (loginButton) {
                 loginButton.addEventListener('click', async function(event) {
-                    event.preventDefault(); // Prevent default form submission
+                    event.preventDefault();
                     hideLoginErrorMessage();
 
                     const enteredUsername = usernameInput.value;
                     const enteredPassword = passwordInput.value;
 
                     try {
-                        const userCredential = await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
-                        sessionStorage.setItem('loggedIn', 'true'); // Set session flag
-                        // onAuthStateChanged will handle page re-initialization and redirection
+                        await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
+                        sessionStorage.setItem('loggedIn', 'true');
                     } catch (error) {
                         console.error("Firebase Login Error:", error);
                         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -648,34 +800,33 @@
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async function() {
                     sessionStorage.removeItem('loggedIn');
-                    if (unsubscribeDropdownListener) unsubscribeDropdownListener(); // Unsubscribe Firestore listener
+                    if (unsubscribeDropdownListener) unsubscribeDropdownListener();
+                    if (unsubscribeQuestionsListener) unsubscribeQuestionsListener(); // NEW
                     await signOut(auth);
-                    // No need for window.location.reload() explicitly here; onAuthStateChanged will redirect.
                 });
             }
 
-            // --- Dropdown Management Event Listeners ---
-            if (dropdownTypeSelect) { // Ensure element exists before adding listener
+            // --- General Dropdown Management Event Listeners ---
+            if (dropdownTypeSelect) {
                 dropdownTypeSelect.addEventListener('change', function() {
-                    const selectedType = this.value; // Get the selected type
-                    dropdownMessage.classList.add('hidden'); // Clear messages
+                    const selectedType = this.value;
+                    dropdownMessage.classList.add('hidden');
 
-                    if (selectedType) { // Check if a valid type is selected
+                    if (selectedType) {
                         manageDropdownValuesSection.style.display = 'block';
                         currentDropdownTitle.textContent = `Manage ${this.options[this.selectedIndex].text}`;
 
-                        // Show/hide email input based on selected dropdown
-                        if (selectedType === 'cerNames') { // Use selectedType here
+                        if (selectedType === 'cerNames') {
                             newDropdownEmailInput.style.display = 'block';
                             newDropdownEmailInput.setAttribute('required', 'required');
                             newDropdownValueInput.placeholder = "Enter CER Name";
                         } else {
                             newDropdownEmailInput.style.display = 'none';
                             newDropdownEmailInput.removeAttribute('required');
-                            newDropdownEmailInput.value = ''; // Clear email input
+                            newDropdownEmailInput.value = '';
                             newDropdownValueInput.placeholder = "Enter new value";
                         }
-                        renderCurrentDropdownItems(selectedType); // Pass the selectedType to the render function
+                        renderCurrentDropdownItems(selectedType);
                     } else {
                         manageDropdownValuesSection.style.display = 'none';
                         currentDropdownItems.innerHTML = '<li>No items loaded. Select a dropdown type.</li>';
@@ -683,11 +834,10 @@
                 });
             }
 
-
-            if (addDropdownValueBtn) { // Ensure element exists before adding listener
+            if (addDropdownValueBtn) {
                 addDropdownValueBtn.addEventListener('click', async function() {
                     const newItemValue = newDropdownValueInput.value.trim();
-                    const selectedType = dropdownTypeSelect.value; // Get selected type here
+                    const selectedType = dropdownTypeSelect.value;
                     let itemToAdd;
 
                     if (!selectedType) {
@@ -699,7 +849,6 @@
                         return;
                     }
 
-                    // For 'cerNames', ensure email is provided and construct object
                     if (selectedType === 'cerNames') {
                         const newEmailValue = newDropdownEmailInput.value.trim();
                         if (!newEmailValue) {
@@ -707,7 +856,6 @@
                             return;
                         }
                         itemToAdd = { name: newItemValue, email: newEmailValue };
-                        // Check for duplicate CER Name (case-sensitive as stored)
                         const isDuplicate = currentDropdownData.cerNames.some(cer => typeof cer === 'object' && cer.name === newItemValue);
                         if (isDuplicate) {
                             showMessage(dropdownMessage, 'CER Name already exists.', 'error');
@@ -715,7 +863,6 @@
                         }
                     } else {
                         itemToAdd = newItemValue;
-                        // Check for duplicate string entry
                         const currentItemsArray = currentDropdownData[selectedType] || [];
                         const isDuplicate = currentItemsArray.includes(newItemValue);
                         if (isDuplicate) {
@@ -725,24 +872,20 @@
                     }
 
                     try {
-                        // Check if the general_options document exists. If not, set it first with empty arrays.
                         const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
                         if (!docSnap.exists()) {
-                            // Initialize with empty arrays for all types
                             const initialData = {
                                 cerNames: [],
                                 cerRoles: [],
                                 reviewerNames: [],
                                 autofailTypes: []
                             };
-                            // Add the first item directly to the initial data for the correct type
                             if (initialData[selectedType]) {
                                 initialData[selectedType].push(itemToAdd);
                             }
                             await setDoc(DROPDOWN_DATA_DOC_REF, initialData);
                             console.log("Created initial general_options document with first item.");
                         } else {
-                            // Document exists, proceed with updating the document
                             const updateData = {
                                 [selectedType]: arrayUnion(itemToAdd)
                             };
@@ -751,7 +894,7 @@
 
                         showMessage(dropdownMessage, 'Item added successfully!', 'success');
                         newDropdownValueInput.value = '';
-                        newDropdownEmailInput.value = ''; // Clear email input
+                        newDropdownEmailInput.value = '';
                     } catch (error) {
                         console.error("Error adding dropdown item:", error);
                         showMessage(dropdownMessage, `Failed to add item: ${error.message}`, 'error');
@@ -759,11 +902,10 @@
                 });
             }
 
-
-            if (removeDropdownValueBtn) { // Ensure element exists before adding listener
+            if (removeDropdownValueBtn) {
                 removeDropdownValueBtn.addEventListener('click', async function() {
                     const selectedListItems = Array.from(currentDropdownItems.children).filter(li => li.classList.contains('selected'));
-                    const selectedType = dropdownTypeSelect.value; // Get selected type here
+                    const selectedType = dropdownTypeSelect.value;
 
                     if (!selectedType) {
                         showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
@@ -779,16 +921,13 @@
                     }
 
                     try {
-                        // Parse the stored data-value to get the actual item (string or object)
                         const itemsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.value));
 
-                        // Use arrayRemove to remove items from the specific array field in Firestore
                         const updateData = {
                             [selectedType]: arrayRemove(...itemsToRemove)
                         };
                         await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
                         showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
-                        // List will auto-refresh due to onSnapshot listener
                     } catch (error) {
                         console.error("Error removing dropdown item(s):", error);
                         showMessage(dropdownMessage, `Failed to remove item(s): ${error.message}`, 'error');
@@ -796,16 +935,136 @@
                 });
             }
 
+            // --- NEW: Question Management Event Listeners ---
+            if (questionRoleSelect && questionSectionSelect) {
+                // Listener for role and section changes
+                const updateQuestionList = () => {
+                    const selectedRole = questionRoleSelect.value;
+                    const selectedSection = questionSectionSelect.value;
+                    renderCurrentQuestions(selectedRole, selectedSection);
+                };
+                questionRoleSelect.addEventListener('change', updateQuestionList);
+                questionSectionSelect.addEventListener('change', updateQuestionList);
+            }
+
+            if (addQuestionBtn) {
+                addQuestionBtn.addEventListener('click', async () => {
+                    const role = questionRoleSelect.value;
+                    const section = questionSectionSelect.value;
+                    const desc = newQuestionDescriptionInput.value.trim();
+                    const weightage = parseInt(newQuestionWeightageInput.value, 10);
+                    const autofail = newQuestionAutofailCheckbox.checked;
+                    const defaultRating = newQuestionDefaultRatingSelect.value;
+
+                    if (!role || !section) {
+                        showMessage(questionMessage, 'Please select a CER Role and Section.', 'error');
+                        return;
+                    }
+                    if (!desc) {
+                        showMessage(questionMessage, 'Question description cannot be empty.', 'error');
+                        return;
+                    }
+                    if (isNaN(weightage) || weightage <= 0 || weightage > 100) {
+                        showMessage(questionMessage, 'Weightage must be a number between 1 and 100.', 'error');
+                        return;
+                    }
+
+                    const newQuestion = {
+                        desc: desc,
+                        weightage: weightage,
+                        autofail: autofail,
+                        defaultRating: defaultRating,
+                        hasNA: true // All questions will support N/A
+                    };
+
+                    try {
+                        const docSnap = await getDoc(QUESTIONS_CONFIG_DOC_REF);
+                        let updatedQuestions = docSnap.exists() ? docSnap.data() : {};
+
+                        // Ensure the role and section paths exist
+                        if (!updatedQuestions[role]) {
+                            updatedQuestions[role] = {};
+                        }
+                        if (!updatedQuestions[role][section]) {
+                            updatedQuestions[role][section] = [];
+                        }
+
+                        // Check for duplicate question description within the section
+                        const isDuplicate = updatedQuestions[role][section].some(q => q.desc === newQuestion.desc);
+                        if (isDuplicate) {
+                            showMessage(questionMessage, 'A question with this description already exists in this section.', 'error');
+                            return;
+                        }
+
+                        updatedQuestions[role][section].push(newQuestion);
+
+                        await setDoc(QUESTIONS_CONFIG_DOC_REF, updatedQuestions); // Use setDoc to overwrite with the updated object
+                        showMessage(questionMessage, 'Question added successfully!', 'success');
+                        newQuestionDescriptionInput.value = '';
+                        newQuestionWeightageInput.value = '';
+                        newQuestionAutofailCheckbox.checked = false;
+                        newQuestionDefaultRatingSelect.value = 'Yes';
+                    } catch (error) {
+                        console.error("Error adding question:", error);
+                        showMessage(questionMessage, `Failed to add question: ${error.message}`, 'error');
+                    }
+                });
+            }
+
+            if (removeQuestionBtn) {
+                removeQuestionBtn.addEventListener('click', async () => {
+                    const role = questionRoleSelect.value;
+                    const section = questionSectionSelect.value;
+                    const selectedListItems = Array.from(currentQuestionsList.children).filter(li => li.classList.contains('selected'));
+
+                    if (!role || !section) {
+                        showMessage(questionMessage, 'Please select a CER Role and Section.', 'error');
+                        return;
+                    }
+                    if (selectedListItems.length === 0) {
+                        showMessage(questionMessage, 'Please select at least one question to remove.', 'error');
+                        return;
+                    }
+
+                    if (!confirm(`Are you sure you want to remove these ${selectedListItems.length} question(s)?`)) {
+                        return;
+                    }
+
+                    try {
+                        const questionsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.questionData));
+
+                        const docSnap = await getDoc(QUESTIONS_CONFIG_DOC_REF);
+                        let updatedQuestions = docSnap.exists() ? docSnap.data() : {};
+
+                        if (!updatedQuestions[role] || !updatedQuestions[role][section]) {
+                            showMessage(questionMessage, 'No questions found for the selected Role and Section.', 'error');
+                            return;
+                        }
+
+                        // Filter out the questions to remove
+                        updatedQuestions[role][section] = updatedQuestions[role][section].filter(existingQ =>
+                            !questionsToRemove.some(qToRemove =>
+                                qToRemove.desc === existingQ.desc && qToRemove.weightage === existingQ.weightage
+                            )
+                        );
+
+                        await setDoc(QUESTIONS_CONFIG_DOC_REF, updatedQuestions); // Overwrite with the filtered object
+                        showMessage(questionMessage, 'Question(s) removed successfully!', 'success');
+                    } catch (error) {
+                        console.error("Error removing question(s):", error);
+                        showMessage(questionMessage, `Failed to remove question(s): ${error.message}`, 'error');
+                    }
+                });
+            }
+
 
             // --- Navigation Link Event Listeners (for other pages) ---
-            // These should likely be active even if not logged in to allow navigation back to login-protected index.html
             document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
             document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
             document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
             document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
             document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
             document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
-            // The admin tab itself doesn't need a redirect listener here as it's the current page.
         });
     </script>
 </body>
