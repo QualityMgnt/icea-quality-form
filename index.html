@@ -805,15 +805,16 @@
         const db = getFirestore(appInstance);
 
         // Define Firebase Collection Paths (using const as they don't change)
-        // Keep this path for evaluation records as it uses the standard structure
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
-        // --- MODIFIED FOR YOUR CURRENT DROPDOWN STRUCTURE ---
-        // This is the path to the 'general_options' COLLECTION that contains the auto-ID document
-        const DROPDOWN_OPTIONS_COLLECTION_PATH_FOR_QUERY = 'data/dropdown_options/general_options';
-        // --- END MODIFICATION ---
+        // >>> CORRECTION HERE <<<
+        // Define the correct Document Reference for dropdown options
+        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
+        // REMOVE/COMMENT OUT THIS LINE if it exists from previous modifications:
+        // const DROPDOWN_OPTIONS_COLLECTION_PATH_FOR_QUERY = 'data/dropdown_options/general_options';
+        // >>> END CORRECTION <<<
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
         let allRecords = [];
@@ -2085,20 +2086,18 @@
                 console.warn("Firestore not ready for fetching dropdowns.");
                 return;
             }
-            // MODIFIED: Use the new collection path for the dropdowns
-            const dropdownsCollectionRef = collection(db, DROPDOWN_OPTIONS_COLLECTION_PATH_FOR_QUERY);
+            // >>> CORRECTION HERE <<<
+            // Define the correct Document Reference for dropdown options
+            const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
+            // >>> END CORRECTION <<<
 
             if (unsubscribeDropdowns) {
                 unsubscribeDropdowns(); // Unsubscribe previous listener if exists
             }
 
-            // Using onSnapshot to query the collection and listen for changes
-            unsubscribeDropdowns = onSnapshot(dropdownsCollectionRef, (querySnapshot) => {
-                if (!querySnapshot.empty) {
-                    // *** THIS IS THE CRITICAL PART FOR AUTO-ID DOCUMENTS ***
-                    // It assumes your dropdown data is in the FIRST document found in the collection.
-                    // This is brittle if multiple documents appear in 'general_options' collection.
-                    const docSnap = querySnapshot.docs[0];
+            // Use onSnapshot directly on the document reference
+            unsubscribeDropdowns = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
+                if (docSnap.exists()) {
                     dropdownOptions = docSnap.data();
                     console.log("Dropdown data updated from Firestore:", dropdownOptions);
 
@@ -2115,7 +2114,7 @@
                         });
                     }
                 } else {
-                    console.warn("Dropdown options collection is empty or document does not exist. Initializing with empty arrays locally.");
+                    console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
                     dropdownOptions = {
                         cerNames: [],
                         cerRoles: [],
@@ -2189,7 +2188,7 @@
                 document.getElementById('cxQuestionsContainer').innerHTML = '';
                 document.getElementById('psQuestionsContainer').innerHTML = '';
                 document.getElementById('caQuestionsContainer').innerHTML = '';
-                calculateScore(); // Reset scores to 0
+                calculateScore(); // Recalculate score if questions are cleared
             }
         }
 
@@ -2560,7 +2559,7 @@
                 const contactId = record['Contact ID'] || 'N/A';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
                 const overallScore = record['Overall Score'] || 'N/A';
-                const cerEmail = record['CER Email'] || cerNameEmailsMap[cerName] || '';
+                const cerEmail = cerNameEmailsMap[cerName] || '';
 
                 const emailSubject = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
                 const emailBody = `Dear ${cerName},\n\n` +
@@ -2916,7 +2915,13 @@
             // This happens after dropdowns are populated by fetchDropdownOptionsData
             const initialCerRole = cerRoleSelect.value;
             if (initialCerRole) {
-                renderQuestionsForRole(initialCerRole);
+                renderQuestionsForRole(initialCerRole);  
+            } else {
+                // If no role is selected initially, clear question sections and reset score.
+                document.getElementById('cxQuestionsContainer').innerHTML = '';
+                document.getElementById('psQuestionsContainer').innerHTML = '';
+                document.getElementById('caQuestionsContainer').innerHTML = '';
+                calculateScore(); // Recalculate score if questions are cleared
             }
         });
     </script>
