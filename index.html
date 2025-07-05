@@ -477,8 +477,8 @@
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="#" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
                 <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>  
-                <li><a href="nps.html" id="npsTab"><i class="fas fa-comment-alt"></i> NPS</a></li>  
+                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li><a href="nps.html" id="npsTab"><i class="fas fa-comment-alt"></i> NPS</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
@@ -574,6 +574,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="cxQuestionsContainer">
+                        <!-- Questions will be dynamically loaded here -->
                     </div>
                 </div>
             </div>
@@ -591,6 +592,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="psQuestionsContainer">
+                        <!-- Questions will be dynamically loaded here -->
                     </div>
                 </div>
             </div>
@@ -608,6 +610,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="caQuestionsContainer">
+                        <!-- Questions will be dynamically loaded here -->
                     </div>
                 </div>
             </div>
@@ -713,7 +716,7 @@
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Webhook Management</h2>
                 <p class="text-sm text-gray-600 mb-4">
                     Add webhook URLs below. When new records are created, data will be sent to these webhooks.
-                    **Note:** Sending data to external webhooks will depend on their server's CORS policy.
+                    <b>Note:</b> Sending data to external webhooks will depend on their server's CORS policy.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
                     <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)"
@@ -788,7 +791,7 @@
           projectId: "icea-lion-qa",
           storageBucket: "icea-lion-qa.firebasestorage.app",
           messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b667faf811",
+          appId: "1:820082472004:web:8caddf941e1b5b667faf811", // Consistent App ID
           measurementId: "G-1RJJTT3QET"
         };
 
@@ -808,13 +811,8 @@
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
-
-        // >>> CORRECTION HERE <<<
-        // Define the correct Document Reference for dropdown options
         const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
-        // REMOVE/COMMENT OUT THIS LINE if it exists from previous modifications:
-        // const DROPDOWN_OPTIONS_COLLECTION_PATH_FOR_QUERY = 'data/dropdown_options/general_options';
-        // >>> END CORRECTION <<<
+        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations'); // NEW: Questions config doc
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
         let allRecords = [];
@@ -825,300 +823,47 @@
             'reviewerNames': [],
             'autofailTypes': []
         };
+        let allRolesQuestions = {}; // NEW: This will store the dynamic question structure from Firestore
         let cerNameEmailsMap = {};
-        let filterableRecords = []; // Added for share page search functionality
+        let filterableRecords = [];
 
-        // >>> UPDATED allRolesQuestions OBJECT with all hasNA set to true for N/A option availability <<<
-        const allRolesQuestions = {
-            "CER-Individual": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the agent greet the client warmly and professionally?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Was the agent's tone and language positive and empathetic?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Did the agent show active listening and acknowledge client's feelings?", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Was the agent respectful and courteous throughout the interaction?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Did the agent clearly understand the client's need/query?", weightage: 10, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the agent effectively identify the core issue?", weightage: 15, autofail: false, hasNA: true },
-                    { desc: "Did the agent provide accurate and complete information?", weightage: 15, autofail: false, hasNA: true },
-                    { desc: "Did the agent offer relevant solutions or next steps?", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Did the agent demonstrate confidence in resolving the query?", weightage: 5, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the agent adhere to all regulatory and internal policies?", weightage: 10, autofail: true, hasNA: true },
-                    { desc: "Was all information provided accurate and free of errors?", weightage: 10, autofail: true, hasNA: true },
-                    { desc: "Did the agent correctly capture all necessary client data?", weightage: 5, autofail: false, hasNA: true }
-                ]
-            },
-            "CER-Corporate": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Was the corporate client greeted appropriately and professionally?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the agent use formal and clear communication?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the agent understand the complex corporate requirements?", weightage: 12, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the agent efficiently diagnose corporate account issues?", weightage: 18, autofail: false, hasNA: true },
-                    { desc: "Provided precise and tailored solutions for corporate needs?", weightage: 18, autofail: false, hasNA: true },
-                    { desc: "Managed escalations effectively for corporate clients?", weightage: 8, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Strict adherence to corporate policy and compliance guidelines?", weightage: 12, autofail: true, hasNA: true },
-                    { desc: "Accuracy of data entry for corporate accounts?", weightage: 12, autofail: true, hasNA: true }
-                ]
-            },
-            "Team Lead": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Team Lead customer interaction quality", weightage: 5, autofail: false, hasNA: true },
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Team Lead problem resolution effectiveness", weightage: 10, autofail: false, hasNA: true },
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Team Lead compliance adherence", weightage: 10, autofail: false, hasNA: true },
-                ]
-            },
-            "Outbound Sales": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the CER provide proper branding and personalize the call?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER demonstrate confidence and business etiquette althroughout the call session?", weightage: 8, autofail: false, hasNA: true },
-                    { desc: "Did the CER express a sincere acknowledgement/empathy statement when applicable?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER convey his/her thoughts in an understandable clear and concise manner?", weightage: 8, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to build rapport?", weightage: 8, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the CER ask effective probing questions to ensure accurate diagnosis?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Was the CER's focus solely on the Customer?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER demonstrate strong Product Knowledge?", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Did the CER document all action items & follow-up? (Autofail)", weightage: 6, autofail: true, hasNA: true },
-                    { desc: "Was the CER able to sell to the customer?", weightage: 10, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the CER log call information correctly? (Data capture)", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Did the CER adhere to Company Policies & Procedures?(Autofail)", weightage: 5, autofail: true, hasNA: true },
-                    { desc: "Did the CER Comply with industry and legal requirements?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to identify and opportunity for Upselling & Cross-Selling?", weightage: 5, autofail: false, hasNA: true }
-                ]
-            },
-            "Onboarding outbound": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the CER provide proper branding and personalize the call?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER demonstrate confidence and business etiquette althroughout the call session?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER express a sincere acknowledgement/empathy statement when applicable?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER convey his/her thoughts in an understandable clear and concise manner?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to build rapport?", weightage: 8, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the CER ask effective probing questions to ensure accurate diagnosis?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Did the CER do proper research and check all related tools required?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER demonstrate strong Product and Process Knowledge?", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to meet the call objective? (FCR)", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Did the CER document all action items & follow-up?", weightage: 8, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the CER log call information correctly?", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Did the CER adhere to Company Policies & Procedures?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Did the CER Comply with industry and legal requirements?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to identify and opportunity for Upselling & Cross-Selling?", weightage: 7, autofail: false, hasNA: true }
-                ]
-            },
-            "Social Media": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the CER provide proper branding and personalize the Interaction?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Did the CER demonstrate confidence and business etiquette althroughout the interaction session?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER express a sincere acknowledgement/empathy statement when applicable?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER convey his/her thoughts in an understandable clear and concise manner?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER keep the customer informed?(TAT, dead air)", weightage: 5, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the CER ask effective probing questions to ensure accurate diagnosis?", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the CER do proper research and check all related tools required?(Due diligence)", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER show ownership and respond within the set turnaround time? (10 mins)", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to position all possible options to the customer?(FCR)", weightage: 13, autofail: false, hasNA: true },
-                    { desc: "Did the CER avoid risk behavior? (interaction avoidance/ZTP)", weightage: 8, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the CER log ticket information correctly?(Data capture)", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER properly authenticate the customer?(KYC)", weightage: 8, autofail: false, hasNA: true },
-                    { desc: "Did the CER provide complete and accurate information?(Customer education)", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Did the CER identify an opportunity to upsell/cross sell a product?", weightage: 5, autofail: false, hasNA: true }
-                ]
-            },
-            "Live Chat": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the CER provide proper branding and personalize the conversation?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Did the CER demonstrate confidence and business etiquette althroughout the conversation session?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER express a sincere acknowledgement/empathy statement when applicable?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER convey his/her thoughts in an understandable clear and concise manner?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER keep the customer informed?(Dead Air-Average Response Time 1 min, TAT, )", weightage: 5, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the CER ask effective probing questions to ensure accurate diagnosis?", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the CER do proper research and check all related tools required?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER show ownership and respond within the set turnaround time? (10 Secs)", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to position all possible options to the customer?(FCR)", weightage: 13, autofail: false, hasNA: true },
-                    { desc: "Did the CER avoid risk behavior? (conversation avoidance/ZTP)", weightage: 8, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the CER log ticket information correctly?(Data Capture)", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER properly authenticate the customer?(KYC)", weightage: 8, autofail: false, hasNA: true },
-                    { desc: "Did the CER provide complete and accurate information?(Customer education)", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the CER identify an opportunity to upsell/cross sell a product?", weightage: 5, autofail: false, hasNA: true }
-                ]
-            },
-            "Inbound": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the CER provide proper branding and personalize the call?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER demonstrate confidence and business etiquette althroughout the call session?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER express a sincere acknowledgement/empathy statement when applicable?", weightage: 8, autofail: false, hasNA: true },
-                    { desc: "Did the CER convey his/her thoughts in an understandable clear and concise manner?", weightage: 4, autofail: false, hasNA: true },
-                    { desc: "Did the CER keep the caller informed?(Dead air/Hold/TAT)", weightage: 6, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the CER ask effective probing questions to ensure accurate diagnosis?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER do proper research and check all related tools required? (fact finding)", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER show ownership and actively listen?", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to position all possible options to the customer?(FCR)", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Did the CER avoid risk behavior? (Call avoidance/ZTP)", weightage: 7, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the CER log call information correctly?(Data capture)", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Did the CER properly authenticate the caller?(KYC)", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER provide complete and accurate information? (Customer education)", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the CER identify an opportunity to upsell/cross sell a product?", weightage: 5, autofail: false, hasNA: true }
-                ]
-            },
-            "Email": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the CER provide proper branding and personalize the email?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Did the CER demonstrate confidence and business etiquette althroughout the interaction?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER express a sincere acknowledgement/empathy statement when applicable?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER convey his/her thoughts in an understandable clear and concise manner?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER keep the customer informed?", weightage: 5, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the CER call to ask effective probing questions to ensure accurate diagnosis?", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the CER do proper research and check all related tools required?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER show ownership and respond within the set turnaround time?(8 hours)", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to position all possible options to the customer?", weightage: 13, autofail: false, hasNA: true },
-                    { desc: "Did the CER avoid risk behavior? (Call avoidance/ZTP)", weightage: 8, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the CER log ticket information correctly?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER properly authenticate the writer?", weightage: 8, autofail: false, hasNA: true },
-                    { desc: "Did the CER provide complete and accurate information?(Customer education)", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the CER identify an opportunity to upsell/cross sell a product?", weightage: 5, autofail: false, hasNA: true }
-                ]
-            },
-            "Digital troubleshooting": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the Agent provide proper branding and personalize the call?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the Agent demonstrate confidence and business etiquette althroughout the call session?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the Agent express a sincere acknowledgement/empathy statement when applicable?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the Agent convey his/her thoughts in an understandable clear and concise manner?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the Agent keep the caller informed?", weightage: 5, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the Agent ask effective probing questions to ensure accurate diagnosis?", weightage: 5.5, autofail: false, hasNA: true },
-                    { desc: "Did the Agent do proper research and check all related tools required?", weightage: 11, autofail: false, hasNA: true },
-                    { desc: "Did the Agent show ownership and actively listen?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Was the Agent able to position all possible options to the customer?", weightage: 10.5, autofail: false, hasNA: true },
-                    { desc: "Did the agent avoid risk behavior? (Call avoidance/ZTP)", weightage: 7, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the Agent log call information correctly?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the Agent properly authenticate the caller?", weightage: 8, autofail: false, hasNA: true },
-                    { desc: "Did the Agent provide complete and accurate information?", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the Agent identify an opportunity to upsell/cross sell a product?", weightage: 5, autofail: false, hasNA: true }
-                ]
-            },
-            "SMS": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the CER provide proper branding and personalize the conversation?", weightage: 5, autofail: false, hasNA: true },
-                    { desc: "Did the CER demonstrate confidence and business etiquette all throughout the conversation session?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER express a sincere acknowledgement/empathy statement when applicable?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER convey his/her thoughts in an understandable clear and concise manner?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER keep the customer informed?(Dead air, TAT)", weightage: 5, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the CER ask effective probing questions to ensure accurate diagnosis?", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the CER do proper research and check all related tools required?(fact finding)", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the CER show ownership and respond within the set turnaround time?(5 mins)", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Was the CER able to position all possible options to the customer?(FCR)", weightage: 13, autofail: false, hasNA: true },
-                    { desc: "Did the CER avoid risk behavior? (conversation avoidance/ZTP)", weightage: 8, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the CER log ticket information correctly?(Data capture)", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the CER properly authenticate the customer?(KYC)", weightage: 8, autofail: false, hasNA: true },
-                    { desc: "Did the CER provide complete and accurate information? (Customer education)", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the CER identify an opportunity to upsell/cross sell a product?", weightage: 5, autofail: false, hasNA: true }
-                ]
-            },
-            "NPS outbound": {
-                "CUSTOMER EXPERIENCE": [
-                    { desc: "Did the Agent provide proper branding and personalize the call?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the Agent demonstrate confidence and business etiquette althroughout the call session?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Did the Agent express a sincere acknowledgement/empathy statement when applicable?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the Agent convey his/her thoughts in an understandable clear and concise manner?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the Agent keep the caller informed?", weightage: 5, autofail: false, hasNA: true }
-                ],
-                "PROBLEM SOLVING SKILLS": [
-                    { desc: "Did the Agent ask effective probing questions to ensure accurate diagnosis?", weightage: 8, autofail: false, hasNA: true },
-                    { desc: "Did the Agent do proper research and check all related tools required?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the Agent show ownership and actively listen?", weightage: 6, autofail: false, hasNA: true },
-                    { desc: "Was the Agent able to position all possible options to the customer? Create a ticket where necessary", weightage: 11, autofail: false, hasNA: true },
-                    { desc: "Did the agent avoid risk behavior? (Call avoidance/ZTP)", weightage: 7, autofail: false, hasNA: true }
-                ],
-                "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
-                    { desc: "Did the Agent log call information correctly?", weightage: 7, autofail: false, hasNA: true },
-                    { desc: "Did the Agent confirm the feedback from the customer and put it vebatim on the survey form?", weightage: 10, autofail: false, hasNA: true },
-                    { desc: "Did the Agent provide complete and accurate information?", weightage: 9, autofail: false, hasNA: true },
-                    { desc: "Did the Agent identify an opportunity to upsell/cross sell a product?", weightage: 5, autofail: false, hasNA: true }
-                ]
-            }
-        };
-        // >>> END OF UPDATED OBJECT DEFINITION <<<
-
-
-        let unsubscribeRecords = null; // Used for cleanup
-        let unsubscribeWebhooks = null; // Used for cleanup
-        let unsubscribeDropdowns = null; // Used for cleanup
+        let unsubscribeRecords = null;
+        let unsubscribeWebhooks = null;
+        let unsubscribeDropdowns = null;
+        let unsubscribeQuestions = null; // NEW: Unsubscribe for questions listener
 
         let currentUserRole = null;
         let currentUserId = null;
-        let isAuthReady = false; // Flag to indicate if Firebase Auth state has been determined
+        let isAuthReady = false;
 
         let loggedInUserName = "Quality Evaluation Team";
-        let loggedInUserEmail = "anonymous"; // To store the logged in user's email
+        let loggedInUserEmail = "anonymous";
 
-        // Global variables for total points (initialize to 0)
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
         let globalBusinessComplianceAccuracyValue = 0;
-        let latestSavedRecordId = null; // To store the ID of the last saved record
+        let latestSavedRecordId = null;
 
         // --- All Core Functions (Hoisted to top of module scope using `function` keyword) ---
-        // (Order matters for hoisting with traditional `function` declarations)
 
         // Global helper for auto-expanding textareas
         window.autoExpandTextarea = function(element) {
-            element.style.height = 'auto'; // Reset height to recalculate
-            element.style.height = (element.scrollHeight) + 'px'; // Set to scroll height
+            element.style.height = 'auto';
+            element.style.height = (element.scrollHeight) + 'px';
         };
 
-
-        // Function definitions for core logic
         function calculateScore() {
             const cerRoleSelect = document.getElementById('cer-role');
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
-            const autofailTypeSelect = document.getElementById('autofail-type'); // Get autofail type dropdown
+            const autofailTypeSelect = document.getElementById('autofail-type');
 
             let currentTotalPoints = 0;
             let currentMaxPossiblePoints = 0;
-            let autofailQuestionTriggered = false; // Flag for autofail questions (rated 'No')
-            let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== ''); // Flag if any autofail type is chosen
+            let autofailQuestionTriggered = false;
+            let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== '');
 
             let complianceCurrentPoints = 0;
             let complianceMaxPoints = 0;
@@ -1146,8 +891,7 @@
                 pointsElement.style.backgroundColor = '#e9ecef';
                 pointsElement.style.color = '#555';
 
-                // N/A now grants full points unconditionally, effectively like a "Yes" for scoring
-                if (rating === 'Yes' || rating === 'N/A') { 
+                if (rating === 'Yes' || rating === 'N/A') {
                     pointsForThisQuestion = weightage;
                     pointsElement.readOnly = false;
                     pointsElement.style.backgroundColor = '#fff';
@@ -1158,7 +902,7 @@
                     if (isAutofailQuestion) {
                         pointsElement.style.backgroundColor = '#fca5a5';
                         pointsElement.style.color = '#dc2626';
-                        autofailQuestionTriggered = true; // Set autofail flag if an autofail question is 'No'
+                        autofailQuestionTriggered = true;
                     } else {
                         pointsElement.style.backgroundColor = '#e0e0e0';
                     }
@@ -1171,9 +915,7 @@
                 pointsElement.value = pointsForThisQuestion;
                 currentTotalPoints += pointsForThisQuestion;
 
-                // Max possible points should not include questions rated as "Select Rating"
-                // but should include N/A as per the new requirement for calculation.
-                if (rating !== '') { // If any option other than the default placeholder is chosen
+                if (rating !== '') {
                     currentMaxPossiblePoints += weightage;
                 }
 
@@ -1181,10 +923,10 @@
                 if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
                     const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
                     if (complianceQuestions.includes(questionText)) {
-                        if (rating === 'Yes' || rating === 'N/A') { // N/A also gives points for compliance
+                        if (rating === 'Yes' || rating === 'N/A') {
                             complianceCurrentPoints += weightage;
                         }
-                        if (rating !== '') { // Only add to compliance max points if rated (not "Select Rating")
+                        if (rating !== '') {
                                 complianceMaxPoints += weightage;
                         }
                     }
@@ -1192,7 +934,6 @@
             });
 
             let overallPercentage = 0;
-            // Overall score is 0% if any autofail question is 'No' OR if an Autofail Type is explicitly selected
             if (autofailQuestionTriggered || autofailTypeSelected) {
                 overallPercentage = 0;
             } else {
@@ -1215,7 +956,6 @@
             }
             businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
 
-            // Update global variables after calculation
             globalTotalPoints = currentTotalPoints;
             globalMaxPossiblePoints = currentMaxPossiblePoints;
             globalBusinessComplianceAccuracyValue = businessCompliancePct;
@@ -1241,11 +981,18 @@
                 }
             }
 
-            const roleQuestions = allRolesQuestions[role];
+            // Get questions for the selected role, or a 'Default' set if available, otherwise empty
+            const roleQuestions = allRolesQuestions[role] || allRolesQuestions['Default'] || {};
 
-            if (!roleQuestions) {
-                console.warn(`No questions defined for role: ${role}. Displaying empty sections.`);
-                calculateScore(); // Recalculate score as questions have been cleared
+            if (Object.keys(roleQuestions).length === 0) {
+                console.warn(`No questions defined for role: ${role} or 'Default'. Displaying empty sections.`);
+                // Display a message in each section if no questions are found
+                for (const key in questionContainers) {
+                    if (questionContainers[key]) {
+                        questionContainers[key].innerHTML = `<div class="text-center text-gray-500 py-4">No questions configured for this section.</div>`;
+                    }
+                }
+                calculateScore();
                 return;
             }
 
@@ -1271,6 +1018,11 @@
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
                     else iconColorClass = 'icon-bg-yellow';
 
+                    // Determine selected attribute for default rating
+                    const yesSelected = q.defaultRating === 'Yes' ? 'selected' : '';
+                    const noSelected = q.defaultRating === 'No' ? 'selected' : '';
+                    const naSelected = q.defaultRating === 'N/A' ? 'selected' : '';
+
                     rowDiv.innerHTML = `
                         <div class="col-span-6 flex items-center gap-2 question-description">
                             <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
@@ -1279,9 +1031,9 @@
                         <div class="col-span-2">
                             <select name="${q.desc} (Rating)" class="w-full rounded-md shadow-sm p-1 text-center border rating-select border-blue-600" ${q.autofail ? 'data-autofail-question="true"' : ''} data-has-na="${q.hasNA}">
                                 <option value="">Select Rating</option>
-                                <option value="Yes" selected>Yes</option>
-                                <option value="No">No</option>
-                                <option value="N/A">N/A</option>
+                                <option value="Yes" ${yesSelected}>Yes</option>
+                                <option value="No" ${noSelected}>No</option>
+                                <option value="N/A" ${naSelected}>N/A</option>
                             </select>
                         </div>
                         <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
@@ -1301,8 +1053,7 @@
                     questionNumber++;
                 });
             }
-            calculateScore(); // Initial calculation for newly rendered questions
-            // Ensure all remarks textareas auto-expand on initial load if pre-filled
+            calculateScore();
             document.querySelectorAll('.remarks-textarea').forEach(textarea => {
                 autoExpandTextarea(textarea);
             });
@@ -1335,8 +1086,7 @@
                 messageBoxTitle.style.color = '#1a73e8';
             }
 
-            // Remove previous event listener to prevent multiple calls
-            messageBoxCloseBtn.onclick = null;  
+            messageBoxCloseBtn.onclick = null;
             if (showCloseButton) {
                 messageBoxCloseBtn.onclick = () => {
                     messageBoxOverlay.classList.add('hidden');
@@ -1359,7 +1109,7 @@
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
-            const npsTab = document.getElementById('npsTab'); // Reference to the NPS tab
+            const npsTab = document.getElementById('npsTab');
 
             console.log("showTab called with:", tabName);
 
@@ -1371,7 +1121,7 @@
             if (reportsTab) reportsTab.classList.remove('active');
             if (autofailsTab) autofailsTab.classList.remove('active');
             if (adminTab) adminTab.classList.remove('active');
-            if (npsTab) npsTab.classList.remove('active'); // Deactivate NPS tab
+            if (npsTab) npsTab.classList.remove('active');
 
 
             // Hide all content sections for this index.html
@@ -1388,7 +1138,6 @@
             if (tabName === 'auditForm') {
                 if (auditFormTab) auditFormTab.classList.add('active');
                 if (auditFormContent) auditFormContent.style.display = 'block';
-                // When showing audit form, ensure questions are rendered if a role is selected
                 const cerRoleSelect = document.getElementById('cer-role');
                 if (cerRoleSelect && cerRoleSelect.value) {
                     renderQuestionsForRole(cerRoleSelect.value);
@@ -1397,7 +1146,7 @@
                     document.getElementById('cxQuestionsContainer').innerHTML = '';
                     document.getElementById('psQuestionsContainer').innerHTML = '';
                     document.getElementById('caQuestionsContainer').innerHTML = '';
-                    calculateScore(); // Recalculate score if questions are cleared
+                    calculateScore();
                 }
             } else if (tabName === 'database') {
                 if (databaseTab) databaseTab.classList.add('active');
@@ -1411,7 +1160,7 @@
                 if (shareResponseTab) shareResponseTab.classList.add('active');
                 if (shareResponseContent) shareResponseContent.style.display = 'block';
                 if (db && currentUserId) {
-                    fetchRecordsAndWebhooks(); // Ensure allRecords is up-to-date before populating dropdown
+                    fetchRecordsAndWebhooks();
                     populateShareResponseDropdown();
                 } else {
                     showMessageBox("Share Response Not Ready", "Waiting for authentication to load records for sharing.", false, true, false);
@@ -1430,9 +1179,9 @@
             } else if (tabName === 'admin') {
                 if (adminTab) adminTab.classList.add('active');
                 window.location.href = 'admin.html';
-            } else if (tabName === 'nps') { // Handle NPS tab
+            } else if (tabName === 'nps') {
                 if (npsTab) npsTab.classList.add('active');
-                window.location.href = 'nps.html'; // Navigate to nps.html
+                window.location.href = 'nps.html';
             }
         }
 
@@ -1445,14 +1194,12 @@
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
 
-            if (!db || !currentUserId) { // Use local scope db and currentUserId
+            if (!db || !currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
                 return;
             }
 
-            // Note: EVALUATION_RECORDS_COLLECTION_PATH and WEBHOOKS_COLLECTION_PATH still use artifacts/${appId}/public/data/
-            // If these are also moved, their paths need modification.
-            if (!EVALUATION_RECORDS_COLLECTION_PATH || !WEBHOOKS_COLLECTION_PATH) { // Use local constants
+            if (!EVALUATION_RECORDS_COLLECTION_PATH || !WEBHOOKS_COLLECTION_PATH) {
                 console.error("Firestore collection paths are not defined.");
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
                 return;
@@ -1555,9 +1302,8 @@
             document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', updateDeleteButtonState);
             });
-            // Attach delete button listeners
             document.querySelectorAll('.delete-record-btn').forEach(button => {
-                button.addEventListener('click', (e) => deleteSelectedRecords([e.target.dataset.recordId])); // Pass an array for single delete
+                button.addEventListener('click', (e) => deleteSelectedRecords([e.target.dataset.recordId]));
             });
             document.querySelectorAll('.view-record-btn').forEach(button => {
                 button.addEventListener('click', (e) => viewRecordDetails(e.target.dataset.recordId));
@@ -1577,7 +1323,7 @@
          */
         function updateDeleteButtonState() {
             const deleteSelectedRecordsBtnElement = document.getElementById('deleteSelectedRecordsBtn');
-            if (deleteSelectedRecordsBtnElement) { // Ensure element exists
+            if (deleteSelectedRecordsBtnElement) {
                 const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
                 deleteSelectedRecordsBtnElement.disabled = checkedCount === 0;
             }
@@ -1587,7 +1333,7 @@
          * Delete single or multiple records based on IDs.
          * @param {string[]} recordIdsToDelete - An array of record IDs to delete.
          */
-        async function deleteSelectedRecords(recordIdsToDelete) { // Modified to accept an array of IDs
+        async function deleteSelectedRecords(recordIdsToDelete) {
             const messageBoxContentElement = document.getElementById('messageBoxContent');
             const messageBoxCloseBtnElement = document.getElementById('messageBoxCloseBtn');
 
@@ -1596,12 +1342,10 @@
 
             if (recordIdsToDelete.length === 0) { showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true); return; }
 
-            const originalMessageBoxContentHTML = messageBoxContentElement.innerHTML; // Store original content to restore later
-            showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, true); // Changed to showCloseButton = true
+            const originalMessageBoxContentHTML = messageBoxContentElement.innerHTML;
+            showMessageBox("Confirm Deletion", `Are you sure you want to delete ${recordIdsToDelete.length} selected record(s)?`, false, false, true);
             
-            // Re-adding the confirm/cancel buttons explicitly if needed, otherwise the default OK button will be shown.
-            // For this specific confirm dialog, we want custom buttons, so we add them and hide the default OK.
-            messageBoxCloseBtnElement.classList.add('hidden'); // Hide the default OK button
+            messageBoxCloseBtnElement.classList.add('hidden');
 
             const confirmBtn = document.createElement('button');
             confirmBtn.textContent = 'Delete';
@@ -1613,7 +1357,6 @@
                     const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(db, EVALUATION_RECORDS_COLLECTION_PATH, id)));
                     await Promise.all(deletePromises);
                     showMessageBox("Success", "Selected records deleted.", false, false, true, () => {
-                        // After successful deletion and message shown, re-fetch records to update the table
                         fetchRecordsAndWebhooks();
                     });
                     if (document.getElementById('selectAllRecordsCheckbox')) { document.getElementById('selectAllRecordsCheckbox').checked = false; }
@@ -1622,7 +1365,7 @@
                     console.error("Error deleting documents: ", e);
                     showMessageBox("Deletion Failed", `Error deleting records: ${e.message}`, true, false, true);
                 } finally {
-                    messageBoxContentElement.innerHTML = originalMessageBoxContentHTML; // Restore content after use
+                    messageBoxContentElement.innerHTML = originalMessageBoxContentHTML;
                 }
             };
             const cancelBtn = document.createElement('button');
@@ -1656,15 +1399,14 @@
                 webhookList.appendChild(webhookDiv);
             });
 
-            document.querySelectorAll('#webhookList .delete-webhook-btn').forEach(button => { // Target within webhookList
+            document.querySelectorAll('#webhookList .delete-webhook-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
                     const webhookId = e.target.closest('button').dataset.webhookId;
                     const messageBoxContentElement = document.getElementById('messageBoxContent');
                     const messageBoxCloseBtnElement = document.getElementById('messageBoxCloseBtn');
                     const originalMessageBoxContentHTML = messageBoxContentElement.innerHTML;
 
-                    showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, true); // Changed to showCloseButton = true
-                    // Re-adding the confirm/cancel buttons explicitly for this dialog
+                    showMessageBox("Confirm Delete", "Are you sure you want to delete this webhook?", false, false, true);
                     messageBoxCloseBtnElement.classList.add('hidden');
 
                     const confirmBtn = document.createElement('button');
@@ -1711,7 +1453,7 @@
             showMessageBox("Adding Webhook", "Adding new webhook...", false, true, false);
             try {
                 await addDoc(collection(db, WEBHOOKS_COLLECTION_PATH), { url: url });
-                newWebhookUrlInput.value = ''; // Clear input
+                newWebhookUrlInput.value = '';
                 showMessageBox("Success", "Webhook added successfully!", false, false, true);
             } catch (e) {
                 console.error("Error adding webhook:", e);
@@ -1734,24 +1476,21 @@
             for (const key in record) {
                 if (record.hasOwnProperty(key)) {
                     let value = record[key];
-                    // Robust date formatting: check if it's a Timestamp, then a Date object, otherwise try parsing
                     if (key === 'submittedAt' && value) {
-                        if (typeof value.toDate === 'function') { // It's a Firestore Timestamp
+                        if (typeof value.toDate === 'function') {
                             value = value.toDate().toLocaleString();
-                        } else if (value instanceof Date) { // It's already a JS Date object
+                        } else if (value instanceof Date) {
                             value = value.toLocaleString();
-                        } else { // Assume it's a string that Date can parse
+                        } else {
                             try {
                                 const dateVal = new Date(value);
-                                if (!isNaN(dateVal.getTime())) { // Check if date is valid
+                                if (!isNaN(dateVal.getTime())) {
                                     value = dateVal.toLocaleString();
                                 }
                             } catch (e) {
-                                // Keep original value if parsing fails
                             }
                         }
                     }
-                    // Handle objects and arrays more gracefully than just JSON.stringify
                     if (typeof value === 'object' && value !== null) {
                         detailsHtml += `<b>${key}:</b>\n${JSON.stringify(value, null, 2)}\n`;
                     } else {
@@ -1779,20 +1518,18 @@
             const evaluationDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
             const overallScore = record['Overall Score'] || 'N/A';
 
-            const cerEmail = cerNameEmailsMap[cerName] || ''; // Get CER Email from the map
+            const cerEmail = cerNameEmailsMap[cerName] || '';
 
             const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
-                                        `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                        `Contact ID: ${contactId}\n` +
-                                        `CER Name: ${cerName}\n` +
-                                        `Overall Score: ${overallScore}\n` +
-                                        `Evaluation Date: ${evaluationDate}\n\n` +
-                                        `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                        `Kind Regards,\nQuality Evaluation Team`;
+                                         `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                         `Contact ID: ${contactId}\n` +
+                                         `CER Name: ${cerName}\n` +
+                                         `Overall Score: ${overallScore}\n` +
+                                         `Evaluation Date: ${evaluationDate}\n\n` +
+                                         `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                         `Kind Regards,\nQuality Evaluation Team`;
 
-            // This function is still using mailto for direct email from database tab.
-            // The PDF & Share button will use the handlePdfAndShare logic.
             const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
             try {
@@ -1825,11 +1562,11 @@
             try {
                 const docRef = await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
                     ...recordData,
-                    submittedAt: new Date() // Use current date for submission
+                    submittedAt: new Date()
                 });
                 console.log("Record written with ID:", docRef.id);
                 showMessageBox("Success", "Form data saved successfully to database!", false, false, true);
-                return docRef.id; // Return the new record's ID
+                return docRef.id;
             } catch (e) {
                 console.error("Error adding document: ", e);
                 showMessageBox("Save Failed", `Error saving data: ${e.message}`, true, false, true);
@@ -1840,7 +1577,7 @@
         /**
          * Collects form data and saves it. Then reveals the PDF & Share button.
          */
-        window.saveFormToDB = async function() { // Renamed from submitFormToDB
+        window.saveFormToDB = async function() {
             const form = document.getElementById('assessment-form');
             const contactId = document.getElementById('contact-id').value.trim();
             const clientName = document.getElementById('client-name').value.trim();
@@ -1855,7 +1592,6 @@
             const reviewDate = document.getElementById('review-date').value;
             const duration = document.getElementById('duration').value.trim();
 
-            // Simple validation (can be expanded)
             if (!contactId || !clientName || !cerName || !cerRole || !callDateTime || !reviewerName || !reviewDate) {
                 showMessageBox("Validation Error", "Please fill in all required top-level fields.", true, false, true);
                 return;
@@ -1907,44 +1643,39 @@
                 const pointsInput = form.querySelector(`input[name="${questionDesc} (Points)"]`);
                 const weightageDisplay = selectElement.closest('.grid').querySelector('.weightage-display');
                 
-                // Add individual question data
                 formData[`${questionDesc} (Rating)`] = rating;
                 formData[`${questionDesc} (Points)`] = pointsInput ? pointsInput.value : '';
                 formData[`${questionDesc} (Remarks)`] = remarksInput ? remarksInput.value : '';
                 formData[`${questionDesc} (Weightage)`] = weightageDisplay ? weightageDisplay.dataset.weightage : '';
             });
 
-            latestSavedRecordId = await addRecordToFirestore(formData); // Store the ID
+            latestSavedRecordId = await addRecordToFirestore(formData);
             if (latestSavedRecordId) {
-                // Keep the form fields as they are after saving, and show the PDF & Share button.
-                document.getElementById('pdfShareBtn').classList.remove('hidden'); // Show PDF & Share button
-                document.getElementById('pdfEmailDirectBtn').classList.remove('hidden'); // Show the new button
+                document.getElementById('pdfShareBtn').classList.remove('hidden');
+                document.getElementById('pdfEmailDirectBtn').classList.remove('hidden');
             }
-        }; // END of window.saveFormToDB
-
+        };
 
         function resetFormFieldsButKeepRole() {
             const form = document.getElementById('assessment-form');
-            const cerRoleSelect = document.getElementById('cer-role'); // Get CER Role select element
-            const currentRole = cerRoleSelect.value; // Store its current value
+            const cerRoleSelect = document.getElementById('cer-role');
+            const currentRole = cerRoleSelect.value;
 
-            // Reset top-level fields
             document.getElementById('contact-id').value = '';
             document.getElementById('client-name').value = '';
             document.getElementById('cer-name').value = '';
             document.getElementById('cer-email').value = '';
             document.getElementById('call-date-time').value = '';
-            document.getElementById('reviewer-name').value = ''; // Reset reviewer to default
+            document.getElementById('reviewer-name').value = '';
             document.getElementById('other-reviewer-name').value = '';
-            document.getElementById('other-reviewer-name').classList.add('hidden'); // Hide other reviewer field
+            document.getElementById('other-reviewer-name').classList.add('hidden');
             document.getElementById('other-reviewer-name').removeAttribute('required');
 
             document.getElementById('autofail-type').value = '';
-            document.getElementById('autofailDescriptionContainer').classList.add('hidden'); // Hide autofail description
+            document.getElementById('autofailDescriptionContainer').classList.add('hidden');
             document.getElementById('autofail-description').value = '';
             document.getElementById('autofail-description').removeAttribute('required');
 
-            // MODIFIED: Set review date to current date
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -1953,27 +1684,34 @@
 
             document.getElementById('duration').value = '';
 
-            // Reset individual question ratings and remarks
             const allRatingSelects = form.querySelectorAll('.rating-select');
             allRatingSelects.forEach(selectElement => {
-                // Set default to "Yes" as per new requirement
-                selectElement.value = 'Yes';  
+                // Reset to default rating from the loaded questions data
+                const questionDesc = selectElement.name.replace(' (Rating)', '');
+                let defaultRating = 'Yes'; // Fallback default
+                const roleQuestions = allRolesQuestions[currentRole] || allRolesQuestions['Default'];
+                if (roleQuestions) {
+                    for (const section in roleQuestions) {
+                        const question = roleQuestions[section].find(q => q.desc === questionDesc);
+                        if (question && question.defaultRating) {
+                            defaultRating = question.defaultRating;
+                            break;
+                        }
+                    }
+                }
+                selectElement.value = defaultRating;
                 const remarksInput = selectElement.closest('.grid').querySelector('.remarks-textarea');
                 const pointsInput = selectElement.closest('.grid').querySelector('.points-input');
                 if (remarksInput) remarksInput.value = '';
                 if (pointsInput) pointsInput.value = '0';
             });
             
-            // Re-render questions for the stored role to reset their state and points
-            renderQuestionsForRole(currentRole);  
-
-            // Recalculate score after resetting everything
+            renderQuestionsForRole(currentRole);
             calculateScore();
 
-            // Hide PDF buttons after a full form reset (e.g., if user decides to start fresh)
             document.getElementById('pdfShareBtn').classList.add('hidden');
             document.getElementById('pdfEmailDirectBtn').classList.add('hidden');
-            latestSavedRecordId = null; // Clear latest saved record ID
+            latestSavedRecordId = null;
         }
 
         /**
@@ -1990,7 +1728,6 @@
             }
 
             try {
-                // This query assumes evaluation_records are still in the artifacts/{appId}/public/data/evaluation_records structure
                 const q = query(
                     collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
                     where('CER Name', '==', cerName),
@@ -2004,7 +1741,7 @@
                     return;
                 }
 
-                lastEvaluationsTableBody.innerHTML = ''; // Clear loading message
+                lastEvaluationsTableBody.innerHTML = '';
                 querySnapshot.forEach((doc) => {
                     const record = doc.data();
                     const row = lastEvaluationsTableBody.insertRow();
@@ -2046,36 +1783,32 @@
 
             console.log("Initializing main application display.");
 
-            // Check Firebase Auth's current user state (most reliable)
             const user = auth.currentUser;
             const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
 
-            if (user && isLoggedInFromSession === 'true') { // Check both session flag and actual Firebase user
-                loginPage.classList.remove('visible'); // Hide login page smoothly
-                loginPage.style.display = 'none'; // Ensure display is none for layout
+            if (user && isLoggedInFromSession === 'true') {
+                loginPage.classList.remove('visible');
+                loginPage.style.display = 'none';
                 mainNav.style.display = 'block';
-                // Show the tab that was active or default to 'auditForm'
-                const activeHash = window.location.hash.substring(1); // Get hash from URL
+                const activeHash = window.location.hash.substring(1);
                 if (activeHash === 'database') {
                     showTab('database');
                 } else if (activeHash === 'shareResponse') {
                     showTab('shareResponse');
-                } else if (activeHash === 'nps') { // Handle NPS tab
+                } else if (activeHash === 'nps') {
                     showTab('nps');
                 }
                 else {
-                    showTab('auditForm'); // Default to audit form
+                    showTab('auditForm');
                 }
             } else {
-                // If not logged in or session is invalid, show login page
-                loginPage.classList.add('visible'); // Show login page smoothly
-                loginPage.style.display = 'flex'; // Ensure flex for centering
+                loginPage.classList.add('visible');
+                loginPage.style.display = 'flex';
                 mainNav.style.display = 'none';
                 auditFormContent.style.display = 'none';
                 databaseContent.style.display = 'none';
                 shareResponseContent.style.display = 'none';
             }
-            // Once the display logic is resolved, reveal the body
             document.body.classList.add('loaded');
         }
 
@@ -2086,30 +1819,23 @@
                 console.warn("Firestore not ready for fetching dropdowns.");
                 return;
             }
-            // >>> CORRECTION HERE <<<
-            // Define the correct Document Reference for dropdown options
-            const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
-            // >>> END CORRECTION <<<
 
             if (unsubscribeDropdowns) {
-                unsubscribeDropdowns(); // Unsubscribe previous listener if exists
+                unsubscribeDropdowns();
             }
 
-            // Use onSnapshot directly on the document reference
             unsubscribeDropdowns = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
                 if (docSnap.exists()) {
                     dropdownOptions = docSnap.data();
                     console.log("Dropdown data updated from Firestore:", dropdownOptions);
 
-                    // Rebuild cerNameEmailsMap
                     cerNameEmailsMap = {};
                     if (dropdownOptions.cerNames && Array.isArray(dropdownOptions.cerNames)) {
                         dropdownOptions.cerNames.forEach(cer => {
                             if (typeof cer === 'object' && cer.name && cer.email) {
                                 cerNameEmailsMap[cer.name] = cer.email;
                             } else if (typeof cer === 'string') {
-                                // Fallback for old string format, try to infer email or leave empty
-                                cerNameEmailsMap[cer] = '';  
+                                cerNameEmailsMap[cer] = '';
                             }
                         });
                     }
@@ -2126,11 +1852,43 @@
                 populateAllDropdownsInForm();
             }, (error) => {
                 console.error("Error listening to dropdown data:", error);
-                // No explicit message box for this error, as it's often a permission issue
-                // when initial doc doesn't exist and anonymous user tries to listen (read is allowed, but maybe doc doesn't exist yet)
             });
         }
 
+        // NEW: Function to fetch and populate questions from Firestore
+        async function fetchQuestionsData() {
+            if (!db) {
+                console.warn("Firestore not ready for fetching questions.");
+                return;
+            }
+
+            if (unsubscribeQuestions) {
+                unsubscribeQuestions();
+            }
+
+            unsubscribeQuestions = onSnapshot(QUESTIONS_CONFIG_DOC_REF, (docSnap) => {
+                if (docSnap.exists()) {
+                    allRolesQuestions = docSnap.data();
+                    console.log("Questions data updated from Firestore:", allRolesQuestions);
+                } else {
+                    console.warn("Questions configuration document does not exist. Initializing with empty object locally.");
+                    allRolesQuestions = {};
+                }
+                // Re-render questions if a role is already selected
+                const cerRoleSelect = document.getElementById('cer-role');
+                if (cerRoleSelect && cerRoleSelect.value) {
+                    renderQuestionsForRole(cerRoleSelect.value);
+                } else {
+                    // If no role selected, clear question containers
+                    document.getElementById('cxQuestionsContainer').innerHTML = '';
+                    document.getElementById('psQuestionsContainer').innerHTML = '';
+                    document.getElementById('caQuestionsContainer').innerHTML = '';
+                    calculateScore();
+                }
+            }, (error) => {
+                console.error("Error listening to questions data:", error);
+            });
+        }
 
         // Function to populate all dropdowns in the form
         function populateAllDropdownsInForm() {
@@ -2139,16 +1897,13 @@
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const autofailTypeSelect = document.getElementById('autofail-type');
 
-            // Helper to populate a single select element
             const populateSelect = (selectElement, optionsArray, type) => {
-                const currentSelectedValue = selectElement.value; // Preserve current selection if possible
+                const currentSelectedValue = selectElement.value;
                 let defaultOptionText = 'Select ' + (type === 'cerNames' ? 'CER' : type.replace('Names', '').replace('Types', '').replace('Roles', ''));
                 selectElement.innerHTML = `<option value="">${defaultOptionText}</option>`;
                 
-                // Ensure optionsArray is an array before attempting to iterate
                 if (Array.isArray(optionsArray)) {
                     optionsArray.forEach(option => {
-                        // Handle objects for cerNames (e.g., {name: "John Doe", email: "john.doe@example.com"})
                         const value = (type === 'cerNames' && typeof option === 'object' && option.name) ? option.name : option;
                         const optionElement = document.createElement('option');
                         optionElement.value = value;
@@ -2159,36 +1914,30 @@
                     console.warn(`Dropdown options for ${type} is not an array:`, optionsArray);
                 }
 
-                // Attempt to restore previous selection
                 if (Array.from(selectElement.options).some(opt => opt.value === currentSelectedValue)) {
                     selectElement.value = currentSelectedValue;
                 } else {
-                    selectElement.value = ''; // Reset if old value is no longer available
+                    selectElement.value = '';
                 }
             };
 
-            // Defensive check for dropdownOptions properties
             populateSelect(cerNameSelect, dropdownOptions.cerNames, 'cerNames');
             populateSelect(cerRoleSelect, dropdownOptions.cerRoles, 'cerRoles');
             populateSelect(reviewerNameSelect, dropdownOptions.reviewerNames, 'reviewerNames');
             populateSelect(autofailTypeSelect, dropdownOptions.autofailTypes, 'autofailTypes');
 
-            // If a CER Name is already selected, try to populate its email
             const currentCerName = cerNameSelect.value;
             const cerEmailInput = document.getElementById('cer-email');
             cerEmailInput.value = cerNameEmailsMap[currentCerName] || '';
 
-            // After populating the CER Role dropdown, if there's a selected role, re-render questions.
-            // This is important for when the page loads with a role already selected or after data refresh.
             const initialCerRole = cerRoleSelect.value;
             if (initialCerRole) {
-                renderQuestionsForRole(initialCerRole);  
+                renderQuestionsForRole(initialCerRole);
             } else {
-                // If no role is selected initially, clear question sections and reset score.
                 document.getElementById('cxQuestionsContainer').innerHTML = '';
                 document.getElementById('psQuestionsContainer').innerHTML = '';
                 document.getElementById('caQuestionsContainer').innerHTML = '';
-                calculateScore(); // Recalculate score if questions are cleared
+                calculateScore();
             }
         }
 
@@ -2196,7 +1945,7 @@
         // Functions for the Share Response tab
         async function populateShareResponseDropdown() {
             const selectRecordToShare = document.getElementById('select-record-to-share');
-            const selectRecordSearch = document.getElementById('select-record-search'); // Get search input
+            const selectRecordSearch = document.getElementById('select-record-search');
             selectRecordToShare.innerHTML = '<option value="">-- Loading Records --</option>';
 
             if (!db || !currentUserId) {
@@ -2205,23 +1954,20 @@
             }
 
             try {
-                // We're relying on allRecords being updated by the onSnapshot listener from fetchRecordsAndWebhooks
                 if (allRecords.length === 0) {
                     selectRecordToShare.innerHTML = '<option value="">-- No Records Available --</option>';
-                    filterableRecords = []; // Ensure filterableRecords is empty too
+                    filterableRecords = [];
                     return;
                 }
 
-                // Sort records by submittedAt descending to show latest first
                 const sortedRecords = [...allRecords].sort((a, b) => {
                     const dateA = a.submittedAt ? (typeof a.submittedAt.toDate === 'function' ? a.submittedAt.toDate() : new Date(a.submittedAt)) : new Date(0);
                     const dateB = b.submittedAt ? (typeof b.submittedAt.toDate === 'function' ? b.submittedAt.toDate() : new Date(b.submittedAt)) : new Date(0);
                     return dateB.getTime() - dateA.getTime();
                 });
-                filterableRecords = sortedRecords; // Store all sorted records for filtering
+                filterableRecords = sortedRecords;
 
-                // Render options based on current search term if any
-                filterShareRecords(); // Call filter initially to populate and apply any existing search term
+                filterShareRecords();
 
             } catch (error) {
                 console.error("Error populating share response dropdown:", error);
@@ -2248,7 +1994,7 @@
                 if (record.submittedAt) {
                     try {
                         const dateObj = typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt);
-                        if (!isNaN(dateObj.getTime())) { // Check if date is valid
+                        if (!isNaN(dateObj.getTime())) {
                             submittedAtFormatted = dateObj.toLocaleDateString();
                         }
                     } catch (e) { /* silent fail for filtering display */ }
@@ -2257,13 +2003,12 @@
                 selectRecordToShare.appendChild(option);
             });
 
-            // Try to restore selection after filtering
             if (Array.from(selectRecordToShare.options).some(opt => opt.value === currentSelectedId)) {
                 selectRecordToShare.value = currentSelectedId;
             } else {
-                selectRecordToShare.value = ''; // Reset if old value is no longer available
+                selectRecordToShare.value = '';
             }
-            populateShareEmailFields(selectRecordToShare.value); // Update email fields based on current selection
+            populateShareEmailFields(selectRecordToShare.value);
         }
 
 
@@ -2276,18 +2021,17 @@
                     const clientName = (record['Client Name'] || '').toLowerCase();
                     const contactId = (record['Contact ID'] || '').toLowerCase();
                     const cerName = (record['CER Name'] || '').toLowerCase();
-                    // Add other fields to search if needed
                     const reviewDate = record['Evaluation Date'] ? String(record['Evaluation Date']).toLowerCase() : '';
                     const overallScore = record['Overall Score'] ? String(record['Overall Score']).toLowerCase() : '';
 
                     return clientName.includes(searchTerm) ||
-                                contactId.includes(searchTerm) ||
-                                cerName.includes(searchTerm) ||
-                                reviewDate.includes(searchTerm) ||
-                                overallScore.includes(searchTerm);
+                                 contactId.includes(searchTerm) ||
+                                 cerName.includes(searchTerm) ||
+                                 reviewDate.includes(searchTerm) ||
+                                 overallScore.includes(searchTerm);
                 });
             } else {
-                filtered = [...filterableRecords]; // If no search term, show all records
+                filtered = [...filterableRecords];
             }
             renderFilteredOptions(filtered);
         }
@@ -2301,7 +2045,7 @@
 
             if (!recordId) {
                 shareEmailTo.value = '';
-                shareEmailFrom.value = loggedInUserEmail; // Use logged-in user's email
+                shareEmailFrom.value = loggedInUserEmail;
                 shareEmailSubject.value = 'Quality Assessment Feedback';
                 shareEmailBody.value = 'Dear CER,\n\nKindly find attached the Quality Assurance Audit Feedback. Your signature is required.\n\nKind Regards,\nQuality Evaluation Team';
                 return;
@@ -2313,10 +2057,10 @@
                 const contactId = record['Contact ID'] || 'N/A';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
                 const overallScore = record['Overall Score'] || 'N/A';
-                const cerEmail = record['CER Email'] || cerNameEmailsMap[cerName] || ''; // Prioritize record's email, then map
+                const cerEmail = record['CER Email'] || cerNameEmailsMap[cerName] || '';
 
                 shareEmailTo.value = cerEmail;
-                shareEmailFrom.value = loggedInUserEmail; // Use logged-in user's email
+                shareEmailFrom.value = loggedInUserEmail;
                 shareEmailSubject.value = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
                 shareEmailBody.value = `Dear ${cerName},\n\n` +
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
@@ -2325,10 +2069,8 @@
                     `If you have any questions, please feel free to reach out.\n\n` +
                     `Kind Regards,\n${loggedInUserName}`;
             } else {
-                // If record not found (shouldn't happen if `allRecords` is accurate)
-                populateShareEmailFields(null); // Reset
+                populateShareEmailFields(null);
             }
-            // Auto-expand email body after populating
             autoExpandTextarea(shareEmailBody);
         }
 
@@ -2340,14 +2082,10 @@
         async function generateFormPdf() {
             const auditFormContentDiv = document.getElementById('auditFormContent');
 
-            // Store original styles to revert later
             const originalStyles = [];
             const elementsToModify = auditFormContentDiv.querySelectorAll('input, select, textarea');
 
-            // Apply temporary styles for better PDF rendering
             elementsToModify.forEach(el => {
-                // Added a check to ensure el.style exists before accessing its properties
-                // This prevents "Cannot read properties of undefined (reading 'style')" error
                 if (el && el.style) {
                     originalStyles.push({
                         element: el,
@@ -2361,22 +2099,19 @@
                         resize: el.style.resize
                     });
 
-                    // Apply styles for PDF capture
-                    el.style.border = '1px solid #ccc'; // Ensure border for clarity
-                    el.style.backgroundColor = 'white'; // Solid background
-                    el.style.color = '#333'; // Ensure dark text
-                    el.readOnly = true; // Make non-interactive
-                    el.disabled = true; // Make non-interactive
-                    el.style.pointerEvents = 'none'; // Disable pointer events
-                    el.style.boxShadow = 'none'; // Remove shadows for cleaner print
-                    el.style.resize = 'none'; // Prevent resizing handles from appearing
+                    el.style.border = '1px solid #ccc';
+                    el.style.backgroundColor = 'white';
+                    el.style.color = '#333';
+                    el.readOnly = true;
+                    el.disabled = true;
+                    el.style.pointerEvents = 'none';
+                    el.style.boxShadow = 'none';
+                    el.style.resize = 'none';
                 }
             });
 
-            // Temporarily hide buttons and the "Last 3 Evaluations" section for PDF capture
             const buttonsContainer = auditFormContentDiv.querySelector('.flex.space-x-4');
             const lastEvaluationsContainer = document.getElementById('lastEvaluationsContainer');
-            // NO LONGER HIDING scoresSection: const scoresSection = auditFormContentDiv.querySelector('.p-4.rounded-lg.shadow-sm');
 
             let originalButtonsDisplay = '';
             if (buttonsContainer) {
@@ -2388,31 +2123,21 @@
                 originalLastEvaluationsDisplay = lastEvaluationsContainer.style.display;
                 lastEvaluationsContainer.style.display = 'none';
             }
-            // NO LONGER HIDING scoresSection
-            // let originalScoresDisplay = '';
-            // if (scoresSection) {
-            //   scoresSection.style.display = originalScoresDisplay;
-            // }
 
-            // Ensure the main content div's overflow is visible for accurate capture
             const originalAuditFormOverflow = auditFormContentDiv.style.overflow;
             auditFormContentDiv.style.overflow = 'visible';
 
-            // Render the element to canvas
             const canvas = await html2canvas(auditFormContentDiv, {
-                scale: 2, // Higher scale for better quality
+                scale: 2,
                 useCORS: true,
                 logging: false,
-                // Removed windowWidth, windowHeight, scrollY, scrollX as overflow:visible should handle it
             });
 
-            // Revert styles and display properties
             originalStyles.forEach(elData => {
-                // Double-check existence and style property before reverting
                 if (elData.element && elData.element.style) {
                     elData.element.style.border = elData.border;
                     elData.element.style.backgroundColor = elData.backgroundColor;
-                    elData.element.style.color = elData.color; // Corrected: use elData.color
+                    elData.element.style.color = elData.color;
                     elData.element.readOnly = elData.readOnly;
                     elData.element.disabled = elData.disabled;
                     elData.element.style.pointerEvents = elData.pointerEvents;
@@ -2427,15 +2152,10 @@
             if (lastEvaluationsContainer) {
                 lastEvaluationsContainer.style.display = originalLastEvaluationsDisplay;
             }
-            // NO LONGER HIDING scoresSection
-            // if (scoresSection) {
-            //   scoresSection.style.display = originalScoresDisplay;
-            // }
 
-            // Revert main content div's overflow
             auditFormContentDiv.style.overflow = originalAuditFormOverflow;
 
-            return canvas; // Return the canvas element directly
+            return canvas;
         }
 
 
@@ -2455,8 +2175,8 @@
             showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
-                const canvas = await generateFormPdf(); // Get the canvas element
-                const imgData = canvas.toDataURL('image/jpeg', 0.8); // Convert canvas to image data
+                const canvas = await generateFormPdf();
+                const imgData = canvas.toDataURL('image/jpeg', 0.8);
 
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
@@ -2465,10 +2185,9 @@
                     format: 'a4'
                 });
 
-                const imgWidth = 210; // A4 width in mm
-                const pageHeight = 297; // A4 height in mm
-                // Calculate imgHeight based on actual canvas dimensions to ensure proper scaling
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;  
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 let heightLeft = imgHeight;
 
                 let position = 0;
@@ -2477,28 +2196,25 @@
                 heightLeft -= pageHeight;
 
                 while (heightLeft >= 0) {
-                    position = heightLeft - pageHeight; // Move up by pageHeight
+                    position = heightLeft - pageHeight;
                     pdf.addPage();
                     pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
 
-                // Trigger PDF download
-                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; //YYYY-MM-DD
+                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
                 pdf.save(pdfFileName);
 
-                // Navigate to Share Response tab and pre-fill fields
-                showTab('shareResponse'); // This will trigger populateShareResponseDropdown.
+                showTab('shareResponse');
                 
                 setTimeout(() => {
                     document.getElementById('select-record-to-share').value = latestSavedRecordId;
                     populateShareEmailFields(latestSavedRecordId);
                     
-                    // Final message for user to manually attach
                     const shareEmailBody = document.getElementById('share-email-body');
                     shareEmailBody.value += `\n\n(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)`;
-                    autoExpandTextarea(shareEmailBody); // Auto-expand after final text
-                }, 100); // Small delay to ensure dropdown is fully rendered
+                    autoExpandTextarea(shareEmailBody);
+                }, 100);
 
                 hideMessageBox();
             } catch (error) {
@@ -2506,7 +2222,7 @@
                 hideMessageBox();
                 showMessageBox("Action Failed", `Could not generate PDF or prepare for sharing: ${error.message}. Please try again.`, true, false, true);
             }
-        }; // END of window.handlePdfAndShare
+        };
 
 
         // NEW: Function for "PDF & Email (Direct Send)" button
@@ -2525,8 +2241,8 @@
             showMessageBox("Generating PDF for Email", "Please wait, generating PDF document and preparing email...", false, true, false);
 
             try {
-                const canvas = await generateFormPdf(); // Get the canvas element
-                const imgData = canvas.toDataURL('image/jpeg', 0.8); // Convert canvas to image data
+                const canvas = await generateFormPdf();
+                const imgData = canvas.toDataURL('image/jpeg', 0.8);
 
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
@@ -2550,11 +2266,9 @@
                     heightLeft -= pageHeight;
                 }
 
-                // Trigger PDF download first
-                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`; //YYYY-MM-DD
+                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
                 pdf.save(pdfFileName);
 
-                // Now construct and open mailto link
                 const cerName = record['CER Name'] || 'Client';
                 const contactId = record['Contact ID'] || 'N/A';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
@@ -2571,8 +2285,8 @@
                     `Kind Regards,\n${loggedInUserName}`;
 
                 const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}` +
-                                        `?subject=${encodeURIComponent(emailSubject)}` +
-                                        `&body=${encodeURIComponent(emailBody)}`;
+                                             `?subject=${encodeURIComponent(emailSubject)}` +
+                                             `&body=${encodeURIComponent(emailBody)}`;
 
                 window.location.href = mailtoLink;
 
@@ -2595,7 +2309,7 @@
             const body = document.getElementById('share-email-body').value;
             const shareEmailMessage = document.getElementById('shareEmailMessage');
 
-            shareEmailMessage.classList.add('hidden'); // Hide previous messages
+            shareEmailMessage.classList.add('hidden');
 
             if (!recordId || !toEmail || !subject || !body) {
                 shareEmailMessage.textContent = "Please select a record and ensure all email fields are filled.";
@@ -2610,10 +2324,6 @@
                 return;
             }
 
-            // Note: Direct PDF attachment via mailto is NOT possible client-side.
-            // This function will open the mail client with pre-filled subject/body.
-            // The user will be instructed to attach the downloaded PDF manually.
-
             const mailtoLink = `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
             try {
@@ -2623,7 +2333,7 @@
                 console.error("Failed to open email client:", e);
                 showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
             }
-        }; // END of window.sendShareResponseEmail
+        };
 
 
         // FINAL CONSOLIDATION: All event listeners and initial setup logic within DOMContentLoaded
@@ -2631,7 +2341,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM fully loaded and parsed. Main script starting.");
 
-            // Get UI elements
             const loginButton = document.getElementById('loginButton');
             const loginMessage = document.getElementById('loginMessage');
             const usernameInput = document.getElementById('username');
@@ -2646,11 +2355,11 @@
             const reportsTab = document.getElementById('reportsTab');
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
-            const npsTab = document.getElementById('npsTab'); // Reference to the NPS tab
+            const npsTab = document.getElementById('npsTab');
 
-            const saveFormBtn = document.getElementById('saveFormBtn'); // Renamed
-            const pdfShareBtn = document.getElementById('pdfShareBtn'); // Renamed
-            const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn'); // New button
+            const saveFormBtn = document.getElementById('saveFormBtn');
+            const pdfShareBtn = document.getElementById('pdfShareBtn');
+            const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn');
             const assessmentForm = document.getElementById('assessment-form');
 
             const reviewerNameSelect = document.getElementById('reviewer-name');
@@ -2662,7 +2371,7 @@
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
-            const selectRecordSearch = document.getElementById('select-record-search'); // Get search input
+            const selectRecordSearch = document.getElementById('select-record-search');
 
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
@@ -2673,7 +2382,6 @@
             const selectRecordToShare = document.getElementById('select-record-to-share');
             const sendShareEmailBtn = document.getElementById('sendShareEmailBtn');
 
-            // Set default date for "Evaluation Date" when the form loads
             const reviewDateInput = document.getElementById('review-date');
             if (reviewDateInput) {
                 const today = new Date();
@@ -2687,7 +2395,7 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUserId = user.uid;
-                    loggedInUserEmail = user.email || "anonymous"; // Store logged-in user email
+                    loggedInUserEmail = user.email || "anonymous";
                     console.log("Firebase Auth State Changed (index.html): User logged in:", currentUserId);
 
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
@@ -2700,11 +2408,7 @@
                             console.log("Logged in user name:", loggedInUserName);
                         } else {
                             const idTokenResult = await user.getIdTokenResult(true);
-                            if (idTokenResult.claims.role) {
-                                currentUserRole = idTokenResult.claims.role;
-                            } else {
-                                currentUserRole = 'Guest';
-                            }
+                            currentUserRole = idTokenResult.claims.role || 'Guest';
                             console.warn("User profile not found in Firestore. Checking claims, defaulting to Guest role if not found. UID:", user.uid);
                             loggedInUserName = user.email || "Quality Evaluation Team";
                         }
@@ -2713,55 +2417,52 @@
                         currentUserRole = 'Guest';
                         loggedInUserName = user.email || "Quality Evaluation Team";
                     }
-                    // Crucial: Only show the app content AFTER authentication and role are determined
                     initializeAppDisplay();
-                    fetchDropdownOptionsData(); // Call this here directly
-                    fetchRecordsAndWebhooks(); // Call this here directly
+                    fetchDropdownOptionsData(); // Fetch general dropdowns
+                    fetchQuestionsData(); // NEW: Fetch dynamic questions
+                    fetchRecordsAndWebhooks();
                 } else {
                     console.log("Firebase Auth State Changed (index.html): No user logged in.");
                     currentUserId = null;
                     currentUserRole = null;
                     loggedInUserName = "Quality Evaluation Team";
-                    loggedInUserEmail = "anonymous"; // Reset email on logout
+                    loggedInUserEmail = "anonymous";
                     sessionStorage.removeItem('loggedIn');
 
-                    // Attempt anonymous sign-in if no user, to allow read access to public data (like dropdowns)
                     try {
                         await signInAnonymously(auth);
                         currentUserId = auth.currentUser.uid;
-                        currentUserRole = 'anonymous'; // Assign anonymous role
-                        loggedInUserEmail = auth.currentUser.email || "anonymous"; // Anonymous email
+                        currentUserRole = 'anonymous';
+                        loggedInUserEmail = auth.currentUser.email || "anonymous";
                         console.log("Signed in anonymously (index.html):", currentUserId);
-                        initializeAppDisplay(); // Initialize app display for anonymous user (will show login)
-                        fetchDropdownOptionsData(); // Fetch dropdowns for anonymous user
+                        initializeAppDisplay();
+                        fetchDropdownOptionsData();
+                        fetchQuestionsData(); // NEW: Fetch dynamic questions for anonymous
                     } catch (anonError) {
                         console.error("Error signing in anonymously (index.html):", anonError);
                         currentUserId = null;
                         currentUserRole = null;
                         loggedInUserEmail = "anonymous";
-                        // If anonymous sign-in also fails, ensure login page is visible
                         initializeAppDisplay();
                     }
                 }
-                isAuthReady = true; // Auth state is now determined
+                isAuthReady = true;
             });
 
 
             // --- Login Button Click Listener ---
             if (loginButton) {
                 loginButton.addEventListener('click', async function(event) {
-                    event.preventDefault(); // Crucial for preventing default form submission
+                    event.preventDefault();
                     loginMessage.classList.add('hidden');
 
                     const enteredUsername = usernameInput.value;
                     const enteredPassword = passwordInput.value;
 
                     try {
-                        await signOut(auth); // Sign out any anonymous user first
+                        await signOut(auth);
                         await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
                         sessionStorage.setItem('loggedIn', 'true');
-                        // No need for window.location.reload() here, onAuthStateChanged will handle UI update
-                        // after a successful login.
                     } catch (error) {
                         console.error("Firebase Login Error:", error);
                         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -2807,12 +2508,11 @@
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async function() {
                     sessionStorage.removeItem('loggedIn');
-                    // Unsubscribe from real-time listeners to prevent memory leaks and unnecessary data fetching
                     if (unsubscribeRecords) unsubscribeRecords();
                     if (unsubscribeWebhooks) unsubscribeWebhooks();
                     if (unsubscribeDropdowns) unsubscribeDropdowns();
+                    if (unsubscribeQuestions) unsubscribeQuestions(); // NEW
                     await signOut(auth);
-                    // onAuthStateChanged will detect logout and re-initialize app display to login page
                 });
             }
 
@@ -2821,9 +2521,9 @@
             if (reportsTab) { reportsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = reportsTab.href; }); }
             if (autofailsTab) { autofailsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = autofailsTab.href; }); }
             if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = adminTab.href; }); }
-            if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); } // Direct call to showTab
+            if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); }
             if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; }); }
-            if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('nps'); }); } // NPS tab listener
+            if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('nps'); }); }
 
 
             if (selectAllRecordsCheckbox) {
@@ -2836,11 +2536,10 @@
                     });
             }
 
-            // Attaching event listeners for buttons that always exist
-            if (deleteSelectedRecordsBtn) { deleteSelectedRecordsBtn.addEventListener('click', () => { // Call without arguments
+            if (deleteSelectedRecordsBtn) { deleteSelectedRecordsBtn.addEventListener('click', () => {
                 const checkedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
                 const idsToDelete = Array.from(checkedCheckboxes).map(cb => cb.dataset.recordId);
-                deleteSelectedRecords(idsToDelete); // Pass the array of IDs
+                deleteSelectedRecords(idsToDelete);
             }); }
             if (addWebhookBtn) { addWebhookBtn.addEventListener('click', addWebhook); }
 
@@ -2855,7 +2554,7 @@
                         autofailDescriptionInput.value = '';
                         autofailDescriptionInput.removeAttribute('required');
                     }
-                    calculateScore(); // Recalculate score when autofail type changes
+                    calculateScore();
                 });
             }
 
@@ -2875,7 +2574,7 @@
             if (cerRoleSelect) {
                 cerRoleSelect.addEventListener('change', (event) => {
                     const selectedRole = event.target.value;
-                    renderQuestionsForRole(selectedRole); // Call the hoisted function
+                    renderQuestionsForRole(selectedRole);
                 });
             }
 
@@ -2905,23 +2604,22 @@
                 });
             }
 
-            if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', window.sendShareResponseEmail); } // Call global function
-            if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); } // Call global function
-            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); } // Call global function
-            if (pdfEmailDirectBtn) { pdfEmailDirectBtn.addEventListener('click', window.handlePdfAndDirectEmail); } // Call global function
+            if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', window.sendShareResponseEmail); }
+            if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); }
+            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); }
+            if (pdfEmailDirectBtn) { pdfEmailDirectBtn.addEventListener('click', window.handlePdfAndDirectEmail); }
 
 
             // Initial call to render questions if a role is pre-selected (e.g., from browser's autofill)
             // This happens after dropdowns are populated by fetchDropdownOptionsData
             const initialCerRole = cerRoleSelect.value;
             if (initialCerRole) {
-                renderQuestionsForRole(initialCerRole);  
+                renderQuestionsForRole(initialCerRole);
             } else {
-                // If no role is selected initially, clear question sections and reset score.
                 document.getElementById('cxQuestionsContainer').innerHTML = '';
                 document.getElementById('psQuestionsContainer').innerHTML = '';
                 document.getElementById('caQuestionsContainer').innerHTML = '';
-                calculateScore(); // Recalculate score if questions are cleared
+                calculateScore();
             }
         });
     </script>
