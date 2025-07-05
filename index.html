@@ -447,14 +447,14 @@
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                     <input type="text" id="username" name="username"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                           required placeholder="Enter your username">
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                            required placeholder="Enter your username">
                 </div>
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
                     <input type="password" id="password" name="password"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                           required placeholder="Enter your password">
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                            required placeholder="Enter your password">
                 </div>
                 <button type="button" id="loginButton"
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
@@ -477,8 +477,8 @@
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="#" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
                 <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li> 
-                <li><a href="nps.html" id="npsTab"><i class="fas fa-comment-alt"></i> NPS</a></li> 
+                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>  
+                <li><a href="nps.html" id="npsTab"><i class="fas fa-comment-alt"></i> NPS</a></li>  
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
@@ -717,7 +717,7 @@
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
                     <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)"
-                           class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity50 form-grid-input border border-blue-600">
+                            class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:focus:ring-opacity50 form-grid-input border border-blue-600">
                     <button id="addWebhookBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                         <i class="fas fa-plus mr-2"></i>Add Webhook
                     </button>
@@ -737,7 +737,7 @@
             <div class="mb-4">
                 <label for="select-record-search" class="block top-field-label">Search Record</label>
                 <input type="text" id="select-record-search" placeholder="Type to filter records..."
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600">
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600">
                 <label for="select-record-to-share" class="block top-field-label mt-2">Select Evaluation Record</label>
                 <select id="select-record-to-share" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" required>
                     <option value="">-- Select a Record --</option>
@@ -793,7 +793,6 @@
         };
 
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-        const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null) ? __initial_auth_token : null;
 
         // Initialize Firebase App and Services ONCE at the top level of the module
         let appInstance;
@@ -806,11 +805,15 @@
         const db = getFirestore(appInstance);
 
         // Define Firebase Collection Paths (using const as they don't change)
+        // Keep this path for evaluation records as it uses the standard structure
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
-        const DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
+        // --- MODIFIED FOR YOUR CURRENT DROPDOWN STRUCTURE ---
+        // This is the path to the 'general_options' COLLECTION that contains the auto-ID document
+        const DROPDOWN_OPTIONS_COLLECTION_PATH_FOR_QUERY = 'data/dropdown_options/general_options';
+        // --- END MODIFICATION ---
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
         let allRecords = [];
@@ -1181,7 +1184,7 @@
                             complianceCurrentPoints += weightage;
                         }
                         if (rating !== '') { // Only add to compliance max points if rated (not "Select Rating")
-                             complianceMaxPoints += weightage;
+                                complianceMaxPoints += weightage;
                         }
                     }
                 }
@@ -1371,6 +1374,10 @@
 
 
             // Hide all content sections for this index.html
+            const auditFormContent = document.getElementById('auditFormContent');
+            const databaseContent = document.getElementById('databaseContent');
+            const shareResponseContent = document.getElementById('shareResponseContent');
+
             if (auditFormContent) auditFormContent.style.display = 'none';
             if (databaseContent) databaseContent.style.display = 'none';
             if (shareResponseContent) shareResponseContent.style.display = 'none';
@@ -1442,6 +1449,8 @@
                 return;
             }
 
+            // Note: EVALUATION_RECORDS_COLLECTION_PATH and WEBHOOKS_COLLECTION_PATH still use artifacts/${appId}/public/data/
+            // If these are also moved, their paths need modification.
             if (!EVALUATION_RECORDS_COLLECTION_PATH || !WEBHOOKS_COLLECTION_PATH) { // Use local constants
                 console.error("Firestore collection paths are not defined.");
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
@@ -1773,13 +1782,13 @@
 
             const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
-                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                     `Contact ID: ${contactId}\n` +
-                                     `CER Name: ${cerName}\n` +
-                                     `Overall Score: ${overallScore}\n` +
-                                     `Evaluation Date: ${evaluationDate}\n\n` +
-                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                     `Kind Regards,\nQuality Evaluation Team`;
+                                        `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                        `Contact ID: ${contactId}\n` +
+                                        `CER Name: ${cerName}\n` +
+                                        `Overall Score: ${overallScore}\n` +
+                                        `Evaluation Date: ${evaluationDate}\n\n` +
+                                        `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                        `Kind Regards,\nQuality Evaluation Team`;
 
             // This function is still using mailto for direct email from database tab.
             // The PDF & Share button will use the handlePdfAndShare logic.
@@ -1980,6 +1989,7 @@
             }
 
             try {
+                // This query assumes evaluation_records are still in the artifacts/{appId}/public/data/evaluation_records structure
                 const q = query(
                     collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
                     where('CER Name', '==', cerName),
@@ -2075,21 +2085,20 @@
                 console.warn("Firestore not ready for fetching dropdowns.");
                 return;
             }
-            if (!DROPDOWN_DATA_COLLECTION_PATH) {
-                console.error("Dropdowns collection path is not defined.");
-                return;
-            }
-
-            const dropdownDocRef = doc(db, DROPDOWN_DATA_COLLECTION_PATH, 'general_options');
+            // MODIFIED: Use the new collection path for the dropdowns
+            const dropdownsCollectionRef = collection(db, DROPDOWN_OPTIONS_COLLECTION_PATH_FOR_QUERY);
 
             if (unsubscribeDropdowns) {
                 unsubscribeDropdowns(); // Unsubscribe previous listener if exists
             }
 
-            // Using onSnapshot for real-time updates
-            unsubscribeDropdowns = onSnapshot(dropdownDocRef, (docSnap) => { // Assign unsubscribe function here
-                if (docSnap.exists()) {
-                    // Update the global dropdownOptions with the fetched data
+            // Using onSnapshot to query the collection and listen for changes
+            unsubscribeDropdowns = onSnapshot(dropdownsCollectionRef, (querySnapshot) => {
+                if (!querySnapshot.empty) {
+                    // *** THIS IS THE CRITICAL PART FOR AUTO-ID DOCUMENTS ***
+                    // It assumes your dropdown data is in the FIRST document found in the collection.
+                    // This is brittle if multiple documents appear in 'general_options' collection.
+                    const docSnap = querySnapshot.docs[0];
                     dropdownOptions = docSnap.data();
                     console.log("Dropdown data updated from Firestore:", dropdownOptions);
 
@@ -2106,8 +2115,7 @@
                         });
                     }
                 } else {
-                    console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
-                    // If document doesn't exist, set local data to empty, it will be created on first add.
+                    console.warn("Dropdown options collection is empty or document does not exist. Initializing with empty arrays locally.");
                     dropdownOptions = {
                         cerNames: [],
                         cerRoles: [],
@@ -2274,10 +2282,10 @@
                     const overallScore = record['Overall Score'] ? String(record['Overall Score']).toLowerCase() : '';
 
                     return clientName.includes(searchTerm) ||
-                               contactId.includes(searchTerm) ||
-                               cerName.includes(searchTerm) ||
-                               reviewDate.includes(searchTerm) ||
-                               overallScore.includes(searchTerm);
+                                contactId.includes(searchTerm) ||
+                                cerName.includes(searchTerm) ||
+                                reviewDate.includes(searchTerm) ||
+                                overallScore.includes(searchTerm);
                 });
             } else {
                 filtered = [...filterableRecords]; // If no search term, show all records
@@ -2314,7 +2322,6 @@
                 shareEmailBody.value = `Dear ${cerName},\n\n` +
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
                     `Your overall score for this interaction was ${overallScore}.\n\n` +
-                    `(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)`;
                     `This feedback is provided to help you continue to improve service quality.\n\n` +
                     `If you have any questions, please feel free to reach out.\n\n` +
                     `Kind Regards,\n${loggedInUserName}`;
@@ -2385,8 +2392,7 @@
             // NO LONGER HIDING scoresSection
             // let originalScoresDisplay = '';
             // if (scoresSection) {
-            //     scoresSection.style.display = originalScoresDisplay;
-            //     scoresSection.style.display = 'none';
+            //   scoresSection.style.display = originalScoresDisplay;
             // }
 
             // Ensure the main content div's overflow is visible for accurate capture
@@ -2424,7 +2430,7 @@
             }
             // NO LONGER HIDING scoresSection
             // if (scoresSection) {
-            //     scoresSection.style.display = originalScoresDisplay;
+            //   scoresSection.style.display = originalScoresDisplay;
             // }
 
             // Revert main content div's overflow
@@ -2566,8 +2572,8 @@
                     `Kind Regards,\n${loggedInUserName}`;
 
                 const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}` +
-                                           `?subject=${encodeURIComponent(emailSubject)}` +
-                                           `&body=${encodeURIComponent(emailBody)}`;
+                                        `?subject=${encodeURIComponent(emailSubject)}` +
+                                        `&body=${encodeURIComponent(emailBody)}`;
 
                 window.location.href = mailtoLink;
 
@@ -2822,13 +2828,13 @@
 
 
             if (selectAllRecordsCheckbox) {
-                    selectAllRecordsCheckbox.addEventListener('change', () => {
-                    const isChecked = selectAllRecordsCheckbox.checked;
-                    document.querySelectorAll('.record-checkbox').forEach(checkbox => {
-                        checkbox.checked = isChecked;
+                        selectAllRecordsCheckbox.addEventListener('change', () => {
+                        const isChecked = selectAllRecordsCheckbox.checked;
+                        document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                            checkbox.checked = isChecked;
+                        });
+                        updateDeleteButtonState();
                     });
-                    updateDeleteButtonState();
-                });
             }
 
             // Attaching event listeners for buttons that always exist
