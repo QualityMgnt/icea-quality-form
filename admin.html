@@ -305,16 +305,13 @@
     </style>
 </head>
 <body>
-    <!-- NEW TOP HEADER BAR -->
     <div class="top-header">
         ICEA LION QUALITY EVALUATION AND MONITORING
     </div>
 
-    <!-- Main Navigation / Sidebar -->
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
             <ul>
-                <!-- Ensure these paths are correct relative to admin.html -->
                 <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
                 <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
                 <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
@@ -327,7 +324,6 @@
         </div>
     </nav>
 
-    <!-- Login Page (re-used from index.html) -->
     <div class="login-container" id="loginPage" style="display: none;">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
@@ -356,7 +352,6 @@
         </div>
     </div>
 
-    <!-- Main Content Area for Admin -->
     <div class="main-content" id="adminContent">
         <div class="admin-container">
             <div class="icealion-blue p-4 text-xl font-semibold text-center">
@@ -367,7 +362,6 @@
                     Use this section to manage the dynamic dropdown options that appear on the Quality Assessment Form.
                 </p>
 
-                <!-- Dropdown Type Selection -->
                 <div class="admin-section mb-6">
                     <h2>Select Dropdown Type</h2>
                     <div class="form-group-admin">
@@ -382,13 +376,11 @@
                     </div>
                 </div>
 
-                <!-- Manage Values Section -->
                 <div class="admin-section" id="manageDropdownValuesSection" style="display: none;">
                     <h2 id="currentDropdownTitle">Manage Items</h2>
                     <div class="form-group-admin">
                         <label>Current Items:</label>
                         <ul id="currentDropdownItems" class="current-items-list">
-                            <!-- Dynamically populated list -->
                             <li>No items loaded. Select a dropdown type.</li>
                         </ul>
                     </div>
@@ -407,7 +399,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (for Firestore and Auth) -->
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
@@ -420,7 +411,7 @@
           projectId: "icea-lion-qa",
           storageBucket: "icea-lion-qa.firebasestorage.app",
           messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+          appId: "1:820082472004:web:8caddf941e1b5b667faf811", // Corrected appId for consistency
           measurementId: "G-1RJJTT3QET"
         };
 
@@ -437,11 +428,11 @@
         const db = getFirestore(appInstance);
 
         // Define Firestore Paths
+        // This is the correct document reference based on your desired path
         const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`; // Path to user profiles for role check
 
         // Global variables for admin page state
-        // Initialized with default structure to prevent 'undefined' errors
         let currentDropdownData = { // Initialize with default structure
             cerNames: [],
             cerRoles: [],
@@ -475,9 +466,6 @@
             const mainNav = document.getElementById('mainNav');
             const adminContent = document.getElementById('adminContent');
 
-            const isLoggedIn = sessionStorage.getItem('loggedIn');
-            const user = auth.currentUser;
-
             // Wait for auth to be fully loaded and user role determined
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
@@ -497,7 +485,7 @@
                     }
 
                     // Removed the 'admin' role check here for page access as requested
-                    if (isLoggedIn === 'true') { // Now any logged in user can view admin.html
+                    if (sessionStorage.getItem('loggedIn') === 'true') { // Now any logged in user can view admin.html
                         loginPage.style.display = 'none';
                         mainNav.style.display = 'block';
                         adminContent.style.display = 'block';
@@ -509,14 +497,15 @@
                         });
                         setupDropdownsListener(); // Start listening to dropdown changes from Firestore
                     } else {
-                        // User logged in but not admin, or session is inconsistent
+                        // User logged in but session is inconsistent, or not allowed based on session
                         sessionStorage.removeItem('loggedIn'); // Clear potentially stale session
                         loginPage.style.display = 'flex';
                         mainNav.style.display = 'none';
                         adminContent.style.display = 'none';
                         showLoginErrorMessage("Access Denied: Please log in to access this page.");
-                        // Sign out if not admin
-                        if(user) signOut(auth);
+                        // Sign out if not admin (this would be where you'd redirect if role-based restriction was desired)
+                        // For now, if 'loggedIn' session isn't true, just show login.
+                        if(user) signOut(auth); // Ensure user is signed out if session is inconsistent
                     }
                 } else {
                     // No Firebase user, show login page
@@ -524,8 +513,7 @@
                     mainNav.style.display = 'none';
                     adminContent.style.display = 'none';
                     sessionStorage.removeItem('loggedIn'); // Clear session
-                    // Attempt anonymous sign-in only if necessary for public reads on other pages,
-                    // but for Admin, just showing login is sufficient.
+                    // No anonymous sign-in here, as admin page generally requires explicit login
                 }
             });
         };
@@ -544,8 +532,8 @@
                     console.log("Dropdown data updated from Firestore:", currentDropdownData);
                 } else {
                     console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
-                    // If document doesn't exist, set local data to empty, it will be created on first add.
-                    // This local initialization handles the 'not defined' error.
+                    // If document doesn't exist, set local data to empty arrays.
+                    // This will allow `setDoc` to create it on the first add.
                     currentDropdownData = {
                         cerNames: [],
                         cerRoles: [],
@@ -567,10 +555,8 @@
         };
 
 
-        // --- Helper to render items into the ul (Moved to top level of module) ---
-        // Now accepts typeToRender as an argument
+        // --- Helper to render items into the ul ---
         function renderCurrentDropdownItems(typeToRender) {
-            // Ensure elements are available
             const currentDropdownItemsList = document.getElementById('currentDropdownItems');
             if (!currentDropdownItemsList) {
                 console.warn("UI elements for dropdown items not found during renderCurrentDropdownItems. This might happen before DOM is fully ready or if page is not admin.html.");
@@ -594,7 +580,7 @@
 
                 if (typeToRender === 'cerNames' && typeof item === 'object' && item.name) {
                     displayText = `${item.name} (${item.email || 'No Email'})`;
-                    valueToStore = item; // Store the full object for removal
+                    valueToStore = { name: item.name, email: item.email || '' }; // Ensure consistent object structure for removal
                 }
 
                 li.innerHTML = `<span class="item-text">${displayText}</span>`;
@@ -669,154 +655,157 @@
             }
 
             // --- Dropdown Management Event Listeners ---
-            dropdownTypeSelect.addEventListener('change', function() {
-                const selectedType = this.value; // Get the selected type
-                dropdownMessage.classList.add('hidden'); // Clear messages
+            if (dropdownTypeSelect) { // Ensure element exists before adding listener
+                dropdownTypeSelect.addEventListener('change', function() {
+                    const selectedType = this.value; // Get the selected type
+                    dropdownMessage.classList.add('hidden'); // Clear messages
 
-                if (selectedType) { // Check if a valid type is selected
-                    manageDropdownValuesSection.style.display = 'block';
-                    currentDropdownTitle.textContent = `Manage ${this.options[this.selectedIndex].text}`;
+                    if (selectedType) { // Check if a valid type is selected
+                        manageDropdownValuesSection.style.display = 'block';
+                        currentDropdownTitle.textContent = `Manage ${this.options[this.selectedIndex].text}`;
 
-                    // Show/hide email input based on selected dropdown
-                    if (selectedType === 'cerNames') { // Use selectedType here
-                        newDropdownEmailInput.style.display = 'block';
-                        newDropdownEmailInput.setAttribute('required', 'required');
-                        newDropdownValueInput.placeholder = "Enter CER Name";
-                    } else {
-                        newDropdownEmailInput.style.display = 'none';
-                        newDropdownEmailInput.removeAttribute('required');
-                        newDropdownEmailInput.value = ''; // Clear email input
-                        newDropdownValueInput.placeholder = "Enter new value";
-                    }
-                    renderCurrentDropdownItems(selectedType); // Pass the selectedType to the render function
-                } else {
-                    manageDropdownValuesSection.style.display = 'none';
-                    currentDropdownItems.innerHTML = '<li>No items loaded. Select a dropdown type.</li>';
-                }
-            });
-
-            addDropdownValueBtn.addEventListener('click', async function() {
-                const newItemValue = newDropdownValueInput.value.trim();
-                const selectedType = dropdownTypeSelect.value; // Get selected type here
-                let itemToAdd;
-
-                if (!selectedType) {
-                    showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
-                    return;
-                }
-                if (!newItemValue) {
-                    showMessage(dropdownMessage, 'Item name cannot be empty.', 'error');
-                    return;
-                }
-
-                // Removed the 'currentUserRole !== 'admin'' check here, as requested
-                // Now any authenticated user (as per Firestore rules) can modify dropdowns via this page.
-
-                // Defensive check: Ensure currentDropdownData[selectedType] is an array
-                const currentItemsArray = currentDropdownData[selectedType] || [];
-
-                if (selectedType === 'cerNames') {
-                    const newEmailValue = newDropdownEmailInput.value.trim();
-                    if (!newEmailValue) {
-                         showMessage(dropdownMessage, 'Email is required for CER Names.', 'error');
-                         return;
-                    }
-                    itemToAdd = { name: newItemValue, email: newEmailValue };
-                    // Check for duplicate CER Name (case-sensitive as stored)
-                    const isDuplicate = currentItemsArray.some(cer => typeof cer === 'object' && cer.name === newItemValue);
-                    if (isDuplicate) {
-                        showMessage(dropdownMessage, 'CER Name already exists.', 'error');
-                        return;
-                    }
-                } else {
-                    itemToAdd = newItemValue;
-                     // Check for duplicate string entry
-                    const isDuplicate = currentItemsArray.includes(newItemValue);
-                    if (isDuplicate) {
-                        showMessage(dropdownMessage, 'This item already exists.', 'error');
-                        return;
-                    }
-                }
-
-                try {
-                    // Check if the general_options document exists. If not, set it first with empty arrays.
-                    const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
-                    if (!docSnap.exists()) {
-                        // Initialize with empty arrays for all types
-                        const initialData = {
-                            cerNames: [],
-                            cerRoles: [],
-                            reviewerNames: [],
-                            autofailTypes: []
-                        };
-                        // Add the first item directly to the initial data for the correct type
-                        if (initialData[selectedType]) {
-                            initialData[selectedType].push(itemToAdd);
+                        // Show/hide email input based on selected dropdown
+                        if (selectedType === 'cerNames') { // Use selectedType here
+                            newDropdownEmailInput.style.display = 'block';
+                            newDropdownEmailInput.setAttribute('required', 'required');
+                            newDropdownValueInput.placeholder = "Enter CER Name";
+                        } else {
+                            newDropdownEmailInput.style.display = 'none';
+                            newDropdownEmailInput.removeAttribute('required');
+                            newDropdownEmailInput.value = ''; // Clear email input
+                            newDropdownValueInput.placeholder = "Enter new value";
                         }
-                        await setDoc(DROPDOWN_DATA_DOC_REF, initialData);
-                        console.log("Created initial general_options document with first item.");
+                        renderCurrentDropdownItems(selectedType); // Pass the selectedType to the render function
                     } else {
-                        // Document exists, proceed with updating the document
+                        manageDropdownValuesSection.style.display = 'none';
+                        currentDropdownItems.innerHTML = '<li>No items loaded. Select a dropdown type.</li>';
+                    }
+                });
+            }
+
+
+            if (addDropdownValueBtn) { // Ensure element exists before adding listener
+                addDropdownValueBtn.addEventListener('click', async function() {
+                    const newItemValue = newDropdownValueInput.value.trim();
+                    const selectedType = dropdownTypeSelect.value; // Get selected type here
+                    let itemToAdd;
+
+                    if (!selectedType) {
+                        showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                        return;
+                    }
+                    if (!newItemValue) {
+                        showMessage(dropdownMessage, 'Item name cannot be empty.', 'error');
+                        return;
+                    }
+
+                    // For 'cerNames', ensure email is provided and construct object
+                    if (selectedType === 'cerNames') {
+                        const newEmailValue = newDropdownEmailInput.value.trim();
+                        if (!newEmailValue) {
+                            showMessage(dropdownMessage, 'Email is required for CER Names.', 'error');
+                            return;
+                        }
+                        itemToAdd = { name: newItemValue, email: newEmailValue };
+                        // Check for duplicate CER Name (case-sensitive as stored)
+                        const isDuplicate = currentDropdownData.cerNames.some(cer => typeof cer === 'object' && cer.name === newItemValue);
+                        if (isDuplicate) {
+                            showMessage(dropdownMessage, 'CER Name already exists.', 'error');
+                            return;
+                        }
+                    } else {
+                        itemToAdd = newItemValue;
+                        // Check for duplicate string entry
+                        const currentItemsArray = currentDropdownData[selectedType] || [];
+                        const isDuplicate = currentItemsArray.includes(newItemValue);
+                        if (isDuplicate) {
+                            showMessage(dropdownMessage, 'This item already exists.', 'error');
+                            return;
+                        }
+                    }
+
+                    try {
+                        // Check if the general_options document exists. If not, set it first with empty arrays.
+                        const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
+                        if (!docSnap.exists()) {
+                            // Initialize with empty arrays for all types
+                            const initialData = {
+                                cerNames: [],
+                                cerRoles: [],
+                                reviewerNames: [],
+                                autofailTypes: []
+                            };
+                            // Add the first item directly to the initial data for the correct type
+                            if (initialData[selectedType]) {
+                                initialData[selectedType].push(itemToAdd);
+                            }
+                            await setDoc(DROPDOWN_DATA_DOC_REF, initialData);
+                            console.log("Created initial general_options document with first item.");
+                        } else {
+                            // Document exists, proceed with updating the document
+                            const updateData = {
+                                [selectedType]: arrayUnion(itemToAdd)
+                            };
+                            await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
+                        }
+
+                        showMessage(dropdownMessage, 'Item added successfully!', 'success');
+                        newDropdownValueInput.value = '';
+                        newDropdownEmailInput.value = ''; // Clear email input
+                    } catch (error) {
+                        console.error("Error adding dropdown item:", error);
+                        showMessage(dropdownMessage, `Failed to add item: ${error.message}`, 'error');
+                    }
+                });
+            }
+
+
+            if (removeDropdownValueBtn) { // Ensure element exists before adding listener
+                removeDropdownValueBtn.addEventListener('click', async function() {
+                    const selectedListItems = Array.from(currentDropdownItems.children).filter(li => li.classList.contains('selected'));
+                    const selectedType = dropdownTypeSelect.value; // Get selected type here
+
+                    if (!selectedType) {
+                        showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
+                        return;
+                    }
+                    if (selectedListItems.length === 0) {
+                        showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
+                        return;
+                    }
+
+                    if (!confirm(`Are you sure you want to remove these ${selectedListItems.length} item(s)?`)) {
+                        return;
+                    }
+
+                    try {
+                        // Parse the stored data-value to get the actual item (string or object)
+                        const itemsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.value));
+
+                        // Use arrayRemove to remove items from the specific array field in Firestore
                         const updateData = {
-                            [selectedType]: arrayUnion(itemToAdd)
+                            [selectedType]: arrayRemove(...itemsToRemove)
                         };
                         await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
+                        showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
+                        // List will auto-refresh due to onSnapshot listener
+                    } catch (error) {
+                        console.error("Error removing dropdown item(s):", error);
+                        showMessage(dropdownMessage, `Failed to remove item(s): ${error.message}`, 'error');
                     }
+                });
+            }
 
-                    showMessage(dropdownMessage, 'Item added successfully!', 'success');
-                    newDropdownValueInput.value = '';
-                    newDropdownEmailInput.value = ''; // Clear email input
-                } catch (error) {
-                    console.error("Error adding dropdown item:", error);
-                    showMessage(dropdownMessage, `Failed to add item: ${error.message}`, 'error');
-                }
-            });
-
-            removeDropdownValueBtn.addEventListener('click', async function() {
-                // Access currentDropdownItems directly from the DOM, as renderCurrentDropdownItems populates it
-                const selectedListItems = Array.from(currentDropdownItems.children).filter(li => li.classList.contains('selected'));
-                const selectedType = dropdownTypeSelect.value; // Get selected type here
-
-                if (!selectedType) {
-                    showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
-                    return;
-                }
-                if (selectedListItems.length === 0) {
-                    showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
-                    return;
-                }
-
-                // Removed the 'currentUserRole !== 'admin'' check here, as requested
-                // Now any authenticated user (as per Firestore rules) can modify dropdowns via this page.
-
-                if (!confirm(`Are you sure you want to remove these ${selectedListItems.length} item(s)?`)) {
-                    return;
-                }
-
-                try {
-                    // Parse the stored data-value to get the actual item (string or object)
-                    const itemsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.value));
-
-                    // Use arrayRemove to remove items from the specific array field in Firestore
-                    const updateData = {
-                        [selectedType]: arrayRemove(...itemsToRemove)
-                    };
-                    await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
-                    showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
-                    // List will auto-refresh due to onSnapshot listener
-                } catch (error) {
-                    console.error("Error removing dropdown item(s):", error);
-                    showMessage(dropdownMessage, `Failed to remove item(s): ${error.message}`, 'error');
-                }
-            });
 
             // --- Navigation Link Event Listeners (for other pages) ---
+            // These should likely be active even if not logged in to allow navigation back to login-protected index.html
             document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
             document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
             document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
             document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
             document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
             document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
+            // The admin tab itself doesn't need a redirect listener here as it's the current page.
         });
     </script>
 </body>
