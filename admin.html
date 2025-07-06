@@ -327,7 +327,7 @@
             <ul>
                 <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
                 <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li><a href="Dashboard.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Dashboard</a></li> <!-- Updated link -->
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
                 <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
@@ -708,7 +708,7 @@
 
             unsubscribeCustomFieldsListener = onSnapshot(CUSTOM_FIELDS_CONFIG_DOC_REF, (docSnap) => {
                 if (docSnap.exists() && docSnap.data().fields) {
-                    customFormFields = docSnap.data().fields;
+                    customFormFields = docSnap.data().fields.sort((a, b) => a.order - b.order); // Sort by order
                     console.log("Custom form fields data updated from Firestore:", customFormFields);
                 } else {
                     console.warn("Custom form fields configuration document does not exist or is empty. Initializing with empty array locally.");
@@ -716,7 +716,7 @@
                 }
                 renderCustomFieldsList(); // Render the list in the admin panel
             }, (error) => {
-                console.error("Error listening to custom form fields data:", error);
+                console.error("Error listening to custom fields data:", error);
                 showMessage(document.getElementById('customFieldMessage'), "Error loading custom fields data. Please check console.", 'error');
             });
         };
@@ -839,7 +839,7 @@
                 displayText += `, Required: ${field.required ? 'Yes' : 'No'}, Order: ${field.order}`;
 
                 li.innerHTML = `<span class="item-text">${displayText}</span>`;
-                li.dataset.fieldData = JSON.stringify(field); // Store full field object
+                li.dataset.fieldData = JSON.stringify(field);
                 li.addEventListener('click', () => {
                     li.classList.toggle('selected');
                 });
@@ -1052,14 +1052,13 @@
                         const itemsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.value));
 
                         const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
-                        let currentData = docSnap.exists() ? docSnap.data() : {};
+                        let currentData = docSnap.exists() ? docSnap.data() : { fields: [] };
                         
                         if (currentData[selectedType]) {
-                            // Filter out the items to remove from the array
                             currentData[selectedType] = currentData[selectedType].filter(existingItem =>
                                 !itemsToRemove.some(itemToRemove => JSON.stringify(itemToRemove) === JSON.stringify(existingItem))
                             );
-                            await setDoc(DROPDOWN_DATA_DOC_REF, currentData); // Overwrite with the filtered array
+                            await setDoc(DROPDOWN_DATA_DOC_REF, currentData);
                             showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
                         } else {
                             showMessage(dropdownMessage, 'No items found for the selected type.', 'error');
@@ -1193,7 +1192,7 @@
             if (customFieldTypeSelect) {
                 customFieldTypeSelect.addEventListener('change', () => {
                     const selectedType = customFieldTypeSelect.value;
-                    customFieldMessage.classList.add('hidden'); // Clear messages
+                    customFieldMessage.classList.add('hidden');
 
                     if (selectedType) {
                         customFieldDetailsContainer.style.display = 'block';
@@ -1203,7 +1202,7 @@
                         } else {
                             customFieldOptionsContainer.style.display = 'none';
                             customFieldOptionsTextarea.removeAttribute('required');
-                            customFieldOptionsTextarea.value = ''; // Clear options
+                            customFieldOptionsTextarea.value = '';
                         }
                     } else {
                         customFieldDetailsContainer.style.display = 'none';
@@ -1211,7 +1210,6 @@
                         customFieldOptionsTextarea.removeAttribute('required');
                         customFieldOptionsTextarea.value = '';
                     }
-                    // Reset inputs when type changes
                     customFieldLabelInput.value = '';
                     customFieldIdInput.value = '';
                     customFieldOrderInput.value = '0';
@@ -1265,12 +1263,10 @@
                         const docSnap = await getDoc(CUSTOM_FIELDS_CONFIG_DOC_REF);
                         let currentFieldsData = docSnap.exists() ? docSnap.data() : { fields: [] };
 
-                        // Ensure 'fields' array exists and is an array
                         if (!Array.isArray(currentFieldsData.fields)) {
                             currentFieldsData.fields = [];
                         }
 
-                        // Check for duplicate ID
                         const isDuplicateId = currentFieldsData.fields.some(field => field.id === newField.id);
                         if (isDuplicateId) {
                             showMessage(customFieldMessage, `A custom field with ID '${newField.id}' already exists. Please use a unique ID.`, 'error');
@@ -1279,10 +1275,9 @@
 
                         currentFieldsData.fields.push(newField);
 
-                        await setDoc(CUSTOM_FIELDS_CONFIG_DOC_REF, currentFieldsData); // Overwrite with updated fields array
+                        await setDoc(CUSTOM_FIELDS_CONFIG_DOC_REF, currentFieldsData);
                         showMessage(customFieldMessage, 'Custom field added successfully!', 'success');
 
-                        // Clear form
                         customFieldTypeSelect.value = '';
                         customFieldDetailsContainer.style.display = 'none';
                         customFieldOptionsContainer.style.display = 'none';
@@ -1338,7 +1333,7 @@
             // --- Navigation Link Event Listeners (for other pages) ---
             document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
             document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
-            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
+            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'Dashboard.html'; }); // Updated link
             document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
             document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
             document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
