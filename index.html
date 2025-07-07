@@ -428,6 +428,10 @@
             border: 1px solid #e0e0e0;
             font-size: 0.875rem;
         }
+        /* Added !important to ensure this display rule takes precedence */
+        .hidden {
+            display: none !important;
+        }
 
     </style>
 </head>
@@ -1669,6 +1673,7 @@
          * Then reveals the PDF & Share button.
          */
         window.saveFormToDB = async function() {
+            console.log("saveFormToDB called."); // Debug log
             const form = document.getElementById('assessment-form');
             const contactId = document.getElementById('contact-id').value.trim();
             const clientName = document.getElementById('client-name').value.trim();
@@ -1799,14 +1804,14 @@
             });
 
             latestSavedRecordId = await addRecordToFirestore(formData);
+            console.log("latestSavedRecordId after addRecordToFirestore:", latestSavedRecordId); // Debug log
+
             if (latestSavedRecordId) {
                 // Ensure the buttons are visible and active
                 document.getElementById('pdfShareBtn').classList.remove('hidden');
-                document.getElementById('pdfShareBtn').style.display = 'inline-block'; // Explicitly set display
                 document.getElementById('pdfEmailDirectBtn').classList.remove('hidden');
-                document.getElementById('pdfEmailDirectBtn').style.display = 'inline-block'; // Explicitly set display
 
-                console.log("PDF & Share buttons unhidden and displayed."); // Debug log
+                console.log("PDF & Share buttons unhidden."); // Debug log
             } else {
                 console.log("Record not saved, PDF & Share buttons remain hidden."); // Debug log
             }
