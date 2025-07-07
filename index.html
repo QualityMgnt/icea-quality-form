@@ -445,6 +445,25 @@
         </div>
     </div>
 
+    <div id="pdfOptionsModal" class="message-box-overlay hidden">
+        <div class="message-box">
+            <h3 id="pdfOptionsTitle">Save Successful! What next?</h3>
+            <p id="pdfOptionsContent">Your evaluation has been saved. You can now generate a PDF and share it.</p>
+            <div class="flex flex-col space-y-3 mt-4">
+                <button id="pdfOptionsPdfAndEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                    PDF & Email (Direct Send)
+                </button>
+                <button id="pdfOptionsPdfAndShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                    PDF & Share
+                </button>
+                <button id="pdfOptionsCancelBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                    Close & Start New
+                </button>
+            </div>
+        </div>
+    </div>
+
+
     <div class="login-container" id="loginPage">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-xs">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
@@ -643,12 +662,6 @@
                 <div class="flex items-center justify-between w-full mt-4">
                     <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
                     <div class="flex space-x-4">
-                        <button type="button" id="pdfEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
-                            PDF & Email (Direct Send)
-                        </button>
-                        <button type="button" id="pdfShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
-                            PDF & Share
-                        </button>
                         <button type="submit" id="saveFormBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             Save
                         </button>
@@ -868,12 +881,12 @@
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
-            const autofailTypeSelect = document.getElementById('autofail-type');
+            const autofailTypeSelect = document.getElementById('autofail-type'); // Assuming this exists
 
             let currentTotalPoints = 0;
             let currentMaxPossiblePoints = 0;
             let autofailQuestionTriggered = false;
-            let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== '');
+            let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== ''); // Check if an autofail type is selected
 
             let complianceCurrentPoints = 0;
             let complianceMaxPoints = 0;
@@ -912,7 +925,7 @@
                     if (isAutofailQuestion) {
                         pointsElement.style.backgroundColor = '#fca5a5';
                         pointsElement.style.color = '#dc2626';
-                        autofailQuestionTriggered = true;
+                        autofailQuestionTriggered = true; // Mark that an autofail question was 'No'
                     } else {
                         pointsElement.style.backgroundColor = '#e0e0e0';
                     }
@@ -925,10 +938,12 @@
                 pointsElement.value = pointsForThisQuestion;
                 currentTotalPoints += pointsForThisQuestion;
 
+                // Only add to max possible points if a rating other than empty is selected
                 if (rating !== '') {
                     currentMaxPossiblePoints += weightage;
                 }
 
+                // Calculate compliance score regardless of autofail
                 const currentRole = cerRoleSelect.value;
                 if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
                     const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
@@ -943,20 +958,23 @@
                 }
             });
 
-            let overallPercentage = 0;
-            if (autofailQuestionTriggered || autofailTypeSelected) {
-                overallPercentage = 0;
-            } else {
-                if (currentMaxPossiblePoints > 0) {
-                    overallPercentage = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
-                } else {
-                    overallPercentage = 0;
-                }
+            // Calculate overall percentage BEFORE considering autofail
+            let calculatedOverallPercentageBeforeAutofail = 0;
+            if (currentMaxPossiblePoints > 0) {
+                calculatedOverallPercentageBeforeAutofail = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
             }
 
-            overallScoreDisplay.textContent = `${overallPercentage}%`;
-            totalPtsPercentageDisplay.textContent = `${overallPercentage}%`;
-            overallFinalPercentageDisplay.textContent = `${overallPercentage}%`;
+            // Update "Overall Score" and "Total Pts." to show the score *before* autofail
+            overallScoreDisplay.textContent = `${calculatedOverallPercentageBeforeAutofail}%`;
+            totalPtsPercentageDisplay.textContent = `${calculatedOverallPercentageBeforeAutofail}%`;
+
+            // Apply autofail penalty ONLY to the "Overall Final Percentage"
+            let finalOverallPercentage = calculatedOverallPercentageBeforeAutofail;
+            if (autofailQuestionTriggered || autofailTypeSelected) {
+                finalOverallPercentage = 0;
+            }
+            overallFinalPercentageDisplay.textContent = `${finalOverallPercentage}%`;
+
 
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
@@ -966,9 +984,13 @@
             }
             businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
 
-            globalTotalPoints = currentTotalPoints;
-            globalMaxPossiblePoints = currentMaxPossiblePoints;
+            globalTotalPoints = currentTotalPoints; // Keep raw total points for saving
+            globalMaxPossiblePoints = currentMaxPossiblePoints; // Keep raw max possible points for saving
             globalBusinessComplianceAccuracyValue = businessCompliancePct;
+            // Ensure that 'Overall Score' in formData stores the *final* score, which is affected by autofail.
+            // If you need the pre-autofail score for database storage, you'd need another field.
+            // For now, the existing 'Overall Score' in formData will take the finalOverallPercentage.
+            // You might want to add 'Pre-Autofail Score' to formData if you want to explicitly store it.
         }
 
         // Renders dynamic questions based on CER Role
@@ -1106,6 +1128,16 @@
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             messageBoxOverlay.classList.add('hidden');
         }
+
+        // Functions for PDF Options Modal
+        function showPdfOptionsModal() {
+            document.getElementById('pdfOptionsModal').classList.remove('hidden');
+        }
+
+        function hidePdfOptionsModal() {
+            document.getElementById('pdfOptionsModal').classList.add('hidden');
+        }
+
 
         // UI Tab Switching Logic
         function showTab(tabName) {
@@ -1688,10 +1720,11 @@
                 'Autofail Description': autofailDescription,
                 'Evaluation Date': reviewDate,
                 'Call Duration': duration,
-                'Overall Score': document.getElementById('overall-score-display').textContent,
+                'Overall Score': document.getElementById('overall-score-display').textContent, // This now reflects pre-autofail score
                 'Business & Compliance Accuracy': document.getElementById('business-compliance-accuracy').textContent,
                 'Total Pts.': globalTotalPoints,
                 'Max Possible Pts.': globalMaxPossiblePoints,
+                'Overall Final Percentage (Autofail Applied)': document.getElementById('overall-final-percentage-display').textContent, // Store the final score separately
                 'Evaluated By User ID': currentUserId,
                 'Evaluated By User Email': auth.currentUser ? auth.currentUser.email : 'anonymous',
                 'pdfAttachment': pdfDataUrl // NEW: Store PDF data URL here
@@ -1727,15 +1760,11 @@
 
             latestSavedRecordId = await addRecordToFirestore(formData);
             if (latestSavedRecordId) {
-                // Ensure the buttons are visible and active
-                document.getElementById('pdfShareBtn').classList.remove('hidden');
-                document.getElementById('pdfShareBtn').style.display = 'inline-block'; // Explicitly set display
-                document.getElementById('pdfEmailDirectBtn').classList.remove('hidden');
-                document.getElementById('pdfEmailDirectBtn').style.display = 'inline-block'; // Explicitly set display
-
-                console.log("PDF & Share buttons unhidden and displayed."); // Debug log
+                // Show the new PDF options modal
+                showPdfOptionsModal();
+                console.log("PDF Options modal displayed after save."); 
             } else {
-                console.log("Record not saved, PDF & Share buttons remain hidden."); // Debug log
+                console.log("Record not saved, PDF Options modal not displayed."); 
             }
         };
 
@@ -1800,9 +1829,6 @@
             renderQuestionsForRole(currentRole);
             calculateScore();
 
-            // Hide the PDF/Email buttons again after reset
-            document.getElementById('pdfShareBtn').classList.add('hidden');
-            document.getElementById('pdfEmailDirectBtn').classList.add('hidden');
             latestSavedRecordId = null; // Clear the latest record ID
         }
 
@@ -1860,7 +1886,7 @@
                 });
             } catch (error) {
                 console.error("Error fetching last three evaluations:", error);
-                lastEvaluationsTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error loading evaluations: ${error.message}</td></tr>`;
+                lastEvaluEvaluationsTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error loading evaluations: ${error.message}</td></tr>`;
             }
         }
 
@@ -2332,8 +2358,9 @@
 
         // Handles PDF generation and navigation to share page
         window.handlePdfAndShare = async function() {
+            hidePdfOptionsModal(); // Hide the modal first
             if (!latestSavedRecordId) {
-                showMessageBox("Error", "Please save the evaluation form first to generate a PDF.", true, false, true);
+                showMessageBox("Error", "No record available for PDF operations. Please save an evaluation first.", true, false, true);
                 return;
             }
 
@@ -2346,8 +2373,6 @@
             showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
-                // Now we are sure `record.pdfAttachment` exists because it was saved with the record.
-                // We just need to download it.
                 const pdfDataUrlToDownload = record.pdfAttachment;
                 
                 const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
@@ -2383,8 +2408,9 @@
 
         // NEW: Function for "PDF & Email (Direct Send)" button
         window.handlePdfAndDirectEmail = async function() {
+            hidePdfOptionsModal(); // Hide the modal first
             if (!latestSavedRecordId) {
-                showMessageBox("Error", "Please save the evaluation form first to generate a PDF for direct email.", true, false, true);
+                showMessageBox("Error", "No record available for PDF operations. Please save an evaluation first.", true, false, true);
                 return;
             }
 
@@ -2543,8 +2569,9 @@
             const npsTab = document.getElementById('npsTab');
 
             const saveFormBtn = document.getElementById('saveFormBtn');
-            const pdfShareBtn = document.getElementById('pdfShareBtn');
-            const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn');
+            // The following two are now only in the PDF options modal, so no need to reference them here directly
+            // const pdfShareBtn = document.getElementById('pdfShareBtn'); 
+            // const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn');
             const assessmentForm = document.getElementById('assessment-form');
 
             const reviewerNameSelect = document.getElementById('reviewer-name');
@@ -2566,6 +2593,13 @@
 
             const selectRecordToShare = document.getElementById('select-record-to-share');
             const sendShareEmailBtn = document.getElementById('sendShareEmailBtn');
+
+            // NEW: PDF Options Modal buttons
+            const pdfOptionsModal = document.getElementById('pdfOptionsModal');
+            const pdfOptionsPdfAndEmailDirectBtn = document.getElementById('pdfOptionsPdfAndEmailDirectBtn');
+            const pdfOptionsPdfAndShareBtn = document.getElementById('pdfOptionsPdfAndShareBtn');
+            const pdfOptionsCancelBtn = document.getElementById('pdfOptionsCancelBtn');
+
 
             const reviewDateInput = document.getElementById('review-date');
             if (reviewDateInput) {
@@ -2794,8 +2828,20 @@
 
             if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', window.sendShareResponseEmail); }
             if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); }
-            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); }
-            if (pdfEmailDirectBtn) { pdfEmailDirectBtn.addEventListener('click', window.handlePdfAndDirectEmail); }
+            
+            // Event listeners for the NEW PDF Options Modal buttons
+            if (pdfOptionsPdfAndEmailDirectBtn) {
+                pdfOptionsPdfAndEmailDirectBtn.addEventListener('click', window.handlePdfAndDirectEmail);
+            }
+            if (pdfOptionsPdfAndShareBtn) {
+                pdfOptionsPdfAndShareBtn.addEventListener('click', window.handlePdfAndShare);
+            }
+            if (pdfOptionsCancelBtn) {
+                pdfOptionsCancelBtn.addEventListener('click', () => {
+                    hidePdfOptionsModal();
+                    resetFormFieldsButKeepRole(); // Reset the form if cancel is clicked
+                });
+            }
 
 
             // Initial call to render questions if a role is pre-selected (e.g., from browser's autofill)
