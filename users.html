@@ -74,7 +74,7 @@
 
 
         .sidebar { /* Re-applying width from main-nav for clarity */
-            width: 125px; 
+            width: 125px;
             background-color: #800080; /* Changed to purple for consistency */
             color: white;
             padding: 1rem 0;
@@ -245,10 +245,12 @@
             <ul>
                 <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
                 <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li><a href="reports.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li><a href="Dashboard.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Dashboard</a></li> <!-- Updated link -->
                 <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li><a href="nps.html" id="npsFeedbackTab"><i class="fas fa-comments"></i> NPS Feedback</a></li> <li><a href="users.html" id="usersTab" class="active"><i class="fas fa-users"></i> Users</a></li> <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li><a href="nps.html" id="npsFeedbackTab"><i class="fas fa-comments"></i> NPS Feedback</a></li>
+                <li><a href="users.html" id="usersTab" class="active"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
@@ -292,7 +294,7 @@
                     This section allows administrators to manage user accounts and their roles within the system.
                 </p>
                 <p class="text-red-600 font-bold mb-4">
-                    **IMPORTANT SECURITY NOTE:** User creation, deletion, and role assignment are handled by secure Firebase Cloud Functions. Direct client-side manipulation of Firebase Authentication users is not allowed for security reasons.
+                    <b>IMPORTANT SECURITY NOTE:</b> User creation, deletion, and role assignment are handled by secure Firebase Cloud Functions. Direct client-side manipulation of Firebase Authentication users is not allowed for security reasons.
                 </p>
 
                 <h3 class="text-2xl font-semibold text-gray-800 mb-4">Manage Existing Users</h3>
@@ -355,7 +357,7 @@
             projectId: "icea-lion-qa",
             storageBucket: "icea-lion-qa.firebasestorage.app",
             messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811", // Consistent App ID
             measurementId: "G-1RJJTT3QET"
         };
 
@@ -393,11 +395,11 @@
                         window.currentUserRole = userDocSnap.data().role;
                         console.log("User role fetched (users.html):", window.currentUserRole);
                     } else {
-                        const idTokenResult = await user.getIdTokenResult(true); 
+                        const idTokenResult = await user.getIdTokenResult(true);
                         if (idTokenResult.claims.role) {
                             window.currentUserRole = idTokenResult.claims.role;
                         } else {
-                            window.currentUserRole = 'Guest'; 
+                            window.currentUserRole = 'Guest';
                         }
                         console.warn("User profile not found in Firestore for UID:", user.uid, "Checking claims, defaulting to Guest role if not found.");
                     }
@@ -413,7 +415,7 @@
 
                 // If not logged in, always attempt to redirect to main login page.
                 // The main index.html will then handle anonymous sign-in or proper login.
-                window.location.href = 'index.html'; 
+                window.location.href = 'index.html';
                 return; // Stop execution here to prevent further unauthorized access attempts
             }
             window.isAuthReady = true;
@@ -451,7 +453,7 @@
 
             // This login form is removed from HTML, but keeping logic for robustness if it was reintroduced
             if (loginForm) { // Check if element exists before adding listener
-                 loginForm.addEventListener('submit', async function(event) {
+                loginForm.addEventListener('submit', async function(event) {
                     event.preventDefault(); // Prevent default form submission
                     showMessage(loginMessage, '', 'hidden'); // Clear previous messages
 
@@ -460,7 +462,7 @@
 
                     try {
                         await signInWithEmailAndPassword(auth, enteredEmail, enteredPassword);
-                        sessionStorage.setItem('loggedIn', 'true'); 
+                        sessionStorage.setItem('loggedIn', 'true');
                         // The onAuthStateChanged listener will handle the UI update/redirection
                     } catch (error) {
                         console.error("Firebase Login Error:", error);
@@ -488,7 +490,7 @@
                     usersContent.style.display = 'block'; // Show user content
                     
                     // Highlight the current tab (Users) - already done in CSS via `class="active"`
-                    // document.getElementById('usersTab').classList.add('active'); 
+                    // document.getElementById('usersTab').classList.add('active');
 
                     fetchAndRenderUsers(); // Fetch users from Cloud Function for display
                 } else {
@@ -502,12 +504,12 @@
                     if (window.isAuthReady && sessionStorage.getItem('loggedIn') === 'true' && window.currentUserRole !== 'admin') {
                         showMessage(loginMessage, "Access Denied: You must be an Admin to access this page.", 'error');
                     } else if (window.isAuthReady && sessionStorage.getItem('loggedIn') !== 'true') {
-                         // If auth is ready but not logged in via session, prompt for login directly
-                         showMessage(loginMessage, "Please log in to access user management.", 'error');
+                        // If auth is ready but not logged in via session, prompt for login directly
+                        showMessage(loginMessage, "Please log in to access user management.", 'error');
                     }
                 }
-                 // Finally, reveal the body content once the page state is determined
-                 document.body.classList.add('loaded');
+                // Finally, reveal the body content once the page state is determined
+                document.body.classList.add('loaded');
             };
 
             // Listen for firebaseAuthReadyUsersPage event before initializing the page content
@@ -566,7 +568,7 @@
             });
 
             // Make deleteUser function globally accessible for table buttons
-            window.deleteUser = async function(uid, email) { 
+            window.deleteUser = async function(uid, email) {
                 if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
                     return;
                 }
@@ -612,7 +614,7 @@
                             <td class="py-2 px-4">${user.role || 'N/A'}</td>
                             <td class="py-2 px-4 text-xs font-mono text-gray-600">${user.uid}</td>
                             <td class="py-2 px-4">
-                                <button class="action-btn delete-btn bg-red-500 hover:bg-red-600 text-white" 
+                                <button class="action-btn delete-btn bg-red-500 hover:bg-red-600 text-white"
                                     onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
                             </td>
                         `;
@@ -629,10 +631,10 @@
             // --- Navigation Link Event Listeners (for other pages) ---
             document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
             document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
-            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'reports.html'; });
+            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'Dashboard.html'; }); // Updated link
             document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
             document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
-            document.getElementById('npsFeedbackTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'nps.html'; }); // Corrected NPS link
+            document.getElementById('npsFeedbackTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'nps.html'; });
             document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
 
         });
