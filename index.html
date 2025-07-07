@@ -445,25 +445,6 @@
         </div>
     </div>
 
-    <div id="pdfOptionsModal" class="message-box-overlay hidden">
-        <div class="message-box">
-            <h3 id="pdfOptionsTitle">Save Successful! What next?</h3>
-            <p id="pdfOptionsContent">Your evaluation has been saved. You can now generate a PDF and share it.</p>
-            <div class="flex flex-col space-y-3 mt-4">
-                <button id="pdfOptionsPdfAndEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                    PDF & Email (Direct Send)
-                </button>
-                <button id="pdfOptionsPdfAndShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                    PDF & Share
-                </button>
-                <button id="pdfOptionsCancelBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                    Close & Start New
-                </button>
-            </div>
-        </div>
-    </div>
-
-
     <div class="login-container" id="loginPage">
         <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-xs">
             <div class="icealion-blue p-6 rounded-t-lg text-center">
@@ -526,10 +507,8 @@
                 <input type="text" id="client-name" name="Client Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" placeholder="e.g., John Doe" required>
             </div>
             <div>
-                <label for="cer-name-search" class="block top-field-label">Search CER Name</label>
-                <input type="text" id="cer-name-search" placeholder="Type to search CER" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600">
-                <label for="cer-name" class="block top-field-label mt-2">CER Name</label>
-                <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" size="5" required>
+                <label for="cer-name" class="block top-field-label">CER Name</label>
+                <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" required>
                     <option value="">Select CER</option>
                     </select>
             </div>
@@ -664,6 +643,12 @@
                 <div class="flex items-center justify-between w-full mt-4">
                     <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
                     <div class="flex space-x-4">
+                        <button type="button" id="pdfEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
+                            PDF & Email (Direct Send)
+                        </button>
+                        <button type="button" id="pdfShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out hidden">
+                            PDF & Share
+                        </button>
                         <button type="submit" id="saveFormBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                             Save
                         </button>
@@ -850,7 +835,6 @@
         let customFormFields = []; // NEW: Stores custom form field configurations
         let cerNameEmailsMap = {};
         let filterableRecords = [];
-        let originalCerNames = []; // Store the original CER names for filtering
 
         let unsubscribeRecords = null;
         let unsubscribeWebhooks = null;
@@ -990,7 +974,7 @@
             globalTotalPoints = currentTotalPoints; // Keep raw total points for saving
             globalMaxPossiblePoints = currentMaxPossiblePoints; // Keep raw max possible points for saving
             globalBusinessComplianceAccuracyValue = businessCompliancePct;
-            // Ensure that 'Overall Score' in formData stores the *final' score, which is affected by autofail.
+            // Ensure that 'Overall Score' in formData stores the *final* score, which is affected by autofail.
             // If you need the pre-autofail score for database storage, you'd need another field.
             // For now, the existing 'Overall Score' in formData will take the finalOverallPercentage.
             // You might want to add 'Pre-Autofail Score' to formData if you want to explicitly store it.
@@ -1131,16 +1115,6 @@
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             messageBoxOverlay.classList.add('hidden');
         }
-
-        // Functions for PDF Options Modal
-        function showPdfOptionsModal() {
-            document.getElementById('pdfOptionsModal').classList.remove('hidden');
-        }
-
-        function hidePdfOptionsModal() {
-            document.getElementById('pdfOptionsModal').classList.add('hidden');
-        }
-
 
         // UI Tab Switching Logic
         function showTab(tabName) {
@@ -1336,7 +1310,8 @@
                     <td class="py-2 px-4">${record['Contact ID'] || ''}</td>
                     <td class="py-2 px-4">${record['Client Name'] || ''}</td>
                     <td class="py-2 px-4">${record['CER Name'] || ''}</td>
-                    <td class="py-2 px-4">${record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || ''}</td> <td class="py-2 px-4">${pdfButtonHtml}</td> <td class="py-2 px-4 whitespace-nowrap">
+                    <td class="py-2 px-4">${record['Overall Score'] || ''}</td>
+                    <td class="py-2 px-4">${pdfButtonHtml}</td> <td class="py-2 px-4 whitespace-nowrap">
                         <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
                     </td>
                     <td class="py-2 px-4"><button class="view-record-btn" data-record-id="${record.id}">View</button></td>
@@ -1569,7 +1544,7 @@
             const cerName = record['CER Name'] || 'N/A';
             const contactId = record['Contact ID'] || 'N/A';
             const evaluationDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
-            const overallScore = record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || 'N/A'; // Use final score here
+            const overallScore = record['Overall Score'] || 'N/A';
 
             const cerEmail = cerNameEmailsMap[cerName] || '';
 
@@ -1762,28 +1737,26 @@
 
             latestSavedRecordId = await addRecordToFirestore(formData);
             if (latestSavedRecordId) {
-                // Show the new PDF options modal
-                hideMessageBox(); // Hide the "Saving" message
-                showPdfOptionsModal();
-                console.log("PDF Options modal displayed after save."); 
+                // Ensure the buttons are visible and active
+                document.getElementById('pdfShareBtn').classList.remove('hidden');
+                document.getElementById('pdfShareBtn').style.display = 'inline-block'; // Explicitly set display
+                document.getElementById('pdfEmailDirectBtn').classList.remove('hidden');
+                document.getElementById('pdfEmailDirectBtn').style.display = 'inline-block'; // Explicitly set display
+
+                console.log("PDF & Share buttons unhidden and displayed."); // Debug log
             } else {
-                console.log("Record not saved, PDF Options modal not displayed."); 
+                console.log("Record not saved, PDF & Share buttons remain hidden."); // Debug log
             }
         };
 
         function resetFormFieldsButKeepRole() {
             const form = document.getElementById('assessment-form');
             const cerRoleSelect = document.getElementById('cer-role');
-            const cerNameSelect = document.getElementById('cer-name'); // Get CER Name select
-            const cerNameSearchInput = document.getElementById('cer-name-search'); // Get CER Name search input
-
-            const currentRole = cerRoleSelect.value; // Preserve current CER Role
+            const currentRole = cerRoleSelect.value;
 
             document.getElementById('contact-id').value = '';
             document.getElementById('client-name').value = '';
-            cerNameSelect.value = ''; // Reset CER Name dropdown
-            if(cerNameSearchInput) cerNameSearchInput.value = ''; // Clear search input
-            filterCerNames(''); // Re-apply filter to show all options
+            document.getElementById('cer-name').value = '';
             document.getElementById('cer-email').value = '';
             document.getElementById('call-date-time').value = '';
             document.getElementById('reviewer-name').value = '';
@@ -1837,6 +1810,9 @@
             renderQuestionsForRole(currentRole);
             calculateScore();
 
+            // Hide the PDF/Email buttons again after reset
+            document.getElementById('pdfShareBtn').classList.add('hidden');
+            document.getElementById('pdfEmailDirectBtn').classList.add('hidden');
             latestSavedRecordId = null; // Clear the latest record ID
         }
 
@@ -1886,7 +1862,7 @@
 
                     row.innerHTML = `
                         <td class="py-2 px-4 text-sm text-gray-800">${record['CER Name'] || 'N/A'}</td>
-                        <td class="py-2 px-4 text-sm text-gray-800">${record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || 'N/A'}</td>
+                        <td class="py-2 px-4 text-sm text-gray-800">${record['Overall Score'] || 'N/A'}</td>
                         <td class="py-2 px-4 text-sm text-gray-800">${record['CER Role'] || 'N/A'}</td>
                         <td class="py-2 px-4 text-sm text-gray-800">${record['Contact ID'] || 'N/A'}</td>
                         <td class="py-2 px-4 text-sm text-gray-800">${submittedDateFormatted}</td>
@@ -1939,30 +1915,104 @@
         }
 
 
-        // Function to filter CER Name dropdown
-        function filterCerNames(searchTerm) {
-            const cerNameSelect = document.getElementById('cer-name');
-            const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        // Function to fetch and populate dropdown options from Firestore
+        async function fetchDropdownOptionsData() {
+            if (!db) {
+                console.warn("Firestore not ready for fetching dropdowns.");
+                return;
+            }
 
-            // Clear current options
-            cerNameSelect.innerHTML = `<option value="">Select CER</option>`;
+            if (unsubscribeDropdowns) {
+                unsubscribeDropdowns();
+            }
 
-            // Add filtered options back
-            const filteredNames = originalCerNames.filter(cer => 
-                (typeof cer === 'string' && cer.toLowerCase().includes(lowerCaseSearchTerm)) ||
-                (typeof cer === 'object' && cer.name && cer.name.toLowerCase().includes(lowerCaseSearchTerm))
-            );
+            unsubscribeDropdowns = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
+                if (docSnap.exists()) {
+                    dropdownOptions = docSnap.data();
+                    console.log("Dropdown data updated from Firestore:", dropdownOptions);
 
-            filteredNames.forEach(option => {
-                const value = (typeof option === 'object' && option.name) ? option.name : option;
-                const optionElement = document.createElement('option');
-                optionElement.value = value;
-                optionElement.textContent = value;
-                cerNameSelect.appendChild(optionElement);
+                    cerNameEmailsMap = {};
+                    if (dropdownOptions.cerNames && Array.isArray(dropdownOptions.cerNames)) {
+                        dropdownOptions.cerNames.forEach(cer => {
+                            if (typeof cer === 'object' && cer.name && cer.email) {
+                                cerNameEmailsMap[cer.name] = cer.email;
+                            } else if (typeof cer === 'string') {
+                                cerNameEmailsMap[cer] = '';
+                            }
+                        });
+                    }
+                } else {
+                    console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
+                    dropdownOptions = {
+                        cerNames: [],
+                        cerRoles: [],
+                        reviewerNames: [],
+                        autofailTypes: []
+                    };
+                    cerNameEmailsMap = {};
+                }
+                populateAllDropdownsInForm();
+            }, (error) => {
+                console.error("Error listening to dropdown data:", error);
             });
+        }
 
-            // Ensure the size attribute is set to make it scrollable
-            cerNameSelect.setAttribute('size', Math.min(10, filteredNames.length + 1)); // Show max 10 options, or less if fewer options
+        // Function to fetch and populate questions from Firestore
+        async function fetchQuestionsData() {
+            if (!db) {
+                console.warn("Firestore not ready for fetching questions.");
+                return;
+            }
+
+            if (unsubscribeQuestions) {
+                unsubscribeQuestions();
+            }
+
+            unsubscribeQuestions = onSnapshot(QUESTIONS_CONFIG_DOC_REF, (docSnap) => {
+                if (docSnap.exists()) {
+                    allRolesQuestions = docSnap.data();
+                    console.log("Questions data updated from Firestore:", allRolesQuestions);
+                } else {
+                    console.warn("Questions configuration document does not exist. Initializing with empty object locally.");
+                    allRolesQuestions = {};
+                }
+                const cerRoleSelect = document.getElementById('cer-role');
+                if (cerRoleSelect && cerRoleSelect.value) {
+                    renderQuestionsForRole(cerRoleSelect.value);
+                } else {
+                    document.getElementById('cxQuestionsContainer').innerHTML = '';
+                    document.getElementById('psQuestionsContainer').innerHTML = '';
+                    document.getElementById('caQuestionsContainer').innerHTML = '';
+                    calculateScore();
+                }
+            }, (error) => {
+                console.error("Error listening to questions data:", error);
+            });
+        }
+
+        // NEW: Function to fetch and render custom form fields from Firestore
+        async function fetchCustomFieldsData() {
+            if (!db) {
+                console.warn("Firestore not ready for fetching custom fields.");
+                return;
+            }
+
+            if (unsubscribeCustomFields) {
+                unsubscribeCustomFields();
+            }
+
+            unsubscribeCustomFields = onSnapshot(CUSTOM_FIELDS_CONFIG_DOC_REF, (docSnap) => {
+                if (docSnap.exists() && docSnap.data().fields) {
+                    customFormFields = docSnap.data().fields.sort((a, b) => a.order - b.order); // Sort by order
+                    console.log("Custom form fields data updated from Firestore:", customFormFields);
+                } else {
+                    console.warn("Custom form fields configuration document does not exist or is empty. Initializing with empty array locally.");
+                    customFormFields = [];
+                }
+                renderCustomFormFields(); // Render the custom fields in the form
+            }, (error) => {
+                console.error("Error listening to custom fields data:", error);
+            });
         }
 
 
@@ -1972,8 +2022,6 @@
             const cerRoleSelect = document.getElementById('cer-role');
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const autofailTypeSelect = document.getElementById('autofail-type');
-            const cerNameSearchInput = document.getElementById('cer-name-search');
-
 
             const populateSelect = (selectElement, optionsArray, type) => {
                 const currentSelectedValue = selectElement.value;
@@ -1999,12 +2047,7 @@
                 }
             };
 
-            // Store original CER names
-            if (dropdownOptions.cerNames && Array.isArray(dropdownOptions.cerNames)) {
-                originalCerNames = [...dropdownOptions.cerNames]; // Make a copy
-            }
-            filterCerNames(cerNameSearchInput.value); // Populate and filter CER names
-
+            populateSelect(cerNameSelect, dropdownOptions.cerNames, 'cerNames');
             populateSelect(cerRoleSelect, dropdownOptions.cerRoles, 'cerRoles');
             populateSelect(reviewerNameSelect, dropdownOptions.reviewerNames, 'reviewerNames');
             populateSelect(autofailTypeSelect, dropdownOptions.autofailTypes, 'autofailTypes');
@@ -2193,7 +2236,8 @@
                 const cerName = record['CER Name'] || 'Client';
                 const contactId = record['Contact ID'] || 'N/A';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
-                const overallScore = record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || 'N/A'; // Use final score here
+                const overallScore = record['Overall Score'] || 'N/A';
+                const cerEmail = cerNameEmailsMap[cerName] || '';
 
                 shareEmailTo.value = cerEmail;
                 shareEmailFrom.value = loggedInUserEmail;
@@ -2298,9 +2342,8 @@
 
         // Handles PDF generation and navigation to share page
         window.handlePdfAndShare = async function() {
-            hidePdfOptionsModal(); // Hide the modal first
             if (!latestSavedRecordId) {
-                showMessageBox("Error", "No record available for PDF operations. Please save an evaluation first.", true, false, true);
+                showMessageBox("Error", "Please save the evaluation form first to generate a PDF.", true, false, true);
                 return;
             }
 
@@ -2313,6 +2356,8 @@
             showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
+                // Now we are sure `record.pdfAttachment` exists because it was saved with the record.
+                // We just need to download it.
                 const pdfDataUrlToDownload = record.pdfAttachment;
                 
                 const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
@@ -2348,9 +2393,8 @@
 
         // NEW: Function for "PDF & Email (Direct Send)" button
         window.handlePdfAndDirectEmail = async function() {
-            hidePdfOptionsModal(); // Hide the modal first
             if (!latestSavedRecordId) {
-                showMessageBox("Error", "No record available for PDF operations. Please save an evaluation first.", true, false, true);
+                showMessageBox("Error", "Please save the evaluation form first to generate a PDF for direct email.", true, false, true);
                 return;
             }
 
@@ -2380,7 +2424,8 @@
                 const cerName = record['CER Name'] || 'Client';
                 const contactId = record['Contact ID'] || 'N/A';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
-                const overallScore = record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || 'N/A'; // Use final score here
+                const overallScore = record['Overall Score'] || 'N/A';
+                const cerEmail = cerNameEmailsMap[cerName] || '';
 
                 const emailSubject = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
                 const emailBody = `Dear ${cerName},\n\n` +
@@ -2508,9 +2553,8 @@
             const npsTab = document.getElementById('npsTab');
 
             const saveFormBtn = document.getElementById('saveFormBtn');
-            // The following two are now only in the PDF options modal, so no need to reference them here directly
-            // const pdfShareBtn = document.getElementById('pdfShareBtn'); 
-            // const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn');
+            const pdfShareBtn = document.getElementById('pdfShareBtn');
+            const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn');
             const assessmentForm = document.getElementById('assessment-form');
 
             const reviewerNameSelect = document.getElementById('reviewer-name');
@@ -2518,8 +2562,6 @@
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
             const cerEmailInput = document.getElementById('cer-email');
-            const cerNameSearchInput = document.getElementById('cer-name-search'); // Get the search input for CER Name
-
 
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
@@ -2534,13 +2576,6 @@
 
             const selectRecordToShare = document.getElementById('select-record-to-share');
             const sendShareEmailBtn = document.getElementById('sendShareEmailBtn');
-
-            // NEW: PDF Options Modal buttons
-            const pdfOptionsModal = document.getElementById('pdfOptionsModal');
-            const pdfOptionsPdfAndEmailDirectBtn = document.getElementById('pdfOptionsPdfAndEmailDirectBtn');
-            const pdfOptionsPdfAndShareBtn = document.getElementById('pdfOptionsPdfAndShareBtn');
-            const pdfOptionsCancelBtn = document.getElementById('pdfOptionsCancelBtn');
-
 
             const reviewDateInput = document.getElementById('review-date');
             if (reviewDateInput) {
@@ -2754,13 +2789,6 @@
                 });
             }
 
-            // NEW: Event listener for CER Name search input
-            if (cerNameSearchInput) {
-                cerNameSearchInput.addEventListener('input', (event) => {
-                    filterCerNames(event.target.value);
-                });
-            }
-
 
             // Search input listener for Share Response tab
             if (selectRecordSearch) {
@@ -2776,20 +2804,8 @@
 
             if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', window.sendShareResponseEmail); }
             if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); }
-            
-            // Event listeners for the NEW PDF Options Modal buttons
-            if (pdfOptionsPdfAndEmailDirectBtn) {
-                pdfOptionsPdfAndEmailDirectBtn.addEventListener('click', window.handlePdfAndDirectEmail);
-            }
-            if (pdfOptionsPdfAndShareBtn) {
-                pdfOptionsPdfAndShareBtn.addEventListener('click', window.handlePdfAndShare);
-            }
-            if (pdfOptionsCancelBtn) {
-                pdfOptionsCancelBtn.addEventListener('click', () => {
-                    hidePdfOptionsModal();
-                    resetFormFieldsButKeepRole(); // Reset the form if cancel is clicked
-                });
-            }
+            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); }
+            if (pdfEmailDirectBtn) { pdfEmailDirectBtn.addEventListener('click', window.handlePdfAndDirectEmail); }
 
 
             // Initial call to render questions if a role is pre-selected (e.g., from browser's autofill)
