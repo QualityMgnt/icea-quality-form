@@ -455,13 +455,13 @@
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                     <input type="text" id="username" name="username"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity50 p-2 border"
                             required placeholder="Enter your username">
                 </div>
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
                     <input type="password" id="password" name="password"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity50 p-2 border"
                             required placeholder="Enter your password">
                 </div>
                 <button type="button" id="loginButton"
@@ -1004,8 +1004,6 @@
                 return;
             }
 
-            let questionNumber = 1;
-
             for (const sectionTitle in roleQuestions) {
                 const questions = roleQuestions[sectionTitle];
                 const container = questionContainers[sectionTitle];
@@ -1015,12 +1013,15 @@
                     continue;
                 }
 
+                let sectionQuestionNumber = 1; // NEW: Initialize a fresh counter for each section
+
                 questions.forEach(q => {
                     const rowDiv = document.createElement('div');
-                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
+                    // Use sectionQuestionNumber instead of the global questionNumber
+                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${sectionQuestionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
 
                     let iconColorClass;
-                    const iconIndex = (questionNumber - 1) % 4;
+                    const iconIndex = (sectionQuestionNumber - 1) % 4; // Use sectionQuestionNumber here too
                     if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
                     else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
                     else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
@@ -1032,8 +1033,7 @@
 
                     rowDiv.innerHTML = `
                         <div class="col-span-6 flex items-center gap-2 question-description">
-                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${questionNumber}</span>
-                            ${q.desc}
+                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${sectionQuestionNumber}</span> ${q.desc}
                         </div>
                         <div class="col-span-2">
                             <select name="${q.desc} (Rating)" class="w-full rounded-md shadow-sm p-1 text-center border rating-select border-blue-600" ${q.autofail ? 'data-autofail-question="true"' : ''} data-has-na="${q.hasNA}">
@@ -1057,7 +1057,7 @@
                     if (newSelect) {
                         newSelect.addEventListener('change', calculateScore);
                     }
-                    questionNumber++;
+                    sectionQuestionNumber++; // NEW: Increment local counter
                 });
             }
             calculateScore();
@@ -1727,9 +1727,13 @@
 
             latestSavedRecordId = await addRecordToFirestore(formData);
             if (latestSavedRecordId) {
+                // Ensure the buttons are visible and active
                 document.getElementById('pdfShareBtn').classList.remove('hidden');
+                document.getElementById('pdfShareBtn').style.display = 'inline-block'; // Explicitly set display
                 document.getElementById('pdfEmailDirectBtn').classList.remove('hidden');
-                console.log("PDF & Share buttons unhidden."); // Debug log
+                document.getElementById('pdfEmailDirectBtn').style.display = 'inline-block'; // Explicitly set display
+
+                console.log("PDF & Share buttons unhidden and displayed."); // Debug log
             } else {
                 console.log("Record not saved, PDF & Share buttons remain hidden."); // Debug log
             }
@@ -1796,9 +1800,10 @@
             renderQuestionsForRole(currentRole);
             calculateScore();
 
+            // Hide the PDF/Email buttons again after reset
             document.getElementById('pdfShareBtn').classList.add('hidden');
             document.getElementById('pdfEmailDirectBtn').classList.add('hidden');
-            latestSavedRecordId = null;
+            latestSavedRecordId = null; // Clear the latest record ID
         }
 
         /**
@@ -2231,7 +2236,7 @@
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
                     `Your overall score for this interaction was ${overallScore}.\n\n` +
                     `This feedback is provided to help you continue to improve service quality.\n\n` +
-                    `(IMPORTANT: The PDF document for this evaluation can be downloaded from the database page. Please attach it manually to this email before sending.)\n\n` + // Updated message for share page
+                    `The PDF document for this evaluation has been downloaded to your device as part of this process. Please remember to manually attach it to this email before sending.\n\n` + // Updated message for share page
                     `If you have any questions, please feel free to reach out.\n\n` +
                     `Kind Regards,\n${loggedInUserName}`;
             } else {
@@ -2355,7 +2360,7 @@
                 link.click();
                 document.body.removeChild(link);
 
-                showTab('shareResponse');
+                showTab('shareResponse'); // Navigate to share tab
                 
                 setTimeout(() => {
                     document.getElementById('select-record-to-share').value = latestSavedRecordId;
@@ -2367,6 +2372,7 @@
                 }, 100);
 
                 hideMessageBox();
+                resetFormFieldsButKeepRole(); // Reset the form after action
             } catch (error) {
                 console.error("Error generating PDF or preparing for sharing:", error);
                 hideMessageBox();
@@ -2428,6 +2434,7 @@
 
                 hideMessageBox();
                 showMessageBox("PDF Downloaded & Email Opened", `The PDF "${pdfFileName}" has been downloaded. Your email client should open shortly with pre-filled details. Please remember to manually attach the downloaded PDF.`, false, false, true);
+                resetFormFieldsButKeepRole(); // Reset the form after action
 
             } catch (error) {
                 console.error("Error generating PDF or preparing for direct email:", error);
