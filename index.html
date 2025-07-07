@@ -802,6 +802,7 @@
           measurementId: "G-1RJJTT3QET"
         };
 
+        // Use __app_id if provided by the environment, otherwise fallback to the hardcoded one.
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
         // Initialize Firebase App and Services ONCE at the top level of the module
@@ -862,13 +863,18 @@
             element.style.height = (element.scrollHeight) + 'px';
         };
 
+        /**
+         * Calculates and updates the scores displayed on the form.
+         * This includes Overall Score, Business & Compliance Accuracy,
+         * and applies autofail logic.
+         */
         function calculateScore() {
             const cerRoleSelect = document.getElementById('cer-role');
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
-            const autofailTypeSelect = document.getElementById('autofail-type'); // Assuming this exists
+            const autofailTypeSelect = document.getElementById('autofail-type');
 
             let currentTotalPoints = 0;
             let currentMaxPossiblePoints = 0;
@@ -980,7 +986,12 @@
             // You might want to add 'Pre-Autofail Score' to formData if you want to explicitly store it.
         }
 
-        // Renders dynamic questions based on CER Role
+        /**
+         * Renders dynamic questions in the assessment form based on the selected CER Role.
+         * Questions are categorized into Customer Experience, Problem Solving Skills,
+         * and Compliance & Business Critical Accuracy.
+         * @param {string} role - The selected CER Role.
+         */
         function renderQuestionsForRole(role) {
             const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
             const psQuestionsContainer = document.getElementById('psQuestionsContainer');
@@ -1075,7 +1086,15 @@
             });
         }
 
-        // Message Box Functions
+        /**
+         * Displays a custom message box (modal) to the user.
+         * @param {string} title - The title of the message box.
+         * @param {string} message - The content of the message. Can be plain text or HTML (if starts with <pre>).
+         * @param {boolean} isError - If true, styles the title as an error.
+         * @param {boolean} showSpinner - If true, displays a loading spinner.
+         * @param {boolean} showCloseButton - If true, displays an "OK" button to close the box.
+         * @param {function} onClose - Callback function to execute when the message box is closed.
+         */
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -1111,12 +1130,19 @@
             }
         }
 
+        /**
+         * Hides the custom message box.
+         */
         function hideMessageBox() {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             messageBoxOverlay.classList.add('hidden');
         }
 
-        // UI Tab Switching Logic
+        /**
+         * Controls which main content tab is visible.
+         * Also handles navigation to external HTML pages.
+         * @param {string} tabName - The identifier of the tab to show (e.g., 'auditForm', 'database', 'dashboard').
+         */
         function showTab(tabName) {
             const auditFormTab = document.getElementById('auditFormTab');
             const databaseTab = document.getElementById('databaseTab');
@@ -1203,6 +1229,7 @@
         // Firestore Data Handling Functions
         /**
          * Fetches records and webhooks from Firestore in real-time.
+         * Sets up onSnapshot listeners for both collections.
          */
         async function fetchRecordsAndWebhooks() {
             const recordsTableBody = document.getElementById('recordsTableBody');
@@ -1220,6 +1247,7 @@
                 return;
             }
 
+            // Unsubscribe from previous listeners to prevent memory leaks
             if (unsubscribeRecords) unsubscribeRecords();
             if (unsubscribeWebhooks) unsubscribeWebhooks();
 
@@ -1261,7 +1289,8 @@
         }
 
         /**
-         * Renders the evaluation records table.
+         * Renders the evaluation records table in the Database tab.
+         * @param {Array<Object>} records - An array of record objects to display.
          */
         function renderRecordsTable(records) {
             const recordsTableBody = document.getElementById('recordsTableBody');
@@ -1344,7 +1373,8 @@
         }
 
         /**
-         * Updates the state of the "Delete Selected" button.
+         * Updates the state (enabled/disabled) of the "Delete Selected" button
+         * based on the number of checked record checkboxes.
          */
         function updateDeleteButtonState() {
             const deleteSelectedRecordsBtnElement = document.getElementById('deleteSelectedRecordsBtn');
@@ -1355,7 +1385,8 @@
         }
 
         /**
-         * Delete single or multiple records based on IDs.
+         * Deletes single or multiple records from Firestore based on their IDs.
+         * Displays confirmation and feedback messages.
          * @param {string[]} recordIdsToDelete - An array of record IDs to delete.
          */
         async function deleteSelectedRecords(recordIdsToDelete) {
@@ -1403,7 +1434,8 @@
         }
 
         /**
-         * Renders the list of configured webhooks.
+         * Renders the list of configured webhooks in the Database tab.
+         * @param {Array<Object>} webhooks - An array of webhook objects to display.
          */
         function renderWebhookList(webhooks) {
             const webhookList = document.getElementById('webhookList');
@@ -1461,6 +1493,7 @@
 
         /**
          * Adds a new webhook URL to Firestore.
+         * Performs basic URL validation.
          */
         async function addWebhook() {
             const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
@@ -1489,6 +1522,8 @@
 
         /**
          * Displays full details of a selected record in a modal.
+         * Formats the record data for readability.
+         * @param {string} recordId - The ID of the record to view.
          */
         function viewRecordDetails(recordId) {
             const record = allRecords.find(r => r.id === recordId);
@@ -1532,7 +1567,8 @@
         }
 
         /**
-         * Sends the selected record's summary via email.
+         * Sends the selected record's summary via email using the mailto: protocol.
+         * @param {string} recordId - The ID of the record to email.
          */
         function sendRecordEmail(recordId) {
             const record = allRecords.find(r => r.id === recordId);
@@ -1569,10 +1605,36 @@
             }
         }
 
+        /**
+         * Downloads the full record data as a JSON file.
+         * @param {string} recordId - The ID of the record to download.
+         */
+        function downloadRecordData(recordId) {
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) {
+                showMessageBox("Error", "Record not found for download.", true, false, true);
+                return;
+            }
+
+            try {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(record, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `record_${record.id}.json`);
+                document.body.appendChild(downloadAnchorNode); // Required for Firefox
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                showMessageBox("Download Complete", "Record data downloaded successfully!", false, false, true);
+            } catch (e) {
+                console.error("Error downloading record:", e);
+                showMessageBox("Download Failed", `Could not download record data: ${e.message}`, true, false, true);
+            }
+        }
+
 
         /**
-         * Helper function for submitting form data to Firestore
-         * @param {Object} recordData The data object to save to Firestore.
+         * Helper function for submitting form data to Firestore.
+         * @param {Object} recordData - The data object to save to Firestore.
          * @returns {Promise<string|null>} Resolves with the new document ID on success, null on failure.
          */
         async function addRecordToFirestore(recordData) {
@@ -1603,7 +1665,8 @@
         }
 
         /**
-         * Collects form data, generates PDF, and saves it. Then reveals the PDF & Share button.
+         * Collects form data, generates PDF, and saves it to Firestore.
+         * Then reveals the PDF & Share button.
          */
         window.saveFormToDB = async function() {
             const form = document.getElementById('assessment-form');
@@ -1749,6 +1812,10 @@
             }
         };
 
+        /**
+         * Resets the form fields to their initial state after submission,
+         * keeping the selected CER Role.
+         */
         function resetFormFieldsButKeepRole() {
             const form = document.getElementById('assessment-form');
             const cerRoleSelect = document.getElementById('cer-role');
@@ -1818,6 +1885,7 @@
 
         /**
          * Fetches and displays the last three evaluations for the selected CER.
+         * @param {string} cerName - The name of the CER to fetch evaluations for.
          */
         async function fetchLastThreeEvaluations(cerName) {
             const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
@@ -1875,7 +1943,10 @@
         }
 
 
-        // Main Application Initialization Function (controls overall display)
+        /**
+         * Initializes the main application display, showing either the login page
+         * or the main content based on authentication status.
+         */
         function initializeAppDisplay() {
             const loginPage = document.getElementById('loginPage');
             const mainNav = document.getElementById('mainNav');
@@ -1915,7 +1986,10 @@
         }
 
 
-        // Function to fetch and populate dropdown options from Firestore
+        /**
+         * Fetches dropdown options (CER Names, Roles, Reviewers, Autofail Types)
+         * from Firestore in real-time and populates the global `dropdownOptions` object.
+         */
         async function fetchDropdownOptionsData() {
             if (!db) {
                 console.warn("Firestore not ready for fetching dropdowns.");
@@ -1957,7 +2031,10 @@
             });
         }
 
-        // Function to fetch and populate questions from Firestore
+        /**
+         * Fetches question configurations for different CER roles from Firestore
+         * in real-time and populates the global `allRolesQuestions` object.
+         */
         async function fetchQuestionsData() {
             if (!db) {
                 console.warn("Firestore not ready for fetching questions.");
@@ -1990,7 +2067,10 @@
             });
         }
 
-        // NEW: Function to fetch and render custom form fields from Firestore
+        /**
+         * NEW: Fetches custom form field configurations from Firestore
+         * in real-time and populates the global `customFormFields` array.
+         */
         async function fetchCustomFieldsData() {
             if (!db) {
                 console.warn("Firestore not ready for fetching custom fields.");
@@ -2016,7 +2096,10 @@
         }
 
 
-        // Function to populate all dropdowns in the form
+        /**
+         * Populates all relevant dropdowns in the assessment form
+         * using the data fetched from Firestore.
+         */
         function populateAllDropdownsInForm() {
             const cerNameSelect = document.getElementById('cer-name');
             const cerRoleSelect = document.getElementById('cer-role');
@@ -2067,7 +2150,10 @@
             }
         }
 
-        // NEW: Function to dynamically render custom form fields
+        /**
+         * NEW: Dynamically renders custom form fields fetched from Firestore.
+         * These fields are added to the `customFieldsContainer`.
+         */
         function renderCustomFormFields() {
             const container = document.getElementById('customFieldsContainer');
             if (!container) return;
@@ -2123,6 +2209,10 @@
 
 
         // Functions for the Share Response tab
+        /**
+         * Populates the dropdown list in the "Share Response" tab with available records.
+         * Records are sorted by submission date in descending order.
+         */
         async function populateShareResponseDropdown() {
             const selectRecordToShare = document.getElementById('select-record-to-share');
             const selectRecordSearch = document.getElementById('select-record-search');
@@ -2156,7 +2246,10 @@
             }
         }
 
-        // New function to render options based on a filtered list
+        /**
+         * Renders the options in the "Share Response" dropdown based on a filtered list of records.
+         * @param {Array<Object>} recordsToRender - The array of records to display as options.
+         */
         function renderFilteredOptions(recordsToRender) {
             const selectRecordToShare = document.getElementById('select-record-to-share');
             const currentSelectedId = selectRecordToShare.value;
@@ -2192,7 +2285,10 @@
         }
 
 
-        // New function to filter records based on search term
+        /**
+         * Filters the `filterableRecords` array based on the search term
+         * entered in the "Share Response" search input and re-renders the dropdown.
+         */
         function filterShareRecords() {
             const searchTerm = document.getElementById('select-record-search').value.toLowerCase();
             let filtered = [];
@@ -2217,6 +2313,11 @@
         }
 
 
+        /**
+         * Populates the email fields (To, From, Subject, Body) in the "Share Response" tab
+         * based on the selected record.
+         * @param {string|null} recordId - The ID of the selected record, or null to reset fields.
+         */
         function populateShareEmailFields(recordId) {
             const shareEmailTo = document.getElementById('share-email-to');
             const shareEmailFrom = document.getElementById('share-email-from');
@@ -2245,8 +2346,8 @@
                 shareEmailBody.value = `Dear ${cerName},\n\n` +
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
                     `Your overall score for this interaction was ${overallScore}.\n\n` +
+                    `(IMPORTANT: The PDF document for this evaluation has been downloaded to your device as part of this process. Please remember to manually attach it to this email before sending.)\n\n` + // Updated message for share page
                     `This feedback is provided to help you continue to improve service quality.\n\n` +
-                    `The PDF document for this evaluation has been downloaded to your device as part of this process. Please remember to manually attach it to this email before sending.\n\n` + // Updated message for share page
                     `If you have any questions, please feel free to reach out.\n\n` +
                     `Kind Regards,\n${loggedInUserName}`;
             } else {
@@ -2258,11 +2359,13 @@
         /**
          * Takes a snapshot of the current form content and generates a PDF.
          * This function handles the visual capture for PDF.
+         * It temporarily modifies styles for cleaner PDF output and restores them.
          * @returns {Promise<HTMLCanvasElement>} A promise that resolves with the generated canvas element.
          */
         async function generateFormPdf() {
             const auditFormContentDiv = document.getElementById('auditFormContent');
 
+            // Store original styles and apply print-friendly styles
             const originalStyles = [];
             const elementsToModify = auditFormContentDiv.querySelectorAll('input, select, textarea');
 
@@ -2291,6 +2394,7 @@
                 }
             });
 
+            // Hide buttons and last evaluations section for PDF capture
             const buttonsContainer = auditFormContentDiv.querySelector('.flex.space-x-4');
             const lastEvaluationsContainer = document.getElementById('lastEvaluationsContainer');
 
@@ -2305,15 +2409,18 @@
                 lastEvaluationsContainer.style.display = 'none';
             }
 
+            // Ensure content is not clipped by overflow during capture
             const originalAuditFormOverflow = auditFormContentDiv.style.overflow;
             auditFormContentDiv.style.overflow = 'visible';
 
+            // Generate canvas from the form content
             const canvas = await html2canvas(auditFormContentDiv, {
-                scale: 2,
+                scale: 2, // Higher scale for better quality PDF
                 useCORS: true,
                 logging: false,
             });
 
+            // Restore original styles and visibility
             originalStyles.forEach(elData => {
                 if (elData.element && elData.element.style) {
                     elData.element.style.border = elData.border;
@@ -2340,7 +2447,10 @@
         }
 
 
-        // Handles PDF generation and navigation to share page
+        /**
+         * Handles the "PDF & Share" button click.
+         * Generates the PDF, triggers its download, and navigates to the Share Response tab.
+         */
         window.handlePdfAndShare = async function() {
             if (!latestSavedRecordId) {
                 showMessageBox("Error", "Please save the evaluation form first to generate a PDF.", true, false, true);
@@ -2372,6 +2482,7 @@
 
                 showTab('shareResponse'); // Navigate to share tab
                 
+                // Populate share email fields after navigating
                 setTimeout(() => {
                     document.getElementById('select-record-to-share').value = latestSavedRecordId;
                     populateShareEmailFields(latestSavedRecordId);
@@ -2391,7 +2502,11 @@
         };
 
 
-        // NEW: Function for "PDF & Email (Direct Send)" button
+        /**
+         * NEW: Handles the "PDF & Email (Direct Send)" button click.
+         * Generates the PDF, triggers its download, and attempts to open the user's email client
+         * with pre-filled details, reminding them to attach the downloaded PDF.
+         */
         window.handlePdfAndDirectEmail = async function() {
             if (!latestSavedRecordId) {
                 showMessageBox("Error", "Please save the evaluation form first to generate a PDF for direct email.", true, false, true);
@@ -2456,7 +2571,8 @@
 
         /**
          * Downloads the PDF attachment associated with a record.
-         * @param {string} recordId The ID of the record containing the PDF attachment.
+         * This function is used when viewing records in the database table.
+         * @param {string} recordId - The ID of the record containing the PDF attachment.
          */
         async function downloadPdfAttachment(recordId) {
             const record = allRecords.find(r => r.id === recordId);
@@ -2487,7 +2603,11 @@
         }
 
 
-        // EXPOSE TO GLOBAL WINDOW OBJECT
+        /**
+         * EXPOSE TO GLOBAL WINDOW OBJECT: Sends the email from the Share Response tab.
+         * This function is called when the "Send Email" button is clicked in the Share Response tab.
+         * It will trigger a PDF download if an attachment exists and then open the mailto client.
+         */
         window.sendShareResponseEmail = async function() {
             const recordId = document.getElementById('select-record-to-share').value;
             const toEmail = document.getElementById('share-email-to').value;
@@ -2587,6 +2707,9 @@
             }
 
             // --- Firebase Auth State Listener (Centralized) ---
+            // This listener handles user authentication state changes,
+            // including initial load, login, and logout. It also triggers
+            // data fetching and UI updates based on authentication status.
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUserId = user.uid;
@@ -2602,6 +2725,7 @@
                             console.log("User role (index.html):", currentUserRole);
                             console.log("Logged in user name:", loggedInUserName);
                         } else {
+                            // If user profile not found in Firestore, try to get role from claims
                             const idTokenResult = await user.getIdTokenResult(true);
                             currentUserRole = idTokenResult.claims.role || 'Guest';
                             console.warn("User profile not found in Firestore. Checking claims, defaulting to Guest role if not found. UID:", user.uid);
@@ -2626,6 +2750,7 @@
                     sessionStorage.removeItem('loggedIn');
 
                     try {
+                        // Sign in anonymously if no user is logged in
                         await signInAnonymously(auth);
                         currentUserId = auth.currentUser.uid;
                         currentUserRole = 'anonymous';
@@ -2657,9 +2782,10 @@
                     const enteredPassword = passwordInput.value;
 
                     try {
+                        // Sign out any anonymous user before attempting email/password login
                         await signOut(auth);
                         await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
-                        sessionStorage.setItem('loggedIn', 'true');
+                        sessionStorage.setItem('loggedIn', 'true'); // Persist login state
                     } catch (error) {
                         console.error("Firebase Login Error:", error);
                         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
@@ -2704,16 +2830,18 @@
             // --- Other Event Listeners (ensure elements exist before attaching) ---
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async function() {
-                    sessionStorage.removeItem('loggedIn');
+                    sessionStorage.removeItem('loggedIn'); // Clear login state from session
+                    // Unsubscribe from all real-time listeners to prevent data access after logout
                     if (unsubscribeRecords) unsubscribeRecords();
                     if (unsubscribeWebhooks) unsubscribeWebhooks();
                     if (unsubscribeDropdowns) unsubscribeDropdowns();
                     if (unsubscribeQuestions) unsubscribeQuestions();
                     if (unsubscribeCustomFields) unsubscribeCustomFields(); // NEW
-                    await signOut(auth);
+                    await signOut(auth); // Sign out from Firebase
                 });
             }
 
+            // Navigation tab click handlers
             if (auditFormTab) { auditFormTab.addEventListener('click', (e) => { e.preventDefault(); showTab('auditForm'); }); }
             if (databaseTab) { databaseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('database'); }); }
             if (reportsTab) { reportsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('dashboard'); }); } // Updated showTab call
@@ -2724,6 +2852,7 @@
             if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('nps'); }); }
 
 
+            // Database table selection and deletion handlers
             if (selectAllRecordsCheckbox) {
                         selectAllRecordsCheckbox.addEventListener('change', () => {
                         const isChecked = selectAllRecordsCheckbox.checked;
@@ -2739,9 +2868,12 @@
                 const idsToDelete = Array.from(checkedCheckboxes).map(cb => cb.dataset.recordId);
                 deleteSelectedRecords(idsToDelete);
             }); }
+            
+            // Webhook management handlers
             if (addWebhookBtn) { addWebhookBtn.addEventListener('click', addWebhook); }
 
 
+            // Autofail logic handler
             if (autofailTypeSelect) {
                 autofailTypeSelect.addEventListener('change', () => {
                     if (autofailTypeSelect.value !== '') {
@@ -2752,10 +2884,11 @@
                         autofailDescriptionInput.value = '';
                         autofailDescriptionInput.removeAttribute('required');
                     }
-                    calculateScore();
+                    calculateScore(); // Recalculate score as autofail selection affects it
                 });
             }
 
+            // "Other" reviewer name input visibility handler
             if (reviewerNameSelect) {
                 reviewerNameSelect.addEventListener('change', () => {
                     if (reviewerNameSelect.value === 'Other') {
@@ -2769,6 +2902,7 @@
                 });
             }
 
+            // CER Role change listener to re-render questions
             if (cerRoleSelect) {
                 cerRoleSelect.addEventListener('change', (event) => {
                     const selectedRole = event.target.value;
@@ -2776,6 +2910,7 @@
                 });
             }
 
+            // CER Name change listener to update CER Email and fetch last evaluations
             if (cerNameSelect) {
                 cerNameSelect.addEventListener('change', (event) => {
                     const selectedCerName = event.target.value;
@@ -2795,6 +2930,7 @@
                 selectRecordSearch.addEventListener('input', filterShareRecords);
             }
 
+            // Share Response dropdown change listener to populate email fields
             if (selectRecordToShare) {
                 selectRecordToShare.addEventListener('change', (event) => {
                     const selectedRecordId = event.target.value;
@@ -2802,6 +2938,7 @@
                 });
             }
 
+            // Form submission and PDF/Email buttons
             if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', window.sendShareResponseEmail); }
             if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); }
             if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); }
