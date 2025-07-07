@@ -565,6 +565,7 @@
             <div class="flex justify-around w-full gap-2">
                 <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
                     <div class="text-xs font-medium text-gray-600 mb-1">Overall Score</div>
+                    <!-- This display will now show the final score after autofail -->
                     <div class="text-xl font-bold text-blue-600" id="overall-score-display">0%</div>
                 </div>
                 <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
@@ -962,15 +963,13 @@
                 calculatedOverallPercentageBeforeAutofail = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
             }
 
-            // Update "Overall Score" and "Total Pts." to show the score *before* autofail
-            overallScoreDisplay.textContent = `${calculatedOverallPercentageBeforeAutofail}%`;
-            totalPtsPercentageDisplay.textContent = `${calculatedOverallPercentageBeforeAutofail}%`;
-
             // Apply autofail penalty ONLY to the "Overall Final Percentage"
             let finalOverallPercentage = calculatedOverallPercentageBeforeAutofail;
             if (autofailQuestionTriggered || autofailTypeSelected) {
                 finalOverallPercentage = 0;
             }
+            // Update both top and bottom overall score displays with the final percentage
+            overallScoreDisplay.textContent = `${finalOverallPercentage}%`; // Changed to finalOverallPercentage
             overallFinalPercentageDisplay.textContent = `${finalOverallPercentage}%`;
 
 
@@ -985,10 +984,6 @@
             globalTotalPoints = currentTotalPoints; // Keep raw total points for saving
             globalMaxPossiblePoints = currentMaxPossiblePoints; // Keep raw max possible points for saving
             globalBusinessComplianceAccuracyValue = businessCompliancePct;
-            // Ensure that 'Overall Score' in formData stores the *final* score, which is affected by autofail.
-            // If you need the pre-autofail score for database storage, you'd need another field.
-            // For now, the existing 'Overall Score' in formData will take the finalOverallPercentage.
-            // You might want to add 'Pre-Autofail Score' to formData if you want to explicitly store it.
         }
 
         /**
