@@ -1640,12 +1640,36 @@
             let pdfDataUrl = null;
             try {
                 const canvas = await generateFormPdf();
-                pdfDataUrl = canvas.toDataURL('image/jpeg', 0.8); // Get image data as Base64
-                // You could also generate the actual PDF and then convert it to Base64:
-                // const { jsPDF } = window.jspdf;
-                // const pdf = new jsPDF(); // Configure as needed
-                // pdf.addImage(pdfDataUrl, 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), (canvas.height * pdf.internal.pageSize.getWidth()) / canvas.width);
-                // pdfDataUrl = pdf.output('datauristring'); // Get PDF as Base64 string
+                // To get a full PDF (not just image of the first page), you need to use jspdf.
+                // The generateFormPdf currently only returns a canvas (image).
+                // Let's create a full PDF from the canvas here.
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 1.0); // Use higher quality for saving
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - pageHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdfDataUrl = pdf.output('datauristring'); // Get PDF as Base64 string
+                console.log("PDF generated successfully for storage.");
+
             } catch (pdfError) {
                 console.error("Error generating PDF for attachment:", pdfError);
                 showMessageBox("PDF Generation Failed", `Could not generate PDF attachment: ${pdfError.message}. Proceeding without PDF.`, true, false, true);
@@ -1705,6 +1729,9 @@
             if (latestSavedRecordId) {
                 document.getElementById('pdfShareBtn').classList.remove('hidden');
                 document.getElementById('pdfEmailDirectBtn').classList.remove('hidden');
+                console.log("PDF & Share buttons unhidden."); // Debug log
+            } else {
+                console.log("Record not saved, PDF & Share buttons remain hidden."); // Debug log
             }
         };
 
@@ -2204,7 +2231,7 @@
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
                     `Your overall score for this interaction was ${overallScore}.\n\n` +
                     `This feedback is provided to help you continue to improve service quality.\n\n` +
-                    `(IMPORTANT: The PDF document for this evaluation has been downloaded to your device. Please attach it manually to this email before sending.)\n\n` + // Updated message
+                    `(IMPORTANT: The PDF document for this evaluation can be downloaded from the database page. Please attach it manually to this email before sending.)\n\n` + // Updated message for share page
                     `If you have any questions, please feel free to reach out.\n\n` +
                     `Kind Regards,\n${loggedInUserName}`;
             } else {
@@ -2314,37 +2341,9 @@
             showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
-                // We're now directly using the stored pdfAttachment if available, otherwise generating.
-                let pdfDataUrlToDownload = record.pdfAttachment;
-
-                if (!pdfDataUrlToDownload) {
-                     // Fallback to generate if for some reason it's not stored (e.g., old record)
-                    const canvas = await generateFormPdf();
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({
-                        orientation: 'portrait',
-                        unit: 'mm',
-                        format: 'a4'
-                    });
-
-                    const imgWidth = 210;
-                    const pageHeight = 297;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    let heightLeft = imgHeight;
-
-                    let position = 0;
-
-                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-
-                    while (heightLeft >= 0) {
-                        position = heightLeft - pageHeight;
-                        pdf.addPage();
-                        pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                    }
-                    pdfDataUrlToDownload = pdf.output('datauristring'); // Get PDF as data URI string
-                }
+                // Now we are sure `record.pdfAttachment` exists because it was saved with the record.
+                // We just need to download it.
+                const pdfDataUrlToDownload = record.pdfAttachment;
                 
                 const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
                 
@@ -2392,35 +2391,9 @@
             showMessageBox("Generating PDF for Email", "Please wait, generating PDF document and preparing email...", false, true, false);
 
             try {
-                // We're now directly using the stored pdfAttachment if available, otherwise generating.
-                let pdfDataUrlToDownload = record.pdfAttachment;
-
-                if (!pdfDataUrlToDownload) {
-                    // Fallback to generate if for some reason it's not stored (e.g., old record)
-                    const canvas = await generateFormPdf();
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({
-                        orientation: 'portrait',
-                        unit: 'mm',
-                        format: 'a4'
-                    });
-
-                    const imgWidth = 210;
-                    const pageHeight = 297;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    let heightLeft = imgHeight;
-                    let position = 0;
-
-                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                    while (heightLeft >= 0) {
-                        position = heightLeft - pageHeight;
-                        pdf.addPage();
-                        pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                    }
-                    pdfDataUrlToDownload = pdf.output('datauristring'); // Get PDF as data URI string
-                }
+                // Now we are sure `record.pdfAttachment` exists because it was saved with the record.
+                // We just need to download it.
+                const pdfDataUrlToDownload = record.pdfAttachment;
 
                 const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
                 
@@ -2520,10 +2493,9 @@
                 return;
             }
             
-            // For mailto, we can't attach files directly. We instruct the user to attach it manually.
-            // However, we should still ensure the PDF is downloaded for them if it exists.
+            // If the record has a PDF attachment, trigger its download before opening mailto
             if (record.pdfAttachment) {
-                await downloadPdfAttachment(recordId); // Trigger download when they attempt to share
+                await downloadPdfAttachment(recordId); // Ensure the PDF is downloaded
             }
 
 
