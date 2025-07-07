@@ -526,8 +526,10 @@
                 <input type="text" id="client-name" name="Client Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" placeholder="e.g., John Doe" required>
             </div>
             <div>
-                <label for="cer-name" class="block top-field-label">CER Name</label>
-                <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" required>
+                <label for="cer-name-search" class="block top-field-label">Search CER Name</label>
+                <input type="text" id="cer-name-search" placeholder="Type to search CER" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600">
+                <label for="cer-name" class="block top-field-label mt-2">CER Name</label>
+                <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" size="5" required>
                     <option value="">Select CER</option>
                     </select>
             </div>
@@ -848,6 +850,7 @@
         let customFormFields = []; // NEW: Stores custom form field configurations
         let cerNameEmailsMap = {};
         let filterableRecords = [];
+        let originalCerNames = []; // Store the original CER names for filtering
 
         let unsubscribeRecords = null;
         let unsubscribeWebhooks = null;
@@ -987,7 +990,7 @@
             globalTotalPoints = currentTotalPoints; // Keep raw total points for saving
             globalMaxPossiblePoints = currentMaxPossiblePoints; // Keep raw max possible points for saving
             globalBusinessComplianceAccuracyValue = businessCompliancePct;
-            // Ensure that 'Overall Score' in formData stores the *final* score, which is affected by autofail.
+            // Ensure that 'Overall Score' in formData stores the *final' score, which is affected by autofail.
             // If you need the pre-autofail score for database storage, you'd need another field.
             // For now, the existing 'Overall Score' in formData will take the finalOverallPercentage.
             // You might want to add 'Pre-Autofail Score' to formData if you want to explicitly store it.
@@ -1333,8 +1336,7 @@
                     <td class="py-2 px-4">${record['Contact ID'] || ''}</td>
                     <td class="py-2 px-4">${record['Client Name'] || ''}</td>
                     <td class="py-2 px-4">${record['CER Name'] || ''}</td>
-                    <td class="py-2 px-4">${record['Overall Score'] || ''}</td>
-                    <td class="py-2 px-4">${pdfButtonHtml}</td> <td class="py-2 px-4 whitespace-nowrap">
+                    <td class="py-2 px-4">${record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || ''}</td> <td class="py-2 px-4">${pdfButtonHtml}</td> <td class="py-2 px-4 whitespace-nowrap">
                         <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
                     </td>
                     <td class="py-2 px-4"><button class="view-record-btn" data-record-id="${record.id}">View</button></td>
@@ -1567,7 +1569,7 @@
             const cerName = record['CER Name'] || 'N/A';
             const contactId = record['Contact ID'] || 'N/A';
             const evaluationDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
-            const overallScore = record['Overall Score'] || 'N/A';
+            const overallScore = record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || 'N/A'; // Use final score here
 
             const cerEmail = cerNameEmailsMap[cerName] || '';
 
@@ -1761,6 +1763,7 @@
             latestSavedRecordId = await addRecordToFirestore(formData);
             if (latestSavedRecordId) {
                 // Show the new PDF options modal
+                hideMessageBox(); // Hide the "Saving" message
                 showPdfOptionsModal();
                 console.log("PDF Options modal displayed after save."); 
             } else {
@@ -1771,11 +1774,16 @@
         function resetFormFieldsButKeepRole() {
             const form = document.getElementById('assessment-form');
             const cerRoleSelect = document.getElementById('cer-role');
-            const currentRole = cerRoleSelect.value;
+            const cerNameSelect = document.getElementById('cer-name'); // Get CER Name select
+            const cerNameSearchInput = document.getElementById('cer-name-search'); // Get CER Name search input
+
+            const currentRole = cerRoleSelect.value; // Preserve current CER Role
 
             document.getElementById('contact-id').value = '';
             document.getElementById('client-name').value = '';
-            document.getElementById('cer-name').value = '';
+            cerNameSelect.value = ''; // Reset CER Name dropdown
+            if(cerNameSearchInput) cerNameSearchInput.value = ''; // Clear search input
+            filterCerNames(''); // Re-apply filter to show all options
             document.getElementById('cer-email').value = '';
             document.getElementById('call-date-time').value = '';
             document.getElementById('reviewer-name').value = '';
@@ -1878,7 +1886,7 @@
 
                     row.innerHTML = `
                         <td class="py-2 px-4 text-sm text-gray-800">${record['CER Name'] || 'N/A'}</td>
-                        <td class="py-2 px-4 text-sm text-gray-800">${record['Overall Score'] || 'N/A'}</td>
+                        <td class="py-2 px-4 text-sm text-gray-800">${record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || 'N/A'}</td>
                         <td class="py-2 px-4 text-sm text-gray-800">${record['CER Role'] || 'N/A'}</td>
                         <td class="py-2 px-4 text-sm text-gray-800">${record['Contact ID'] || 'N/A'}</td>
                         <td class="py-2 px-4 text-sm text-gray-800">${submittedDateFormatted}</td>
@@ -1886,7 +1894,7 @@
                 });
             } catch (error) {
                 console.error("Error fetching last three evaluations:", error);
-                lastEvaluEvaluationsTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error loading evaluations: ${error.message}</td></tr>`;
+                lastEvaluationsTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error loading evaluations: ${error.message}</td></tr>`;
             }
         }
 
@@ -1931,104 +1939,30 @@
         }
 
 
-        // Function to fetch and populate dropdown options from Firestore
-        async function fetchDropdownOptionsData() {
-            if (!db) {
-                console.warn("Firestore not ready for fetching dropdowns.");
-                return;
-            }
+        // Function to filter CER Name dropdown
+        function filterCerNames(searchTerm) {
+            const cerNameSelect = document.getElementById('cer-name');
+            const lowerCaseSearchTerm = searchTerm.toLowerCase();
 
-            if (unsubscribeDropdowns) {
-                unsubscribeDropdowns();
-            }
+            // Clear current options
+            cerNameSelect.innerHTML = `<option value="">Select CER</option>`;
 
-            unsubscribeDropdowns = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
-                if (docSnap.exists()) {
-                    dropdownOptions = docSnap.data();
-                    console.log("Dropdown data updated from Firestore:", dropdownOptions);
+            // Add filtered options back
+            const filteredNames = originalCerNames.filter(cer => 
+                (typeof cer === 'string' && cer.toLowerCase().includes(lowerCaseSearchTerm)) ||
+                (typeof cer === 'object' && cer.name && cer.name.toLowerCase().includes(lowerCaseSearchTerm))
+            );
 
-                    cerNameEmailsMap = {};
-                    if (dropdownOptions.cerNames && Array.isArray(dropdownOptions.cerNames)) {
-                        dropdownOptions.cerNames.forEach(cer => {
-                            if (typeof cer === 'object' && cer.name && cer.email) {
-                                cerNameEmailsMap[cer.name] = cer.email;
-                            } else if (typeof cer === 'string') {
-                                cerNameEmailsMap[cer] = '';
-                            }
-                        });
-                    }
-                } else {
-                    console.warn("Dropdown options document does not exist. Initializing with empty arrays locally.");
-                    dropdownOptions = {
-                        cerNames: [],
-                        cerRoles: [],
-                        reviewerNames: [],
-                        autofailTypes: []
-                    };
-                    cerNameEmailsMap = {};
-                }
-                populateAllDropdownsInForm();
-            }, (error) => {
-                console.error("Error listening to dropdown data:", error);
+            filteredNames.forEach(option => {
+                const value = (typeof option === 'object' && option.name) ? option.name : option;
+                const optionElement = document.createElement('option');
+                optionElement.value = value;
+                optionElement.textContent = value;
+                cerNameSelect.appendChild(optionElement);
             });
-        }
 
-        // Function to fetch and populate questions from Firestore
-        async function fetchQuestionsData() {
-            if (!db) {
-                console.warn("Firestore not ready for fetching questions.");
-                return;
-            }
-
-            if (unsubscribeQuestions) {
-                unsubscribeQuestions();
-            }
-
-            unsubscribeQuestions = onSnapshot(QUESTIONS_CONFIG_DOC_REF, (docSnap) => {
-                if (docSnap.exists()) {
-                    allRolesQuestions = docSnap.data();
-                    console.log("Questions data updated from Firestore:", allRolesQuestions);
-                } else {
-                    console.warn("Questions configuration document does not exist. Initializing with empty object locally.");
-                    allRolesQuestions = {};
-                }
-                const cerRoleSelect = document.getElementById('cer-role');
-                if (cerRoleSelect && cerRoleSelect.value) {
-                    renderQuestionsForRole(cerRoleSelect.value);
-                } else {
-                    document.getElementById('cxQuestionsContainer').innerHTML = '';
-                    document.getElementById('psQuestionsContainer').innerHTML = '';
-                    document.getElementById('caQuestionsContainer').innerHTML = '';
-                    calculateScore();
-                }
-            }, (error) => {
-                console.error("Error listening to questions data:", error);
-            });
-        }
-
-        // NEW: Function to fetch and render custom form fields from Firestore
-        async function fetchCustomFieldsData() {
-            if (!db) {
-                console.warn("Firestore not ready for fetching custom fields.");
-                return;
-            }
-
-            if (unsubscribeCustomFields) {
-                unsubscribeCustomFields();
-            }
-
-            unsubscribeCustomFields = onSnapshot(CUSTOM_FIELDS_CONFIG_DOC_REF, (docSnap) => {
-                if (docSnap.exists() && docSnap.data().fields) {
-                    customFormFields = docSnap.data().fields.sort((a, b) => a.order - b.order); // Sort by order
-                    console.log("Custom form fields data updated from Firestore:", customFormFields);
-                } else {
-                    console.warn("Custom form fields configuration document does not exist or is empty. Initializing with empty array locally.");
-                    customFormFields = [];
-                }
-                renderCustomFormFields(); // Render the custom fields in the form
-            }, (error) => {
-                console.error("Error listening to custom fields data:", error);
-            });
+            // Ensure the size attribute is set to make it scrollable
+            cerNameSelect.setAttribute('size', Math.min(10, filteredNames.length + 1)); // Show max 10 options, or less if fewer options
         }
 
 
@@ -2038,6 +1972,8 @@
             const cerRoleSelect = document.getElementById('cer-role');
             const reviewerNameSelect = document.getElementById('reviewer-name');
             const autofailTypeSelect = document.getElementById('autofail-type');
+            const cerNameSearchInput = document.getElementById('cer-name-search');
+
 
             const populateSelect = (selectElement, optionsArray, type) => {
                 const currentSelectedValue = selectElement.value;
@@ -2063,7 +1999,12 @@
                 }
             };
 
-            populateSelect(cerNameSelect, dropdownOptions.cerNames, 'cerNames');
+            // Store original CER names
+            if (dropdownOptions.cerNames && Array.isArray(dropdownOptions.cerNames)) {
+                originalCerNames = [...dropdownOptions.cerNames]; // Make a copy
+            }
+            filterCerNames(cerNameSearchInput.value); // Populate and filter CER names
+
             populateSelect(cerRoleSelect, dropdownOptions.cerRoles, 'cerRoles');
             populateSelect(reviewerNameSelect, dropdownOptions.reviewerNames, 'reviewerNames');
             populateSelect(autofailTypeSelect, dropdownOptions.autofailTypes, 'autofailTypes');
@@ -2252,8 +2193,7 @@
                 const cerName = record['CER Name'] || 'Client';
                 const contactId = record['Contact ID'] || 'N/A';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
-                const overallScore = record['Overall Score'] || 'N/A';
-                const cerEmail = cerNameEmailsMap[cerName] || '';
+                const overallScore = record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || 'N/A'; // Use final score here
 
                 shareEmailTo.value = cerEmail;
                 shareEmailFrom.value = loggedInUserEmail;
@@ -2440,8 +2380,7 @@
                 const cerName = record['CER Name'] || 'Client';
                 const contactId = record['Contact ID'] || 'N/A';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
-                const overallScore = record['Overall Score'] || 'N/A';
-                const cerEmail = cerNameEmailsMap[cerName] || '';
+                const overallScore = record['Overall Final Percentage (Autofail Applied)'] || record['Overall Score'] || 'N/A'; // Use final score here
 
                 const emailSubject = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
                 const emailBody = `Dear ${cerName},\n\n` +
@@ -2579,6 +2518,8 @@
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
             const cerEmailInput = document.getElementById('cer-email');
+            const cerNameSearchInput = document.getElementById('cer-name-search'); // Get the search input for CER Name
+
 
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
@@ -2810,6 +2751,13 @@
                     } else {
                         document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
                     }
+                });
+            }
+
+            // NEW: Event listener for CER Name search input
+            if (cerNameSearchInput) {
+                cerNameSearchInput.addEventListener('input', (event) => {
+                    filterCerNames(event.target.value);
                 });
             }
 
