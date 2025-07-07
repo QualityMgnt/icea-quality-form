@@ -355,7 +355,7 @@
             white-space: nowrap;
         }
         #databaseTableContainer .delete-record-btn,
-        .view-record-btn, .email-record-btn, .download-record-btn {
+        .view-record-btn, .email-record-btn, .download-record-btn, .download-pdf-btn { /* Added .download-pdf-btn */
             padding: 0.375rem 0.75rem;
             border-radius: 0.25rem;
             font-size: 0.75rem;
@@ -364,8 +364,12 @@
             transition: background-color 0.3s ease;
             margin-right: 0.25rem;
         }
+        #databaseTableContainer .delete-record-btn {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+        }
         #databaseTableContainer .delete-record-btn:hover {
-            background-color: #dc2626;
+            background-color: #dc2626; /* red-700 */
         }
         .view-record-btn {
             background-color: #2196f3;
@@ -388,6 +392,14 @@
         .download-record-btn:hover {
             background-color: #388e3c;
         }
+        .download-pdf-btn { /* New style for PDF button */
+            background-color: #800080; /* Purple */
+            color: white;
+        }
+        .download-pdf-btn:hover {
+            background-color: #6a006a; /* Darker Purple */
+        }
+
         /* Style for webhook list */
         #webhookList div {
             display: flex;
@@ -469,8 +481,7 @@
             <ul>
                 <li><a href="#" id="auditFormTab" class="active"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
                 <li><a href="#" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li><a href="Dashboard.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Dashboard</a></li> <!-- Updated link -->
-                <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="Dashboard.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Dashboard</a></li> <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="#" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
                 <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
                 <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
@@ -541,10 +552,8 @@
                 <input type="text" id="duration" name="Call Duration" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" placeholder="e.g., 30 mins">
             </div>
 
-            <!-- NEW: Container for dynamically added custom fields -->
             <div id="customFieldsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 col-span-full">
-                <!-- Custom fields will be rendered here -->
-            </div>
+                </div>
         </div>
 
         <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
@@ -575,8 +584,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="cxQuestionsContainer">
-                        <!-- Questions will be dynamically loaded here -->
-                    </div>
+                        </div>
                 </div>
             </div>
 
@@ -593,8 +601,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="psQuestionsContainer">
-                        <!-- Questions will be dynamically loaded here -->
-                    </div>
+                        </div>
                 </div>
             </div>
 
@@ -611,8 +618,7 @@
                         <div class="col-span-2">Remarks</div>
                     </div>
                     <div id="caQuestionsContainer">
-                        <!-- Questions will be dynamically loaded here -->
-                    </div>
+                        </div>
                 </div>
             </div>
         </form>
@@ -699,7 +705,7 @@
                             <th>Client Name</th>
                             <th>CER Name</th>
                             <th>Overall Score</th>
-                            <th class="w-24">Actions</th>
+                            <th>Attachment</th> <th class="w-24">Actions</th>
                             <th>View</th>
                             <th>Email</th>
                             <th>Download</th>
@@ -707,7 +713,7 @@
                     </thead>
                     <tbody id="recordsTableBody">
                         <tr>
-                            <td colspan="10" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
+                            <td colspan="11" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1257,7 +1263,7 @@
             if (records.length === 0) {
                 recordsTableBody.innerHTML = `
                     <tr>
-                        <td colspan="10" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
+                        <td colspan="11" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
                     </tr>
                 `;
                 if (deleteSelectedRecordsBtn) deleteSelectedRecordsBtn.disabled = true;
@@ -1283,6 +1289,12 @@
                     }
                 }
 
+                // Determine if PDF attachment exists
+                const hasPdfAttachment = record.pdfAttachment && record.pdfAttachment.length > 0;
+                const pdfButtonHtml = hasPdfAttachment
+                    ? `<button class="download-pdf-btn" data-record-id="${record.id}"><i class="fas fa-file-pdf"></i> PDF</button>`
+                    : `<span>N/A</span>`;
+
                 row.innerHTML = `
                     <td class="py-2 px-4"><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>
                     <td class="py-2 px-4">${submittedDateFormatted}</td>
@@ -1290,7 +1302,7 @@
                     <td class="py-2 px-4">${record['Client Name'] || ''}</td>
                     <td class="py-2 px-4">${record['CER Name'] || ''}</td>
                     <td class="py-2 px-4">${record['Overall Score'] || ''}</td>
-                    <td class="py-2 px-4 whitespace-nowrap">
+                    <td class="py-2 px-4">${pdfButtonHtml}</td> <td class="py-2 px-4 whitespace-nowrap">
                         <button class="delete-record-btn" data-record-id="${record.id}">Delete</button>
                     </td>
                     <td class="py-2 px-4"><button class="view-record-btn" data-record-id="${record.id}">View</button></td>
@@ -1313,6 +1325,10 @@
             });
             document.querySelectorAll('.download-record-btn').forEach(button => {
                 button.addEventListener('click', (e) => downloadRecordData(e.target.dataset.recordId));
+            });
+            // NEW: Event listener for PDF download button
+            document.querySelectorAll('.download-pdf-btn').forEach(button => {
+                button.addEventListener('click', (e) => downloadPdfAttachment(e.target.dataset.recordId));
             });
 
             updateDeleteButtonState();
@@ -1493,7 +1509,10 @@
                     }
                     if (typeof value === 'object' && value !== null) {
                         detailsHtml += `<b>${key}:</b>\n${JSON.stringify(value, null, 2)}\n`;
-                    } else {
+                    } else if (key === 'pdfAttachment' && value && value.length > 0) { // Special handling for PDF attachment
+                        detailsHtml += `<b>${key}:</b> [PDF Data Available - Download from table]\n`;
+                    }
+                    else {
                         detailsHtml += `<b>${key}:</b> ${value}\n`;
                     }
                 }
@@ -1575,7 +1594,7 @@
         }
 
         /**
-         * Collects form data and saves it. Then reveals the PDF & Share button.
+         * Collects form data, generates PDF, and saves it. Then reveals the PDF & Share button.
          */
         window.saveFormToDB = async function() {
             const form = document.getElementById('assessment-form');
@@ -1616,6 +1635,23 @@
                 otherReviewerNameInput.style.borderColor = '';
             }
 
+            // Generate PDF before collecting all form data
+            showMessageBox("Saving & Generating PDF", "Saving form and generating PDF attachment...", false, true, false);
+            let pdfDataUrl = null;
+            try {
+                const canvas = await generateFormPdf();
+                pdfDataUrl = canvas.toDataURL('image/jpeg', 0.8); // Get image data as Base64
+                // You could also generate the actual PDF and then convert it to Base64:
+                // const { jsPDF } = window.jspdf;
+                // const pdf = new jsPDF(); // Configure as needed
+                // pdf.addImage(pdfDataUrl, 'JPEG', 0, 0, pdf.internal.pageSize.getWidth(), (canvas.height * pdf.internal.pageSize.getWidth()) / canvas.width);
+                // pdfDataUrl = pdf.output('datauristring'); // Get PDF as Base64 string
+            } catch (pdfError) {
+                console.error("Error generating PDF for attachment:", pdfError);
+                showMessageBox("PDF Generation Failed", `Could not generate PDF attachment: ${pdfError.message}. Proceeding without PDF.`, true, false, true);
+            }
+
+
             const formData = {
                 'Contact ID': contactId,
                 'Client Name': clientName,
@@ -1633,7 +1669,8 @@
                 'Total Pts.': globalTotalPoints,
                 'Max Possible Pts.': globalMaxPossiblePoints,
                 'Evaluated By User ID': currentUserId,
-                'Evaluated By User Email': auth.currentUser ? auth.currentUser.email : 'anonymous'
+                'Evaluated By User Email': auth.currentUser ? auth.currentUser.email : 'anonymous',
+                'pdfAttachment': pdfDataUrl // NEW: Store PDF data URL here
             };
 
             // Collect data from dynamically generated custom fields
@@ -2148,7 +2185,7 @@
                 shareEmailTo.value = '';
                 shareEmailFrom.value = loggedInUserEmail;
                 shareEmailSubject.value = 'Quality Assessment Feedback';
-                shareEmailBody.value = 'Dear CER,\n\nKindly find attached the Quality Assurance Audit Feedback. Your signature is required.\n\nKind Regards,\nQuality Evaluation Team';
+                shareEmailBody.value = 'Dear CER,\n\nKindly find attached the Quality Assurance Audit Feedback. Your signature is required.\n\nKind Regards,\nQuality Evaluation Team\n\n(IMPORTANT: Please manually attach the PDF that was downloaded to your device.)';
                 return;
             }
 
@@ -2167,6 +2204,7 @@
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
                     `Your overall score for this interaction was ${overallScore}.\n\n` +
                     `This feedback is provided to help you continue to improve service quality.\n\n` +
+                    `(IMPORTANT: The PDF document for this evaluation has been downloaded to your device. Please attach it manually to this email before sending.)\n\n` + // Updated message
                     `If you have any questions, please feel free to reach out.\n\n` +
                     `Kind Regards,\n${loggedInUserName}`;
             } else {
@@ -2276,35 +2314,47 @@
             showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
 
             try {
-                const canvas = await generateFormPdf();
-                const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                // We're now directly using the stored pdfAttachment if available, otherwise generating.
+                let pdfDataUrlToDownload = record.pdfAttachment;
 
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
+                if (!pdfDataUrlToDownload) {
+                     // Fallback to generate if for some reason it's not stored (e.g., old record)
+                    const canvas = await generateFormPdf();
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
 
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
+                    const imgWidth = 210;
+                    const pageHeight = 297;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    let heightLeft = imgHeight;
 
-                let position = 0;
+                    let position = 0;
 
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                while (heightLeft >= 0) {
-                    position = heightLeft - pageHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
-                }
 
+                    while (heightLeft >= 0) {
+                        position = heightLeft - pageHeight;
+                        pdf.addPage();
+                        pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                    pdfDataUrlToDownload = pdf.output('datauristring'); // Get PDF as data URI string
+                }
+                
                 const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
-                pdf.save(pdfFileName);
+                
+                // Trigger download
+                const link = document.createElement('a');
+                link.href = pdfDataUrlToDownload;
+                link.download = pdfFileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
 
                 showTab('shareResponse');
                 
@@ -2342,33 +2392,45 @@
             showMessageBox("Generating PDF for Email", "Please wait, generating PDF document and preparing email...", false, true, false);
 
             try {
-                const canvas = await generateFormPdf();
-                const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                // We're now directly using the stored pdfAttachment if available, otherwise generating.
+                let pdfDataUrlToDownload = record.pdfAttachment;
 
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
+                if (!pdfDataUrlToDownload) {
+                    // Fallback to generate if for some reason it's not stored (e.g., old record)
+                    const canvas = await generateFormPdf();
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
 
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
+                    const imgWidth = 210;
+                    const pageHeight = 297;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
 
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-                while (heightLeft >= 0) {
-                    position = heightLeft - pageHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
+                    while (heightLeft >= 0) {
+                        position = heightLeft - pageHeight;
+                        pdf.addPage();
+                        pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                    pdfDataUrlToDownload = pdf.output('datauristring'); // Get PDF as data URI string
                 }
 
                 const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
-                pdf.save(pdfFileName);
+                
+                // Trigger download
+                const link = document.createElement('a');
+                link.href = pdfDataUrlToDownload;
+                link.download = pdfFileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
 
                 const cerName = record['CER Name'] || 'Client';
                 const contactId = record['Contact ID'] || 'N/A';
@@ -2386,8 +2448,8 @@
                     `Kind Regards,\n${loggedInUserName}`;
 
                 const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}` +
-                                             `?subject=${encodeURIComponent(emailSubject)}` +
-                                             `&body=${encodeURIComponent(emailBody)}`;
+                                                 `?subject=${encodeURIComponent(emailSubject)}` +
+                                                 `&body=${encodeURIComponent(emailBody)}`;
 
                 window.location.href = mailtoLink;
 
@@ -2400,6 +2462,39 @@
                 showMessageBox("Action Failed", `Could not generate PDF or prepare direct email: ${error.message}. Please try again.`, true, false, true);
             }
         };
+
+
+        /**
+         * Downloads the PDF attachment associated with a record.
+         * @param {string} recordId The ID of the record containing the PDF attachment.
+         */
+        async function downloadPdfAttachment(recordId) {
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record || !record.pdfAttachment) {
+                showMessageBox("Error", "No PDF attachment found for this record.", true, false, true);
+                return;
+            }
+
+            try {
+                showMessageBox("Downloading PDF", "Preparing to download PDF...", false, true, false);
+                const pdfDataUrl = record.pdfAttachment;
+                const contactId = record['Contact ID'] || 'UnknownContact';
+                const fileName = `Assessment_${contactId}_${new Date().toLocaleDateString('en-CA')}.pdf`;
+
+                const link = document.createElement('a');
+                link.href = pdfDataUrl;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                hideMessageBox();
+                showMessageBox("Download Complete", `PDF "${fileName}" has been downloaded.`, false, false, true);
+            } catch (error) {
+                console.error("Error downloading PDF attachment:", error);
+                hideMessageBox();
+                showMessageBox("Download Failed", `Failed to download PDF: ${error.message}`, true, false, true);
+            }
+        }
 
 
         // EXPOSE TO GLOBAL WINDOW OBJECT
@@ -2424,12 +2519,22 @@
                 shareEmailMessage.classList.remove('hidden');
                 return;
             }
+            
+            // For mailto, we can't attach files directly. We instruct the user to attach it manually.
+            // However, we should still ensure the PDF is downloaded for them if it exists.
+            if (record.pdfAttachment) {
+                await downloadPdfAttachment(recordId); // Trigger download when they attempt to share
+            }
+
 
             const mailtoLink = `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
             try {
                 window.location.href = mailtoLink;
-                showMessageBox("Email Client Opened", "Your email client should open shortly with the email body pre-filled. You will need to manually attach the PDF that was downloaded.", false, false, true);
+                // Update message to remind about manual attachment
+                showMessageBox("Email Client Opened", "Your email client should open shortly with the email body pre-filled. " + 
+                (record.pdfAttachment ? "The PDF for this evaluation has been downloaded to your device; you will need to manually attach it to the email." : "There is no PDF attachment for this record."), 
+                false, false, true);
             } catch (e) {
                 console.error("Failed to open email client:", e);
                 showMessageBox("Email Failed", "Could not open email client. Please try again or copy the details manually.", true, false, true);
