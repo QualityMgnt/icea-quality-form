@@ -696,7 +696,7 @@
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-semibold text-gray-800">Submitted Records</h2>
                 <div>
-                    <button id="deleteSelectedRecordsBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <button id="deleteSelectedRecordsBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity50 disabled:cursor-not-allowed" disabled>
                         <i class="fas fa-trash-alt mr-2"></i>Delete Selected
                     </button>
                 </div>
@@ -883,7 +883,7 @@
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
             const autofailTypeSelect = document.getElementById('autofail-type');
 
-            let currentTotalPoints = 0;
+            let currentTotalPoints = 0; // This will be the sum of all points earned, unaffected by autofail
             let currentMaxPossiblePoints = 0;
             let autofailQuestionTriggered = false;
             let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== ''); // Check if an autofail type is selected
@@ -936,7 +936,7 @@
                 }
 
                 pointsElement.value = pointsForThisQuestion;
-                currentTotalPoints += pointsForThisQuestion;
+                currentTotalPoints += pointsForThisQuestion; // Accumulate raw total points here
 
                 // Only add to max possible points if a rating other than empty is selected
                 if (rating !== '') {
@@ -969,12 +969,13 @@
             if (autofailQuestionTriggered || autofailTypeSelected) {
                 finalOverallPercentage = 0;
             }
-            // Update both top and bottom overall score displays with the final percentage
-            overallScoreDisplay.textContent = `${finalOverallPercentage}%`; // Changed to finalOverallPercentage
+            
+            // Update both top and bottom overall score displays with the final percentage (affected by autofail)
+            overallScoreDisplay.textContent = `${finalOverallPercentage}%`;
             overallFinalPercentageDisplay.textContent = `${finalOverallPercentage}%`;
 
-            // Update "Total Pts." to show the raw sum of points earned
-            totalPtsPercentageDisplay.textContent = `${currentTotalPoints}`; // Changed to display raw points
+            // Update "Total Pts." to show the raw sum of points earned (NOT affected by autofail)
+            totalPtsPercentageDisplay.textContent = `${currentTotalPoints}`; 
 
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
@@ -1875,7 +1876,7 @@
                 const remarksInput = selectElement.closest('.grid').querySelector('.remarks-textarea');
                 const pointsInput = selectElement.closest('.grid').querySelector('.points-input');
                 if (remarksInput) remarksInput.value = '';
-                if (pointsInput) points.value = '0'; // Fixed: Changed to points.value to reset points
+                if (pointsInput) pointsInput.value = '0'; // Fixed: Changed to pointsInput.value to reset points
             });
             
             renderQuestionsForRole(currentRole);
