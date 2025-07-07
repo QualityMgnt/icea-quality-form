@@ -1712,47 +1712,7 @@
                 otherReviewerNameInput.style.borderColor = '';
             }
 
-            // Generate PDF before collecting all form data
-            showMessageBox("Saving & Generating PDF", "Saving form and generating PDF attachment...", false, true, false);
-            let pdfDataUrl = null;
-            try {
-                const canvas = await generateFormPdf();
-                // To get a full PDF (not just image of the first page), you need to use jspdf.
-                // The generateFormPdf currently only returns a canvas (image).
-                // Let's create a full PDF from the canvas here.
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-
-                const imgData = canvas.toDataURL('image/jpeg', 1.0); // Use higher quality for saving
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                while (heightLeft >= 0) {
-                    position = heightLeft - pageHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-
-                pdfDataUrl = pdf.output('datauristring'); // Get PDF as Base64 string
-                console.log("PDF generated successfully for storage.");
-
-            } catch (pdfError) {
-                console.error("Error generating PDF for attachment:", pdfError);
-                showMessageBox("PDF Generation Failed", `Could not generate PDF attachment: ${pdfError.message}. Proceeding without PDF.`, true, false, true);
-            }
-
-
+            // Collect form data (excluding pdfAttachment for Firestore)
             const formData = {
                 'Contact ID': contactId,
                 'Client Name': clientName,
@@ -1772,7 +1732,7 @@
                 'Overall Final Percentage (Autofail Applied)': document.getElementById('overall-final-percentage-display').textContent, // Store the final score separately
                 'Evaluated By User ID': currentUserId,
                 'Evaluated By User Email': auth.currentUser ? auth.currentUser.email : 'anonymous',
-                'pdfAttachment': pdfDataUrl // NEW: Store PDF data URL here
+                // 'pdfAttachment': pdfDataUrl // REMOVED: No longer storing large PDF in Firestore document
             };
 
             // Collect data from dynamically generated custom fields
@@ -1803,15 +1763,61 @@
                 formData[`${questionDesc} (Weightage)`] = weightageDisplay ? weightageDisplay.dataset.weightage : '';
             });
 
+            // Save form data to Firestore
             latestSavedRecordId = await addRecordToFirestore(formData);
             console.log("latestSavedRecordId after addRecordToFirestore:", latestSavedRecordId); // Debug log
 
             if (latestSavedRecordId) {
-                // Ensure the buttons are visible and active
+                // Generate and download PDF immediately after successful save
+                showMessageBox("Generating PDF", "Form saved. Generating PDF document for download...", false, true, false);
+                try {
+                    const canvas = await generateFormPdf();
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
+
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                    const imgWidth = 210;
+                    const pageHeight = 297;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+
+                    while (heightLeft >= 0) {
+                        position = heightLeft - pageHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+
+                    const pdfDataUrl = pdf.output('datauristring');
+                    const pdfFileName = `Quality_Assessment_${contactId || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
+                    
+                    const link = document.createElement('a');
+                    link.href = pdfDataUrl;
+                    link.download = pdfFileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    showMessageBox("Success", `Form saved and PDF "${pdfFileName}" downloaded!`, false, false, true);
+
+                } catch (pdfError) {
+                    console.error("Error generating or downloading PDF:", pdfError);
+                    showMessageBox("PDF Action Failed", `Form saved, but PDF generation/download failed: ${pdfError.message}.`, true, false, true);
+                }
+
+                // Ensure the buttons are visible
                 document.getElementById('pdfShareBtn').classList.remove('hidden');
                 document.getElementById('pdfEmailDirectBtn').classList.remove('hidden');
-
                 console.log("PDF & Share buttons unhidden."); // Debug log
+
             } else {
                 console.log("Record not saved, PDF & Share buttons remain hidden."); // Debug log
             }
@@ -2454,98 +2460,62 @@
 
         /**
          * Handles the "PDF & Share" button click.
-         * Generates the PDF, triggers its download, and navigates to the Share Response tab.
+         * Navigates to the Share Response tab and prepares email fields.
+         * The PDF is assumed to have been downloaded already during form save.
          */
         window.handlePdfAndShare = async function() {
             if (!latestSavedRecordId) {
-                showMessageBox("Error", "Please save the evaluation form first to generate a PDF.", true, false, true);
+                showMessageBox("Error", "Please save the evaluation form first. The PDF is downloaded upon saving.", true, false, true);
                 return;
             }
 
-            const record = allRecords.find(r => r.id === latestSavedRecordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found for PDF generation. It might have been deleted or not correctly saved.", true, false, true);
-                return;
-            }
-
-            showMessageBox("Generating PDF", "Please wait, generating PDF document...", false, true, false);
-
-            try {
-                // Now we are sure `record.pdfAttachment` exists because it was saved with the record.
-                // We just need to download it.
-                const pdfDataUrlToDownload = record.pdfAttachment;
+            // Navigate to share tab
+            showTab('shareResponse'); 
+            
+            // Populate share email fields after navigating
+            setTimeout(() => {
+                document.getElementById('select-record-to-share').value = latestSavedRecordId;
+                populateShareEmailFields(latestSavedRecordId);
                 
-                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
-                
-                // Trigger download
-                const link = document.createElement('a');
-                link.href = pdfDataUrlToDownload;
-                link.download = pdfFileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const shareEmailBody = document.getElementById('share-email-body');
+                const record = allRecords.find(r => r.id === latestSavedRecordId);
+                const pdfFileName = record ? `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf` : 'the PDF document';
+                shareEmailBody.value += `\n\n(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)`;
+                autoExpandTextarea(shareEmailBody);
+            }, 100);
 
-                showTab('shareResponse'); // Navigate to share tab
-                
-                // Populate share email fields after navigating
-                setTimeout(() => {
-                    document.getElementById('select-record-to-share').value = latestSavedRecordId;
-                    populateShareEmailFields(latestSavedRecordId);
-                    
-                    const shareEmailBody = document.getElementById('share-email-body');
-                    shareEmailBody.value += `\n\n(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)`;
-                    autoExpandTextarea(shareEmailBody);
-                }, 100);
-
-                hideMessageBox();
-                resetFormFieldsButKeepRole(); // Reset the form after action
-            } catch (error) {
-                console.error("Error generating PDF or preparing for sharing:", error);
-                hideMessageBox();
-                showMessageBox("Action Failed", `Could not generate PDF or prepare for sharing: ${error.message}. Please try again.`, true, false, true);
-            }
+            hideMessageBox();
+            resetFormFieldsButKeepRole(); // Reset the form after action
         };
 
 
         /**
          * NEW: Handles the "PDF & Email (Direct Send)" button click.
-         * Generates the PDF, triggers its download, and attempts to open the user's email client
-         * with pre-filled details, reminding them to attach the downloaded PDF.
+         * Attempts to open the user's email client with pre-filled details,
+         * reminding them to attach the downloaded PDF.
+         * The PDF is assumed to have been downloaded already during form save.
          */
         window.handlePdfAndDirectEmail = async function() {
             if (!latestSavedRecordId) {
-                showMessageBox("Error", "Please save the evaluation form first to generate a PDF for direct email.", true, false, true);
+                showMessageBox("Error", "Please save the evaluation form first. The PDF is downloaded upon saving.", true, false, true);
                 return;
             }
 
             const record = allRecords.find(r => r.id === latestSavedRecordId);
             if (!record) {
-                showMessageBox("Error", "Record not found for PDF generation. It might have been deleted or not correctly saved.", true, false, true);
+                showMessageBox("Error", "Record not found for email. It might have been deleted or not correctly saved.", true, false, true);
                 return;
             }
 
-            showMessageBox("Generating PDF for Email", "Please wait, generating PDF document and preparing email...", false, true, false);
+            showMessageBox("Preparing Email", "Preparing email with pre-filled details...", false, true, false);
 
             try {
-                // Now we are sure `record.pdfAttachment` exists because it was saved with the record.
-                // We just need to download it.
-                const pdfDataUrlToDownload = record.pdfAttachment;
-
-                const pdfFileName = `Quality_Assessment_${record['Contact ID'] || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
-                
-                // Trigger download
-                const link = document.createElement('a');
-                link.href = pdfDataUrlToDownload;
-                link.download = pdfFileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
                 const cerName = record['CER Name'] || 'Client';
                 const contactId = record['Contact ID'] || 'N/A';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
                 const overallScore = record['Overall Score'] || 'N/A';
                 const cerEmail = cerNameEmailsMap[cerName] || '';
+                const pdfFileName = `Quality_Assessment_${contactId || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
 
                 const emailSubject = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
                 const emailBody = `Dear ${cerName},\n\n` +
@@ -2563,13 +2533,13 @@
                 window.location.href = mailtoLink;
 
                 hideMessageBox();
-                showMessageBox("PDF Downloaded & Email Opened", `The PDF "${pdfFileName}" has been downloaded. Your email client should open shortly with pre-filled details. Please remember to manually attach the downloaded PDF.`, false, false, true);
+                showMessageBox("Email Client Opened", `Your email client should open shortly with pre-filled details. Please remember to manually attach the downloaded PDF ("${pdfFileName}").`, false, false, true);
                 resetFormFieldsButKeepRole(); // Reset the form after action
 
             } catch (error) {
-                console.error("Error generating PDF or preparing for direct email:", error);
+                console.error("Error preparing direct email:", error);
                 hideMessageBox();
-                showMessageBox("Action Failed", `Could not generate PDF or prepare direct email: ${error.message}. Please try again.`, true, false, true);
+                showMessageBox("Action Failed", `Could not prepare direct email: ${error.message}. Please try again.`, true, false, true);
             }
         };
 
@@ -2581,8 +2551,11 @@
          */
         async function downloadPdfAttachment(recordId) {
             const record = allRecords.find(r => r.id === recordId);
+            // NOTE: pdfAttachment is no longer stored in Firestore for new records.
+            // This function will only work for old records that had it stored,
+            // or if you re-implement storing it (e.g., in Firebase Storage).
             if (!record || !record.pdfAttachment) {
-                showMessageBox("Error", "No PDF attachment found for this record.", true, false, true);
+                showMessageBox("Error", "No PDF attachment found for this record. (Note: PDFs are now downloaded automatically on form save.)", true, false, true);
                 return;
             }
 
@@ -2635,9 +2608,13 @@
                 return;
             }
             
-            // If the record has a PDF attachment, trigger its download before opening mailto
+            // NOTE: The PDF is now downloaded automatically on form save.
+            // This check for `record.pdfAttachment` will only work for older records that stored it,
+            // or if you re-implement storing PDFs (e.g., in Firebase Storage).
+            // For new records, the user is expected to manually attach the PDF they downloaded on save.
             if (record.pdfAttachment) {
-                await downloadPdfAttachment(recordId); // Ensure the PDF is downloaded
+                showMessageBox("Downloading PDF (if available)", "A PDF for this record might be downloaded if it was previously stored. Please wait...", false, true, false);
+                await downloadPdfAttachment(recordId); // Attempt to download if old record had it
             }
 
 
@@ -2647,7 +2624,7 @@
                 window.location.href = mailtoLink;
                 // Update message to remind about manual attachment
                 showMessageBox("Email Client Opened", "Your email client should open shortly with the email body pre-filled. " + 
-                (record.pdfAttachment ? "The PDF for this evaluation has been downloaded to your device; you will need to manually attach it to the email." : "There is no PDF attachment for this record."), 
+                "**IMPORTANT:** The PDF for this evaluation is downloaded to your device upon saving the form. You will need to manually attach it to this email before sending.", 
                 false, false, true);
             } catch (e) {
                 console.error("Failed to open email client:", e);
