@@ -796,6 +796,8 @@
         import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         // Import all necessary Firestore functions
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        // NEW: Firebase Storage Imports
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
 
         // --- Firebase Configuration ---
@@ -821,6 +823,7 @@
         }
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
+        const storage = getStorage(appInstance); // NEW: Initialize Firebase Storage
 
         // Define Firebase Collection Paths (using const as they don't change)
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
@@ -1331,8 +1334,8 @@
                     }
                 }
 
-                // Determine if PDF attachment exists (only for older records or if re-implemented storage)
-                const hasPdfAttachment = record.pdfAttachment && record.pdfAttachment.length > 0;
+                // Determine if PDF attachment exists (now checks for pdfAttachmentUrl)
+                const hasPdfAttachment = record.pdfAttachmentUrl && record.pdfAttachmentUrl.length > 0;
                 const pdfButtonHtml = hasPdfAttachment
                     ? `<button class="download-pdf-btn" data-record-id="${record.id}"><i class="fas fa-file-pdf"></i> PDF</button>`
                     : `<span>N/A</span>`;
@@ -1555,10 +1558,11 @@
                             }
                         }
                     }
-                    if (typeof value === 'object' && value !== null) {
+                    // Handle pdfAttachmentUrl instead of pdfAttachment
+                    if (key === 'pdfAttachmentUrl' && value && value.length > 0) {
+                        detailsHtml += `<b>PDF Attachment URL:</b> <a href="${value}" target="_blank" class="text-blue-600 hover:underline">${value}</a>\n`;
+                    } else if (typeof value === 'object' && value !== null) {
                         detailsHtml += `<b>${key}:</b>\n${JSON.stringify(value, null, 2)}\n`;
-                    } else if (key === 'pdfAttachment' && value && value.length > 0) { // Special handling for PDF attachment
-                        detailsHtml += `<b>${key}:</b> [PDF Data Available - Download from table]\n`;
                     }
                     else {
                         detailsHtml += `<b>${key}:</b> ${value}\n`;
@@ -1638,7 +1642,7 @@
 
         /**
          * Helper function for submitting form data to Firestore.
-         * @param {Object} recordData - The data object to save to Firestore.
+         * @param {Object} recordData The data object to save to Firestore.
          * @returns {Promise<string|null>} Resolves with the new document ID on success, null on failure.
          */
         async function addRecordToFirestore(recordData) {
@@ -1767,8 +1771,8 @@
             console.log("latestSavedRecordId after addRecordToFirestore:", latestSavedRecordId); // Debug log
 
             if (latestSavedRecordId) {
-                // Generate and download PDF immediately after successful save
-                showMessageBox("Generating PDF", "Form saved. Generating PDF document for download...", false, true, false);
+                // Generate and upload PDF to Firebase Storage
+                showMessageBox("Generating PDF", "Form saved. Generating PDF and uploading to storage...", false, true, false);
                 try {
                     const canvas = await generateFormPdf();
                     const { jsPDF } = window.jspdf;
@@ -1795,21 +1799,32 @@
                         heightLeft -= pageHeight;
                     }
 
-                    const pdfDataUrl = pdf.output('datauristring');
-                    const pdfFileName = `Quality_Assessment_${contactId || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
+                    const pdfBlob = new Blob([pdf.output('arraybuffer')], { type: 'application/pdf' }); // Get PDF as Blob
+                    const pdfStoragePath = `pdfs/${latestSavedRecordId}.pdf`; // Define storage path
+                    const storageRef = ref(storage, pdfStoragePath);
+
+                    await uploadBytes(storageRef, pdfBlob); // Upload to Firebase Storage
+                    const downloadURL = await getDownloadURL(storageRef); // Get download URL
+
+                    // Update the Firestore document with the PDF URL and path
+                    await updateDoc(doc(db, EVALUATION_RECORDS_COLLECTION_PATH, latestSavedRecordId), {
+                        pdfAttachmentUrl: downloadURL,
+                        pdfStoragePath: pdfStoragePath // Optionally store path for easier deletion later
+                    });
+
+                    showMessageBox("Success", `Form saved, PDF uploaded to storage, and downloaded!`, false, false, true);
                     
+                    // Also trigger local download of the PDF
                     const link = document.createElement('a');
-                    link.href = pdfDataUrl;
-                    link.download = pdfFileName;
+                    link.href = downloadURL; // Use the direct download URL
+                    link.download = `Quality_Assessment_${contactId || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    
-                    showMessageBox("Success", `Form saved and PDF "${pdfFileName}" downloaded!`, false, false, true);
 
                 } catch (pdfError) {
-                    console.error("Error generating or downloading PDF:", pdfError);
-                    showMessageBox("PDF Action Failed", `Form saved, but PDF generation/download failed: ${pdfError.message}.`, true, false, true);
+                    console.error("Error generating or uploading PDF:", pdfError);
+                    showMessageBox("PDF Action Failed", `Form saved, but PDF generation/upload failed: ${pdfError.message}.`, true, false, true);
                 }
 
             } else {
@@ -1875,8 +1890,7 @@
                 selectElement.value = defaultRating;
                 const remarksInput = selectElement.closest('.grid').querySelector('.remarks-textarea');
                 const pointsInput = selectElement.closest('.grid').querySelector('.points-input');
-                if (remarksInput) remarksInput.value = '';
-                if (pointsInput) pointsInput.value = '0'; // Fixed: Changed to pointsInput.value to reset points
+                if (remarksInput) pointsInput.value = '0'; // Fixed: Changed to pointsInput.value to reset points
             });
             
             renderQuestionsForRole(currentRole);
@@ -2613,17 +2627,15 @@
          */
         async function downloadPdfAttachment(recordId) {
             const record = allRecords.find(r => r.id === recordId);
-            // NOTE: pdfAttachment is no longer stored in Firestore for new records.
-            // This function will only work for old records that had it stored,
-            // or if you re-implement storing it (e.g., in Firebase Storage).
-            if (!record || !record.pdfAttachment) {
-                showMessageBox("Error", "No PDF attachment found for this record. (Note: PDFs are now downloaded automatically on form save.)", true, false, true);
+            // Now, pdfAttachmentUrl is stored in Firestore
+            if (!record || !record.pdfAttachmentUrl) {
+                showMessageBox("Error", "No PDF attachment found for this record. (Note: PDFs are stored in Firebase Storage and linked.)", true, false, true);
                 return;
             }
 
             try {
                 showMessageBox("Downloading PDF", "Preparing to download PDF...", false, true, false);
-                const pdfDataUrl = record.pdfAttachment;
+                const pdfDataUrl = record.pdfAttachmentUrl; // Use the URL from Firestore
                 const contactId = record['Contact ID'] || 'UnknownContact';
                 const fileName = `Assessment_${contactId}_${new Date().toLocaleDateString('en-CA')}.pdf`;
 
@@ -2670,12 +2682,9 @@
                 return;
             }
             
-            // NOTE: The PDF is now downloaded automatically on form save.
-            // This check for `record.pdfAttachment` will only work for older records that stored it,
-            // or if you re-implement storing PDFs (e.g., in Firebase Storage).
-            // For new records, the user is expected to manually attach the PDF they downloaded on save.
-            if (record.pdfAttachment) {
-                showMessageBox("Downloading PDF (if available)", "A PDF for this record might be downloaded if it was previously stored. Please wait...", false, true, false);
+            // If the record has a PDF attachment URL, trigger its download before opening mailto
+            if (record.pdfAttachmentUrl) {
+                showMessageBox("Downloading PDF (if available)", "A PDF for this record will be downloaded. Please wait...", false, true, false);
                 await downloadPdfAttachment(recordId); // Attempt to download if old record had it
             }
 
