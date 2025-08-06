@@ -185,7 +185,7 @@
         }
         
         .main-nav ul li.nav-tab {
-            display: none; /* Hide all tabs by default */
+            display: none; /* Hide all tabs by default, JavaScript will show them */
         }
 
         .sidebar ul li a {
@@ -2735,36 +2735,12 @@
         // FINAL CONSOLIDATION: All event listeners and initial setup logic within DOMContentLoaded
 
         /**
-         * Renders the navigation tabs based on the user's role.
-         * Hides all tabs by default, then shows only the ones appropriate for the role.
-         * @param {string} role - The role of the currently logged-in user.
+         * Renders the navigation tabs unconditionally.
+         * All tabs will be visible to all users.
          */
-        function renderNavigationForRole(role) {
+        function renderNavigationForRole() {
             const allNavTabs = document.querySelectorAll('.nav-tab');
-            allNavTabs.forEach(tab => tab.style.display = 'none'); // Hide all tabs initially
-            
-            // Define which tabs to show based on the user's role
-            const tabsToShowForAgent = ['auditFormTab', 'shareResponseTab'];
-            const tabsToShowForAllOthers = [
-                'auditFormTab', 'databaseTab', 'reportsTab', 'autofailsTab',
-                'shareResponseTab', 'usersTab', 'adminTab', 'npsTab'
-            ];
-
-            if (role === 'agent') {
-                tabsToShowForAgent.forEach(tabId => {
-                    const tabElement = document.getElementById(tabId);
-                    if (tabElement) {
-                        tabElement.closest('li').style.display = 'block';
-                    }
-                });
-            } else if (role === 'admin' || role === 'supervisor' || role === 'anonymous') {
-                tabsToShowForAllOthers.forEach(tabId => {
-                    const tabElement = document.getElementById(tabId);
-                    if (tabElement) {
-                        tabElement.closest('li').style.display = 'block';
-                    }
-                });
-            }
+            allNavTabs.forEach(tab => tab.style.display = 'block');
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -2850,7 +2826,7 @@
                         currentUserRole = 'Guest';
                         loggedInUserName = user.email || "Quality Evaluation Team";
                     }
-                    renderNavigationForRole(currentUserRole); // RENDER NAVIGATION BASED ON ROLE
+                    renderNavigationForRole(); // RENDER NAVIGATION UNCONDITIONALLY
                     initializeAppDisplay();
                     fetchDropdownOptionsData();
                     fetchQuestionsData();
@@ -2871,7 +2847,7 @@
                         currentUserRole = 'anonymous';
                         loggedInUserEmail = auth.currentUser.email || "anonymous";
                         console.log("Signed in anonymously (index.html):", currentUserId);
-                        renderNavigationForRole(currentUserRole); // RENDER NAVIGATION FOR ANONYMOUS
+                        renderNavigationForRole(); // RENDER NAVIGATION UNCONDITIONALLY
                         initializeAppDisplay();
                         fetchDropdownOptionsData();
                         fetchQuestionsData();
@@ -2882,7 +2858,7 @@
                         currentUserId = null;
                         currentUserRole = null;
                         loggedInUserEmail = "anonymous";
-                        renderNavigationForRole(null); // No role, so no tabs
+                        renderNavigationForRole(); // RENDER NAVIGATION UNCONDITIONALLY
                         initializeAppDisplay();
                     }
                 }
@@ -2967,7 +2943,7 @@
             if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = adminTab.href; }); }
             if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); }
             if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; }); }
-            if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('nps'); }); }
+            if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'nps.html'; }); }
 
 
             // Database table selection and deletion handlers
