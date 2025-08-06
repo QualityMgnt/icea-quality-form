@@ -2743,14 +2743,21 @@
             const allNavTabs = document.querySelectorAll('.nav-tab');
             allNavTabs.forEach(tab => tab.style.display = 'none'); // Hide all tabs initially
 
-            const visibleTabs = {
-                'admin': ['auditFormTab', 'databaseTab', 'reportsTab', 'autofailsTab', 'shareResponseTab', 'usersTab', 'adminTab', 'npsTab'],
-                'supervisor': ['auditFormTab', 'reportsTab', 'shareResponseTab', 'npsTab'],
-                'agent': ['auditFormTab', 'shareResponseTab']
-            };
-            
-            if (visibleTabs[role]) {
-                visibleTabs[role].forEach(tabId => {
+            const tabsToShowForAgent = ['auditFormTab', 'shareResponseTab'];
+            const tabsToShowForAllOthers = [
+                'auditFormTab', 'databaseTab', 'reportsTab', 'autofailsTab',
+                'shareResponseTab', 'usersTab', 'adminTab', 'npsTab'
+            ];
+
+            if (role === 'agent') {
+                tabsToShowForAgent.forEach(tabId => {
+                    const tabElement = document.getElementById(tabId);
+                    if (tabElement) {
+                        tabElement.closest('li').style.display = 'block';
+                    }
+                });
+            } else if (role === 'admin' || role === 'supervisor' || role === 'anonymous') {
+                tabsToShowForAllOthers.forEach(tabId => {
                     const tabElement = document.getElementById(tabId);
                     if (tabElement) {
                         tabElement.closest('li').style.display = 'block';
