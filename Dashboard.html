@@ -455,7 +455,7 @@
 
         <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, collection, query, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Firebase Configuration ---
@@ -553,13 +553,19 @@
         const initializeReportsPage = () => {
             const mainNav = document.getElementById('mainNav');
             const reportsContent = document.getElementById('reportsContent');
+            const loginPage = document.getElementById('loginPage');
+
 
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
+                    // Hide login page if user is found
+                    loginPage.style.display = 'none';
+                    
+                    // Show main nav and reports content
                     mainNav.style.display = 'block';
                     reportsContent.style.display = 'block';
                     document.body.classList.add('loaded');
-                    
+
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                     const userDocSnap = await getDoc(userProfileDocRef);
                     currentUserRole = userDocSnap.exists() ? userDocSnap.data().role : null;
@@ -567,8 +573,16 @@
 
                     fetchAndRenderDashboardData();
                 } else {
-                    // If not logged in, redirect to login page (index.html)
-                    window.location.href = 'index.html';
+                    // If no user is found, sign in anonymously
+                    signInAnonymously(auth).then(() => {
+                        // Once anonymous user is signed in, the onAuthStateChanged listener will fire again
+                        // and the page content will be displayed.
+                        console.log("Signed in anonymously to display dashboard.");
+                    }).catch((error) => {
+                        console.error("Anonymous sign-in failed:", error);
+                        // If anonymous sign-in fails, redirect to login page
+                        window.location.href = 'index.html';
+                    });
                 }
             });
         };
@@ -581,7 +595,12 @@
                 const querySnapshot = await getDocs(recordsColRef);
                 allRecords = [];
                 querySnapshot.forEach(doc => {
-                    allRecords.push(doc.data());
+                    // Ensure submittedAt is a Date object
+                    const data = doc.data();
+                    if (data.submittedAt && typeof data.submittedAt.toDate === 'function') {
+                        data.submittedAt = data.submittedAt.toDate();
+                    }
+                    allRecords.push(data);
                 });
                 console.log("Fetched records for dashboard:", allRecords.length);
 
@@ -830,7 +849,7 @@
                 const endDate = new Date(endDateInput);
                 endDate.setHours(23, 59, 59, 999); // Set to end of day for inclusive filtering
                 filteredRecords = filteredRecords.filter(record => {
-                    const recordDate = record.submittedAt.toDate();
+                    const recordDate = record.submittedAt;
                     return recordDate >= startDate && recordDate <= endDate;
                 });
             } else if (filterMonth !== '' && filterYear) {
@@ -839,7 +858,7 @@
                 const year = parseInt(filterYear);
                 if (!isNaN(month) && !isNaN(year)) {
                     filteredRecords = filteredRecords.filter(record => {
-                        const recordDate = record.submittedAt.toDate();
+                        const recordDate = record.submittedAt;
                         return recordDate.getMonth() === month && recordDate.getFullYear() === year;
                     });
                 }
