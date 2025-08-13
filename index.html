@@ -387,7 +387,7 @@
     
     <div class="main-content-container" id="myEvaluationsContent" style="display: none;">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
-            My Evaluations
+            My Evaluations Dashboard
         </div>
         <div class="p-6">
             <div class="my-evaluations-card">
@@ -564,6 +564,7 @@
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         // NEW: Firebase Storage Imports
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
+        import Chart from 'https://cdn.jsdelivr.net/npm/chart.js';
 
 
         // --- Firebase Configuration ---
@@ -920,76 +921,56 @@
          * @param {string} tabName - The identifier of the tab to show (e.g., 'auditForm', 'database', 'dashboard').
          */
         function showTab(tabName) {
-            const auditFormTab = document.getElementById('auditFormTab');
-            const databaseTab = document.getElementById('databaseTab');
-            const shareResponseTab = document.getElementById('shareResponseTab');
-            const usersTab = document.getElementById('usersTab');
-            const reportsTab = document.getElementById('reportsTab');
-            const autofailsTab = document.getElementById('autofailsTab');
-            const adminTab = document.getElementById('adminTab');
-            const npsTab = document.getElementById('npsTab');
-            const myEvaluationsTab = document.getElementById('myEvaluationsTab');
-            const imagesTab = document.getElementById('imagesTab');
+            const contentContainers = document.querySelectorAll('.main-content-container');
+            contentContainers.forEach(container => container.style.display = 'none');
             
-            console.log("showTab called with:", tabName);
-
-            // Deactivate all tabs
             const allTabs = document.querySelectorAll('.sidebar ul li a');
             allTabs.forEach(tab => tab.classList.remove('active'));
 
-            // Hide all content containers
-            const contentContainers = document.querySelectorAll('.main-content-container');
-            contentContainers.forEach(container => container.style.display = 'none');
-
-            // Activate selected tab and show its content or navigate
-            if (tabName === 'auditForm') {
-                if (auditFormTab) auditFormTab.classList.add('active');
-                if (document.getElementById('auditFormContent')) document.getElementById('auditFormContent').style.display = 'block';
-                const cerRoleSelect = document.getElementById('cer-role');
-                if (cerRoleSelect && cerRoleSelect.value) {
-                    renderQuestionsForRole(cerRoleSelect.value);
+            const tabElement = document.getElementById(`${tabName}Tab`);
+            if (tabElement) {
+                tabElement.classList.add('active');
+                if (tabName === 'myEvaluations') {
+                    window.location.href = 'my-evaluations.html';
+                } else if (tabName === 'images') {
+                    window.location.href = 'images.html';
                 } else {
-                    document.getElementById('cxQuestionsContainer').innerHTML = '';
-                    document.getElementById('psQuestionsContainer').innerHTML = '';
-                    document.getElementById('caQuestionsContainer').innerHTML = '';
-                    calculateScore();
+                    const contentDiv = document.getElementById(`${tabName}Content`);
+                    if (contentDiv) {
+                        contentDiv.style.display = 'block';
+                        if (tabName === 'auditForm') {
+                            const cerRoleSelect = document.getElementById('cer-role');
+                            if (cerRoleSelect && cerRoleSelect.value) {
+                                renderQuestionsForRole(cerRoleSelect.value);
+                            } else {
+                                document.getElementById('cxQuestionsContainer').innerHTML = '';
+                                document.getElementById('psQuestionsContainer').innerHTML = '';
+                                document.getElementById('caQuestionsContainer').innerHTML = '';
+                                calculateScore();
+                            }
+                        } else if (tabName === 'database') {
+                            if (db && currentUserId) {
+                                fetchRecordsAndWebhooks();
+                            } else {
+                                showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
+                            }
+                        } else if (tabName === 'shareResponse') {
+                            if (db && currentUserId) {
+                                fetchRecordsAndWebhooks();
+                                populateShareResponseDropdown();
+                            } else {
+                                showMessageBox("Share Response Not Ready", "Waiting for authentication to load records for sharing.", false, true, false);
+                            }
+                        }
+                    }
                 }
-            } else if (tabName === 'database') {
-                if (databaseTab) databaseTab.classList.add('active');
-                if (document.getElementById('databaseContent')) document.getElementById('databaseContent').style.display = 'block';
-                if (db && currentUserId) {
-                    fetchRecordsAndWebhooks();
-                } else {
-                    showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
-                }
-            } else if (tabName === 'shareResponse') {
-                if (shareResponseTab) shareResponseTab.classList.add('active');
-                if (document.getElementById('shareResponseContent')) document.getElementById('shareResponseContent').style.display = 'block';
-                if (db && currentUserId) {
-                    fetchRecordsAndWebhooks();
-                    populateShareResponseDropdown();
-                } else {
-                    showMessageBox("Share Response Not Ready", "Waiting for authentication to load records for sharing.", false, true, false);
-                }
-            } else if (tabName === 'myEvaluations') {
-                if(myEvaluationsTab) myEvaluationsTab.classList.add('active');
-                if(document.getElementById('myEvaluationsContent')) document.getElementById('myEvaluationsContent').style.display = 'block';
-                if(db && currentUserProfile) {
-                    renderMyEvaluationsDashboard();
-                } else {
-                    showMessageBox("My Evaluations Not Ready", "Please log in to view your evaluations.", false, false, true);
-                }
-            }
-            // External pages: navigate
-            else if (tabName === 'dashboard') { window.location.href = 'Dashboard.html'; }
+            } else if (tabName === 'dashboard') { window.location.href = 'Dashboard.html'; }
             else if (tabName === 'autofails') { window.location.href = 'autofails.html'; }
             else if (tabName === 'users') { window.location.href = 'users.html'; }
             else if (tabName === 'admin') { window.location.href = 'admin.html'; }
             else if (tabName === 'nps') { window.location.href = 'nps.html'; }
-            else if (tabName === 'images') { window.location.href = 'images.html'; }
         }
 
-        // Firestore Data Handling Functions
         /**
          * Fetches records and webhooks from Firestore in real-time.
          * Sets up onSnapshot listeners for both collections.
@@ -2128,7 +2109,6 @@
                 shareEmailBody.value = `Dear ${cerName},\n\n` +
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
                     `Your overall score for this interaction was ${overallScore}.\n\n` +
-                    `(IMPORTANT: The PDF document for this evaluation has been downloaded to your device as part of this process. Please remember to manually attach it to this email before sending.)\n\n` + // Updated message for share page
                     `This feedback is provided to help you continue to improve service quality.\n\n` +
                     `If you have any questions, please feel free to reach out.\n\n` +
                     `Kind Regards,\n${loggedInUserName}`;
