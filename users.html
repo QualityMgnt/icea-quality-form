@@ -7,119 +7,85 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
     <style>
-        /* Base styles - similar to index.html for consistency */
         body {
             font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
             display: flex;
             align-items: flex-start;
             min-height: 100vh;
-            background-color: #f3f4f6;
-            margin: 0;
-            padding: 0;
-            /* Start hidden to prevent flicker until auth check is done */
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0s, opacity 0.3s ease;
         }
-        body.loaded {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* ICEALION Branding Colors */
-        .icealion-blue {
-            background-color: #1a73e8;
-            color: white;
-        }
-        .icealion-orange-text {
-            color: #f57c00;
-        }
-
-        /* Navigation styles (copied from index.html for consistent sidebar) */
-        .main-nav {
-            width: 125px; /* Fixed width for the sidebar */
-            background-color: #800080; /* Purple color */
-            color: white;
-            padding: 1rem 0; /* Vertical padding */
-            height: calc(100vh - 48px); /* Adjusted height for top header */
-            position: fixed;
-            top: 48px; /* Positioned below the new top header */
-            left: 0;
-            z-index: 100;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        /* Top Header (copied from index.html for consistent header) */
         .top-header {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 48px; /* Adjust height as needed */
-            background-color: #800080; /* Purple color */
+            height: 48px;
+            background-color: #800080;
             color: white;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 1.125rem; /* text-lg */
-            font-weight: 600; /* font-semibold */
-            z-index: 1000; /* Ensure it's above everything */
+            justify-content: flex-start;
+            font-size: 1.125rem;
+            font-weight: 600;
+            z-index: 1000;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0 1rem;
         }
-
-        .sidebar { /* Re-applying width from main-nav for clarity */
+        .top-header .logo {
+            height: 40px;
+            width: auto;
+            margin-right: 1rem;
+        }
+        .top-header .title-text {
+            flex-grow: 1;
+            text-align: center;
+            margin-right: 40px;
+        }
+        .main-nav {
             width: 125px;
-            background-color: #800080; /* Changed to purple for consistency */
+            background-color: #800080;
             color: white;
             padding: 1rem 0;
-            height: 100%; /* Keep 100% within main-nav's calc(100vh - 48px) */
+            height: calc(100vh - 48px);
+            position: fixed;
+            top: 48px;
+            left: 0;
+            z-index: 100;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
-
         .sidebar ul {
             list-style: none;
             margin: 0;
             padding: 0;
             flex-grow: 1;
         }
-        .sidebar ul li {
-            margin-right: 0;
-            margin-bottom: 0.5rem;
-        }
         .sidebar ul li a {
             color: white;
             text-decoration: none;
             font-weight: 500;
-            padding: 0.75rem 0.5rem; /* Adjusted padding */
-            display: block;
-            border-radius: 0;
-            transition: background-color 0.3s ease;
+            padding: 0.75rem 0.5rem;
             display: flex;
-            flex-direction: column; /* Stack icon and text */
+            flex-direction: column;
             align-items: center;
             gap: 0.25rem;
-            font-size: 0.75rem; /* Smaller font */
+            font-size: 0.75rem;
             text-align: center;
+            transition: background-color 0.3s ease;
+        }
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: #6a006a;
         }
         .sidebar ul li a .fas {
-            margin-bottom: 0.25rem;
             font-size: 1.2rem;
+            position: relative;
         }
-
-        .sidebar ul li a:hover {
-            background-color: #6a006a; /* Darker purple on hover */
-        }
-        .sidebar ul li a.active { /* Specific style for active tab */
-            background-color: #6a006a; /* Darker purple when active */
-        }
-
         .logout-button {
             background-color: #f57c00;
             color: white;
@@ -136,85 +102,60 @@
         .logout-button:hover {
             background-color: #e65100;
         }
-
-        /* Main content area for users.html */
         .main-content {
-            margin-left: 125px; /* Matches sidebar width */
+            margin-left: 125px;
             margin-top: 48px;
-            width: calc(100% - 125px); /* Fills remaining space */
+            width: calc(100% - 125px);
             padding: 1.5rem;
-            min-height: calc(100vh - 48px); /* Adjust for top header */
-            box-sizing: border-box; /* Include padding in width */
-            background-color: #f3f4f6; /* Default page background */
+            min-height: calc(100vh - 48px);
+            box-sizing: border-box;
+            background-color: #f3f4f6;
         }
         .users-container {
             background-color: white;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 0.5rem;
             overflow: hidden;
-            max-width: 900px; /* Limit width of users content */
-            margin: 0 auto; /* Center it */
+            max-width: 900px;
+            margin: 0 auto;
         }
-
-        /* Login Container (re-used for this page) */
         .login-container {
-            position: fixed; /* Use fixed for full overlay */
+            position: fixed;
             top: 0;
-            left: 0; /* Cover the whole screen */
-            width: 100vw; /* Full viewport width */
-            height: 100vh; /* Full viewport height */
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: rgba(243, 244, 246, 0.95); /* Opaque background */
-            z-index: 1000; /* Ensure it's on top */
-            /* Start hidden to prevent flicker */
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0s, opacity 0.3s ease;
+            background-color: rgba(243, 244, 246, 0.95);
+            z-index: 1000;
         }
-        .login-container.visible {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Error/Message styles */
-        .error-message {
-            color: #dc2626; /* red-700 */
-            font-size: 0.875rem; /* text-sm */
-            margin-top: 0.5rem; /* mt-2 */
-            text-align: center;
-        }
-        .success-message {
-            color: #10b981; /* green-500 */
+        .error-message, .success-message {
             font-size: 0.875rem;
             margin-top: 0.5rem;
             text-align: center;
         }
-
-        /* Table specific styles for user list */
+        .error-message { color: #dc2626; }
+        .success-message { color: #10b981; }
         .user-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 1rem;
         }
         .user-table th, .user-table td {
-            border: 1px solid #e5e7eb; /* gray-300 */
+            border: 1px solid #e5e7eb;
             padding: 0.75rem;
             text-align: left;
-            font-size: 0.875rem; /* text-sm */
+            font-size: 0.875rem;
         }
         .user-table th {
-            background-color: #eff6ff; /* blue-50 */
+            background-color: #eff6ff;
             font-weight: 600;
-            color: #1f2937; /* gray-800 */
+            color: #1f2937;
         }
-        .user-table tbody tr:nth-child(even) {
-            background-color: #f9fafb; /* gray-50 */
-        }
-        .user-table tbody tr:hover {
-            background-color: #f3f4f6; /* gray-100 */
-        }
+        .user-table tbody tr:nth-child(even) { background-color: #f9fafb; }
+        .user-table tbody tr:hover { background-color: #f3f4f6; }
         .user-table .action-btn {
             padding: 0.3rem 0.6rem;
             border-radius: 0.25rem;
@@ -225,30 +166,77 @@
             margin-right: 0.25rem;
         }
         .user-table .delete-btn {
-            background-color: #EF4444; /* Red */
+            background-color: #EF4444;
             color: white;
         }
         .user-table .delete-btn:hover {
             background-color: #DC2626;
         }
+        .hidden {
+            display: none !important;
+        }
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1a73e8;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <div class="top-header">
-        ICEA LION QUALITY EVALUATION AND MONITORING
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="spinner hidden mx-auto mb-4"></div>
+            <h3 id="messageBoxTitle" class="text-xl font-semibold mb-4 text-center"></h3>
+            <p id="messageBoxContent" class="text-gray-700 mb-4 text-center"></p>
+            <div class="flex justify-center space-x-2">
+                <button id="messageBoxCloseBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Close</button>
+            </div>
+        </div>
     </div>
+    
+    <header class="top-header">
+        <img id="header-logo" src="https://placehold.co/40x40/e5e7eb/6b7280?text=Logo" alt="Company Logo" class="logo">
+        <div class="title-text">ICEA LION QUALITY EVALUATION AND MONITORING</div>
+    </header>
 
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
-            <ul>
-                <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li><a href="Dashboard.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
-                <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li><a href="nps.html" id="npsFeedbackTab"><i class="fas fa-comments"></i> NPS Feedback</a></li>
-                <li><a href="users.html" id="usersTab" class="active"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+            <ul id="sidebar-menu">
+                <li><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="index.html#myEvaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li id="database-nav-item"><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
+                <li id="reports-nav-item"><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li id="autofails-nav-item"><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li id="images-nav-item"><a href="index.html#images"><i class="fas fa-image"></i> Images</a></li>
+                <li id="users-nav-item"><a href="users.html" class="active"><i class="fas fa-users"></i> Users</a></li>
+                <li id="admin-nav-item"><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
@@ -259,25 +247,22 @@
             <div class="icealion-blue p-6 rounded-t-lg text-center">
                 <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
             </div>
-
             <form id="loginForm" class="p-8 space-y-6">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" id="username" name="username"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                            required placeholder="Enter your email">
+                    <input type="email" id="username" name="username" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required placeholder="Enter your email">
                 </div>
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" name="password"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                            required placeholder="Enter your password">
+                    <input type="password" id="password" name="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" required placeholder="Enter your password">
                 </div>
-                <button type="submit"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
                     Login
                 </button>
                 <div id="loginMessage" class="error-message hidden"></div>
+                <p class="text-center text-sm mt-4">
+                    Don't have an account? <a href="signup.html" class="text-blue-500 hover:underline">Sign Up</a>
+                </p>
             </form>
         </div>
     </div>
@@ -291,7 +276,6 @@
                 <p class="text-gray-700 mb-4">
                     This section allows administrators to manage user accounts and their roles within the system.
                 </p>
-
                 <h3 class="text-2xl font-semibold text-gray-800 mb-4">Manage Existing Users</h3>
                 <div class="overflow-x-auto">
                     <table class="user-table min-w-full">
@@ -308,7 +292,6 @@
                         </tbody>
                     </table>
                 </div>
-
                 <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Add New User</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -334,36 +317,17 @@
                         </button>
                     </div>
                 </div>
-                <div id="userMessage" class="error-message hidden mt-4"></div>
+                <div id="userMessage" class="error-message mt-4 hidden"></div>
             </div>
         </div>
     </div>
 
+    <script type="module" src="firebase-config.js"></script>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signOut, signInWithEmailAndPassword, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getAuth, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, getDocs, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-            authDomain: "icea-lion-qa.firebaseapp.com",
-            projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
-            messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b667faf811", // Consistent App ID
-            measurementId: "G-1RJJTT3QET"
-        };
-        const appId = firebaseConfig.appId;
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        // Global variables
-        window.currentUserId = null;
-        window.currentUserRole = null;
-        window.isAuthReady = false;
+        const { auth, db, appId, fs, showMessageBox, hideMessageBox, currentUserId, currentUserRole, userEmail, userPhoto } = window.firebase;
         
         // --- UI Elements ---
         const loginPage = document.getElementById('loginPage');
@@ -381,28 +345,21 @@
         const addUserBtn = document.getElementById('addUserBtn');
         const userMessage = document.getElementById('userMessage');
 
-        // --- Utility Functions ---
-        const showMessage = (element, message, type) => {
-            element.textContent = message;
-            element.classList.remove('hidden', 'error-message', 'success-message');
-            element.classList.add(type === 'error' ? 'error-message' : 'success-message');
-            setTimeout(() => { element.classList.add('hidden'); }, 5000);
-        };
-        
-        // Function to fetch and render users
+        // --- Functions ---
         async function fetchAndRenderUsers() {
             userTableBody.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>';
+            
+            if (window.currentUserRole !== 'admin') {
+                userTableBody.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-red-500">You do not have permission to view users. (Admin access required)</td></tr>';
+                return;
+            }
+            
             try {
-                if (window.currentUserRole !== 'admin') {
-                    userTableBody.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-red-500">You do not have permission to view users. (Admin access required)</td></tr>';
-                    return;
-                }
-                
                 const usersCollectionRef = collection(db, `artifacts/${appId}/users`);
                 const querySnapshot = await getDocs(usersCollectionRef);
                 const users = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
                 
-                userTableBody.innerHTML = ''; // Clear loading message
+                userTableBody.innerHTML = '';
 
                 if (users.length === 0) {
                     userTableBody.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">No users found.</td></tr>';
@@ -417,124 +374,78 @@
                         <td class="py-2 px-4">${user.role || 'N/A'}</td>
                         <td class="py-2 px-4 text-xs font-mono text-gray-600">${user.uid}</td>
                         <td class="py-2 px-4">
-                            <button class="action-btn delete-btn bg-red-500 hover:bg-red-600 text-white"
-                                onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
+                            <button class="action-btn delete-btn bg-red-500 hover:bg-red-600 text-white" onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
                         </td>
                     `;
                 });
             } catch (error) {
                 console.error("Error fetching users:", error);
                 userTableBody.innerHTML = `<tr><td colspan="4" class="py-4 px-4 text-center text-red-500">Failed to load users: ${error.message}</td></tr>`;
-                showMessage(userMessage, `Failed to load users: ${error.message}`, 'error');
+                showMessageBox("Error", `Failed to load users: ${error.message}`, true, false, true);
             }
         }
         
-        // Make deleteUser function globally accessible for table buttons
         window.deleteUser = async function(uid, email) {
-            // WARNING: This only removes the user from Firestore.
-            // A Firebase Auth account still exists and must be deleted via the Admin SDK.
-            if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
-                return;
-            }
-            showMessage(userMessage, `Deleting user ${email}...`, 'success');
+            const confirmed = await new Promise(resolve => {
+                const modal = document.createElement('div');
+                modal.className = 'message-box-overlay';
+                modal.innerHTML = `
+                    <div class="message-box">
+                        <h3 class="text-xl font-semibold mb-4 text-center">Confirm Deletion</h3>
+                        <p class="text-gray-700 mb-4 text-center">Are you sure you want to delete user <b>${email}</b>?</p>
+                        <div class="flex justify-center space-x-2">
+                            <button id="confirmDeleteBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Delete</button>
+                            <button id="cancelDeleteBtn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                document.getElementById('confirmDeleteBtn').onclick = () => { modal.remove(); resolve(true); };
+                document.getElementById('cancelDeleteBtn').onclick = () => { modal.remove(); resolve(false); };
+            });
+
+            if (!confirmed) return;
+            
+            showMessageBox("Deleting User", `Deleting user ${email}...`, false, true, false);
             try {
+                // This is a crucial security note:
+                // We are only deleting the Firestore profile here.
+                // A real-world application would use a Cloud Function to delete the Auth user.
                 const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
                 await deleteDoc(userDocRef);
                 
-                showMessage(userMessage, `User '${email}' deleted successfully! (Note: Auth account still exists)`, 'success');
+                hideMessageBox();
+                showMessageBox("Success", `User '${email}' deleted successfully! (Note: Auth account still exists)`, false, false, true);
                 fetchAndRenderUsers();
             } catch (error) {
+                hideMessageBox();
                 console.error("Error deleting user:", error);
-                showMessage(userMessage, `Failed to delete user: ${error.message}`, 'error');
+                showMessageBox("Error", `Failed to delete user: ${error.message}`, true, false, true);
             }
-        }
+        };
 
-        // --- Firebase Authentication State Listener ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                window.currentUserId = user.uid;
-                const userDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
-                try {
-                    const userDocSnap = await getDoc(userDocRef);
-                    if (userDocSnap.exists()) {
-                        window.currentUserRole = userDocSnap.data().role;
-                    } else {
-                        window.currentUserRole = 'Guest';
-                    }
-                } catch (error) {
-                    console.error("Error fetching user role:", error);
-                    window.currentUserRole = 'Guest';
-                }
-            } else {
-                window.currentUserId = null;
-                window.currentUserRole = null;
-                sessionStorage.removeItem('loggedIn');
-                window.location.href = 'index.html'; // Redirect to login page
-                return;
-            }
-            window.isAuthReady = true;
-            document.dispatchEvent(new CustomEvent('firebaseAuthReadyUsersPage'));
-        });
-
-        // --- All Event Listeners ---
+        // --- Event Listeners and Page Initialization ---
         document.addEventListener('DOMContentLoaded', function() {
-            // Function to initialize the page view based on login state
-            const initializeUsersPageContent = () => {
-                if (sessionStorage.getItem('loggedIn') === 'true' && window.isAuthReady && window.currentUserRole === 'admin') {
-                    loginPage.classList.remove('visible');
-                    loginPage.style.display = 'none';
-                    mainNav.style.display = 'block';
-                    usersContent.style.display = 'block';
-                    document.getElementById('usersTab').classList.add('active'); // Set active class
-                    fetchAndRenderUsers();
-                } else {
-                    loginPage.classList.add('visible');
-                    loginPage.style.display = 'flex';
-                    mainNav.style.display = 'none';
-                    usersContent.style.display = 'none';
-                    if (window.isAuthReady && sessionStorage.getItem('loggedIn') === 'true' && window.currentUserRole !== 'admin') {
-                        showMessage(loginMessage, "Access Denied: You must be an Admin to access this page.", 'error');
-                    } else if (window.isAuthReady && sessionStorage.getItem('loggedIn') !== 'true') {
-                        showMessage(loginMessage, "Please log in to access user management.", 'error');
+            const checkAndRender = () => {
+                if (window.isAuthReady) {
+                    if (window.currentUserRole === 'admin') {
+                        loginPage.style.display = 'none';
+                        mainNav.style.display = 'block';
+                        usersContent.style.display = 'block';
+                        fetchAndRenderUsers();
+                    } else {
+                        window.location.href = 'index.html'; // Redirect non-admins
                     }
                 }
-                document.body.classList.add('loaded');
             };
-
-            // Login form listener
-            loginForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-                loginMessage.classList.add('hidden');
-                const enteredEmail = usernameInput.value;
-                const enteredPassword = passwordInput.value;
-                try {
-                    await signInWithEmailAndPassword(auth, enteredEmail, enteredPassword);
-                    sessionStorage.setItem('loggedIn', 'true');
-                } catch (error) {
-                    console.error("Firebase Login Error:", error);
-                    let msg = "Login failed. Please try again.";
-                    if (error.code === 'auth/invalid-login-credentials') {
-                        msg = 'Invalid email or password.';
-                    } else if (error.code === 'auth/too-many-requests') {
-                        msg = 'Too many login attempts. Please try again later.';
-                    }
-                    showMessage(loginMessage, msg, 'error');
-                }
-            });
-
-            // Logout listener
+            
+            document.addEventListener('firebaseAuthReady', checkAndRender);
+            
             logoutBtn.addEventListener('click', async () => {
-                try {
-                    await signOut(auth);
-                    sessionStorage.removeItem('loggedIn');
-                    window.location.href = 'index.html';
-                } catch (error) {
-                    console.error("Error signing out:", error);
-                    showMessage(userMessage, `Error signing out: ${error.message}`, 'error');
-                }
+                await signOut(auth);
+                window.location.href = 'index.html';
             });
             
-            // Add User button listener
             addUserBtn.addEventListener('click', async () => {
                 userMessage.textContent = '';
                 userMessage.classList.add('hidden');
@@ -544,62 +455,66 @@
                 const role = newUserRoleSelect.value;
                 
                 if (!email || !password || !role) {
-                    showMessage(userMessage, "Please fill in all fields (Email, Password, Role).", 'error');
-                    return;
-                }
-                if (password.length < 6) {
-                    showMessage(userMessage, "Password must be at least 6 characters long.", 'error');
+                    showMessageBox("Error", "Please fill in all fields (Email, Password, Role).", true, false, true);
                     return;
                 }
                 
-                showMessage(userMessage, "Creating user...", 'success');
-
+                if (window.currentUserRole !== 'admin') {
+                    showMessageBox("Permission Denied", "Only admins can add new users.", true, false, true);
+                    return;
+                }
+                
+                showMessageBox("Adding User", "Creating user...", false, true, false);
+                
                 try {
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const uid = userCredential.user.uid;
-
-                    // This Firestore write is now allowed by your new security rules
+                    
                     const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
                     await setDoc(userDocRef, {
                         email: email,
-                        role: role,
-                        uid: uid
+                        role: role
                     });
                     
-                    showMessage(userMessage, `Success: User '${email}' created with role '${role}'.`, 'success');
-                    
+                    hideMessageBox();
+                    showMessageBox("Success", `User '${email}' created with role '${role}'.`, false, false, true);
                     newUsernameInput.value = '';
                     newPasswordInput.value = '';
                     newUserRoleSelect.value = '';
-                    
                     fetchAndRenderUsers();
                 } catch (error) {
+                    hideMessageBox();
                     console.error("Error creating user:", error);
-                    
                     let errorMessage = 'Failed to create user. Please try again.';
                     if (error.code === 'auth/email-already-in-use') {
                         errorMessage = 'An account with this email already exists.';
                     } else if (error.code === 'auth/weak-password') {
                         errorMessage = 'Password is too weak. Must be at least 6 characters.';
-                    } else if (error.message) {
-                        errorMessage = `Error: ${error.message}`;
                     }
-
-                    showMessage(userMessage, errorMessage, 'error');
+                    showMessageBox("Error", errorMessage, true, false, true);
                 }
             });
+            
+            const navItems = {
+                'auditFormTab': 'index.html',
+                'myEvaluationsTab': 'index.html#myEvaluations',
+                'databaseTab': 'index.html#database',
+                'reportsTab': 'reports.html',
+                'autofailsTab': 'autofails.html',
+                'imagesTab': 'index.html#images',
+                'usersTab': 'users.html',
+                'adminTab': 'admin.html'
+            };
 
-            // Navigation links
-            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
-            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
-            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'Dashboard.html'; });
-            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
-            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
-            document.getElementById('npsFeedbackTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'nps.html'; });
-            document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
-
-            // Initialize the page once auth state is ready
-            document.addEventListener('firebaseAuthReadyUsersPage', initializeUsersPageContent);
+            Object.keys(navItems).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        window.location.href = navItems[id];
+                    });
+                }
+            });
         });
     </script>
 </body>
