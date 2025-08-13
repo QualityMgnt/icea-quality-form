@@ -83,7 +83,7 @@
             display: flex; flex-direction: column; justify-content: space-between;
         }
         .main-nav ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-        .main-nav ul li.nav-tab { display: block; } /* Changed to block to always display all tabs as per request */
+        .main-nav ul li.nav-tab { display: block; }
         .sidebar ul li a { color: white; text-decoration: none; font-weight: 500; padding: 0.75rem 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; font-size: 0.75rem; text-align: center; }
         .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #6a006a; }
         .logout-button { background-color: #f57c00; color: white; padding: 0.5rem 0.75rem; border-radius: 0.375rem; font-weight: 600; cursor: pointer; border: none; transition: background-color 0.3s ease; margin: 1rem auto; width: calc(100% - 2rem); font-size: 0.75rem; }
@@ -103,50 +103,11 @@
             padding: 2rem;
             display: none;
         }
-        #myEvaluationsContent .table-container { margin-top: 1.5rem; overflow-x: auto; }
-        #myEvaluationsContent table { width: 100%; border-collapse: collapse; }
-        #myEvaluationsContent th, #myEvaluationsContent td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: left; }
-        #myEvaluationsContent th { background-color: #eff6ff; font-weight: 600; }
-        #myEvaluationsContent .chart-container { margin-top: 2rem; }
         .login-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f3f4f6; z-index: 1000; visibility: hidden; opacity: 0; transition: visibility 0s, opacity 0.3s ease; }
         .login-container.visible { visibility: visible; opacity: 1; }
         .message-box-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .login-card .login-logo { max-height: 60px; margin-bottom: 1rem; }
         .hidden { display: none !important; }
-
-        /* New styles to match the My Evaluations screenshot */
-        .my-evaluations-card {
-            background-color: #fff;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-        }
-        .my-evaluations-card h2 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 1rem;
-        }
-        .my-evaluations-card table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.875rem;
-        }
-        .my-evaluations-card th, .my-evaluations-card td {
-            border-bottom: 1px solid #e5e7eb;
-            padding: 0.75rem 0.5rem;
-            text-align: left;
-        }
-        .my-evaluations-card th {
-            font-weight: 600;
-            background-color: #eff6ff;
-            color: #1f2937;
-        }
-        .my-evaluations-card tbody tr:hover {
-            background-color: #f3f4f6;
-        }
-        
     </style>
 </head>
 <body>
@@ -202,7 +163,7 @@
             <ul>
                 <li class="nav-tab" data-roles="Admin,Reviewer,Agent"><a href="#" id="auditFormTab" class="active" aria-label="Evaluation Form"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
                 <li class="nav-tab" data-roles="Admin,Reviewer"><a href="#" id="databaseTab" aria-label="Database"><i class="fas fa-database"></i> Database</a></li>
-                <li class="nav-tab" data-roles="Admin,Reviewer,Agent"><a href="#" id="myEvaluationsTab" aria-label="My Evaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li class="nav-tab" data-roles="Admin,Reviewer,Agent"><a href="my-evaluations.html" id="myEvaluationsTab" aria-label="My Evaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
                 <li class="nav-tab" data-roles="Admin,Reviewer"><a href="Dashboard.html" id="reportsTab" aria-label="Dashboard"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
                 <li class="nav-tab" data-roles="Admin"><a href="autofails.html" id="autofailsTab" aria-label="Autofails"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li class="nav-tab" data-roles="Admin,Reviewer"><a href="#" id="shareResponseTab" aria-label="Share Response"><i class="fas fa-share-square"></i> Share Response</a></li>
@@ -389,79 +350,7 @@
         </div>
     </div>
     
-    <div class="main-content-container" id="myEvaluationsContent" style="display: none;">
-        <div class="icealion-blue p-4 text-xl font-semibold text-center">
-            My Evaluations Dashboard
-        </div>
-        <div class="p-6">
-            <div class="my-evaluations-card">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Evaluations I Have Done</h2>
-                <div class="table-container">
-                    <table id="evaluationsDoneTable" class="min-w-full">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Contact ID</th>
-                                <th>CER Name</th>
-                                <th>Score</th>
-                            </tr>
-                        </thead>
-                        <tbody id="evaluationsDoneTableBody">
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-gray-500">Loading evaluations...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="my-evaluations-card mt-6">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">My QA Audit Scores</h2>
-                <div class="table-container">
-                    <table id="myScoresTable" class="min-w-full">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Reviewer</th>
-                                <th>Contact ID</th>
-                                <th>Score</th>
-                            </tr>
-                        </thead>
-                        <tbody id="myScoresTableBody">
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-gray-500">Loading scores...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="my-evaluations-card mt-6">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">My Monthly Average Score</h2>
-                <div class="chart-container" style="position: relative; height:400px; width:100%">
-                    <canvas id="myScoresChart"></canvas>
-                </div>
-            </div>
-
-            <div class="my-evaluations-card mt-6">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Autofail Areas by Month</h2>
-                <div class="table-container">
-                    <table id="autofailCountTable" class="min-w-full">
-                        <thead>
-                            <tr></tr>
-                        </thead>
-                        <tbody id="autofailCountTableBody">
-                            <tr>
-                                <td colspan="1" class="text-center py-4 text-gray-500">Loading data...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="main-content-container" id="databaseContent">
+    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="databaseContent">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
             Database Records
         </div>
@@ -924,37 +813,59 @@
          * @param {string} tabName - The identifier of the tab to show (e.g., 'auditForm', 'database', 'dashboard').
          */
         function showTab(tabName) {
-            const tabs = ['auditForm', 'database', 'myEvaluations', 'shareResponse'];
-            tabs.forEach(tab => {
-                const contentDiv = document.getElementById(`${tab}Content`);
-                if (contentDiv) contentDiv.style.display = 'none';
-                const tabElement = document.getElementById(`${tab}Tab`);
-                if (tabElement) tabElement.classList.remove('active');
-            });
+            const auditFormTab = document.getElementById('auditFormTab');
+            const databaseTab = document.getElementById('databaseTab');
+            const shareResponseTab = document.getElementById('shareResponseTab');
+            const usersTab = document.getElementById('usersTab');
+            const reportsTab = document.getElementById('reportsTab');
+            const autofailsTab = document.getElementById('autofailsTab');
+            const adminTab = document.getElementById('adminTab');
+            const npsTab = document.getElementById('npsTab');
+            const myEvaluationsTab = document.getElementById('myEvaluationsTab');
+            const imagesTab = document.getElementById('imagesTab');
 
-            const contentDiv = document.getElementById(`${tabName}Content`);
-            if (contentDiv) {
-                contentDiv.style.display = 'block';
-                const tabElement = document.getElementById(`${tabName}Tab`);
-                if (tabElement) tabElement.classList.add('active');
-            }
+            console.log("showTab called with:", tabName);
 
+            // Deactivate all tabs
+            if (auditFormTab) auditFormTab.classList.remove('active');
+            if (databaseTab) databaseTab.classList.remove('active');
+            if (shareResponseTab) shareResponseTab.classList.remove('active');
+            if (usersTab) usersTab.classList.remove('active');
+            if (reportsTab) reportsTab.classList.remove('active');
+            if (autofailsTab) autofailsTab.classList.remove('active');
+            if (adminTab) adminTab.classList.remove('active');
+            if (npsTab) npsTab.classList.remove('active');
+            if (myEvaluationsTab) myEvaluationsTab.classList.remove('active');
+            if (imagesTab) imagesTab.classList.remove('active');
+
+            // Hide all content sections for this index.html
+            const contentContainers = document.querySelectorAll('.main-content-container');
+            contentContainers.forEach(container => container.style.display = 'none');
+
+            // Activate selected tab and show its content or navigate
             if (tabName === 'auditForm') {
+                if (auditFormTab) auditFormTab.classList.add('active');
+                if (document.getElementById('auditFormContent')) document.getElementById('auditFormContent').style.display = 'block';
                 const cerRoleSelect = document.getElementById('cer-role');
-                renderQuestionsForRole(cerRoleSelect.value);
+                if (cerRoleSelect && cerRoleSelect.value) {
+                    renderQuestionsForRole(cerRoleSelect.value);
+                } else {
+                    document.getElementById('cxQuestionsContainer').innerHTML = '';
+                    document.getElementById('psQuestionsContainer').innerHTML = '';
+                    document.getElementById('caQuestionsContainer').innerHTML = '';
+                    calculateScore();
+                }
             } else if (tabName === 'database') {
+                if (databaseTab) databaseTab.classList.add('active');
+                if (document.getElementById('databaseContent')) document.getElementById('databaseContent').style.display = 'block';
                 if (db && currentUserId) {
                     fetchRecordsAndWebhooks();
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
-            } else if (tabName === 'myEvaluations') {
-                if (db && currentUserProfile) {
-                    renderMyEvaluationsDashboard();
-                } else {
-                    showMessageBox("My Evaluations Not Ready", "Please log in to view your evaluations.", false, false, true);
-                }
             } else if (tabName === 'shareResponse') {
+                if (shareResponseTab) shareResponseTab.classList.add('active');
+                if (document.getElementById('shareResponseContent')) document.getElementById('shareResponseContent').style.display = 'block';
                 if (db && currentUserId) {
                     fetchRecordsAndWebhooks();
                     populateShareResponseDropdown();
@@ -962,8 +873,10 @@
                     showMessageBox("Share Response Not Ready", "Waiting for authentication to load records for sharing.", false, true, false);
                 }
             }
-            // External pages: navigate
-            else if (tabName === 'reports') {
+            // All other tabs now redirect to their own HTML pages.
+            else if (tabName === 'myEvaluations') {
+                window.location.href = 'my-evaluations.html';
+            } else if (tabName === 'reports') {
                 window.location.href = 'Dashboard.html';
             } else if (tabName === 'autofails') {
                 window.location.href = 'autofails.html';
@@ -971,8 +884,10 @@
                 window.location.href = 'users.html';
             } else if (tabName === 'admin') {
                 window.location.href = 'admin.html';
+            } else if (tabName === 'nps') {
+                window.location.href = 'nps.html';
             } else if (tabName === 'images') {
-                 window.location.href = 'images.html';
+                window.location.href = 'images.html';
             }
         }
 
@@ -1904,7 +1819,7 @@
 
             populateSelect(cerNameSelect, dropdownOptions.cerNames, 'cerNames');
             populateSelect(cerRoleSelect, dropdownOptions.cerRoles, 'cerRoles');
-            // The reviewerNameSelect is now an input, so we skip populating it as a dropdown
+            populateSelect(reviewerNameSelect, dropdownOptions.reviewerNames, 'reviewerNames');
             populateSelect(autofailTypeSelect, dropdownOptions.autofailTypes, 'autofailTypes');
 
             const currentCerName = cerNameSelect.value;
