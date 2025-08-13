@@ -16,7 +16,7 @@
             display: flex;
             align-items: flex-start;
             min-height: 100vh;
-            background-color: #f3f4f6;
+            background-color: #f3f4f6; /* bg-gray-100 */
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -83,7 +83,7 @@
             display: flex; flex-direction: column; justify-content: space-between;
         }
         .main-nav ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-        .main-nav ul li.nav-tab { display: none; }
+        .main-nav ul li.nav-tab { display: block; } /* Changed to block to always display all tabs as per request */
         .sidebar ul li a { color: white; text-decoration: none; font-weight: 500; padding: 0.75rem 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; font-size: 0.75rem; text-align: center; }
         .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #6a006a; }
         .logout-button { background-color: #f57c00; color: white; padding: 0.5rem 0.75rem; border-radius: 0.375rem; font-weight: 600; cursor: pointer; border: none; transition: background-color 0.3s ease; margin: 1rem auto; width: calc(100% - 2rem); font-size: 0.75rem; }
@@ -113,6 +113,40 @@
         .message-box-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .login-card .login-logo { max-height: 60px; margin-bottom: 1rem; }
         .hidden { display: none !important; }
+
+        /* New styles to match the My Evaluations screenshot */
+        .my-evaluations-card {
+            background-color: #fff;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .my-evaluations-card h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        .my-evaluations-card table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .my-evaluations-card th, .my-evaluations-card td {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+        }
+        .my-evaluations-card th {
+            font-weight: 600;
+            background-color: #eff6ff;
+            color: #1f2937;
+        }
+        .my-evaluations-card tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+        
     </style>
 </head>
 <body>
@@ -180,7 +214,7 @@
         </div>
     </nav>
     
-    <div class="main-content-container" id="auditFormContent" style="display: none;">
+    <div class="main-content-container" id="auditFormContent">
         <div class="icealion-blue p-4 flex items-center justify-between">
             <div class="text-xl font-semibold">Quality Assessment Form - ICEALION GROUP Contact Centre</div>
             <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
@@ -355,7 +389,79 @@
         </div>
     </div>
     
-    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="databaseContent" style="display: none;">
+    <div class="main-content-container" id="myEvaluationsContent" style="display: none;">
+        <div class="icealion-blue p-4 text-xl font-semibold text-center">
+            My Evaluations Dashboard
+        </div>
+        <div class="p-6">
+            <div class="my-evaluations-card">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Evaluations I Have Done</h2>
+                <div class="table-container">
+                    <table id="evaluationsDoneTable" class="min-w-full">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Contact ID</th>
+                                <th>CER Name</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="evaluationsDoneTableBody">
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-gray-500">Loading evaluations...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="my-evaluations-card mt-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">My QA Audit Scores</h2>
+                <div class="table-container">
+                    <table id="myScoresTable" class="min-w-full">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Reviewer</th>
+                                <th>Contact ID</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myScoresTableBody">
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-gray-500">Loading scores...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="my-evaluations-card mt-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">My Monthly Average Score</h2>
+                <div class="chart-container" style="position: relative; height:400px; width:100%">
+                    <canvas id="myScoresChart"></canvas>
+                </div>
+            </div>
+
+            <div class="my-evaluations-card mt-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Autofail Areas by Month</h2>
+                <div class="table-container">
+                    <table id="autofailCountTable" class="min-w-full">
+                        <thead>
+                            <tr></tr>
+                        </thead>
+                        <tbody id="autofailCountTableBody">
+                            <tr>
+                                <td colspan="1" class="text-center py-4 text-gray-500">Loading data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content-container" id="databaseContent">
         <div class="icealion-blue p-4 text-xl font-semibold text-center">
             Database Records
         </div>
@@ -818,62 +924,37 @@
          * @param {string} tabName - The identifier of the tab to show (e.g., 'auditForm', 'database', 'dashboard').
          */
         function showTab(tabName) {
-            const auditFormTab = document.getElementById('auditFormTab');
-            const databaseTab = document.getElementById('databaseTab');
-            const shareResponseTab = document.getElementById('shareResponseTab');
-            const usersTab = document.getElementById('usersTab');
-            const reportsTab = document.getElementById('reportsTab');
-            const autofailsTab = document.getElementById('autofailsTab');
-            const adminTab = document.getElementById('adminTab');
-            const npsTab = document.getElementById('npsTab');
+            const tabs = ['auditForm', 'database', 'myEvaluations', 'shareResponse'];
+            tabs.forEach(tab => {
+                const contentDiv = document.getElementById(`${tab}Content`);
+                if (contentDiv) contentDiv.style.display = 'none';
+                const tabElement = document.getElementById(`${tab}Tab`);
+                if (tabElement) tabElement.classList.remove('active');
+            });
 
-            console.log("showTab called with:", tabName);
+            const contentDiv = document.getElementById(`${tabName}Content`);
+            if (contentDiv) {
+                contentDiv.style.display = 'block';
+                const tabElement = document.getElementById(`${tabName}Tab`);
+                if (tabElement) tabElement.classList.add('active');
+            }
 
-            // Deactivate all tabs
-            if (auditFormTab) auditFormTab.classList.remove('active');
-            if (databaseTab) databaseTab.classList.remove('active');
-            if (shareResponseTab) shareResponseTab.classList.remove('active');
-            if (usersTab) usersTab.classList.remove('active');
-            if (reportsTab) reportsTab.classList.remove('active');
-            if (autofailsTab) autofailsTab.classList.remove('active');
-            if (adminTab) adminTab.classList.remove('active');
-            if (npsTab) npsTab.classList.remove('active');
-
-
-            // Hide all content sections for this index.html
-            const auditFormContent = document.getElementById('auditFormContent');
-            const databaseContent = document.getElementById('databaseContent');
-            const shareResponseContent = document.getElementById('shareResponseContent');
-
-            if (auditFormContent) auditFormContent.style.display = 'none';
-            if (databaseContent) databaseContent.style.display = 'none';
-            if (shareResponseContent) shareResponseContent.style.display = 'none';
-
-
-            // Activate selected tab and show its content or navigate
             if (tabName === 'auditForm') {
-                if (auditFormTab) auditFormTab.classList.add('active');
-                if (auditFormContent) auditFormContent.style.display = 'block';
                 const cerRoleSelect = document.getElementById('cer-role');
-                if (cerRoleSelect && cerRoleSelect.value) {
-                    renderQuestionsForRole(cerRoleSelect.value);
-                } else {
-                    document.getElementById('cxQuestionsContainer').innerHTML = '';
-                    document.getElementById('psQuestionsContainer').innerHTML = '';
-                    document.getElementById('caQuestionsContainer').innerHTML = '';
-                    calculateScore();
-                }
+                renderQuestionsForRole(cerRoleSelect.value);
             } else if (tabName === 'database') {
-                if (databaseTab) databaseTab.classList.add('active');
-                if (databaseContent) databaseContent.style.display = 'block';
                 if (db && currentUserId) {
                     fetchRecordsAndWebhooks();
                 } else {
                     showMessageBox("Database Not Ready", "Waiting for authentication to load database records.", false, true, false);
                 }
+            } else if (tabName === 'myEvaluations') {
+                if (db && currentUserProfile) {
+                    renderMyEvaluationsDashboard();
+                } else {
+                    showMessageBox("My Evaluations Not Ready", "Please log in to view your evaluations.", false, false, true);
+                }
             } else if (tabName === 'shareResponse') {
-                if (shareResponseTab) shareResponseTab.classList.add('active');
-                if (shareResponseContent) shareResponseContent.style.display = 'block';
                 if (db && currentUserId) {
                     fetchRecordsAndWebhooks();
                     populateShareResponseDropdown();
@@ -882,21 +963,16 @@
                 }
             }
             // External pages: navigate
-            else if (tabName === 'dashboard') { // Updated to Dashboard.html
-                if (reportsTab) reportsTab.classList.add('active');
-                window.location.href = 'Dashboard.html'; // Updated to Dashboard.html
+            else if (tabName === 'reports') {
+                window.location.href = 'Dashboard.html';
             } else if (tabName === 'autofails') {
-                if (autofailsTab) autofailsTab.classList.add('active');
-                window.location.href = autofailsTab.href;
+                window.location.href = 'autofails.html';
             } else if (tabName === 'users') {
-                if (usersTab) usersTab.classList.add('active');
                 window.location.href = 'users.html';
             } else if (tabName === 'admin') {
-                if (adminTab) adminTab.classList.add('active');
                 window.location.href = 'admin.html';
-            } else if (tabName === 'nps') {
-                if (npsTab) npsTab.classList.add('active');
-                window.location.href = 'nps.html';
+            } else if (tabName === 'images') {
+                 window.location.href = 'images.html';
             }
         }
 
@@ -1828,7 +1904,7 @@
 
             populateSelect(cerNameSelect, dropdownOptions.cerNames, 'cerNames');
             populateSelect(cerRoleSelect, dropdownOptions.cerRoles, 'cerRoles');
-            populateSelect(reviewerNameSelect, dropdownOptions.reviewerNames, 'reviewerNames');
+            // The reviewerNameSelect is now an input, so we skip populating it as a dropdown
             populateSelect(autofailTypeSelect, dropdownOptions.autofailTypes, 'autofailTypes');
 
             const currentCerName = cerNameSelect.value;
