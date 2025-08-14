@@ -559,12 +559,9 @@
         <script type="module">
             // Firebase Imports
             import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-            import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-            // Import all necessary Firestore functions
-            import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-            // NEW: Firebase Storage Imports
+            import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+            import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
             import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
-
 
             // --- Firebase Configuration ---
             const firebaseConfig = {
@@ -573,7 +570,7 @@
               projectId: "icea-lion-qa",
               storageBucket: "icea-lion-qa.firebasestorage.app",
               messagingSenderId: "820082472004",
-              appId: "1:820082472004:web:8caddf941e1b5b667faf811", // Consistent App ID
+              appId: "1:820082472004:web:8caddf941e1b5b667faf811",
               measurementId: "G-1RJJTT3QET"
             };
 
@@ -582,14 +579,14 @@
 
             // Initialize Firebase App and Services ONCE at the top level of the module
             let appInstance;
-            if (!getApps().length) { // Check if no Firebase apps have been initialized yet
+            if (!getApps().length) {
                 appInstance = initializeApp(firebaseConfig);
             } else {
                 appInstance = getApp();
             }
             const auth = getAuth(appInstance);
             const db = getFirestore(appInstance);
-            const storage = getStorage(appInstance); // NEW: Initialize Firebase Storage
+            const storage = getStorage(appInstance);
 
             // Define Firebase Collection Paths (using const as they don't change)
             const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
@@ -597,19 +594,19 @@
             const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
             const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
             const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
-            const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations'); // NEW: Custom fields config doc
+            const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations');
 
             // --- GLOBAL DATA STORES & STATE VARIABLES ---
             let allRecords = [];
             let allWebhooks = [];
-            let dropdownOptions = { // Initialize with default structure
+            let dropdownOptions = {
                 'cerNames': [],
                 'cerRoles': [],
                 'reviewerNames': [],
                 'autofailTypes': []
             };
             let allRolesQuestions = {};
-            let customFormFields = []; // NEW: Stores custom form field configurations
+            let customFormFields = [];
             let cerNameEmailsMap = {};
             let filterableRecords = [];
 
@@ -617,7 +614,7 @@
             let unsubscribeWebhooks = null;
             let unsubscribeDropdowns = null;
             let unsubscribeQuestions = null;
-            let unsubscribeCustomFields = null; // NEW: Unsubscribe for custom fields listener
+            let unsubscribeCustomFields = null;
 
             let currentUserRole = null;
             let currentUserId = null;
@@ -629,24 +626,15 @@
             let globalTotalPoints = 0;
             let globalMaxPossiblePoints = 0;
             let globalBusinessComplianceAccuracyValue = 0;
-            let latestSavedRecordId = null; // Stores the ID of the last saved record
+            let latestSavedRecordId = null;
 
-            // --- All Core Functions (Hoisted to top of module scope using `function` keyword) ---
+            // --- All Core Functions ---
 
-            /**
-             * Automatically expands a textarea vertically as the user types.
-             * @param {HTMLTextAreaElement} element - The textarea element to auto-expand.
-             */
             window.autoExpandTextarea = function(element) {
                 element.style.height = 'auto';
                 element.style.height = (element.scrollHeight) + 'px';
             };
 
-            /**
-             * Calculates and updates the scores displayed on the form.
-             * This includes Overall Score, Business & Compliance Accuracy,
-             * and applies autofail logic.
-             */
             function calculateScore() {
                 const cerRoleSelect = document.getElementById('cer-role');
                 const overallScoreDisplay = document.getElementById('overall-score-display');
@@ -655,10 +643,10 @@
                 const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
                 const autofailTypeSelect = document.getElementById('autofail-type');
 
-                let currentTotalPoints = 0; // This will be the sum of all points earned, unaffected by autofail
+                let currentTotalPoints = 0;
                 let currentMaxPossiblePoints = 0;
                 let autofailQuestionTriggered = false;
-                let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== ''); // Check if an autofail type is selected
+                let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== '');
 
                 let complianceCurrentPoints = 0;
                 let complianceMaxPoints = 0;
@@ -697,25 +685,23 @@
                         if (isAutofailQuestion) {
                             pointsElement.style.backgroundColor = '#fca5a5';
                             pointsElement.style.color = '#dc2626';
-                            autofailQuestionTriggered = true; // Mark that an autofail question was 'No'
+                            autofailQuestionTriggered = true;
                         } else {
                             pointsElement.style.backgroundColor = '#e0e0e0';
                         }
-                    } else { // Handle empty selection ("Select Rating")
+                    } else {
                         pointsForThisQuestion = 0;
                         pointsElement.readOnly = true;
                         pointsElement.style.backgroundColor = '#e9ecef';
                     }
 
                     pointsElement.value = pointsForThisQuestion;
-                    currentTotalPoints += pointsForThisQuestion; // Accumulate raw total points here
+                    currentTotalPoints += pointsForThisQuestion;
 
-                    // Only add to max possible points if a rating other than empty is selected
                     if (rating !== '') {
                         currentMaxPossiblePoints += weightage;
                     }
 
-                    // Calculate compliance score regardless of autofail
                     const currentRole = cerRoleSelect.value;
                     if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
                         const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
@@ -724,29 +710,24 @@
                                 complianceCurrentPoints += weightage;
                             }
                             if (rating !== '') {
-                                     complianceMaxPoints += weightage;
+                                complianceMaxPoints += weightage;
                             }
                         }
                     }
                 });
 
-                // Calculate overall percentage BEFORE considering autofail
                 let calculatedOverallPercentageBeforeAutofail = 0;
                 if (currentMaxPossiblePoints > 0) {
                     calculatedOverallPercentageBeforeAutofail = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
                 }
 
-                // Apply autofail penalty ONLY to the "Overall Final Percentage"
                 let finalOverallPercentage = calculatedOverallPercentageBeforeAutofail;
                 if (autofailQuestionTriggered || autofailTypeSelected) {
                     finalOverallPercentage = 0;
                 }
                 
-                // Update both top and bottom overall score displays with the final percentage (affected by autofail)
                 overallScoreDisplay.textContent = `${finalOverallPercentage}%`;
                 overallFinalPercentageDisplay.textContent = `${finalOverallPercentage}%`;
-
-                // Update "Total Pts." to show the raw sum of points earned (NOT affected by autofail)
                 totalPtsPercentageDisplay.textContent = `${currentTotalPoints}`; 
 
                 let businessCompliancePct = 0;
@@ -757,17 +738,11 @@
                 }
                 businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
 
-                globalTotalPoints = currentTotalPoints; // Keep raw total points for saving
-                globalMaxPossiblePoints = currentMaxPossiblePoints; // Keep raw max possible points for saving
+                globalTotalPoints = currentTotalPoints;
+                globalMaxPossiblePoints = currentMaxPossiblePoints;
                 globalBusinessComplianceAccuracyValue = businessCompliancePct;
             }
 
-            /**
-             * Renders dynamic questions in the assessment form based on the selected CER Role.
-             * Questions are categorized into Customer Experience, Problem Solving Skills,
-             * and Compliance & Business Critical Accuracy.
-             * @param {string} role - The selected CER Role.
-             */
             function renderQuestionsForRole(role) {
                 const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
                 const psQuestionsContainer = document.getElementById('psQuestionsContainer');
@@ -779,18 +754,15 @@
                     'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
                 };
 
-                console.log("Rendering questions for role:", role);
-
                 for (const key in questionContainers) {
                     if (questionContainers[key]) {
-                        questionContainers[key].innerHTML = ''; // Clear previous questions
+                        questionContainers[key].innerHTML = '';
                     }
                 }
 
                 const roleQuestions = allRolesQuestions[role] || allRolesQuestions['Default'] || {};
 
                 if (Object.keys(roleQuestions).length === 0) {
-                    console.warn(`No questions defined for role: ${role} or 'Default'. Displaying empty sections.`);
                     for (const key in questionContainers) {
                         if (questionContainers[key]) {
                             questionContainers[key].innerHTML = `<div class="text-center text-gray-500 py-4">No questions configured for this section.</div>`;
@@ -809,15 +781,14 @@
                         continue;
                     }
 
-                    let sectionQuestionNumber = 1; // NEW: Initialize a fresh counter for each section
+                    let sectionQuestionNumber = 1;
 
                     questions.forEach(q => {
                         const rowDiv = document.createElement('div');
-                        // Use sectionQuestionNumber instead of the global questionNumber
                         rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${sectionQuestionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
 
                         let iconColorClass;
-                        const iconIndex = (sectionQuestionNumber - 1) % 4; // Use sectionQuestionNumber here too
+                        const iconIndex = (sectionQuestionNumber - 1) % 4;
                         if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
                         else if (iconIndex === 1) iconColorClass = 'icon-bg-blue';
                         else if (iconIndex === 2) iconColorClass = 'icon-bg-green';
@@ -853,7 +824,7 @@
                         if (newSelect) {
                             newSelect.addEventListener('change', calculateScore);
                         }
-                        sectionQuestionNumber++; // NEW: Increment local counter
+                        sectionQuestionNumber++;
                     });
                 }
                 calculateScore();
@@ -862,9 +833,6 @@
                 });
             }
 
-            /**
-             * Displays a custom message box (modal) to the user.
-             */
             function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
                 const messageBoxOverlay = document.getElementById('messageBoxOverlay');
                 const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -900,17 +868,11 @@
                 }
             }
 
-            /**
-             * Hides the custom message box.
-             */
             function hideMessageBox() {
                 const messageBoxOverlay = document.getElementById('messageBoxOverlay');
                 messageBoxOverlay.classList.add('hidden');
             }
 
-            /**
-             * Controls which main content tab is visible.
-             */
             function showTab(tabName) {
                 const contentContainers = document.querySelectorAll('.main-content-container');
                 contentContainers.forEach(container => container.style.display = 'none');
@@ -923,12 +885,12 @@
                     tabElement.classList.add('active');
                     if (tabName === 'myEvaluations') {
                         if (document.getElementById('myEvaluationsContent')) {
-                               document.getElementById('myEvaluationsContent').style.display = 'block';
-                               if (currentUserProfile) {
-                                   renderMyEvaluationsDashboard();
-                               } else {
-                                   showMessageBox("Access Denied", "Please log in to view this tab.", true, false, true);
-                               }
+                            document.getElementById('myEvaluationsContent').style.display = 'block';
+                            if (currentUserProfile) {
+                                renderMyEvaluationsDashboard();
+                            } else {
+                                showMessageBox("Access Denied", "Please log in to view this tab.", true, false, true);
+                            }
                         }
                     } else if (tabName === 'images') {
                         if(document.getElementById('imagesContent')) {
@@ -955,10 +917,6 @@
                 else if (tabName === 'nps') { window.location.href = 'nps.html'; }
             }
 
-            /**
-             * Fetches records and webhooks from Firestore in real-time.
-             * Sets up onSnapshot listeners for both collections.
-             */
             async function fetchRecordsAndWebhooks() {
                 const recordsTableBody = document.getElementById('recordsTableBody');
                 const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
@@ -975,7 +933,6 @@
                     return;
                 }
 
-                // Unsubscribe from previous listeners to prevent memory leaks
                 if (unsubscribeRecords) unsubscribeRecords();
                 if (unsubscribeWebhooks) unsubscribeWebhooks();
 
@@ -1016,10 +973,6 @@
                 }
             }
 
-            /**
-             * Renders the evaluation records table in the Database tab.
-             * @param {Array<Object>} records - An array of record objects to display.
-             */
             function renderRecordsTable(records) {
                 const recordsTableBody = document.getElementById('recordsTableBody');
                 const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
@@ -1055,7 +1008,6 @@
                         }
                     }
 
-                    // Determine if PDF attachment exists (now checks for pdfAttachmentUrl)
                     const hasPdfAttachment = record.pdfAttachmentUrl && record.pdfAttachmentUrl.length > 0;
                     const pdfButtonHtml = hasPdfAttachment
                         ? `<button class="download-pdf-btn" data-record-id="${record.id}" aria-label="Download PDF for ${record['Contact ID'] || record.id}"><i class="fas fa-file-pdf"></i> PDF</button>`
@@ -1093,7 +1045,6 @@
                 document.querySelectorAll('.download-record-btn').forEach(button => {
                     button.addEventListener('click', (e) => downloadRecordData(e.target.dataset.recordId));
                 });
-                // NEW: Event listener for PDF download button
                 document.querySelectorAll('.download-pdf-btn').forEach(button => {
                     button.addEventListener('click', (e) => downloadPdfAttachment(e.target.dataset.recordId));
                 });
@@ -1101,10 +1052,6 @@
                 updateDeleteButtonState();
             }
 
-            /**
-             * Updates the state (enabled/disabled) of the "Delete Selected" button
-             * based on the number of checked record checkboxes.
-             */
             function updateDeleteButtonState() {
                 const deleteSelectedRecordsBtnElement = document.getElementById('deleteSelectedRecordsBtn');
                 if (deleteSelectedRecordsBtnElement) {
@@ -1113,11 +1060,6 @@
                 }
             }
 
-            /**
-             * Deletes single or multiple records from Firestore based on their IDs.
-             * Displays confirmation and feedback messages.
-             * @param {string[]} recordIdsToDelete - An array of record IDs to delete.
-             */
             async function deleteSelectedRecords(recordIdsToDelete) {
                 const messageBoxContentElement = document.getElementById('messageBoxContent');
                 const messageBoxCloseBtnElement = document.getElementById('messageBoxCloseBtn');
@@ -1162,10 +1104,6 @@
                 messageBoxContentElement.appendChild(cancelBtn);
             }
 
-            /**
-             * Renders the list of configured webhooks.
-             * @param {Array<Object>} webhooks - An array of webhook objects to display.
-             */
             function renderWebhookList(webhooks) {
                 const webhookList = document.getElementById('webhookList');
                 webhookList.innerHTML = '';
@@ -1219,10 +1157,6 @@
                 });
             }
 
-            /**
-             * Adds a new webhook URL to Firestore.
-             * Performs basic URL validation.
-             */
             async function addWebhook() {
                 const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
                 const url = newWebhookUrlInput.value.trim();
@@ -1247,11 +1181,6 @@
                 }
             }
 
-            /**
-             * Displays full details of a selected record in a modal.
-             * Formats the record data for readability.
-             * @param {string} recordId - The ID of the record to view.
-             */
             function viewRecordDetails(recordId) {
                 const record = allRecords.find(r => r.id === recordId);
                 if (!record) {
@@ -1293,10 +1222,6 @@
                 showMessageBox("Record Details", detailsHtml, false, false, true);
             }
 
-            /**
-             * Sends the selected record's summary via email using the mailto: protocol.
-             * @param {string} recordId - The ID of the record to email.
-             */
             function sendRecordEmail(recordId) {
                 const record = allRecords.find(r => r.id === recordId);
                 if (!record) {
@@ -1332,10 +1257,6 @@
                 }
             }
 
-            /**
-             * Downloads the full record data as a JSON file.
-             * @param {string} recordId - The ID of the record to download.
-             */
             function downloadRecordData(recordId) {
                 const record = allRecords.find(r => r.id === recordId);
                 if (!record) {
@@ -1348,7 +1269,7 @@
                     const downloadAnchorNode = document.createElement('a');
                     downloadAnchorNode.setAttribute("href", dataStr);
                     downloadAnchorNode.setAttribute("download", `record_${record.id}.json`);
-                    document.body.appendChild(downloadAnchorNode); // Required for Firefox
+                    document.body.appendChild(downloadAnchorNode);
                     downloadAnchorNode.click();
                     downloadAnchorNode.remove();
                     showMessageBox("Download Complete", "Record data downloaded successfully!", false, false, true);
@@ -1359,11 +1280,6 @@
             }
 
 
-            /**
-             * Helper function for submitting form data to Firestore.
-             * @param {Object} recordData The data object to save to Firestore.
-             * @returns {Promise<string|null>} Resolves with the new document ID on success, null on failure.
-             */
             async function addRecordToFirestore(recordData) {
                 if (!db || !currentUserId) {
                     showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1391,12 +1307,8 @@
                 }
             }
 
-            /**
-             * Collects form data, saves it to Firestore, and then generates and downloads a PDF.
-             * This function is triggered by the "Save" button.
-             */
             window.saveFormToDB = async function() {
-                console.log("saveFormToDB called."); // Debug log
+                console.log("saveFormToDB called.");
                 const form = document.getElementById('assessment-form');
                 const contactId = document.getElementById('contact-id').value.trim();
                 const clientName = document.getElementById('client-name').value.trim();
@@ -1411,7 +1323,6 @@
                 const reviewDate = document.getElementById('review-date').value;
                 const duration = document.getElementById('duration').value.trim();
 
-                // Validate static fields
                 if (!contactId || !clientName || !cerName || !cerRole || !callDateTime || !reviewerName || !reviewDate) {
                     showMessageBox("Validation Error", "Please fill in all required top-level fields.", true, false, true);
                     return;
@@ -1435,7 +1346,6 @@
                     otherReviewerNameInput.style.borderColor = '';
                 }
 
-                // Collect form data (excluding pdfAttachment for Firestore due to size limits)
                 const formData = {
                     'Contact ID': contactId,
                     'Client Name': clientName,
@@ -1448,26 +1358,25 @@
                     'Autofail Description': autofailDescription,
                     'Evaluation Date': reviewDate,
                     'Call Duration': duration,
-                    'Overall Score': document.getElementById('overall-score-display').textContent, // This now reflects pre-autofail score
+                    'Overall Score': document.getElementById('overall-score-display').textContent,
                     'Business & Compliance Accuracy': document.getElementById('business-compliance-accuracy').textContent,
-                    'Total Pts.': globalTotalPoints, // Raw points
+                    'Total Pts.': globalTotalPoints,
                     'Max Possible Pts.': globalMaxPossiblePoints,
-                    'Overall Final Percentage (Autofail Applied)': document.getElementById('overall-final-percentage-display').textContent, // Store the final score separately
+                    'Overall Final Percentage (Autofail Applied)': document.getElementById('overall-final-percentage-display').textContent,
                     'Evaluated By User ID': currentUserId,
                     'Evaluated By User Email': auth.currentUser ? auth.currentUser.email : 'anonymous',
                 };
 
-                // Collect data from dynamically generated custom fields
                 for (const fieldConfig of customFormFields) {
                     const element = document.getElementById(fieldConfig.id);
                     if (element) {
-                        if (field.required && !element.value.trim()) {
+                        if (fieldConfig.required && !element.value.trim()) {
                             showMessageBox("Validation Error", `Please fill in the required field: ${fieldConfig.label}`, true, false, true);
-                            element.style.borderColor = 'red'; // Highlight the missing field
+                            element.style.borderColor = 'red';
                             return;
                         }
-                        formData[fieldConfig.label] = element.value.trim(); // Use label as key for storage
-                        element.style.borderColor = ''; // Reset border color
+                        formData[fieldConfig.label] = element.value.trim();
+                        element.style.borderColor = '';
                     }
                 }
 
@@ -1485,12 +1394,10 @@
                     formData[`${questionDesc} (Weightage)`] = weightageDisplay ? weightageDisplay.dataset.weightage : '';
                 });
 
-                // Save form data to Firestore
                 latestSavedRecordId = await addRecordToFirestore(formData);
-                console.log("latestSavedRecordId after addRecordToFirestore:", latestSavedRecordId); // Debug log
+                console.log("latestSavedRecordId after addRecordToFirestore:", latestSavedRecordId);
 
                 if (latestSavedRecordId) {
-                    // Generate and upload PDF to Firebase Storage
                     showMessageBox("Generating PDF", "Form saved. Generating PDF and uploading to storage...", false, true, false);
                     try {
                         const canvas = await generateFormPdf();
@@ -1518,24 +1425,22 @@
                             heightLeft -= pageHeight;
                         }
 
-                        const pdfBlob = new Blob([pdf.output('arraybuffer')], { type: 'application/pdf' }); // Get PDF as Blob
-                        const pdfStoragePath = `pdfs/${latestSavedRecordId}.pdf`; // Define storage path
+                        const pdfBlob = new Blob([pdf.output('arraybuffer')], { type: 'application/pdf' });
+                        const pdfStoragePath = `pdfs/${latestSavedRecordId}.pdf`;
                         const storageRef = ref(storage, pdfStoragePath);
 
-                        await uploadBytes(storageRef, pdfBlob); // Upload to Firebase Storage
-                        const downloadURL = await getDownloadURL(storageRef); // Get download URL
+                        await uploadBytes(storageRef, pdfBlob);
+                        const downloadURL = await getDownloadURL(storageRef);
 
-                        // Update the Firestore document with the PDF URL and path
                         await updateDoc(doc(db, EVALUATION_RECORDS_COLLECTION_PATH, latestSavedRecordId), {
                             pdfAttachmentUrl: downloadURL,
-                            pdfStoragePath: pdfStoragePath // Optionally store path for easier deletion later
+                            pdfStoragePath: pdfStoragePath
                         });
 
                         showMessageBox("Success", `Form saved, PDF uploaded to storage, and downloaded!`, false, false, true);
                         
-                        // Also trigger local download of the PDF
                         const link = document.createElement('a');
-                        link.href = downloadURL; // Use the direct download URL
+                        link.href = downloadURL;
                         link.download = `Quality_Assessment_${contactId || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
                         document.body.appendChild(link);
                         link.click();
@@ -1543,7 +1448,6 @@
 
                     } catch (pdfError) {
                         console.error("Error generating or uploading PDF:", pdfError);
-                        // Provide guidance for CORS if it's a known issue
                         if (pdfError.code && (pdfError.code === 'storage/unauthorized' || pdfError.message.includes('CORS policy'))) {
                             showMessageBox(
                                 "PDF Upload Failed (CORS Issue)",
@@ -1558,14 +1462,10 @@
                     }
 
                 } else {
-                    console.log("Record not saved."); // Debug log
+                    console.log("Record not saved.");
                 }
             };
 
-            /**
-             * Resets the form fields to their initial state after submission,
-             * keeping the selected CER Role.
-             */
             function resetFormFieldsButKeepRole() {
                 const form = document.getElementById('assessment-form');
                 const cerRoleSelect = document.getElementById('cer-role');
@@ -1594,12 +1494,11 @@
 
                 document.getElementById('duration').value = '';
 
-                // Reset dynamically added custom fields
                 for (const fieldConfig of customFormFields) {
                     const element = document.getElementById(fieldConfig.id);
                     if (element) {
                         element.value = '';
-                        element.style.borderColor = ''; // Clear any validation highlighting
+                        element.style.borderColor = '';
                     }
                 }
 
@@ -1620,20 +1519,15 @@
                     selectElement.value = defaultRating;
                     const remarksInput = selectElement.closest('.grid').querySelector('.remarks-textarea');
                     const pointsInput = selectElement.closest('.grid').querySelector('.points-input');
-                    if (remarksInput) pointsInput.value = '0'; // Fixed: Changed to pointsInput.value to reset points
+                    if (remarksInput) pointsInput.value = '0';
                 });
                 
                 renderQuestionsForRole(currentRole);
                 calculateScore();
 
-                // latestSavedRecordId should be cleared after a full reset to indicate no record is currently being worked on
                 latestSavedRecordId = null;
             }
 
-            /**
-             * Fetches and displays the last three evaluations for the selected CER.
-             * @param {string} cerName - The name of the CER to fetch evaluations for.
-             */
             async function fetchLastThreeEvaluations(cerName) {
                 const lastEvaluationsTableBody = document.getElementById('lastEvaluationsTableBody');
                 lastEvaluationsTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading last evaluations...</td></tr>';
@@ -1690,10 +1584,6 @@
             }
 
 
-            /**
-             * Initializes the main application display, showing either the login page
-             * or the main content based on authentication status.
-             */
             function initializeAppDisplay() {
                 const loginPage = document.getElementById('loginPage');
                 const mainNav = document.getElementById('mainNav');
@@ -1734,10 +1624,6 @@
             }
 
 
-            /**
-             * Fetches dropdown options (CER Names, Roles, Reviewers, Autofail Types)
-             * from Firestore in real-time and populates the global `dropdownOptions` object.
-             */
             async function fetchDropdownOptionsData() {
                 if (!db) {
                     console.warn("Firestore not ready for fetching dropdowns.");
@@ -1779,10 +1665,6 @@
                 });
             }
 
-            /**
-             * Fetches question configurations for different CER roles from Firestore
-             * in real-time and populates the global `allRolesQuestions` object.
-             */
             async function fetchQuestionsData() {
                 if (!db) {
                     console.warn("Firestore not ready for fetching questions.");
@@ -1815,10 +1697,6 @@
                 });
             }
 
-            /**
-             * NEW: Fetches custom form field configurations from Firestore
-             * in real-time and populates the global `customFormFields` array.
-             */
             async function fetchCustomFieldsData() {
                 if (!db) {
                     console.warn("Firestore not ready for fetching custom fields.");
@@ -1831,23 +1709,18 @@
 
                 unsubscribeCustomFields = onSnapshot(CUSTOM_FIELDS_CONFIG_DOC_REF, (docSnap) => {
                     if (docSnap.exists() && docSnap.data().fields) {
-                        customFormFields = docSnap.data().fields.sort((a, b) => a.order - b.order); // Sort by order
-                        console.log("Custom form fields data updated from Firestore:", customFormFields);
+                        customFormFields = docSnap.data().fields.sort((a, b) => a.order - b.order);
                     } else {
                         console.warn("Custom form fields configuration document does not exist or is empty. Initializing with empty array locally.");
                         customFormFields = [];
                     }
-                    renderCustomFormFields(); // Render the custom fields in the form
+                    renderCustomFormFields();
                 }, (error) => {
                     console.error("Error listening to custom fields data:", error);
                 });
             }
 
 
-            /**
-             * Populates all relevant dropdowns in the assessment form
-             * using the data fetched from Firestore.
-             */
             function populateAllDropdownsInForm() {
                 const cerNameSelect = document.getElementById('cer-name');
                 const cerRoleSelect = document.getElementById('cer-role');
@@ -1897,19 +1770,15 @@
                 }
             }
 
-            /**
-             * NEW: Dynamically renders custom form fields fetched from Firestore.
-             * These fields are added to the `customFieldsContainer`.
-             */
             function renderCustomFormFields() {
                 const container = document.getElementById('customFieldsContainer');
                 if (!container) return;
 
-                container.innerHTML = ''; // Clear existing fields
+                container.innerHTML = '';
 
                 customFormFields.forEach(field => {
                     const fieldDiv = document.createElement('div');
-                    fieldDiv.className = 'col-span-1'; // Tailwind for grid column
+                    fieldDiv.className = 'col-span-1';
 
                     const labelElement = document.createElement('label');
                     labelElement.htmlFor = field.id;
@@ -1921,7 +1790,7 @@
                         const inputElement = document.createElement('input');
                         inputElement.type = 'text';
                         inputElement.id = field.id;
-                        inputElement.name = field.label; // Use label as name for form data collection
+                        inputElement.name = field.label;
                         inputElement.className = 'mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600';
                         if (field.required) {
                             inputElement.setAttribute('required', 'required');
@@ -1930,7 +1799,7 @@
                     } else if (field.type === 'select') {
                         const selectElement = document.createElement('select');
                         selectElement.id = field.id;
-                        selectElement.name = field.label; // Use label as name for form data collection
+                        selectElement.name = field.label;
                         selectElement.className = 'mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600';
                         if (field.required) {
                             selectElement.setAttribute('required', 'required');
@@ -1955,10 +1824,6 @@
             }
 
 
-            /**
-             * Populates the dropdown list in the "Share Response" tab with available records.
-             * Records are sorted by submission date in descending order.
-             */
             async function populateShareResponseDropdown() {
                 const selectRecordToShare = document.getElementById('select-record-to-share');
                 const selectRecordSearch = document.getElementById('select-record-search');
@@ -1992,10 +1857,6 @@
                 }
             }
 
-            /**
-             * Renders the options in the "Share Response" dropdown based on a filtered list of records.
-             * @param {Array<Object>} recordsToRender - The array of records to display as options.
-             */
             function renderFilteredOptions(recordsToRender) {
                 const selectRecordToShare = document.getElementById('select-record-to-share');
                 const currentSelectedId = selectRecordToShare.value;
@@ -2031,10 +1892,6 @@
             }
 
 
-            /**
-             * Filters the `filterableRecords` array based on the search term
-             * entered in the "Share Response" search input and re-renders the dropdown.
-             */
             function filterShareRecords() {
                 const searchTerm = document.getElementById('select-record-search').value.toLowerCase();
                 let filtered = [];
@@ -2059,11 +1916,6 @@
             }
 
 
-            /**
-             * Populates the email fields (To, From, Subject, Body) in the "Share Response" tab
-             * based on the selected record.
-             * @param {string|null} recordId - The ID of the selected record, or null to reset fields.
-             */
             function populateShareEmailFields(recordId) {
                 const shareEmailTo = document.getElementById('share-email-to');
                 const shareEmailFrom = document.getElementById('share-email-from');
@@ -2101,9 +1953,6 @@
                 autoExpandTextarea(shareEmailBody);
             }
 
-            /**
-             * Takes a snapshot of the current form content and generates a PDF.
-             */
             async function generateFormPdf() {
                 const auditFormContentDiv = document.getElementById('auditFormContent');
                 const originalStyles = [];
@@ -2125,27 +1974,13 @@
                 return canvas;
             }
 
-            /**
-             * Handles the "PDF & Share" button click.
-             */
             window.handlePdfAndShare = async function() { /* ... */ };
 
-            /**
-             * Handles the "PDF & Email (Direct Send)" button click.
-             */
             window.handlePdfAndDirectEmail = async function() { /* ... */ };
 
-            /**
-             * Downloads the PDF attachment associated with a record.
-             */
             async function downloadPdfAttachment(recordId) { /* ... */ };
 
-            /**
-             * EXPOSE TO GLOBAL WINDOW OBJECT: Sends the email from the Share Response tab.
-             */
             window.sendShareResponseEmail = async function() { /* ... */ };
-
-            // --- NEW: My Evaluations Tab Logic ---
 
             let myScoresChartInstance = null;
             let autofailChartInstance = null;
