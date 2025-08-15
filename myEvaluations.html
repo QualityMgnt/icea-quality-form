@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Evaluations - ICEA LION GROUP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Base styles from index.html for consistency */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+        }
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            background-color: #800080;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .main-nav {
+            width: 125px;
+            background-color: #800080;
+            color: white;
+            padding: 1rem 0;
+            height: calc(100vh - 48px);
+            position: fixed;
+            top: 48px;
+            left: 0;
+            z-index: 100;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .main-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.75rem 0.5rem;
+            display: block;
+            border-radius: 0;
+            transition: background-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: #6a006a;
+        }
+        .logout-button {
+            background-color: #f57c00;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
+        }
+        .logout-button:hover {
+            background-color: #e65100;
+        }
+        .main-content {
+            margin-left: calc(125px + 1.5rem);
+            margin-top: calc(48px + 1.5rem);
+            width: calc(100% - 125px - 3rem);
+            min-height: calc(100vh - 48px - 3rem);
+            max-width: none;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .main-content.mx-auto {
+            margin-right: 1.5rem;
+        }
+        .icealion-blue {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a73e8;
+        }
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .message-box button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .message-box button:hover {
+            background-color: #0d47a1;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1a73e8;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #myEvaluationsTableContainer table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        #myEvaluationsTableContainer th, #myEvaluationsTableContainer td {
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        #myEvaluationsTableContainer th {
+            background-color: #eff6ff;
+            font-weight: 600;
+            color: #1f2937;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        #myEvaluationsTableContainer tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        #myEvaluationsTableContainer tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+        .view-record-btn, .download-record-btn, .download-pdf-btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin-right: 0.25rem;
+        }
+        .view-record-btn { background-color: #2196f3; color: white; }
+        .view-record-btn:hover { background-color: #1976d2; }
+        .download-record-btn { background-color: #4caf50; color: white; }
+        .download-record-btn:hover { background-color: #388e3c; }
+        .download-pdf-btn { background-color: #800080; color: white; }
+        .download-pdf-btn:hover { background-color: #6a006a; }
+        .hidden { display: none !important; }
+        .message-box-content-pre {
+            text-align: left;
+            white-space: pre-wrap;
+            font-family: 'Inter', monospace;
+            background-color: #f8f8f8;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-header">
+        ICEA LION QUALITY EVALUATION AND MONITORING
+    </div>
+    
+    <!-- Message Box Overlay -->
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="spinner hidden" aria-label="Loading..."></div>
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseBtn" class="hidden">OK</button>
+        </div>
+    </div>
+
+    <!-- Main Navigation Sidebar -->
+    <nav class="main-nav" id="mainNav">
+        <div class="sidebar">
+            <ul>
+                <li class="nav-tab"><a href="index.html" id="auditFormTab" aria-label="Evaluation Form"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li class="nav-tab"><a href="index.html#database" id="databaseTab" aria-label="Database"><i class="fas fa-database"></i> Database</a></li>
+                <li class="nav-tab"><a href="myEvaluations.html" id="myEvaluationsTab" class="active" aria-label="My Evaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li class="nav-tab"><a href="Dashboard.html" id="reportsTab" aria-label="Dashboard"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li class="nav-tab"><a href="autofails.html" id="autofailsTab" aria-label="Autofails"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li class="nav-tab"><a href="index.html#shareResponse" id="shareResponseTab" aria-label="Share Response"><i class="fas fa-share-square"></i> Share Response</a></li>
+                <li class="nav-tab"><a href="users.html" id="usersTab" aria-label="Users"><i class="fas fa-users"></i> Users</a></li>
+                <li class="nav-tab"><a href="admin.html" id="adminTab" aria-label="Admin"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li class="nav-tab"><a href="nps.html" id="npsTab" aria-label="NPS"><i class="fas fa-comment-alt"></i> NPS</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button" aria-label="Logout">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area for My Evaluations -->
+    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden main-content">
+        <div class="icealion-blue p-4 text-xl font-semibold text-center">
+            My Evaluations
+        </div>
+        <div class="p-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">My Submitted Records</h2>
+            <p class="text-gray-600 mb-4">Below are the quality evaluation records you have personally submitted.</p>
+            <div id="myEvaluationsTableContainer" class="overflow-x-auto max-h-[70vh]">
+                <table class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Contact ID</th>
+                            <th>Client Name</th>
+                            <th>CER Name</th>
+                            <th>Overall Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myEvaluationsTableBody">
+                        <!-- Content will be dynamically populated here -->
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-gray-500">Loading your evaluations...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query, where, orderBy, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+          authDomain: "icea-lion-qa.firebaseapp.com",
+          projectId: "icea-lion-qa",
+          storageBucket: "icea-lion-qa.firebasestorage.app",
+          messagingSenderId: "820082472004",
+          appId: "1:820082472004:web:8caddf941e1b5b667faf811",
+          measurementId: "G-1RJJTT3QET"
+        };
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+
+        // Initialize Firebase App and Services ONCE
+        let appInstance;
+        if (!getApps().length) {
+            appInstance = initializeApp(firebaseConfig);
+        } else {
+            appInstance = getApp();
+        }
+        const auth = getAuth(appInstance);
+        const db = getFirestore(appInstance);
+        const storage = getStorage(appInstance);
+
+        // Define Firebase Collection Paths
+        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+
+        // --- GLOBAL DATA STORES & STATE VARIABLES ---
+        let myEvaluations = [];
+        let currentUserId = null;
+        let unsubscribeMyEvaluations = null;
+
+        /**
+         * Displays a custom message box (modal) to the user.
+         * @param {string} title - The title of the message box.
+         * @param {string} message - The content of the message.
+         * @param {boolean} isError - If true, styles the title as an error.
+         * @param {boolean} showSpinner - If true, displays a loading spinner.
+         * @param {boolean} showCloseButton - If true, displays an "OK" button.
+         * @param {function} onClose - Callback function to execute when the box is closed.
+         */
+        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+            const messageBoxTitle = document.getElementById('messageBoxTitle');
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+
+            messageBoxTitle.textContent = title;
+            if (typeof message === 'string' && message.startsWith('<pre>')) {
+                messageBoxContent.innerHTML = message;
+                messageBoxContent.classList.add('message-box-content-pre');
+            } else {
+                messageBoxContent.textContent = message;
+                messageBoxContent.classList.remove('message-box-content-pre');
+            }
+
+            messageBoxOverlay.classList.remove('hidden');
+            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
+
+            if (isError) {
+                messageBoxTitle.style.color = '#dc2626';
+            } else {
+                messageBoxTitle.style.color = '#1a73e8';
+            }
+
+            messageBoxCloseBtn.onclick = null;
+            if (showCloseButton) {
+                messageBoxCloseBtn.onclick = () => {
+                    messageBoxOverlay.classList.add('hidden');
+                    if (onClose) onClose();
+                };
+            }
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            messageBoxOverlay.classList.add('hidden');
+        }
+
+        /**
+         * Fetches a user's specific evaluations from Firestore using their UID.
+         * Sets up an onSnapshot listener for real-time updates.
+         */
+        async function fetchMyEvaluations() {
+            const myEvaluationsTableBody = document.getElementById('myEvaluationsTableBody');
+            if (!db || !currentUserId) {
+                myEvaluationsTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Please log in to view your evaluations.</td></tr>';
+                return;
+            }
+
+            if (unsubscribeMyEvaluations) unsubscribeMyEvaluations();
+
+            showMessageBox("Loading", "Fetching your evaluations...", false, true, false);
+
+            try {
+                // Use a query with 'where' to filter by the current user's ID
+                const q = query(
+                    collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
+                    where('Evaluated By User ID', '==', currentUserId),
+                    orderBy('submittedAt', 'desc')
+                );
+
+                unsubscribeMyEvaluations = onSnapshot(q, (snapshot) => {
+                    myEvaluations = [];
+                    snapshot.forEach(doc => {
+                        myEvaluations.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log("My evaluations updated:", myEvaluations.length, "records.");
+                    renderMyEvaluationsTable(myEvaluations);
+                    hideMessageBox();
+                }, (error) => {
+                    console.error("Error listening to my evaluations:", error);
+                    showMessageBox("Error", `Could not load your evaluations: ${error.message}`, true, false, true);
+                });
+
+            } catch (error) {
+                console.error("Error setting up Firestore listener for user's evaluations:", error);
+                showMessageBox("Error", `Failed to setup database listener: ${error.message}`, true, false, true);
+            }
+        }
+
+        /**
+         * Renders the table with the user's evaluations.
+         * @param {Array<Object>} records - The array of evaluation records to display.
+         */
+        function renderMyEvaluationsTable(records) {
+            const myEvaluationsTableBody = document.getElementById('myEvaluationsTableBody');
+            myEvaluationsTableBody.innerHTML = '';
+            if (records.length === 0) {
+                myEvaluationsTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">No evaluations found submitted by you.</td></tr>';
+                return;
+            }
+
+            records.forEach(record => {
+                const row = myEvaluationsTableBody.insertRow();
+                row.className = 'border-b border-gray-200';
+                let submittedDateFormatted = 'N/A';
+                if (record.submittedAt) {
+                    try {
+                        const dateObj = typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt);
+                        if (!isNaN(dateObj.getTime())) {
+                            submittedDateFormatted = dateObj.toLocaleString();
+                        }
+                    } catch (e) {
+                        console.warn("Failed to parse submittedAt date for table:", record.id, e);
+                    }
+                }
+                
+                const hasPdfAttachment = record.pdfAttachmentUrl && record.pdfAttachmentUrl.length > 0;
+                const pdfButtonHtml = hasPdfAttachment
+                    ? `<button class="download-pdf-btn" data-record-id="${record.id}" aria-label="Download PDF for ${record['Contact ID'] || record.id}"><i class="fas fa-file-pdf"></i> PDF</button>`
+                    : `<span>N/A</span>`;
+
+                row.innerHTML = `
+                    <td>${submittedDateFormatted}</td>
+                    <td>${record['Contact ID'] || ''}</td>
+                    <td>${record['Client Name'] || ''}</td>
+                    <td>${record['CER Name'] || ''}</td>
+                    <td>${record['Overall Score'] || ''}</td>
+                    <td class="whitespace-nowrap">
+                        <button class="view-record-btn" data-record-id="${record.id}" aria-label="View record ${record['Contact ID'] || record.id}">View</button>
+                        <button class="download-record-btn" data-record-id="${record.id}" aria-label="Download record ${record['Contact ID'] || record.id}">Download</button>
+                        ${pdfButtonHtml}
+                    </td>
+                `;
+            });
+
+            // Attach event listeners to the new buttons
+            document.querySelectorAll('.view-record-btn').forEach(button => {
+                button.addEventListener('click', (e) => viewRecordDetails(e.target.dataset.recordId));
+            });
+            document.querySelectorAll('.download-record-btn').forEach(button => {
+                button.addEventListener('click', (e) => downloadRecordData(e.target.dataset.recordId));
+            });
+            document.querySelectorAll('.download-pdf-btn').forEach(button => {
+                button.addEventListener('click', (e) => downloadPdfAttachment(e.target.dataset.recordId));
+            });
+        }
+
+        /**
+         * Displays full details of a selected record in a modal.
+         * @param {string} recordId - The ID of the record to view.
+         */
+        function viewRecordDetails(recordId) {
+            const record = myEvaluations.find(r => r.id === recordId);
+            if (!record) {
+                showMessageBox("Error", "Record not found.", true, false, true);
+                return;
+            }
+
+            let detailsHtml = '<pre>';
+            for (const key in record) {
+                if (record.hasOwnProperty(key)) {
+                    let value = record[key];
+                    if (key === 'submittedAt' && value) {
+                        if (typeof value.toDate === 'function') {
+                            value = value.toDate().toLocaleString();
+                        } else if (value instanceof Date) {
+                            value = value.toLocaleString();
+                        } else {
+                            try {
+                                const dateVal = new Date(value);
+                                if (!isNaN(dateVal.getTime())) {
+                                    value = dateVal.toLocaleString();
+                                }
+                            } catch (e) {
+                            }
+                        }
+                    }
+                    if (key === 'pdfAttachmentUrl' && value && value.length > 0) {
+                        detailsHtml += `<b>PDF Attachment URL:</b> <a href="${value}" target="_blank" class="text-blue-600 hover:underline">${value}</a>\n`;
+                    } else if (typeof value === 'object' && value !== null) {
+                        detailsHtml += `<b>${key}:</b>\n${JSON.stringify(value, null, 2)}\n`;
+                    }
+                    else {
+                        detailsHtml += `<b>${key}:</b> ${value}\n`;
+                    }
+                }
+            }
+            detailsHtml += '</pre>';
+            showMessageBox("Record Details", detailsHtml, false, false, true);
+        }
+
+        /**
+         * Downloads the full record data as a JSON file.
+         * @param {string} recordId - The ID of the record to download.
+         */
+        function downloadRecordData(recordId) {
+            const record = myEvaluations.find(r => r.id === recordId);
+            if (!record) {
+                showMessageBox("Error", "Record not found for download.", true, false, true);
+                return;
+            }
+            try {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(record, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `record_${record.id}.json`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                showMessageBox("Download Complete", "Record data downloaded successfully!", false, false, true);
+            } catch (e) {
+                console.error("Error downloading record:", e);
+                showMessageBox("Download Failed", `Could not download record data: ${e.message}`, true, false, true);
+            }
+        }
+
+        /**
+         * Downloads the PDF attachment associated with a record.
+         * @param {string} recordId - The ID of the record containing the PDF attachment.
+         */
+        async function downloadPdfAttachment(recordId) {
+            const record = myEvaluations.find(r => r.id === recordId);
+            if (!record || !record.pdfAttachmentUrl) {
+                showMessageBox("Error", "No PDF attachment found for this record.", true, false, true);
+                return;
+            }
+            try {
+                showMessageBox("Downloading PDF", "Preparing to download PDF...", false, true, false);
+                const pdfDataUrl = record.pdfAttachmentUrl;
+                const contactId = record['Contact ID'] || 'UnknownContact';
+                const fileName = `Assessment_${contactId}_${new Date().toLocaleDateString('en-CA')}.pdf`;
+
+                const link = document.createElement('a');
+                link.href = pdfDataUrl;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                hideMessageBox();
+                showMessageBox("Download Complete", `PDF "${fileName}" has been downloaded.`, false, false, true);
+            } catch (error) {
+                console.error("Error downloading PDF attachment:", error);
+                hideMessageBox();
+                showMessageBox("Download Failed", `Failed to download PDF: ${error.message}`, true, false, true);
+            }
+        }
+
+        // --- Auth State Listener ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                // Sign in anonymously if no user is logged in
+                await signInAnonymously(auth);
+                console.log("User UID:", currentUserId);
+                fetchMyEvaluations();
+            } else {
+                currentUserId = null;
+                console.log("No user logged in, cannot fetch personal evaluations.");
+                const myEvaluationsTableBody = document.getElementById('myEvaluationsTableBody');
+                if (myEvaluationsTableBody) {
+                    myEvaluationsTableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-gray-500">Please log in to view your evaluations.</td></tr>';
+                }
+            }
+        });
+
+        // --- Logout Button Listener ---
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                if (unsubscribeMyEvaluations) unsubscribeMyEvaluations();
+                await signOut(auth);
+                // Redirect to login page on logout
+                window.location.href = "index.html";
+            });
+        }
+    </script>
+</body>
+</html>
