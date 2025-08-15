@@ -490,6 +490,8 @@
             <ul>
                 <li class="nav-tab"><a href="#" id="auditFormTab" class="active" aria-label="Evaluation Form"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
                 <li class="nav-tab"><a href="#" id="databaseTab" aria-label="Database"><i class="fas fa-database"></i> Database</a></li>
+                <!-- NEW: My Evaluations Tab -->
+                <li class="nav-tab"><a href="myEvaluations.html" id="myEvaluationsTab" aria-label="My Evaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
                 <li class="nav-tab"><a href="Dashboard.html" id="reportsTab" aria-label="Dashboard"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
                 <li class="nav-tab"><a href="autofails.html" id="autofailsTab" aria-label="Autofails"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li class="nav-tab"><a href="#" id="shareResponseTab" aria-label="Share Response"><i class="fas fa-share-square"></i> Share Response</a></li>
@@ -1602,13 +1604,13 @@
 
             const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
-                                `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
-                                `Contact ID: ${contactId}\n` +
-                                `CER Name: ${cerName}\n` +
-                                `Overall Score: ${overallScore}\n` +
-                                `Evaluation Date: ${evaluationDate}\n\n` +
-                                `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
-                                `Kind Regards,\nQuality Evaluation Team`;
+                                     `I attached Quality Assurance Audit Feedback below is a summary:\n\n` +
+                                     `Contact ID: ${contactId}\n` +
+                                     `CER Name: ${cerName}\n` +
+                                     `Overall Score: ${overallScore}\n` +
+                                     `Evaluation Date: ${evaluationDate}\n\n` +
+                                     `For full details please go through the attached Quality Evaluation and Form and Sign off should be Kind Regards Quality Evaluation Team\n\n` +
+                                     `Kind Regards,\nQuality Evaluation Team`;
 
             const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
@@ -1668,7 +1670,8 @@
             try {
                 const docRef = await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
                     ...recordData,
-                    submittedAt: new Date()
+                    submittedAt: new Date(),
+                    'Evaluated By User ID': currentUserId, // Store the user ID for filtering later
                 });
                 console.log("Record written with ID:", docRef.id);
                 showMessageBox("Success", "Form data saved successfully to database!", false, false, true);
@@ -2336,10 +2339,10 @@
                     const overallScore = record['Overall Score'] ? String(record['Overall Score']).toLowerCase() : '';
 
                     return clientName.includes(searchTerm) ||
-                                 contactId.includes(searchTerm) ||
-                                 cerName.includes(searchTerm) ||
-                                 reviewDate.includes(searchTerm) ||
-                                 overallScore.includes(searchTerm);
+                                     contactId.includes(searchTerm) ||
+                                     cerName.includes(searchTerm) ||
+                                     reviewDate.includes(searchTerm) ||
+                                     overallScore.includes(searchTerm);
                 });
             } else {
                 filtered = [...filterableRecords];
@@ -2622,8 +2625,8 @@
                     `Kind Regards,\n${loggedInUserName}`;
 
                 const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}` +
-                                     `?subject=${encodeURIComponent(emailSubject)}` +
-                                     `&body=${encodeURIComponent(emailBody)}`;
+                                         `?subject=${encodeURIComponent(emailSubject)}` +
+                                         `&body=${encodeURIComponent(emailBody)}`;
 
                 window.location.href = mailtoLink;
 
@@ -2761,6 +2764,9 @@
             const autofailsTab = document.getElementById('autofailsTab');
             const adminTab = document.getElementById('adminTab');
             const npsTab = document.getElementById('npsTab');
+            // NEW: My Evaluations Tab
+            const myEvaluationsTab = document.getElementById('myEvaluationsTab');
+
 
             const saveFormBtn = document.getElementById('saveFormBtn');
             const pdfShareBtn = document.getElementById('pdfShareBtn');
@@ -2944,6 +2950,8 @@
             if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); }
             if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; }); }
             if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'nps.html'; }); }
+            // NEW: My Evaluations Tab listener
+            if (myEvaluationsTab) { myEvaluationsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'myEvaluations.html'; }); }
 
 
             // Database table selection and deletion handlers
