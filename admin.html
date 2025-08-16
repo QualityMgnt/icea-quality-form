@@ -501,17 +501,15 @@
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // --- Firebase Configuration ---
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
             authDomain: "icea-lion-qa.firebaseapp.com",
             projectId: "icea-lion-qa",
             storageBucket: "icea-lion-qa.firebasestorage.app",
             messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b667faf811", // Consistent App ID
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
             measurementId: "G-1RJJTT3QET"
         };
-
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
         let appInstance;
@@ -523,13 +521,11 @@
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
 
-        // Define Firestore Paths
         const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
         const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
         const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations');
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
-        // Global variables for admin page state
         let currentDropdownData = {
             cerNames: [],
             cerRoles: [],
@@ -543,7 +539,6 @@
         let unsubscribeQuestionsListener = null;
         let unsubscribeCustomFieldsListener = null;
 
-        // --- Utility Functions ---
         const showMessage = (element, message, type) => {
             if (element) {
                 element.textContent = message;
@@ -569,45 +564,34 @@
             }
         };
 
-        // --- Authentication & Page Initialization ---
-        const initializeAdminPage = () => {
+        const initializeAdminPage = (user) => {
             const loginPage = document.getElementById('loginPage');
             const mainNav = document.getElementById('mainNav');
             const adminContent = document.getElementById('adminContent');
 
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-                    try {
-                        const userDocSnap = await getDoc(userProfileDocRef);
-                        currentUserRole = userDocSnap.exists() ? userDocSnap.data().role : null;
-                    } catch (error) {
-                        console.error("Error fetching user role:", error);
-                        currentUserRole = 'guest';
-                    }
+            if (!user) {
+                if (loginPage) loginPage.style.display = 'flex';
+                if (mainNav) mainNav.style.display = 'none';
+                if (adminContent) adminContent.style.display = 'none';
+                return;
+            }
 
-                    if (currentUserRole === 'admin') {
-                        if (loginPage) loginPage.style.display = 'none';
-                        if (mainNav) mainNav.style.display = 'block';
-                        if (adminContent) adminContent.style.display = 'block';
-                        renderNavigationForRole(currentUserRole);
-                        setupListeners();
-                    } else {
-                        if (loginPage) loginPage.style.display = 'flex';
-                        if (mainNav) mainNav.style.display = 'none';
-                        if (adminContent) adminContent.style.display = 'none';
-                        if (user) {
-                            showLoginErrorMessage("Access Denied: You must be an administrator to view this page.");
-                        } else {
-                            showLoginErrorMessage("Access Denied: Please log in with an administrator account.");
-                        }
-                    }
+            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+            getDoc(userProfileDocRef).then(docSnap => {
+                currentUserRole = docSnap.exists() ? docSnap.data().role : null;
+
+                if (currentUserRole === 'admin') {
+                    if (loginPage) loginPage.style.display = 'none';
+                    if (mainNav) mainNav.style.display = 'block';
+                    if (adminContent) adminContent.style.display = 'block';
+                    renderNavigationForRole(currentUserRole);
+                    setupListeners();
                 } else {
-                    if (loginPage) loginPage.style.display = 'flex';
-                    if (mainNav) mainNav.style.display = 'none';
-                    if (adminContent) adminContent.style.display = 'none';
-                    sessionStorage.removeItem('loggedIn');
+                    window.location.href = 'index.html';
                 }
+            }).catch(error => {
+                console.error("Error fetching user role:", error);
+                window.location.href = 'index.html';
             });
         };
         
@@ -1165,7 +1149,49 @@
                 showMessage(customFieldMessage, `Failed to remove custom field(s): ${error.message}`, 'error');
             }
         };
-        
+
+        const renderNavigationForRole = (role) => {
+            const allNavTabs = document.querySelectorAll('li.nav-tab');
+            allNavTabs.forEach(tab => {
+                if (tab.dataset.role === 'all' || tab.dataset.role === role) {
+                    tab.style.display = 'block';
+                } else {
+                    tab.style.display = 'none';
+                }
+            });
+        };
+
+        const initializePage = (user) => {
+            const loginPage = document.getElementById('loginPage');
+            const mainNav = document.getElementById('mainNav');
+            const adminContent = document.getElementById('adminContent');
+
+            if (!user) {
+                if (loginPage) loginPage.style.display = 'flex';
+                if (mainNav) mainNav.style.display = 'none';
+                if (adminContent) adminContent.style.display = 'none';
+                return;
+            }
+
+            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+            getDoc(userProfileDocRef).then(docSnap => {
+                currentUserRole = docSnap.exists() ? docSnap.data().role : null;
+
+                if (currentUserRole === 'admin') {
+                    if (loginPage) loginPage.style.display = 'none';
+                    if (mainNav) mainNav.style.display = 'block';
+                    if (adminContent) adminContent.style.display = 'block';
+                    renderNavigationForRole(currentUserRole);
+                    setupListeners();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            }).catch(error => {
+                console.error("Error fetching user role:", error);
+                window.location.href = 'index.html';
+            });
+        };
+
         document.addEventListener('DOMContentLoaded', function() {
             const logoutBtn = document.getElementById('logoutBtn');
             const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
@@ -1198,17 +1224,6 @@
                 'adminTab': 'admin.html'
             };
 
-            const renderNavigationForRole = (role) => {
-                const allNavTabs = document.querySelectorAll('li.nav-tab');
-                allNavTabs.forEach(tab => {
-                    if (tab.dataset.role === 'all' || tab.dataset.role === role) {
-                        tab.style.display = 'block';
-                    } else {
-                        tab.style.display = 'none';
-                    }
-                });
-            };
-
             Object.keys(navItems).forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -1220,11 +1235,7 @@
             });
 
             onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    initializeAdminPage(user);
-                } else {
-                    window.location.href = 'index.html';
-                }
+                initializeAdminPage(user);
             });
 
             if (logoutBtn) {
