@@ -263,36 +263,38 @@
                     This section allows administrators to manage user accounts and their roles within the system.
                 </p>
                 
-                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Add New User</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label for="new-user-name" class="block text-sm font-medium text-gray-700">Name</label>
-                        <input type="text" id="new-user-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="John Doe">
+                <div id="admin-tools" style="display: none;">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">Add New User</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label for="new-user-name" class="block text-sm font-medium text-gray-700">Name</label>
+                            <input type="text" id="new-user-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="John Doe">
+                        </div>
+                        <div>
+                            <label for="new-user-email" class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="new-user-email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="user@example.com">
+                        </div>
+                        <div>
+                            <label for="new-user-password" class="block text-sm font-medium text-gray-700">Initial Password</label>
+                            <input type="password" id="new-user-password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="••••••••">
+                        </div>
+                        <div>
+                            <label for="new-user-role" class="block text-sm font-medium text-gray-700">Role</label>
+                            <select id="new-user-role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border">
+                                <option value="">Select Role</option>
+                                <option value="agent">Agent</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label for="new-user-email" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="new-user-email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="user@example.com">
+                    <div class="flex justify-end mt-4">
+                        <button id="addUserBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
+                            <i class="fas fa-user-plus mr-2"></i>Add User
+                        </button>
                     </div>
-                    <div>
-                        <label for="new-user-password" class="block text-sm font-medium text-gray-700">Initial Password</label>
-                        <input type="password" id="new-user-password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="••••••••">
-                    </div>
-                    <div>
-                        <label for="new-user-role" class="block text-sm font-medium text-gray-700">Role</label>
-                        <select id="new-user-role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border">
-                            <option value="">Select Role</option>
-                            <option value="agent">Agent</option>
-                            <option value="supervisor">Supervisor</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
+                    <div id="userMessage" class="error-message mt-4 hidden"></div>
                 </div>
-                <div class="flex justify-end mt-4">
-                    <button id="addUserBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
-                        <i class="fas fa-user-plus mr-2"></i>Add User
-                    </button>
-                </div>
-                <div id="userMessage" class="error-message mt-4 hidden"></div>
 
                 <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Manage Existing Users</h3>
                 <div class="overflow-x-auto">
@@ -303,7 +305,7 @@
                                 <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Email</th>
                                 <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Role</th>
                                 <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Actions</th>
+                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600" id="actions-header" style="display: none;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="userTableBody">
@@ -317,7 +319,7 @@
 
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signOut, signInAnonymously, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getAuth, signOut, signInAnonymously, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, getDocs, deleteDoc, setDoc, updateDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         
         // --- Firebase Configuration ---
@@ -353,6 +355,8 @@
         const newUserRoleSelect = document.getElementById('new-user-role');
         const addUserBtn = document.getElementById('addUserBtn');
         const userMessage = document.getElementById('userMessage');
+        const adminToolsSection = document.getElementById('admin-tools');
+        const actionsHeader = document.getElementById('actions-header');
 
         let currentUserRole = null;
         let unsubscribeUsers = null;
@@ -392,9 +396,13 @@
         async function fetchAndRenderUsers() {
             userTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>';
             
-            if (currentUserRole !== 'admin') {
-                userTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">You do not have permission to view users. (Admin access required)</td></tr>';
-                return;
+            // Set visibility of admin tools based on role
+            if (currentUserRole === 'admin') {
+                adminToolsSection.style.display = 'block';
+                actionsHeader.style.display = 'table-cell';
+            } else {
+                adminToolsSection.style.display = 'none';
+                actionsHeader.style.display = 'none';
             }
             
             if (unsubscribeUsers) unsubscribeUsers();
@@ -422,7 +430,7 @@
                         <td class="py-2 px-4">${user.email || 'N/A'}</td>
                         <td class="py-2 px-4">${user.role || 'N/A'}</td>
                         <td class="py-2 px-4"><span class="${statusClass}">${statusText}</span></td>
-                        <td class="py-2 px-4">
+                        <td class="py-2 px-4" style="${currentUserRole === 'admin' ? 'display:table-cell;' : 'display:none;'}">
                             ${actionButton}
                             <button class="action-btn delete-btn" onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
                         </td>
@@ -436,6 +444,11 @@
         }
         
         window.deleteUser = async function(uid, email) {
+            if (currentUserRole !== 'admin') {
+                showMessageBox("Permission Denied", "Only admins can delete users.", true, false, true);
+                return;
+            }
+
             const confirmed = await new Promise(resolve => {
                 const modal = document.createElement('div');
                 modal.className = 'message-box-overlay';
@@ -464,7 +477,6 @@
                 
                 hideMessageBox();
                 showMessageBox("Success", `User '${email}' deleted successfully! (Note: Auth account still exists)`, false, false, true);
-                fetchAndRenderUsers();
             } catch (error) {
                 hideMessageBox();
                 console.error("Error deleting user:", error);
@@ -497,6 +509,11 @@
         };
         
         async function createNewUser() {
+            if (currentUserRole !== 'admin') {
+                showMessageBox("Permission Denied", "Only admins can add new users.", true, false, true);
+                return;
+            }
+
             userMessage.textContent = '';
             userMessage.classList.add('hidden');
             
@@ -507,11 +524,6 @@
             
             if (!name || !email || !password || !role) {
                 showMessageBox("Error", "Please fill in all fields (Name, Email, Password, Role).", true, false, true);
-                return;
-            }
-            
-            if (currentUserRole !== 'admin') {
-                showMessageBox("Permission Denied", "Only admins can add new users.", true, false, true);
                 return;
             }
             
@@ -564,50 +576,45 @@
                 }
             });
         }
+        
+        // This function will handle all page display logic after the initial auth check
+        const initializePage = (user) => {
+             // Handle redirection for non-admins
+            if (!user) {
+                // If no user is logged in, redirect to the main page
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            const userProfileDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
+            getDoc(userProfileDocRef).then(docSnap => {
+                currentUserRole = docSnap.exists() ? docSnap.data().role : 'guest';
+                
+                // Redirect if not an admin
+                if (currentUserRole !== 'admin') {
+                     window.location.href = 'index.html';
+                     return;
+                }
+                
+                // If it's an admin, show the page and its content
+                loginPage.style.display = 'none';
+                mainNav.style.display = 'block';
+                usersContent.style.display = 'block';
+                fetchAndRenderUsers();
+                renderNavigationForRole(currentUserRole);
+
+            }).catch(error => {
+                console.error("Error fetching user role:", error);
+                window.location.href = 'index.html';
+            });
+        };
 
         // --- Event Listeners and Page Initialization ---
         document.addEventListener('DOMContentLoaded', function() {
-            const navItems = {
-                'auditFormTab': 'index.html',
-                'myEvaluationsTab': 'myEvaluations.html',
-                'databaseTab': 'index.html#database',
-                'reportsTab': 'Dashboard.html',
-                'autofailsTab': 'autofails.html',
-                'imagesTab': 'images.html',
-                'usersTab': 'users.html',
-                'adminTab': 'admin.html'
-            };
-            
-            const checkAndRender = () => {
-                const user = auth.currentUser;
-                if (user) {
-                    const userProfileDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
-                    getDoc(userProfileDocRef).then(docSnap => {
-                        currentUserRole = docSnap.exists() ? docSnap.data().role : null;
-                        if (currentUserRole === 'admin') {
-                            loginPage.style.display = 'none';
-                            mainNav.style.display = 'block';
-                            usersContent.style.display = 'block';
-                            fetchAndRenderUsers();
-                        } else {
-                            window.location.href = 'index.html';
-                        }
-                        renderNavigationForRole(currentUserRole);
-                    }).catch(error => {
-                        console.error("Error fetching user role:", error);
-                        window.location.href = 'index.html';
-                    });
-                } else {
-                    window.location.href = 'index.html';
-                }
-            };
-            
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    checkAndRender();
-                } else {
-                    window.location.href = 'index.html';
-                }
+            // Wait for the auth state to be confirmed on page load
+            const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+                authUnsubscribe(); // Unsubscribe after the first check to prevent multiple calls
+                initializePage(user);
             });
             
             logoutBtn.addEventListener('click', async () => {
@@ -617,16 +624,6 @@
             });
             
             addUserBtn.addEventListener('click', createNewUser);
-
-            Object.keys(navItems).forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        window.location.href = navItems[id];
-                    });
-                }
-            });
         });
     </script>
 </body>
