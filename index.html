@@ -2065,12 +2065,7 @@
             }
 
             onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    initializePage(user);
-                } else {
-                    document.getElementById('loginPage').classList.add('visible');
-                    document.body.classList.add('loaded');
-                }
+                initializePage(user);
             });
 
 
@@ -2133,16 +2128,7 @@
 
 
             if (logoutBtn) {
-                logoutBtn.addEventListener('click', async function() {
-                    sessionStorage.removeItem('loggedIn');
-                    if (unsubscribeRecords) unsubscribeRecords();
-                    if (unsubscribeWebhooks) unsubscribeWebhooks();
-                    if (unsubscribeDropdowns) unsubscribeDropdowns();
-                    if (unsubscribeQuestions) unsubscribeQuestions();
-                    if (unsubscribeCustomFields) unsubscribeCustomFields();
-                    if (unsubscribeUsers) unsubscribeUsers();
-                    await signOut(auth);
-                });
+                logoutBtn.addEventListener('click', handleLogout);
             }
 
             if (auditFormTab) { auditFormTab.addEventListener('click', (e) => { e.preventDefault(); showTab('auditForm'); }); }
@@ -2157,9 +2143,9 @@
             if (imagesTab) { imagesTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `images.html`; }); }
 
 
-            if (selectAllRecordsCheckbox) {
-                selectAllRecordsCheckbox.addEventListener('change', () => {
-                    const isChecked = selectAllRecordsCheckbox.checked;
+            if (document.getElementById('selectAllRecordsCheckbox')) {
+                document.getElementById('selectAllRecordsCheckbox').addEventListener('change', () => {
+                    const isChecked = document.getElementById('selectAllRecordsCheckbox').checked;
                     document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                         checkbox.checked = isChecked;
                     });
@@ -2167,17 +2153,19 @@
                 });
             }
 
-            if (deleteSelectedRecordsBtn) { deleteSelectedRecordsBtn.addEventListener('click', () => {
+            if (document.getElementById('deleteSelectedRecordsBtn')) { document.getElementById('deleteSelectedRecordsBtn').addEventListener('click', () => {
                 const checkedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
                 const idsToDelete = Array.from(checkedCheckboxes).map(cb => cb.dataset.recordId);
                 deleteSelectedRecords(idsToDelete);
             }); }
             
-            if (addWebhookBtn) { addWebhookBtn.addEventListener('click', addWebhook); }
+            if (document.getElementById('addWebhookBtn')) { document.getElementById('addWebhookBtn').addEventListener('click', addWebhook); }
 
-            if (autofailTypeSelect) {
-                autofailTypeSelect.addEventListener('change', () => {
-                    if (autofailTypeSelect.value !== '') {
+            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
+            const autofailDescriptionInput = document.getElementById('autofail-description');
+            if (document.getElementById('autofail-type')) {
+                document.getElementById('autofail-type').addEventListener('change', () => {
+                    if (document.getElementById('autofail-type').value !== '') {
                         autofailDescriptionContainer.classList.remove('hidden');
                         autofailDescriptionInput.setAttribute('required', 'required');
                     } else {
@@ -2189,6 +2177,8 @@
                 });
             }
 
+            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
             if (reviewerNameSelect) {
                 reviewerNameSelect.addEventListener('change', () => {
                     if (reviewerNameSelect.value === 'Other') {
@@ -2202,19 +2192,18 @@
                 });
             }
 
+            const cerEmailInput = document.getElementById('cer-email');
+            const cerNameSelect = document.getElementById('cer-name');
             if (cerNameSelect) {
                 cerNameSelect.addEventListener('change', (event) => {
                     const selectedCerName = event.target.value;
                     const cerEmail = allUsers.find(user => user.name === selectedCerName)?.email || '';
-                    document.getElementById('cer-email').value = cerEmail;
-                    if (selectedCerName) {
-                        fetchLastThreeEvaluations(selectedCerName);
-                    } else {
-                        document.getElementById('lastEvaluationsTableBody').innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
-                    }
+                    if (cerEmailInput) cerEmailInput.value = cerEmail;
+                    fetchLastThreeEvaluations(selectedCerName);
                 });
             }
-
+            
+            const cerRoleSelect = document.getElementById('cer-role');
             if (cerRoleSelect) {
                 cerRoleSelect.addEventListener('change', (event) => {
                     const selectedRole = event.target.value;
@@ -2223,8 +2212,8 @@
             }
 
             if (document.getElementById('selectRecordSearch')) { document.getElementById('selectRecordSearch').addEventListener('input', filterShareRecords); }
-            if (document.getElementById('selectRecordToShare')) {
-                document.getElementById('selectRecordToShare').addEventListener('change', (event) => {
+            if (document.getElementById('select-record-to-share')) {
+                document.getElementById('select-record-to-share').addEventListener('change', (event) => {
                     const selectedRecordId = event.target.value;
                     populateShareEmailFields(selectedRecordId);
                 });
@@ -2233,16 +2222,6 @@
             if (document.getElementById('saveFormBtn')) { document.getElementById('saveFormBtn').addEventListener('click', window.saveFormToDB); }
             if (document.getElementById('pdfShareBtn')) { document.getElementById('pdfShareBtn').addEventListener('click', window.generateAndDownloadPdf); }
             if (document.getElementById('pdfEmailDirectBtn')) { document.getElementById('pdfEmailDirectBtn').addEventListener('click', window.handlePdfAndDirectEmail); }
-
-            const initialCerRole = cerRoleSelect ? cerRoleSelect.value : null;
-            if (initialCerRole) {
-                renderQuestionsForRole(initialCerRole);
-            } else {
-                if (document.getElementById('cxQuestionsContainer')) { document.getElementById('cxQuestionsContainer').innerHTML = ''; }
-                if (document.getElementById('psQuestionsContainer')) { document.getElementById('psQuestionsContainer').innerHTML = ''; }
-                if (document.getElementById('caQuestionsContainer')) { document.getElementById('caQuestionsContainer').innerHTML = ''; }
-                calculateScore();
-            }
         });
     </script>
 </body>
