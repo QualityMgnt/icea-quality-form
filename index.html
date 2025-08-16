@@ -487,7 +487,7 @@
 
     <nav class="main-nav" id="mainNav" style="display: none;">
         <div class="sidebar">
-            <ul>
+            <ul id="sidebar-menu">
                 <li class="nav-tab" data-role="all"><a href="#" id="auditFormTab" class="active" aria-label="Evaluation Form"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
                 <li class="nav-tab" data-role="admin"><a href="#" id="databaseTab" aria-label="Database"><i class="fas fa-database"></i> Database</a></li>
                 <li class="nav-tab" data-role="all"><a href="myEvaluations.html" id="myEvaluationsTab" aria-label="My Evaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
@@ -797,6 +797,7 @@
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
+        // --- Firebase Configuration ---
         const firebaseConfig = {
           apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
           authDomain: "icea-lion-qa.firebaseapp.com",
@@ -1957,9 +1958,11 @@
         
         // This function will handle all page display logic after the initial auth check
         const initializePage = (user) => {
-             // Handle login state
+            const loginPage = document.getElementById('loginPage');
+            const mainNav = document.getElementById('mainNav');
+            const auditFormContent = document.getElementById('auditFormContent');
+
             if (user) {
-                // If a user is authenticated, we need to get their role.
                 const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                 getDoc(userProfileDocRef).then(docSnap => {
                     if (docSnap.exists()) {
@@ -1967,22 +1970,19 @@
                         loggedInUserName = docSnap.data().name || user.email;
                         loggedInUserEmail = user.email;
                     } else {
-                        // Profile not found, but user is authenticated. 
-                        // This case may occur for newly signed up users who need to complete their profile.
-                        currentUserRole = 'guest'; // or a new default role
+                        currentUserRole = 'guest';
                         loggedInUserName = user.email || "Guest";
                         loggedInUserEmail = user.email || "Guest";
                     }
                     renderNavigationForRole(currentUserRole);
                     initializeAppDisplay();
-                    fetchUsers(); // Fetch users to populate dropdowns
+                    fetchUsers();
                     fetchDropdownOptionsData();
                     fetchQuestionsData();
                     fetchCustomFieldsData();
                     fetchRecordsAndWebhooks();
-                    
                 }).catch(error => {
-                    console.error("Error fetching user role:", error);
+                    console.error("Error fetching user profile:", error);
                     currentUserRole = 'guest';
                     loggedInUserName = user.email || "Guest";
                     loggedInUserEmail = user.email || "Guest";
@@ -1990,14 +1990,10 @@
                     initializeAppDisplay();
                 });
             } else {
-                // No user logged in, hide main content and show login page
-                document.getElementById('mainNav').style.display = 'none';
-                document.getElementById('auditFormContent').style.display = 'none';
                 document.getElementById('loginPage').classList.add('visible');
                 document.body.classList.add('loaded');
             }
         };
-        
 
         document.addEventListener('DOMContentLoaded', function() {
             const loginButton = document.getElementById('loginButton');
@@ -2028,7 +2024,6 @@
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
             const cerEmailInput = document.getElementById('cer-email');
-
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
@@ -2052,12 +2047,14 @@
                 reviewDateInput.value = `${year}-${month}-${day}`;
             }
 
-            // This listener ensures the page doesn't try to load before the auth state is known.
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     initializePage(user);
                 } else {
-                    document.getElementById('loginPage').classList.add('visible');
+                    const loginPage = document.getElementById('loginPage');
+                    if (loginPage) {
+                        loginPage.classList.add('visible');
+                    }
                     document.body.classList.add('loaded');
                 }
             });
@@ -2072,11 +2069,9 @@
                     const enteredPassword = passwordInput.value;
 
                     try {
-                        await signOut(auth);
                         await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
                         sessionStorage.setItem('loggedIn', 'true');
                     } catch (error) {
-                        console.error("Firebase Login Error:", error);
                         if (error.code === 'auth/user-not-found') {
                             showMessageBox("User Not Found", "This email is not registered. You will be redirected to the sign-up page.", false, false, true, () => {
                                 window.location.href = 'signup.html';
@@ -2108,7 +2103,6 @@
                             await sendPasswordResetEmail(auth, email);
                             showMessageBox("Password Reset", `Password reset email sent to ${email}. Please check your inbox.`, false, false, true);
                         } catch (error) {
-                            console.error("Forgot password error:", error);
                             if (error.code === 'auth/user-not-found') {
                                 showMessageBox("Error", "No user found with that email address. Please check your email.", true, false, true);
                             } else if (error.code === 'auth/invalid-email') {
