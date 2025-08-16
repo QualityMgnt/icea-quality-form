@@ -486,16 +486,15 @@
     <nav class="main-nav" id="mainNav" style="display: none;">
         <div class="sidebar">
             <ul>
-                <li class="nav-tab"><a href="#" id="auditFormTab" class="active" aria-label="Evaluation Form"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li class="nav-tab"><a href="#" id="databaseTab" aria-label="Database"><i class="fas fa-database"></i> Database</a></li>
-                <li class="nav-tab"><a href="myEvaluations.html" id="myEvaluationsTab" aria-label="My Evaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
-                <li class="nav-tab"><a href="Dashboard.html" id="reportsTab" aria-label="Dashboard"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
-                <li class="nav-tab"><a href="autofails.html" id="autofailsTab" aria-label="Autofails"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li class="nav-tab"><a href="#" id="shareResponseTab" aria-label="Share Response"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li class="nav-tab"><a href="images.html" id="imagesTab" aria-label="Images"><i class="fas fa-image"></i> Images</a></li>
-                <li class="nav-tab"><a href="users.html" id="usersTab" aria-label="Users"><i class="fas fa-users"></i> Users</a></li>
-                <li class="nav-tab"><a href="admin.html" id="adminTab" aria-label="Admin"><i class="fas fa-user-cog"></i> Admin</a></li>
-                <li class="nav-tab"><a href="nps.html" id="npsTab" aria-label="NPS"><i class="fas fa-comment-alt"></i> NPS</a></li>
+                <li class="nav-tab" data-role="all"><a href="#" id="auditFormTab" class="active" aria-label="Evaluation Form"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li class="nav-tab" data-role="admin"><a href="#" id="databaseTab" aria-label="Database"><i class="fas fa-database"></i> Database</a></li>
+                <li class="nav-tab" data-role="all"><a href="myEvaluations.html" id="myEvaluationsTab" aria-label="My Evaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li class="nav-tab" data-role="admin"><a href="Dashboard.html" id="reportsTab" aria-label="Dashboard"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li class="nav-tab" data-role="admin"><a href="autofails.html" id="autofailsTab" aria-label="Autofails"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li class="nav-tab" data-role="admin"><a href="#" id="shareResponseTab" aria-label="Share Response"><i class="fas fa-share-square"></i> Share Response</a></li>
+                <li class="nav-tab" data-role="all"><a href="images.html" id="imagesTab" aria-label="Images"><i class="fas fa-image"></i> Images</a></li>
+                <li class="nav-tab" data-role="admin"><a href="users.html" id="usersTab" aria-label="Users"><i class="fas fa-users"></i> Users</a></li>
+                <li class="nav-tab" data-role="admin"><a href="admin.html" id="adminTab" aria-label="Admin"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button" aria-label="Logout">Logout</button>
         </div>
@@ -2335,7 +2334,7 @@
                 shareEmailBody.value = `Dear ${cerName},\n\n` +
                     `Please find the Quality Assurance Audit Feedback for Contact ID: ${contactId}, evaluated on ${evaluationDate}. ` +
                     `Your overall score for this interaction was ${overallScore}.\n\n` +
-                    `(IMPORTANT: The PDF document for this evaluation has been downloaded to your device as part of this process. Please remember to manually attach it to this email before sending.)\n\n` +
+                    `(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device as part of this process. Please remember to manually attach it to this email before sending.)\n\n` +
                     `This feedback is provided to help you continue to improve service quality.\n\n` +
                     `If you have any questions, please feel free to reach out.\n\n` +
                     `Kind Regards,\n${loggedInUserName}`;
@@ -2687,7 +2686,12 @@
         function renderNavigationForRole(role) {
             const allNavTabs = document.querySelectorAll('.nav-tab');
             allNavTabs.forEach(tab => {
-                tab.style.display = 'block';
+                const requiredRole = tab.dataset.role;
+                if (requiredRole === 'all' || requiredRole === role) {
+                    tab.style.display = 'block';
+                } else {
+                    tab.style.display = 'none';
+                }
             });
         }
 
