@@ -858,6 +858,7 @@
         let globalBusinessComplianceAccuracyValue = 0;
         let latestSavedRecordId = null;
 
+        // All core functions defined here
         window.autoExpandTextarea = function(element) {
             element.style.height = 'auto';
             element.style.height = (element.scrollHeight) + 'px';
@@ -969,9 +970,6 @@
             globalBusinessComplianceAccuracyValue = businessCompliancePct;
         }
 
-        /**
-         * Renders dynamic questions in the assessment form based on the selected CER Role.
-         */
         function renderQuestionsForRole(role) {
             const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
             const psQuestionsContainer = document.getElementById('psQuestionsContainer');
@@ -1060,9 +1058,6 @@
             });
         }
 
-        /**
-         * Displays a custom message box (modal) to the user.
-         */
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             const messageBoxSpinner = document.getElementById('messageBoxSpinner');
@@ -1098,17 +1093,11 @@
             }
         }
 
-        /**
-         * Hides the custom message box.
-         */
         function hideMessageBox() {
             const messageBoxOverlay = document.getElementById('messageBoxOverlay');
             messageBoxOverlay.classList.add('hidden');
         }
 
-        /**
-         * Controls which main content tab is visible based on user role.
-         */
         function showTab(tabName) {
             const auditFormContent = document.getElementById('auditFormContent');
             const databaseContent = document.getElementById('databaseContent');
@@ -1143,10 +1132,6 @@
             }
         }
 
-        // Firestore Data Handling Functions
-        /**
-         * Fetches records and webhooks from Firestore in real-time.
-         */
         async function fetchRecordsAndWebhooks() {
             if (!db || !currentUserId) {
                 showMessageBox("Error", "Database not ready. Please log in first.", true, false, true);
@@ -1154,7 +1139,6 @@
             }
 
             if (!EVALUATION_RECORDS_COLLECTION_PATH || !WEBHOOKS_COLLECTION_PATH) {
-                console.error("Firestore collection paths are not defined.");
                 showMessageBox("Initialization Error", "Firestore paths not set up. Check Firebase configuration.", true, false, true);
                 return;
             }
@@ -1197,9 +1181,6 @@
             }
         }
 
-        /**
-         * Renders the evaluation records table in the Database tab.
-         */
         function renderRecordsTable(records) {
             const recordsTableBody = document.getElementById('recordsTableBody');
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
@@ -1961,6 +1942,9 @@
             const loginPage = document.getElementById('loginPage');
             const mainNav = document.getElementById('mainNav');
             const auditFormContent = document.getElementById('auditFormContent');
+            const databaseContent = document.getElementById('databaseContent');
+            const shareResponseContent = document.getElementById('shareResponseContent');
+            const loadingPage = document.getElementById('loadingPage');
 
             if (user) {
                 const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
@@ -1990,10 +1974,43 @@
                     initializeAppDisplay();
                 });
             } else {
-                document.getElementById('loginPage').classList.add('visible');
+                loginPage.classList.add('visible');
                 document.body.classList.add('loaded');
             }
         };
+
+        const initializeAppDisplay = () => {
+            const loginPage = document.getElementById('loginPage');
+            const mainNav = document.getElementById('mainNav');
+            const auditFormContent = document.getElementById('auditFormContent');
+            const databaseContent = document.getElementById('databaseContent');
+            const shareResponseContent = document.getElementById('shareResponseContent');
+            
+            const user = auth.currentUser;
+            const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
+
+            if (user && isLoggedInFromSession === 'true') {
+                loginPage.classList.remove('visible');
+                loginPage.style.display = 'none';
+                mainNav.style.display = 'block';
+                const activeHash = window.location.hash.substring(1);
+                if (activeHash === 'database') {
+                    showTab('database');
+                } else if (activeHash === 'shareResponse') {
+                    showTab('shareResponse');
+                } else {
+                    showTab('auditForm');
+                }
+            } else {
+                loginPage.classList.add('visible');
+                loginPage.style.display = 'flex';
+                mainNav.style.display = 'none';
+                auditFormContent.style.display = 'none';
+                databaseContent.style.display = 'none';
+                shareResponseContent.style.display = 'none';
+            }
+            document.body.classList.add('loaded');
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
             const loginButton = document.getElementById('loginButton');
@@ -2012,7 +2029,7 @@
             const adminTab = document.getElementById('adminTab');
             const myEvaluationsTab = document.getElementById('myEvaluationsTab');
             const imagesTab = document.getElementById('imagesTab');
-
+            const npsTab = document.getElementById('npsTab');
 
             const saveFormBtn = document.getElementById('saveFormBtn');
             const pdfShareBtn = document.getElementById('pdfShareBtn');
@@ -2024,6 +2041,7 @@
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
             const cerEmailInput = document.getElementById('cer-email');
+
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
@@ -2069,8 +2087,9 @@
                     const enteredPassword = passwordInput.value;
 
                     try {
-                        await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
+                        const userCredential = await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
                         sessionStorage.setItem('loggedIn', 'true');
+                        window.location.reload(); // Reload the page to trigger initialization with authenticated user
                     } catch (error) {
                         if (error.code === 'auth/user-not-found') {
                             showMessageBox("User Not Found", "This email is not registered. You will be redirected to the sign-up page.", false, false, true, () => {
