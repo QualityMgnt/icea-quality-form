@@ -11,11 +11,11 @@
     <style>
         /* Base styles */
         body {
-            font-family: 'Garamond', serif;
+            font-family: 'Garamond', serif; /* Updated font */
             display: flex;
             align-items: flex-start;
             min-height: 100vh;
-            background-color: #f3f4f6;
+            background-color: #f3f4f6; /* bg-gray-100 */
             margin: 0;
             padding: 0;
             visibility: hidden;
@@ -39,9 +39,9 @@
 
         /* Error/Message styles */
         .error-message {
-            color: #dc2626;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
+            color: #dc2626; /* red-700 */
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.5rem; /* mt-2 */
             text-align: center;
         }
 
@@ -58,18 +58,18 @@
         .icon-bg-yellow { background-color: #ffc107; }
 
         /* Form Row Styling (zebra striping) */
-        .form-row-light { background-color: #f9fafb; }
-        .form-row-dark { background-color: #edf2f7; }
+        .form-row-light { background-color: #f9fafb; /* gray-50 */ }
+        .form-row-dark { background-color: #edf2f7; /* gray-200 */ }
 
         /* Adjustments for question descriptions, weightage, and points */
         .question-description {
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 600; /* font-semibold */
         }
 
         .weightage-display {
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 600; /* font-semibold */
         }
 
         /* ADJUSTED STYLES FOR INPUTS AND SELECTS TO REQUESTED FIXED SIZE */
@@ -148,11 +148,11 @@
             left: 0;
             width: 100%;
             height: 48px;
-            background-color: #000080;
+            background-color: #000080; /* Updated to Navy Blue */
             color: white;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: space-between; /* Adjusted for logo on the right */
             font-size: 1.125rem;
             font-weight: 600;
             z-index: 1000;
@@ -167,7 +167,7 @@
         /* Navigation styles */
         .main-nav {
             width: 125px;
-            background-color: #000080;
+            background-color: #000080; /* Updated to Navy Blue */
             color: white;
             padding: 1rem 0;
             height: calc(100vh - 48px);
@@ -189,11 +189,11 @@
         }
         
         .main-nav ul li.nav-tab {
-            display: none;
+            display: block;
         }
 
         .sidebar ul li a {
-            font-family: 'Garamond', serif;
+            font-family: 'Garamond', serif; /* Updated font */
             color: white;
             text-decoration: none;
             font-weight: 500;
@@ -211,7 +211,7 @@
 
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #000050;
+            background-color: #000050; /* Darker Navy Blue */
         }
 
         .logout-button {
@@ -233,11 +233,11 @@
 
         /* Floating content container for the form */
         .form-container {
-            margin-left: calc(125px + 1cm);
-            margin-right: 1cm;
-            margin-top: calc(48px + 1cm);
+            margin-left: calc(125px + 1cm); /* 125px (nav) + 1cm space */
+            margin-right: 1cm; /* 1cm space from the right edge */
+            margin-top: calc(48px + 1cm); /* 48px (header) + 1cm space */
             margin-bottom: 1cm;
-            width: calc(100% - 125px - 2cm);
+            width: calc(100% - 125px - 2cm); /* Total width - nav - 2cm space */
             max-width: none;
             background-color: white;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -710,7 +710,7 @@
                 <table class="min-w-full">
                     <thead>
                         <tr>
-                            <th class="w-12"><input type="checkbox" id="selectAllRecordsCheckbox" aria-label="Select All Records"></th>
+                            <th class="w-12"><input type="checkbox" id="selectAllRecordsCheckbox" aria-label="Select all records"></th>
                             <th class="w-24">Timestamp</th>
                             <th>Contact ID</th>
                             <th>Client Name</th>
@@ -1606,7 +1606,7 @@
                 showMessageBox("Save Failed", `Error saving data: ${e.message}`, true, false, true);
                 return null;
             }
-        }
+        };
 
         /**
          * Collects form data, saves it to Firestore, and then generates and downloads a PDF.
@@ -2848,17 +2848,25 @@
                         sessionStorage.setItem('loggedIn', 'true');
                     } catch (error) {
                         console.error("Firebase Login Error:", error);
-                        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        if (error.code === 'auth/user-not-found') {
+                            // Redirect to signup page if user not found
+                            showMessageBox("User Not Found", "This email is not registered. You will be redirected to the sign-up page.", false, false, true, () => {
+                                window.location.href = 'signup.html';
+                            });
+                        } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                             loginMessage.textContent = 'Invalid email or password.';
+                            loginMessage.classList.remove('hidden');
                         } else if (error.code === 'auth/invalid-email') {
                             loginMessage.textContent = 'Please enter a valid email address.';
+                            loginMessage.classList.remove('hidden');
                         } else if (error.code === 'auth/too-many-requests') {
                             loginMessage.textContent = 'Too many login attempts. Please try again later.';
+                            loginMessage.classList.remove('hidden');
                         }
                         else {
                             loginMessage.textContent = `Login failed: ${error.message}`;
+                            loginMessage.classList.remove('hidden');
                         }
-                        loginMessage.classList.remove('hidden');
                     }
                 });
             }
@@ -2908,9 +2916,9 @@
             if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); showTab('admin'); }); }
             if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); }
             if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); showTab('users'); }); }
+            if (imagesTab) { imagesTab.addEventListener('click', (e) => { e.preventDefault(); showTab('images'); }); }
             if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('nps'); }); }
             if (myEvaluationsTab) { myEvaluationsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('myEvaluations'); }); }
-            if (imagesTab) { imagesTab.addEventListener('click', (e) => { e.preventDefault(); showTab('images'); }); }
 
 
             if (selectAllRecordsCheckbox) {
