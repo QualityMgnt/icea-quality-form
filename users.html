@@ -254,7 +254,7 @@
     </nav>
 
     <!-- Main Content Area - Initially Hidden to allow for auth checks -->
-    <div class="main-content hidden" id="mainContent">
+    <div class="main-content" id="mainContent">
         <div id="loadingMessage" class="text-center py-12 text-lg text-gray-500">
             <div class="spinner mx-auto mb-4"></div>
             Verifying your access...
@@ -355,7 +355,7 @@
         
         // --- UI Elements ---
         const mainContent = document.getElementById('mainContent');
-        const usersContent = document.getElementById('adminContent'); // Corrected ID
+        const usersContainer = document.getElementById('adminContent');
         const loadingMessage = document.getElementById('loadingMessage');
         const permissionDeniedMessage = document.getElementById('permissionDeniedMessage');
         const mainNav = document.getElementById('mainNav');
@@ -598,31 +598,33 @@
         }
         
         const initializePage = (user) => {
-            document.getElementById('mainContent').classList.remove('hidden');
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
             
             const userProfileDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
             getDoc(userProfileDocRef).then(docSnap => {
                 currentUserRole = docSnap.exists() ? docSnap.data().role : 'guest';
                 
                 if (currentUserRole === 'admin') {
+                    document.getElementById('mainContent').classList.remove('hidden');
                     document.getElementById('adminContent').classList.remove('hidden');
-                    loadingMessage.classList.add('hidden');
-                    permissionDeniedMessage.classList.add('hidden');
+                    document.getElementById('loadingMessage').classList.add('hidden');
+                    document.getElementById('permissionDeniedMessage').classList.add('hidden');
+                    document.getElementById('mainNav').style.display = 'block';
                     fetchAndRenderUsers();
                 } else {
-                    loadingMessage.classList.add('hidden');
-                    permissionDeniedMessage.classList.remove('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    document.getElementById('loadingMessage').classList.add('hidden');
+                    document.getElementById('permissionDeniedMessage').classList.remove('hidden');
                     document.getElementById('adminContent').classList.add('hidden');
-                    userTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Access denied. This page is for administrators only.</td></tr>`;
                 }
                 renderNavigationForRole(currentUserRole);
 
             }).catch(error => {
                 console.error("Error fetching user role:", error);
-                loadingMessage.classList.add('hidden');
-                permissionDeniedMessage.classList.remove('hidden');
-                document.getElementById('adminContent').classList.add('hidden');
-                userTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error verifying user role. Please try logging in again.</td></tr>`;
+                window.location.href = 'index.html';
             });
         };
 
