@@ -241,6 +241,93 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        .evaluation-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .evaluation-table th, .evaluation-table td {
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .evaluation-table th {
+            background-color: #eff6ff;
+            font-weight: 600;
+            color: #1f2937;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .evaluation-table tbody tr:nth-child(even) { background-color: #f9fafb; }
+        .evaluation-table tbody tr:hover { background-color: #f3f4f6; }
+        .view-record-btn, .download-record-btn, .download-pdf-btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin-right: 0.25rem;
+        }
+        .view-record-btn { background-color: #2196f3; color: white; }
+        .view-record-btn:hover { background-color: #1976d2; }
+        .download-record-btn { background-color: #4caf50; color: white; }
+        .download-record-btn:hover { background-color: #388e3c; }
+        .download-pdf-btn { background-color: #800080; color: white; }
+        .download-pdf-btn:hover { background-color: #6a006a; }
+        .hidden { display: none !important; }
+        .message-box-content-pre {
+            text-align: left;
+            white-space: pre-wrap;
+            font-family: 'Garamond', serif;
+            background-color: #f8f8f8;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            font-size: 0.875rem;
+        }
+        .content-section {
+            background-color: #fff;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+        .table-container, .chart-container {
+            margin-top: 1rem;
+            overflow-x: auto;
+        }
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .filter-section label {
+            font-weight: bold;
+            color: #4b5563;
+        }
+        .filter-section input[type="date"] {
+            border: 1px solid #d1d5db;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            font-family: 'Garamond', serif;
+        }
+        .filter-section button {
+            padding: 0.5rem 1rem;
+            background-color: #1a73e8;
+            color: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .filter-section button:hover {
+            background-color: #0d47a1;
+        }
     </style>
 </head>
 <body>
@@ -524,11 +611,10 @@
             const myEvaluationsContent = document.getElementById('myEvaluationsContent');
 
             if (!user) {
-                window.location.href = 'index.html'; // Redirect to login if not authenticated
+                window.location.href = 'index.html';
                 return;
             }
 
-            // Show loading message while fetching user data
             loadingMessage.classList.remove('hidden');
             mainContent.classList.remove('hidden');
             myEvaluationsContent.classList.add('hidden');
@@ -542,7 +628,7 @@
                 myEvaluationsContent.classList.remove('hidden');
 
                 renderNavigationForRole(currentUserRole);
-                fetchMyEvaluations(); // Fetch user-specific data now that the name is known
+                fetchMyEvaluations();
                 setupNotificationListener();
             }).catch(error => {
                 console.error("Error fetching user role:", error);
@@ -562,7 +648,6 @@
                 return;
             }
 
-            // Unsubscribe from previous listeners to prevent memory leaks
             if (unsubscribeReviewed) unsubscribeReviewed();
             if (unsubscribeCer) unsubscribeCer();
             if (unsubscribeAll) unsubscribeAll();
@@ -570,7 +655,6 @@
             showMessageBox("Loading", "Fetching your evaluations...", false, true, false);
 
             try {
-                // Query 1: Evaluations where the logged-in user is the reviewer
                 const reviewedQuery = query(
                     collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
                     where('Reviewer\'s Name', '==', loggedInUserName),
@@ -585,7 +669,6 @@
                     document.getElementById('myReviewedEvaluationsTableBody').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Error loading data: ${error.message}</td></tr>`;
                 });
 
-                // Query 2: Evaluations where the logged-in user is the CER
                 const cerQuery = query(
                     collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
                     where('CER Name', '==', loggedInUserName),
@@ -600,10 +683,8 @@
                     document.getElementById('myCerScoresTableBody').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Error loading data: ${error.message}</td></tr>`;
                 });
 
-                // Query 3: All evaluations for a given user for charts
                 const allQuery = query(
                     collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
-                    // We'll filter this on the client side to avoid complex index requirements for an OR query
                 );
 
                 unsubscribeAll = onSnapshot(allQuery, (snapshot) => {
@@ -1029,7 +1110,7 @@
                         currentUserRole = docSnap.data().role;
                         loggedInUserName = docSnap.data().name || user.email;
                     } else {
-                        currentUserRole = 'guest'; // User profile not found, default to guest
+                        currentUserRole = 'guest';
                         loggedInUserName = user.email || 'Guest';
                     }
                 } catch (e) {
@@ -1038,17 +1119,14 @@
                     loggedInUserName = user.email || 'Guest';
                 }
 
-                // Wait for the user profile to be fetched before proceeding
                 if (loggedInUserName !== "Quality Evaluation Team") {
                     initializePage(user);
-                } else {
-                    console.log("Waiting for user profile fetch...");
                 }
             } else {
                 currentUserId = null;
                 loggedInUserName = "Anonymous User";
                 currentUserRole = 'guest';
-                window.location.href = 'index.html'; // Redirect if not authenticated
+                window.location.href = 'index.html';
             }
             fetchAndSetLogo();
         });
@@ -1065,6 +1143,18 @@
                 'usersTab': 'users.html',
                 'adminTab': 'admin.html'
             };
+            
+             const renderNavigationForRole = (role) => {
+                const allNavTabs = document.querySelectorAll('.nav-tab');
+                allNavTabs.forEach(tab => {
+                    const requiredRole = tab.dataset.role;
+                    if (requiredRole === 'all' || requiredRole === role) {
+                        tab.style.display = 'block';
+                    } else {
+                        tab.style.display = 'none';
+                    }
+                });
+            }
 
              Object.keys(navItems).forEach(id => {
                 const el = document.getElementById(id);
@@ -1102,6 +1192,7 @@
                 });
             }
             
+            const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async () => {
                     if (unsubscribeReviewed) unsubscribeReviewed();
