@@ -152,7 +152,7 @@
             color: white;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: space-between; /* Adjusted for logo on the right */
             font-size: 1.125rem;
             font-weight: 600;
             z-index: 1000;
@@ -1344,7 +1344,7 @@
             const messageBoxCloseBtnElement = document.getElementById('messageBoxCloseBtn');
 
             if (!db || !currentUserId) { showMessageBox("Error", "Database not ready. Please log in first.", true, false, true); return; }
-            if (!EVALUATION_RECORDS_COLLECTION_PATH) { console.error("Firestore collection path for records is not defined."); showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true); return; }
+            if (!EVALUATION_RECORDS_COLLECTION_PATH) { console.error("Firestore collection paths are not defined."); showMessageBox("Error", "Records path not set up. Check Firebase configuration.", true, false, true); return; }
 
             if (recordIdsToDelete.length === 0) { showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true); return; }
 
@@ -2044,9 +2044,9 @@
          * Fetches users from Firestore and populates CER/Reviewer dropdowns.
          */
         async function fetchUsers() {
-            if (!db) return;
+            if (!db || !auth.currentUser) return;
             if (unsubscribeUsers) unsubscribeUsers();
-
+            
             const usersCollectionRef = collection(db, USERS_PROFILE_COLLECTION_PATH);
             unsubscribeUsers = onSnapshot(usersCollectionRef, (snapshot) => {
                 allUsers = snapshot.docs.map(doc => doc.data());
@@ -2063,46 +2063,44 @@
             const cerNameSelect = document.getElementById('cer-name');
             const reviewerNameSelect = document.getElementById('reviewer-name');
 
-            if (cerNameSelect) {
-                const agents = allUsers.filter(user => user.role === 'agent' && user.isActive !== false);
-                const currentCerName = cerNameSelect.value;
-                cerNameSelect.innerHTML = '<option value="">Select CER</option>';
-                agents.forEach(user => {
-                    const option = document.createElement('option');
-                    option.value = user.name;
-                    option.textContent = user.name;
-                    cerNameSelect.appendChild(option);
-                });
-                if (agents.some(user => user.name === currentCerName)) {
-                    cerNameSelect.value = currentCerName;
-                }
+            if (!cerNameSelect || !reviewerNameSelect) return;
+
+            const agents = allUsers.filter(user => user.role === 'agent' && user.isActive !== false);
+            const reviewers = allUsers.filter(user => user.role === 'admin' || user.role === 'supervisor' || user.role === 'agent' && user.isActive !== false);
+            
+            const currentCerName = cerNameSelect.value;
+            cerNameSelect.innerHTML = '<option value="">Select CER</option>';
+            agents.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.name;
+                option.textContent = user.name;
+                cerNameSelect.appendChild(option);
+            });
+            if (agents.some(user => user.name === currentCerName)) {
+                cerNameSelect.value = currentCerName;
             }
 
-            if (reviewerNameSelect) {
-                const reviewers = allUsers.filter(user => user.role === 'admin' || user.role === 'supervisor' || user.role === 'agent');
-                const currentReviewerName = reviewerNameSelect.value;
-                reviewerNameSelect.innerHTML = '<option value="">Select Reviewer</option>';
-                reviewers.forEach(user => {
-                    const option = document.createElement('option');
-                    option.value = user.name;
-                    option.textContent = user.name;
-                    reviewerNameSelect.appendChild(option);
-                });
-                 // Pre-fill reviewer name if logged in
-                if (loggedInUserName && reviewers.some(user => user.name === loggedInUserName)) {
-                    reviewerNameSelect.value = loggedInUserName;
-                } else if (reviewers.some(user => user.name === currentReviewerName)) {
-                    reviewerNameSelect.value = currentReviewerName;
-                }
+            const currentReviewerName = reviewerNameSelect.value;
+            reviewerNameSelect.innerHTML = '<option value="">Select Reviewer</option>';
+            reviewers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.name;
+                option.textContent = user.name;
+                reviewerNameSelect.appendChild(option);
+            });
+            if (loggedInUserName && reviewers.some(user => user.name === loggedInUserName)) {
+                reviewerNameSelect.value = loggedInUserName;
+            } else if (reviewers.some(user => user.name === currentReviewerName)) {
+                reviewerNameSelect.value = currentReviewerName;
             }
         }
+
 
         /**
          * Populates all relevant dropdowns in the assessment form.
          */
         function populateAllDropdownsInForm() {
             const cerRoleSelect = document.getElementById('cer-role');
-            const reviewerNameSelect = document.getElementById('reviewer-name');
             const autofailTypeSelect = document.getElementById('autofail-type');
 
             const populateSelect = (selectElement, optionsArray, type) => {
@@ -2129,12 +2127,13 @@
                 }
             };
 
-            populateUserDropdowns(); // Call the specific user dropdown function here.
+            populateUserDropdowns();
             populateSelect(cerRoleSelect, dropdownOptions.cerRoles, 'cerRoles');
             populateSelect(autofailTypeSelect, dropdownOptions.autofailTypes, 'autofailTypes');
-
-            const currentCerName = cerNameSelect.value;
+            
             const cerEmailInput = document.getElementById('cer-email');
+            const cerNameSelect = document.getElementById('cer-name');
+            const currentCerName = cerNameSelect.value;
             cerEmailInput.value = cerNameEmailsMap[currentCerName] || '';
 
             const initialCerRole = cerRoleSelect.value;
@@ -2951,8 +2950,8 @@
             if (cerNameSelect) {
                 cerNameSelect.addEventListener('change', (event) => {
                     const selectedCerName = event.target.value;
-                    const cerEmail = cerNameEmailsMap[selectedCerName] || '';
-                    cerEmailInput.value = cerEmail;
+                    const cerEmail = allUsers.find(user => user.name === selectedCerName)?.email || '';
+                    document.getElementById('cer-email').value = cerEmail;
                     if (selectedCerName) {
                         fetchLastThreeEvaluations(selectedCerName);
                     } else {
