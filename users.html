@@ -245,7 +245,7 @@
                 <li class="nav-tab" data-role="all"><a href="myEvaluations.html"><i class="fas fa-user-check"></i> My Evaluations</a></li>
                 <li class="nav-tab" data-role="admin"><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
                 <li class="nav-tab" data-role="admin"><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li class="nav-tab" data-role="admin"><a href="images.html"><i class="fas fa-image"></i> Images</a></li>
+                <li class="nav-tab" data-role="all"><a href="images.html"><i class="fas fa-image"></i> Images</a></li>
                 <li class="nav-tab" data-role="admin"><a href="users.html" class="active"><i class="fas fa-users"></i> Users</a></li>
                 <li class="nav-tab" data-role="admin"><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
@@ -567,6 +567,17 @@
 
         // --- Event Listeners and Page Initialization ---
         document.addEventListener('DOMContentLoaded', function() {
+            const navItems = {
+                'auditFormTab': 'index.html',
+                'myEvaluationsTab': 'myEvaluations.html',
+                'databaseTab': 'index.html#database',
+                'reportsTab': 'Dashboard.html',
+                'autofailsTab': 'autofails.html',
+                'imagesTab': 'images.html',
+                'usersTab': 'users.html',
+                'adminTab': 'admin.html'
+            };
+            
             const checkAndRender = () => {
                 const user = auth.currentUser;
                 if (user) {
@@ -574,31 +585,29 @@
                     getDoc(userProfileDocRef).then(docSnap => {
                         currentUserRole = docSnap.exists() ? docSnap.data().role : null;
                         if (currentUserRole === 'admin') {
-                            // User is an admin, show the page content
                             loginPage.style.display = 'none';
                             mainNav.style.display = 'block';
                             usersContent.style.display = 'block';
                             fetchAndRenderUsers();
                         } else {
-                            // Redirect non-admins to the home page
                             window.location.href = 'index.html';
                         }
                         renderNavigationForRole(currentUserRole);
                     }).catch(error => {
                         console.error("Error fetching user role:", error);
-                        // In case of an error, assume not admin and redirect
                         window.location.href = 'index.html';
                     });
                 } else {
-                    // No user logged in, redirect to home page which will show login
                     window.location.href = 'index.html';
                 }
             };
             
-            // This listener ensures we wait for Firebase Auth to finish its initial state check
-            const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-                authUnsubscribe(); // Unsubscribe after the first check
-                checkAndRender();
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    checkAndRender();
+                } else {
+                    window.location.href = 'index.html';
+                }
             });
             
             logoutBtn.addEventListener('click', async () => {
@@ -608,6 +617,16 @@
             });
             
             addUserBtn.addEventListener('click', createNewUser);
+
+            Object.keys(navItems).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        window.location.href = navItems[id];
+                    });
+                }
+            });
         });
     </script>
 </body>
