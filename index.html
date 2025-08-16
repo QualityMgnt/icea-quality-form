@@ -857,6 +857,8 @@
         let globalMaxPossiblePoints = 0;
         let globalBusinessComplianceAccuracyValue = 0;
         let latestSavedRecordId = null;
+        let autofailDescriptionContainer, autofailDescriptionInput, otherReviewerNameInput, reviewerNameSelect, cerRoleSelect, cerNameSelect, cerEmailInput;
+
 
         window.autoExpandTextarea = function(element) {
             element.style.height = 'auto';
@@ -864,7 +866,6 @@
         };
 
         function calculateScore() {
-            const cerRoleSelect = document.getElementById('cer-role');
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
@@ -1940,9 +1941,6 @@
         const initializePage = async (user) => {
             const loginPage = document.getElementById('loginPage');
             const mainNav = document.getElementById('mainNav');
-            const auditFormContent = document.getElementById('auditFormContent');
-            const databaseContent = document.getElementById('databaseContent');
-            const shareResponseContent = document.getElementById('shareResponseContent');
             
             if (user) {
                 const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
@@ -1973,7 +1971,7 @@
                     initializeAppDisplay();
                 }
             } else {
-                loginPage.classList.add('visible');
+                if (loginPage) loginPage.classList.add('visible');
                 document.body.classList.add('loaded');
             }
         };
@@ -1989,9 +1987,11 @@
             const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
 
             if (user && isLoggedInFromSession === 'true') {
-                loginPage.classList.remove('visible');
-                loginPage.style.display = 'none';
-                mainNav.style.display = 'block';
+                if (loginPage) {
+                    loginPage.classList.remove('visible');
+                    loginPage.style.display = 'none';
+                }
+                if (mainNav) mainNav.style.display = 'block';
                 const activeHash = window.location.hash.substring(1);
                 if (activeHash === 'database') {
                     showTab('database');
@@ -2001,12 +2001,14 @@
                     showTab('auditForm');
                 }
             } else {
-                loginPage.classList.add('visible');
-                loginPage.style.display = 'flex';
-                mainNav.style.display = 'none';
-                auditFormContent.style.display = 'none';
-                databaseContent.style.display = 'none';
-                shareResponseContent.style.display = 'none';
+                if (loginPage) {
+                    loginPage.classList.add('visible');
+                    loginPage.style.display = 'flex';
+                }
+                if (mainNav) mainNav.style.display = 'none';
+                if (auditFormContent) auditFormContent.style.display = 'none';
+                if (databaseContent) databaseContent.style.display = 'none';
+                if (shareResponseContent) shareResponseContent.style.display = 'none';
             }
             document.body.classList.add('loaded');
         }
@@ -2018,42 +2020,11 @@
             const passwordInput = document.getElementById('password');
             const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 
-            const auditFormTab = document.getElementById('auditFormTab');
-            const databaseTab = document.getElementById('databaseTab');
-            const shareResponseTab = document.getElementById('shareResponseTab');
-            const usersTab = document.getElementById('usersTab');
             const logoutBtn = document.getElementById('logoutBtn');
-            const reportsTab = document.getElementById('reportsTab');
-            const autofailsTab = document.getElementById('autofailsTab');
-            const adminTab = document.getElementById('adminTab');
-            const myEvaluationsTab = document.getElementById('myEvaluationsTab');
-            const imagesTab = document.getElementById('imagesTab');
-            const npsTab = document.getElementById('npsTab');
-
-            const saveFormBtn = document.getElementById('saveFormBtn');
-            const pdfShareBtn = document.getElementById('pdfShareBtn');
-            const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn');
-            const assessmentForm = document.getElementById('assessment-form');
-
-            const reviewerNameSelect = document.getElementById('reviewer-name');
-            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
-            const cerEmailInput = document.getElementById('cer-email');
-
             const autofailTypeSelect = document.getElementById('autofail-type');
-            const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
-            const autofailDescriptionInput = document.getElementById('autofail-description');
-            const selectRecordSearch = document.getElementById('select-record-search');
-
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-
-            const newWebhookUrlInput = document.getElementById('newWebhookUrlInput');
-            const addWebhookBtn = document.getElementById('addWebhookBtn');
-
-            const selectRecordToShare = document.getElementById('select-record-to-share');
-            const sendShareEmailBtn = document.getElementById('sendShareEmailBtn');
+            const reviewerNameSelect = document.getElementById('reviewer-name');
 
             const reviewDateInput = document.getElementById('review-date');
             if (reviewDateInput) {
@@ -2131,16 +2102,16 @@
                 logoutBtn.addEventListener('click', handleLogout);
             }
 
-            if (auditFormTab) { auditFormTab.addEventListener('click', (e) => { e.preventDefault(); showTab('auditForm'); }); }
-            if (databaseTab) { databaseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('database'); }); }
-            if (reportsTab) { reportsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `Dashboard.html`; }); }
-            if (autofailsTab) { autofailsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `autofails.html`; }); }
-            if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `admin.html`; }); }
-            if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); }
-            if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `users.html`; }); }
-            if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `nps.html`; }); }
-            if (myEvaluationsTab) { myEvaluationsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `myEvaluations.html`; }); }
-            if (imagesTab) { imagesTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `images.html`; }); }
+            if (document.getElementById('auditFormTab')) { document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); showTab('auditForm'); }); }
+            if (document.getElementById('databaseTab')) { document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); showTab('database'); }); }
+            if (document.getElementById('reportsTab')) { document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = `Dashboard.html`; }); }
+            if (document.getElementById('autofailsTab')) { document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = `autofails.html`; }); }
+            if (document.getElementById('adminTab')) { document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = `admin.html`; }); }
+            if (document.getElementById('shareResponseTab')) { document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); }
+            if (document.getElementById('usersTab')) { document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = `users.html`; }); }
+            if (document.getElementById('npsTab')) { document.getElementById('npsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = `nps.html`; }); }
+            if (document.getElementById('myEvaluationsTab')) { document.getElementById('myEvaluationsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = `myEvaluations.html`; }); }
+            if (document.getElementById('imagesTab')) { document.getElementById('imagesTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = `images.html`; }); }
 
 
             if (document.getElementById('selectAllRecordsCheckbox')) {
