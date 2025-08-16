@@ -253,8 +253,18 @@
         </div>
     </nav>
 
-    <div class="main-content" id="usersContent">
-        <div class="users-container">
+    <!-- This section will act as the login gate for the Users page -->
+    <div class="main-content hidden" id="mainContent">
+        <div id="loadingMessage" class="text-center py-12 text-lg text-gray-500">
+            <div class="spinner mx-auto mb-4"></div>
+            Verifying your access...
+        </div>
+        <div id="permissionDeniedMessage" class="hidden text-center py-12 text-lg text-red-500">
+            <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+            <p>Access denied. This page is for administrators only.</p>
+        </div>
+
+        <div class="users-container hidden" id="adminContent">
             <div class="icealion-blue p-4 text-xl font-semibold text-center">
                 User Management
             </div>
@@ -263,7 +273,7 @@
                     This section allows administrators to manage user accounts and their roles within the system.
                 </p>
                 
-                <div id="admin-tools" style="display: none;">
+                <div id="admin-tools">
                     <h3 class="text-2xl font-semibold text-gray-800 mb-4">Add New User</h3>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
@@ -305,7 +315,7 @@
                                 <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Email</th>
                                 <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Role</th>
                                 <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600" id="actions-header" style="display: none;">Actions</th>
+                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600" id="actions-header">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="userTableBody">
@@ -316,10 +326,13 @@
             </div>
         </div>
     </div>
+    <div class="login-container hidden" id="loginPage">
+        <!-- Login UI here (not shown for brevity, as it exists in index.html) -->
+    </div>
 
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signOut, signInAnonymously, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getAuth, signOut, signInAnonymously, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, getDocs, deleteDoc, setDoc, updateDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         
         // --- Firebase Configuration ---
@@ -344,7 +357,12 @@
         const db = getFirestore(appInstance);
         
         // --- UI Elements ---
-        const loginPage = document.getElementById('loginPage');
+        const mainContent = document.getElementById('mainContent');
+        const loginGate = document.getElementById('loginGate');
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        const adminUsernameInput = document.getElementById('admin-username');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const adminLoginMessage = document.getElementById('adminLoginMessage');
         const mainNav = document.getElementById('mainNav');
         const usersContent = document.getElementById('usersContent');
         const logoutBtn = document.getElementById('logoutBtn');
@@ -396,13 +414,14 @@
         async function fetchAndRenderUsers() {
             userTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>';
             
-            // Set visibility of admin tools based on role
             if (currentUserRole === 'admin') {
                 adminToolsSection.style.display = 'block';
                 actionsHeader.style.display = 'table-cell';
             } else {
                 adminToolsSection.style.display = 'none';
                 actionsHeader.style.display = 'none';
+                userTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">You do not have permission to view users. (Admin access required)</td></tr>`;
+                return;
             }
             
             if (unsubscribeUsers) unsubscribeUsers();
@@ -421,20 +440,33 @@
                     row.className = 'border-b border-gray-200';
                     const statusText = user.isActive === false ? 'Deactivated' : 'Active';
                     const statusClass = user.isActive === false ? 'text-red-500' : 'text-green-500';
-                    const actionButton = user.isActive === false
-                        ? `<button class="action-btn activate-btn" onclick="window.toggleUserStatus('${user.uid}', true)">Activate</button>`
-                        : `<button class="action-btn deactivate-btn" onclick="window.toggleUserStatus('${user.uid}', false)">Deactivate</button>`;
+                    
+                    const actionCell = document.createElement('td');
+                    actionCell.className = 'py-2 px-4';
+                    
+                    if (currentUserRole === 'admin') {
+                        const actionButton = user.isActive === false
+                            ? `<button class="action-btn activate-btn" onclick="window.toggleUserStatus('${user.uid}', true)">Activate</button>`
+                            : `<button class="action-btn deactivate-btn" onclick="window.toggleUserStatus('${user.uid}', false)">Deactivate</button>`;
+                        actionCell.innerHTML = `
+                            ${actionButton}
+                            <button class="action-btn delete-btn" onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
+                        `;
+                    }
                     
                     row.innerHTML = `
                         <td class="py-2 px-4">${user.name || 'N/A'}</td>
                         <td class="py-2 px-4">${user.email || 'N/A'}</td>
                         <td class="py-2 px-4">${user.role || 'N/A'}</td>
                         <td class="py-2 px-4"><span class="${statusClass}">${statusText}</span></td>
-                        <td class="py-2 px-4" style="${currentUserRole === 'admin' ? 'display:table-cell;' : 'display:none;'}">
-                            ${actionButton}
-                            <button class="action-btn delete-btn" onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
-                        </td>
                     `;
+                    row.appendChild(actionCell);
+
+                    if (currentUserRole === 'admin') {
+                        actionCell.style.display = 'table-cell';
+                    } else {
+                        actionCell.style.display = 'none';
+                    }
                 });
             }, (error) => {
                 console.error("Error fetching users:", error);
@@ -577,12 +609,12 @@
             });
         }
         
-        // This function will handle all page display logic after the initial auth check
         const initializePage = (user) => {
-             // Handle redirection for non-admins
             if (!user) {
-                // If no user is logged in, redirect to the main page
-                window.location.href = 'index.html';
+                // Not authenticated at all, show login gate
+                document.getElementById('loginGate').classList.remove('hidden');
+                document.getElementById('usersContent').classList.add('hidden');
+                document.getElementById('mainNav').style.display = 'none';
                 return;
             }
             
@@ -590,33 +622,74 @@
             getDoc(userProfileDocRef).then(docSnap => {
                 currentUserRole = docSnap.exists() ? docSnap.data().role : 'guest';
                 
-                // Redirect if not an admin
-                if (currentUserRole !== 'admin') {
-                     window.location.href = 'index.html';
-                     return;
+                if (currentUserRole === 'admin') {
+                    document.getElementById('loginGate').classList.add('hidden');
+                    document.getElementById('usersContent').classList.remove('hidden');
+                    document.getElementById('mainNav').style.display = 'block';
+                    fetchAndRenderUsers();
+                } else {
+                    document.getElementById('loginGate').classList.remove('hidden');
+                    document.getElementById('usersContent').classList.add('hidden');
+                    document.getElementById('mainNav').style.display = 'block';
+                    document.getElementById('adminLoginMessage').textContent = 'Permission denied. Please log in with an administrator account.';
+                    document.getElementById('adminLoginMessage').classList.remove('hidden');
                 }
-                
-                // If it's an admin, show the page and its content
-                loginPage.style.display = 'none';
-                mainNav.style.display = 'block';
-                usersContent.style.display = 'block';
-                fetchAndRenderUsers();
                 renderNavigationForRole(currentUserRole);
 
             }).catch(error => {
                 console.error("Error fetching user role:", error);
-                window.location.href = 'index.html';
+                document.getElementById('loginGate').classList.remove('hidden');
+                document.getElementById('usersContent').classList.add('hidden');
+                document.getElementById('mainNav').style.display = 'block';
+                document.getElementById('adminLoginMessage').textContent = 'Error verifying user role. Please try logging in again.';
+                document.getElementById('adminLoginMessage').classList.remove('hidden');
             });
         };
 
-        // --- Event Listeners and Page Initialization ---
         document.addEventListener('DOMContentLoaded', function() {
-            // Wait for the auth state to be confirmed on page load
+            // Initial auth check
             const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-                authUnsubscribe(); // Unsubscribe after the first check to prevent multiple calls
+                authUnsubscribe();
                 initializePage(user);
             });
-            
+
+            // Admin login form submission handler
+            const adminLoginBtn = document.getElementById('adminLoginBtn');
+            if(adminLoginBtn) {
+                 adminLoginBtn.addEventListener('click', async (e) => {
+                     e.preventDefault();
+                     adminLoginMessage.classList.add('hidden');
+                     
+                     const email = adminUsernameInput.value;
+                     const password = adminPasswordInput.value;
+                     
+                     showMessageBox("Logging In", "Verifying credentials...", false, true, false);
+
+                     try {
+                         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                         const user = userCredential.user;
+                         
+                         const userProfileDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
+                         const docSnap = await getDoc(userProfileDocRef);
+                         
+                         if (docSnap.exists() && docSnap.data().role === 'admin') {
+                             hideMessageBox();
+                             sessionStorage.setItem('loggedIn', 'true');
+                             window.location.reload(); 
+                         } else {
+                             await signOut(auth);
+                             hideMessageBox();
+                             adminLoginMessage.textContent = 'Invalid credentials or not an administrator.';
+                             adminLoginMessage.classList.remove('hidden');
+                         }
+                     } catch (error) {
+                         hideMessageBox();
+                         adminLoginMessage.textContent = 'Invalid credentials or not an administrator.';
+                         adminLoginMessage.classList.remove('hidden');
+                     }
+                 });
+            }
+
             logoutBtn.addEventListener('click', async () => {
                 if (unsubscribeUsers) unsubscribeUsers();
                 await signOut(auth);
