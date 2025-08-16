@@ -1742,7 +1742,7 @@
 
                 const pdfDataUrl = pdf.output('datauristring');
                 const contactId = document.getElementById('contact-id').value.trim() || 'Record';
-                const pdfFileName = `Quality_Assessment_${contactId}_${new Date().toLocaleDateString('en-CA')}.pdf`;
+                const pdfFileName = `Quality_Assessment_${contactId || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
                 
                 const link = document.createElement('a');
                 link.href = pdfDataUrl;
@@ -1954,6 +1954,50 @@
                 }
             });
         }
+        
+        // This function will handle all page display logic after the initial auth check
+        const initializePage = (user) => {
+             // Handle login state
+            if (user) {
+                // If a user is authenticated, we need to get their role.
+                const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+                getDoc(userProfileDocRef).then(docSnap => {
+                    if (docSnap.exists()) {
+                        currentUserRole = docSnap.data().role;
+                        loggedInUserName = docSnap.data().name || user.email;
+                        loggedInUserEmail = user.email;
+                    } else {
+                        // Profile not found, but user is authenticated. 
+                        // This case may occur for newly signed up users who need to complete their profile.
+                        currentUserRole = 'guest'; // or a new default role
+                        loggedInUserName = user.email || "Guest";
+                        loggedInUserEmail = user.email || "Guest";
+                    }
+                    renderNavigationForRole(currentUserRole);
+                    initializeAppDisplay();
+                    fetchUsers(); // Fetch users to populate dropdowns
+                    fetchDropdownOptionsData();
+                    fetchQuestionsData();
+                    fetchCustomFieldsData();
+                    fetchRecordsAndWebhooks();
+                    
+                }).catch(error => {
+                    console.error("Error fetching user role:", error);
+                    currentUserRole = 'guest';
+                    loggedInUserName = user.email || "Guest";
+                    loggedInUserEmail = user.email || "Guest";
+                    renderNavigationForRole(currentUserRole);
+                    initializeAppDisplay();
+                });
+            } else {
+                // No user logged in, hide main content and show login page
+                document.getElementById('mainNav').style.display = 'none';
+                document.getElementById('auditFormContent').style.display = 'none';
+                document.getElementById('loginPage').classList.add('visible');
+                document.body.classList.add('loaded');
+            }
+        };
+        
 
         document.addEventListener('DOMContentLoaded', function() {
             const loginButton = document.getElementById('loginButton');
@@ -2008,44 +2052,14 @@
                 reviewDateInput.value = `${year}-${month}-${day}`;
             }
 
-            onAuthStateChanged(auth, async (user) => {
+            // This listener ensures the page doesn't try to load before the auth state is known.
+            onAuthStateChanged(auth, (user) => {
                 if (user) {
-                    currentUserId = user.uid;
-                    loggedInUserEmail = user.email;
-
-                    const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-                    try {
-                        const userDocSnap = await getDoc(userProfileDocRef);
-                        if (userDocSnap.exists()) {
-                            currentUserRole = userDocSnap.data().role;
-                            loggedInUserName = userDocSnap.data().name || user.email;
-                        } else {
-                            currentUserRole = 'guest';
-                            loggedInUserName = user.email || "Guest";
-                        }
-                    } catch (error) {
-                        console.error("Error fetching user profile:", error);
-                        currentUserRole = 'guest';
-                        loggedInUserName = user.email || "Guest";
-                    }
-                    renderNavigationForRole(currentUserRole);
-                    initializeAppDisplay();
-                    fetchUsers();
-                    fetchDropdownOptionsData();
-                    fetchQuestionsData();
-                    fetchCustomFieldsData();
-                    fetchRecordsAndWebhooks();
-
+                    initializePage(user);
                 } else {
-                    console.log("Firebase Auth State Changed (index.html): No user logged in.");
-                    currentUserId = null;
-                    currentUserRole = null;
-                    loggedInUserName = null;
-                    loggedInUserEmail = null;
-                    sessionStorage.removeItem('loggedIn');
-                    initializeAppDisplay();
+                    document.getElementById('loginPage').classList.add('visible');
+                    document.body.classList.add('loaded');
                 }
-                fetchAndSetLogo();
             });
 
 
@@ -2123,14 +2137,14 @@
 
             if (auditFormTab) { auditFormTab.addEventListener('click', (e) => { e.preventDefault(); showTab('auditForm'); }); }
             if (databaseTab) { databaseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('database'); }); }
-            if (reportsTab) { reportsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('dashboard'); }); }
-            if (autofailsTab) { autofailsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('autofails'); }); }
-            if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); showTab('admin'); }); }
+            if (reportsTab) { reportsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `Dashboard.html`; }); }
+            if (autofailsTab) { autofailsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `autofails.html`; }); }
+            if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `admin.html`; }); }
             if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); }
-            if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); showTab('users'); }); }
-            if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('nps'); }); }
-            if (myEvaluationsTab) { myEvaluationsTab.addEventListener('click', (e) => { e.preventDefault(); showTab('myEvaluations'); }); }
-            if (imagesTab) { imagesTab.addEventListener('click', (e) => { e.preventDefault(); showTab('images'); }); }
+            if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `users.html`; }); }
+            if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `nps.html`; }); }
+            if (myEvaluationsTab) { myEvaluationsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `myEvaluations.html`; }); }
+            if (imagesTab) { imagesTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `images.html`; }); }
 
 
             if (selectAllRecordsCheckbox) {
@@ -2211,7 +2225,7 @@
 
             if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', window.sendShareResponseEmail); }
             if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); }
-            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.handlePdfAndShare); }
+            if (pdfShareBtn) { pdfShareBtn.addEventListener('click', window.generateAndDownloadPdf); }
             if (pdfEmailDirectBtn) { pdfEmailDirectBtn.addEventListener('click', window.handlePdfAndDirectEmail); }
 
             const initialCerRole = cerRoleSelect.value;
@@ -2227,4 +2241,3 @@
     </script>
 </body>
 </html>
- 
