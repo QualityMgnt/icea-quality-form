@@ -1,496 +1,594 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management - ICEA LION GROUP</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f3f4f6;
-            display: flex;
-            align-items: flex-start;
-            min-height: 100vh;
-        }
-        .top-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 48px;
-            background-color: #800080;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            font-size: 1.125rem;
-            font-weight: 600;
-            z-index: 1000;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            padding: 0 1rem;
-        }
-        .top-header .logo {
-            height: 40px;
-            width: auto;
-            margin-right: 1rem;
-        }
-        .top-header .title-text {
-            flex-grow: 1;
-            text-align: center;
-            margin-right: 40px;
-        }
-        .main-nav {
-            width: 125px;
-            background-color: #800080;
-            color: white;
-            padding: 1rem 0;
-            height: calc(100vh - 48px);
-            position: fixed;
-            top: 48px;
-            left: 0;
-            z-index: 100;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .sidebar ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            flex-grow: 1;
-        }
-        .sidebar ul li a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 0.75rem 0.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.25rem;
-            font-size: 0.75rem;
-            text-align: center;
-            transition: background-color 0.3s ease;
-        }
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
-            background-color: #6a006a;
-        }
-        .sidebar ul li a .fas {
-            font-size: 1.2rem;
-            position: relative;
-        }
-        .logout-button {
-            background-color: #f57c00;
-            color: white;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-            margin: 1rem auto;
-            width: calc(100% - 2rem);
-            font-size: 0.75rem;
-        }
-        .logout-button:hover {
-            background-color: #e65100;
-        }
-        .main-content {
-            margin-left: 125px;
-            margin-top: 48px;
-            width: calc(100% - 125px);
-            padding: 1.5rem;
-            min-height: calc(100vh - 48px);
-            box-sizing: border-box;
-            background-color: #f3f4f6;
-        }
-        .users-container {
-            background-color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0.5rem;
-            overflow: hidden;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .login-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(243, 244, 246, 0.95);
-            z-index: 1000;
-        }
-        .error-message, .success-message {
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            text-align: center;
-        }
-        .error-message { color: #dc2626; }
-        .success-message { color: #10b981; }
-        .user-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        .user-table th, .user-table td {
-            border: 1px solid #e5e7eb;
-            padding: 0.75rem;
-            text-align: left;
-            font-size: 0.875rem;
-        }
-        .user-table th {
-            background-color: #eff6ff;
-            font-weight: 600;
-            color: #1f2937;
-        }
-        .user-table tbody tr:nth-child(even) { background-color: #f9fafb; }
-        .user-table tbody tr:hover { background-color: #f3f4f6; }
-        .user-table .action-btn {
-            padding: 0.3rem 0.6rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-            margin-right: 0.25rem;
-        }
-        .user-table .delete-btn {
-            background-color: #EF4444;
-            color: white;
-        }
-        .user-table .delete-btn:hover {
-            background-color: #DC2626;
-        }
-        .hidden {
-            display: none !important;
-        }
-        .message-box-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .message-box {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #1a73e8;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - ICEA LION GROUP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Garamond', serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            display: flex;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            background-color: #000080;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 1.125rem;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0 1rem;
+        }
+        .top-header .logo {
+            height: 40px;
+            width: auto;
+        }
+        .main-nav {
+            width: 125px;
+            background-color: #000080;
+            color: white;
+            padding: 1rem 0;
+            height: calc(100vh - 48px);
+            position: fixed;
+            top: 48px;
+            left: 0;
+            z-index: 100;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .sidebar ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex-grow: 1;
+        }
+        .sidebar ul li a {
+            font-family: 'Garamond', serif;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.75rem 0.5rem;
+            display: block;
+            border-radius: 0;
+            transition: background-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: #000050;
+        }
+        .sidebar ul li.nav-tab {
+            display: block; /* Always visible in this file */
+        }
+        .logout-button {
+            background-color: #f57c00;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
+        }
+        .logout-button:hover {
+            background-color: #e65100;
+        }
+        .main-content {
+            margin-left: 125px;
+            margin-top: 48px;
+            width: calc(100% - 125px);
+            padding: 1.5rem;
+            min-height: calc(100vh - 48px);
+            box-sizing: border-box;
+            background-color: #f3f4f6;
+        }
+        .users-container {
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            max-width: 1200px; /* Increased max-width for more columns */
+            margin: 0 auto;
+        }
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(243, 244, 246, 0.95);
+            z-index: 1000;
+        }
+        .error-message, .success-message {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+        .error-message { color: #dc2626; }
+        .success-message { color: #10b981; }
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .user-table th, .user-table td {
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .user-table th {
+            background-color: #eff6ff;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .user-table tbody tr:nth-child(even) { background-color: #f9fafb; }
+        .user-table tbody tr:hover { background-color: #f3f4f6; }
+        .user-table .action-btn {
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin-right: 0.25rem;
+        }
+        .user-table .delete-btn {
+            background-color: #EF4444;
+            color: white;
+        }
+        .user-table .delete-btn:hover {
+            background-color: #DC2626;
+        }
+        .user-table .deactivate-btn {
+            background-color: #9ca3af;
+            color: white;
+        }
+        .user-table .deactivate-btn:hover {
+            background-color: #6b7280;
+        }
+        .user-table .activate-btn {
+            background-color: #10b981;
+            color: white;
+        }
+        .user-table .activate-btn:hover {
+            background-color: #059669;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1a73e8;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-    <div id="messageBoxOverlay" class="message-box-overlay hidden">
-        <div class="message-box">
-            <div id="messageBoxSpinner" class="spinner hidden mx-auto mb-4"></div>
-            <h3 id="messageBoxTitle" class="text-xl font-semibold mb-4 text-center"></h3>
-            <p id="messageBoxContent" class="text-gray-700 mb-4 text-center"></p>
-            <div class="flex justify-center space-x-2">
-                <button id="messageBoxCloseBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Close</button>
-            </div>
-        </div>
-    </div>
-    
-    <header class="top-header">
-        <img id="header-logo" src="https://placehold.co/40x40/e5e7eb/6b7280?text=Logo" alt="Company Logo" class="logo">
-        <div class="title-text">ICEA LION QUALITY EVALUATION AND MONITORING</div>
-    </header>
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="spinner hidden mx-auto mb-4"></div>
+            <h3 id="messageBoxTitle" class="text-xl font-semibold mb-4 text-center"></h3>
+            <p id="messageBoxContent" class="text-gray-700 mb-4 text-center"></p>
+            <div class="flex justify-center space-x-2">
+                <button id="messageBoxCloseBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <header class="top-header">
+        <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
+        <img id="header-logo" src="https://placehold.co/40x40/e5e7eb/6b7280?text=Logo" alt="Company Logo" class="logo">
+    </header>
 
-    <nav class="main-nav" id="mainNav">
-        <div class="sidebar">
-            <ul id="sidebar-menu">
-                <li><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li><a href="index.html#myEvaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
-                <li id="database-nav-item"><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
-                <li id="reports-nav-item"><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                <li id="autofails-nav-item"><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li id="images-nav-item"><a href="index.html#images"><i class="fas fa-image"></i> Images</a></li>
-                <li id="users-nav-item"><a href="users.html" class="active"><i class="fas fa-users"></i> Users</a></li>
-                <li id="admin-nav-item"><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
-            </ul>
-            <button id="logoutBtn" class="logout-button">Logout</button>
-        </div>
-    </nav>
+    <nav class="main-nav" id="mainNav">
+        <div class="sidebar">
+            <ul id="sidebar-menu">
+                <li><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="index.html#myEvaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li id="database-nav-item"><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
+                <li id="reports-nav-item"><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li id="autofails-nav-item"><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li id="images-nav-item"><a href="index.html#images"><i class="fas fa-image"></i> Images</a></li>
+                <li id="users-nav-item"><a href="users.html" class="active"><i class="fas fa-users"></i> Users</a></li>
+                <li id="admin-nav-item"><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button">Logout</button>
+        </div>
+    </nav>
 
-    <div class="main-content" id="usersContent">
-        <div class="users-container">
-            <div class="icealion-blue p-4 text-xl font-semibold text-center">
-                User Management
-            </div>
-            <div class="p-6">
-                <p class="text-gray-700 mb-4">
-                    This section allows administrators to manage user accounts and their roles within the system.
-                </p>
-                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Manage Existing Users</h3>
-                <div class="overflow-x-auto">
-                    <table class="user-table min-w-full">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Email</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Role</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">UID</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody">
-                            <tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Add New User</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="new-user-email" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="new-user-email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="user@example.com">
-                    </div>
-                    <div>
-                        <label for="new-user-password" class="block text-sm font-medium text-gray-700">Initial Password</label>
-                        <input type="password" id="new-user-password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="••••••••">
-                    </div>
-                    <div>
-                        <label for="new-user-role" class="block text-sm font-medium text-gray-700">Role</label>
-                        <select id="new-user-role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border">
-                            <option value="">Select Role</option>
-                            <option value="agent">Agent</option>
-                            <option value="supervisor">Supervisor</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-                    <div class="col-span-1 md:col-span-2 text-right">
-                        <button id="addUserBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
-                            Add User
-                        </button>
-                    </div>
-                </div>
-                <div id="userMessage" class="error-message mt-4 hidden"></div>
-            </div>
-        </div>
-    </div>
+    <div class="main-content" id="usersContent">
+        <div class="users-container">
+            <div class="icealion-blue p-4 text-xl font-semibold text-center">
+                User Management
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-4">
+                    This section allows administrators to manage user accounts and their roles within the system.
+                </p>
+                
+                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Add New User</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label for="new-user-name" class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" id="new-user-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="John Doe">
+                    </div>
+                    <div>
+                        <label for="new-user-email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="new-user-email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="user@example.com">
+                    </div>
+                    <div>
+                        <label for="new-user-password" class="block text-sm font-medium text-gray-700">Initial Password</label>
+                        <input type="password" id="new-user-password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="••••••••">
+                    </div>
+                    <div>
+                        <label for="new-user-role" class="block text-sm font-medium text-gray-700">Role</label>
+                        <select id="new-user-role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border">
+                            <option value="">Select Role</option>
+                            <option value="agent">Agent</option>
+                            <option value="supervisor">Supervisor</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button id="addUserBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
+                        <i class="fas fa-user-plus mr-2"></i>Add User
+                    </button>
+                </div>
+                <div id="userMessage" class="error-message mt-4 hidden"></div>
 
-    <script type="module" src="firebase-config.js"></script>
-    <script type="module">
-        import { getAuth, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        
-        const { auth, db, appId, fs, showMessageBox, hideMessageBox, currentUserId, currentUserRole, userEmail, userPhoto } = window.firebase;
-        
-        // --- UI Elements ---
-        const loginPage = document.getElementById('loginPage');
-        const loginForm = document.getElementById('loginForm');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const loginMessage = document.getElementById('loginMessage');
-        const mainNav = document.getElementById('mainNav');
-        const usersContent = document.getElementById('usersContent');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const userTableBody = document.getElementById('userTableBody');
-        const newUsernameInput = document.getElementById('new-user-email');
-        const newPasswordInput = document.getElementById('new-user-password');
-        const newUserRoleSelect = document.getElementById('new-user-role');
-        const addUserBtn = document.getElementById('addUserBtn');
-        const userMessage = document.getElementById('userMessage');
+                <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Manage Existing Users</h3>
+                <div class="overflow-x-auto">
+                    <table class="user-table min-w-full">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Name</th>
+                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Email</th>
+                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Role</th>
+                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</th>
+                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            <tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // --- Functions ---
-        async function fetchAndRenderUsers() {
-            userTableBody.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>';
-            
-            if (window.currentUserRole !== 'admin') {
-                userTableBody.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-red-500">You do not have permission to view users. (Admin access required)</td></tr>';
-                return;
-            }
-            
-            try {
-                const usersCollectionRef = collection(db, `artifacts/${appId}/users`);
-                const querySnapshot = await getDocs(usersCollectionRef);
-                const users = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-                
-                userTableBody.innerHTML = '';
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module">
+        import { getAuth, signOut, signInAnonymously, createUserWithEmailAndPassword, updatePassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, deleteDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-functions.js";
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+          authDomain: "icea-lion-qa.firebaseapp.com",
+          projectId: "icea-lion-qa",
+          storageBucket: "icea-lion-qa.firebasestorage.app",
+          messagingSenderId: "820082472004",
+          appId: "1:820082472004:web:8caddf941e1b5b667faf811",
+          measurementId: "G-1RJJTT3QET"
+        };
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
-                if (users.length === 0) {
-                    userTableBody.innerHTML = '<tr><td colspan="4" class="py-4 px-4 text-center text-gray-500">No users found.</td></tr>';
-                    return;
-                }
-                users.forEach(user => {
-                    const row = userTableBody.insertRow();
-                    row.className = 'border-b border-gray-200';
-                    row.dataset.uid = user.uid;
-                    row.innerHTML = `
-                        <td class="py-2 px-4">${user.email || 'N/A'}</td>
-                        <td class="py-2 px-4">${user.role || 'N/A'}</td>
-                        <td class="py-2 px-4 text-xs font-mono text-gray-600">${user.uid}</td>
-                        <td class="py-2 px-4">
-                            <button class="action-btn delete-btn bg-red-500 hover:bg-red-600 text-white" onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
-                        </td>
-                    `;
-                });
-            } catch (error) {
-                console.error("Error fetching users:", error);
-                userTableBody.innerHTML = `<tr><td colspan="4" class="py-4 px-4 text-center text-red-500">Failed to load users: ${error.message}</td></tr>`;
-                showMessageBox("Error", `Failed to load users: ${error.message}`, true, false, true);
-            }
-        }
-        
-        window.deleteUser = async function(uid, email) {
-            const confirmed = await new Promise(resolve => {
-                const modal = document.createElement('div');
-                modal.className = 'message-box-overlay';
-                modal.innerHTML = `
-                    <div class="message-box">
-                        <h3 class="text-xl font-semibold mb-4 text-center">Confirm Deletion</h3>
-                        <p class="text-gray-700 mb-4 text-center">Are you sure you want to delete user <b>${email}</b>?</p>
-                        <div class="flex justify-center space-x-2">
-                            <button id="confirmDeleteBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Delete</button>
-                            <button id="cancelDeleteBtn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md">Cancel</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-                document.getElementById('confirmDeleteBtn').onclick = () => { modal.remove(); resolve(true); };
-                document.getElementById('cancelDeleteBtn').onclick = () => { modal.remove(); resolve(false); };
-            });
+        let appInstance;
+        if (!getApps().length) {
+            appInstance = initializeApp(firebaseConfig);
+        } else {
+            appInstance = getApp();
+        }
+        const auth = getAuth(appInstance);
+        const db = getFirestore(appInstance);
+        
+        // --- UI Elements ---
+        const loginPage = document.getElementById('loginPage');
+        const mainNav = document.getElementById('mainNav');
+        const usersContent = document.getElementById('usersContent');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userTableBody = document.getElementById('userTableBody');
+        const newNameInput = document.getElementById('new-user-name');
+        const newEmailInput = document.getElementById('new-user-email');
+        const newPasswordInput = document.getElementById('new-user-password');
+        const newUserRoleSelect = document.getElementById('new-user-role');
+        const addUserBtn = document.getElementById('addUserBtn');
+        const userMessage = document.getElementById('userMessage');
 
-            if (!confirmed) return;
-            
-            showMessageBox("Deleting User", `Deleting user ${email}...`, false, true, false);
-            try {
-                // This is a crucial security note:
-                // We are only deleting the Firestore profile here.
-                // A real-world application would use a Cloud Function to delete the Auth user.
-                const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
-                await deleteDoc(userDocRef);
-                
-                hideMessageBox();
-                showMessageBox("Success", `User '${email}' deleted successfully! (Note: Auth account still exists)`, false, false, true);
-                fetchAndRenderUsers();
-            } catch (error) {
-                hideMessageBox();
-                console.error("Error deleting user:", error);
-                showMessageBox("Error", `Failed to delete user: ${error.message}`, true, false, true);
-            }
-        };
+        let currentUserRole = null;
+        
+        // Helper to display a custom message box
+        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+            const messageBoxTitle = document.getElementById('messageBoxTitle');
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+            
+            messageBoxTitle.textContent = title;
+            messageBoxContent.textContent = message;
+            messageBoxOverlay.classList.remove('hidden');
+            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
 
-        // --- Event Listeners and Page Initialization ---
-        document.addEventListener('DOMContentLoaded', function() {
-            const checkAndRender = () => {
-                if (window.isAuthReady) {
-                    if (window.currentUserRole === 'admin') {
-                        loginPage.style.display = 'none';
-                        mainNav.style.display = 'block';
-                        usersContent.style.display = 'block';
-                        fetchAndRenderUsers();
-                    } else {
-                        window.location.href = 'index.html';
-                    }
-                }
-            };
-            
-            document.addEventListener('firebaseAuthReady', checkAndRender);
-            
-            logoutBtn.addEventListener('click', async () => {
-                await signOut(auth);
-                window.location.href = 'index.html';
-            });
-            
-            addUserBtn.addEventListener('click', async () => {
-                userMessage.textContent = '';
-                userMessage.classList.add('hidden');
-                
-                const email = newUsernameInput.value.trim();
-                const password = newPasswordInput.value.trim();
-                const role = newUserRoleSelect.value;
-                
-                if (!email || !password || !role) {
-                    showMessageBox("Error", "Please fill in all fields (Email, Password, Role).", true, false, true);
-                    return;
-                }
-                
-                if (window.currentUserRole !== 'admin') {
-                    showMessageBox("Permission Denied", "Only admins can add new users.", true, false, true);
-                    return;
-                }
-                
-                showMessageBox("Adding User", "Creating user...", false, true, false);
-                
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const uid = userCredential.user.uid;
-                    
-                    const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
-                    await setDoc(userDocRef, {
-                        email: email,
-                        role: role
-                    });
-                    
-                    hideMessageBox();
-                    showMessageBox("Success", `User '${email}' created with role '${role}'.`, false, false, true);
-                    newUsernameInput.value = '';
-                    newPasswordInput.value = '';
-                    newUserRoleSelect.value = '';
-                    fetchAndRenderUsers();
-                } catch (error) {
-                    hideMessageBox();
-                    console.error("Error creating user:", error);
-                    let errorMessage = 'Failed to create user. Please try again.';
-                    if (error.code === 'auth/email-already-in-use') {
-                        errorMessage = 'An account with this email already exists.';
-                    } else if (error.code === 'auth/weak-password') {
-                        errorMessage = 'Password is too weak. Must be at least 6 characters.';
-                    }
-                    showMessageBox("Error", errorMessage, true, false, true);
-                }
-            });
-            
-            const navItems = {
-                'auditFormTab': 'index.html',
-                'myEvaluationsTab': 'index.html#myEvaluations',
-                'databaseTab': 'index.html#database',
-                'reportsTab': 'reports.html',
-                'autofailsTab': 'autofails.html',
-                'imagesTab': 'index.html#images',
-                'usersTab': 'users.html',
-                'adminTab': 'admin.html'
-            };
+            if (isError) {
+                messageBoxTitle.style.color = '#dc2626';
+            } else {
+                messageBoxTitle.style.color = '#1a73e8';
+            }
 
-            Object.keys(navItems).forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        window.location.href = navItems[id];
-                    });
-                }
-            });
-        });
-    </script>
+            messageBoxCloseBtn.onclick = null;
+            if (showCloseButton) {
+                messageBoxCloseBtn.onclick = () => {
+                    messageBoxOverlay.classList.add('hidden');
+                    if (onClose) onClose();
+                };
+            }
+        }
+        function hideMessageBox() {
+            document.getElementById('messageBoxOverlay').classList.add('hidden');
+        }
+
+        async function fetchAndRenderUsers() {
+            userTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>';
+            
+            if (currentUserRole !== 'admin') {
+                userTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">You do not have permission to view users. (Admin access required)</td></tr>';
+                return;
+            }
+            
+            try {
+                const usersCollectionRef = collection(db, `artifacts/${appId}/users`);
+                const querySnapshot = await getDocs(usersCollectionRef);
+                const users = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+                
+                userTableBody.innerHTML = '';
+                if (users.length === 0) {
+                    userTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No users found.</td></tr>';
+                    return;
+                }
+                users.forEach(user => {
+                    const row = userTableBody.insertRow();
+                    row.className = 'border-b border-gray-200';
+                    const statusText = user.isActive === false ? 'Deactivated' : 'Active';
+                    const statusClass = user.isActive === false ? 'text-red-500' : 'text-green-500';
+                    const actionButton = user.isActive === false
+                        ? `<button class="action-btn activate-btn" onclick="window.toggleUserStatus('${user.uid}', true)">Activate</button>`
+                        : `<button class="action-btn deactivate-btn" onclick="window.toggleUserStatus('${user.uid}', false)">Deactivate</button>`;
+                    
+                    row.innerHTML = `
+                        <td class="py-2 px-4">${user.name || 'N/A'}</td>
+                        <td class="py-2 px-4">${user.email || 'N/A'}</td>
+                        <td class="py-2 px-4">${user.role || 'N/A'}</td>
+                        <td class="py-2 px-4"><span class="${statusClass}">${statusText}</span></td>
+                        <td class="py-2 px-4">
+                            ${actionButton}
+                            <button class="action-btn delete-btn" onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
+                        </td>
+                    `;
+                });
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                userTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Failed to load users: ${error.message}</td></tr>`;
+                showMessageBox("Error", `Failed to load users: ${error.message}`, true, false, true);
+            }
+        }
+        
+        window.deleteUser = async function(uid, email) {
+            const confirmed = await new Promise(resolve => {
+                const modal = document.createElement('div');
+                modal.className = 'message-box-overlay';
+                modal.innerHTML = `
+                    <div class="message-box">
+                        <h3 class="text-xl font-semibold mb-4 text-center">Confirm Deletion</h3>
+                        <p class="text-gray-700 mb-4 text-center">Are you sure you want to delete user <b>${email}</b>?</p>
+                        <div class="flex justify-center space-x-2">
+                            <button id="confirmDeleteBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Delete</button>
+                            <button id="cancelDeleteBtn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                document.getElementById('confirmDeleteBtn').onclick = () => { modal.remove(); resolve(true); };
+                document.getElementById('cancelDeleteBtn').onclick = () => { modal.remove(); resolve(false); };
+            });
+
+            if (!confirmed) return;
+            
+            showMessageBox("Deleting User", `Deleting user ${email}...`, false, true, false);
+            try {
+                // IMPORTANT: This only deletes the Firestore profile. Auth user needs a Cloud Function to be deleted.
+                const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
+                await deleteDoc(userDocRef);
+                
+                hideMessageBox();
+                showMessageBox("Success", `User '${email}' deleted successfully! (Note: Auth account still exists)`, false, false, true);
+                fetchAndRenderUsers();
+            } catch (error) {
+                hideMessageBox();
+                console.error("Error deleting user:", error);
+                showMessageBox("Error", `Failed to delete user: ${error.message}`, true, false, true);
+            }
+        };
+
+        window.toggleUserStatus = async function(uid, isActive) {
+            if (currentUserRole !== 'admin') {
+                showMessageBox("Permission Denied", "Only admins can change user status.", true, false, true);
+                return;
+            }
+            
+            const action = isActive ? 'Activating' : 'Deactivating';
+            const message = isActive ? `Activating user with UID: ${uid}` : `Deactivating user with UID: ${uid}`;
+            showMessageBox(action, message, false, true, false);
+            
+            try {
+                const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
+                await updateDoc(userDocRef, {
+                    isActive: isActive
+                });
+                hideMessageBox();
+                showMessageBox("Success", `User status updated successfully!`, false, false, true);
+            } catch (error) {
+                hideMessageBox();
+                console.error("Error toggling user status:", error);
+                showMessageBox("Error", `Failed to update user status: ${error.message}`, true, false, true);
+            }
+        };
+        
+        async function createNewUser() {
+            userMessage.textContent = '';
+            userMessage.classList.add('hidden');
+            
+            const name = newNameInput.value.trim();
+            const email = newEmailInput.value.trim();
+            const password = newPasswordInput.value.trim();
+            const role = newUserRoleSelect.value;
+            
+            if (!name || !email || !password || !role) {
+                showMessageBox("Error", "Please fill in all fields (Name, Email, Password, Role).", true, false, true);
+                return;
+            }
+            
+            if (currentUserRole !== 'admin') {
+                showMessageBox("Permission Denied", "Only admins can add new users.", true, false, true);
+                return;
+            }
+            
+            showMessageBox("Adding User", "Creating user...", false, true, false);
+            
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const uid = userCredential.user.uid;
+                
+                const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
+                await setDoc(userDocRef, {
+                    name: name,
+                    email: email,
+                    role: role,
+                    isActive: true, // New users are active by default
+                    createdAt: new Date()
+                });
+                
+                hideMessageBox();
+                showMessageBox("Success", `User '${email}' created with role '${role}'.`, false, false, true);
+                newNameInput.value = '';
+                newEmailInput.value = '';
+                newPasswordInput.value = '';
+                newUserRoleSelect.value = '';
+                fetchAndRenderUsers();
+            } catch (error) {
+                hideMessageBox();
+                console.error("Error creating user:", error);
+                let errorMessage = 'Failed to create user. Please try again.';
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'An account with this email already exists.';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Password is too weak. Must be at least 6 characters.';
+                }
+                showMessageBox("Error", errorMessage, true, false, true);
+            }
+        }
+
+        // --- Event Listeners and Page Initialization ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkAndRender = () => {
+                const user = auth.currentUser;
+                if (user) {
+                    const userProfileDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
+                    getDoc(userProfileDocRef).then(docSnap => {
+                        currentUserRole = docSnap.exists() ? docSnap.data().role : null;
+                        if (currentUserRole === 'admin') {
+                            loginPage.style.display = 'none';
+                            mainNav.style.display = 'block';
+                            usersContent.style.display = 'block';
+                            fetchAndRenderUsers();
+                        } else {
+                            window.location.href = 'index.html'; // Redirect non-admins
+                        }
+                    }).catch(error => {
+                        console.error("Error fetching user role:", error);
+                        window.location.href = 'index.html';
+                    });
+                } else {
+                    window.location.href = 'index.html';
+                }
+            };
+            
+            // Check auth state on page load
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    checkAndRender();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            });
+            
+            logoutBtn.addEventListener('click', async () => {
+                await signOut(auth);
+                window.location.href = 'index.html';
+            });
+            
+            addUserBtn.addEventListener('click', createNewUser);
+        });
+    </script>
 </body>
 </html>
