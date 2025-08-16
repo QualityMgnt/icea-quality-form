@@ -525,7 +525,7 @@
             </div>
             <div>
                 <label for="cer-email" class="block top-field-label">CER Email</label>
-                <input type="email" id="cer-email" name="CER Email" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" readonly required>
+                <input type="email" id="cer-email" name="CER Email" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" placeholder="e.g., cer.name@icealion.com" readonly required>
             </div>
             <div>
                 <label for="cer-role" class="block top-field-label">CER Role</label>
@@ -1702,71 +1702,7 @@
             console.log("latestSavedRecordId after addRecordToFirestore:", latestSavedRecordId);
 
             if (latestSavedRecordId) {
-                showMessageBox("Generating PDF", "Form saved. Generating PDF and uploading to storage...", false, true, false);
-                try {
-                    const canvas = await generateFormPdf();
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF({
-                        orientation: 'portrait',
-                        unit: 'mm',
-                        format: 'a4'
-                    });
-
-                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
-                    const imgWidth = 210;
-                    const pageHeight = 297;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    let heightLeft = imgHeight;
-                    let position = 0;
-
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-
-                    while (heightLeft >= 0) {
-                        position = heightLeft - pageHeight;
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                    }
-
-                    const pdfBlob = new Blob([pdf.output('arraybuffer')], { type: 'application/pdf' });
-                    const pdfStoragePath = `pdfs/${latestSavedRecordId}.pdf`;
-                    const storageRef = ref(storage, pdfStoragePath);
-
-                    await uploadBytes(storageRef, pdfBlob);
-                    const downloadURL = await getDownloadURL(storageRef);
-
-                    await updateDoc(doc(db, EVALUATION_RECORDS_COLLECTION_PATH, latestSavedRecordId), {
-                        pdfAttachmentUrl: downloadURL,
-                        pdfStoragePath: pdfStoragePath
-                    });
-
-                    showMessageBox("Success", `Form saved, PDF uploaded to storage, and downloaded!`, false, false, true);
-                    
-                    const link = document.createElement('a');
-                    link.href = downloadURL;
-                    link.download = `Quality_Assessment_${contactId || 'Record'}_${new Date().toLocaleDateString('en-CA')}.pdf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                } catch (pdfError) {
-                    console.error("Error generating or uploading PDF:", pdfError);
-                    if (pdfError.code && (pdfError.code === 'storage/unauthorized' || pdfError.message.includes('CORS policy'))) {
-                        showMessageBox(
-                            "PDF Upload Failed (CORS Issue)",
-                            `Form saved, but PDF upload to Firebase Storage failed due to a CORS policy issue. ` +
-                            `Please ensure your Firebase Storage bucket has the correct CORS configuration for 'https://qualitymgnt.github.io'. ` +
-                            `Refer to Firebase Storage documentation for setting CORS policies (using gsutil).`,
-                            true, false, true
-                        );
-                    } else {
-                        showMessageBox("PDF Action Failed", `Form saved, but PDF generation/upload failed: ${pdfError.message}.`, true, false, true);
-                    }
-                }
-
-            } else {
-                console.log("Record not saved.");
+                showMessageBox("Success", "Form data saved successfully to database!", false, false, true);
             }
         };
 
@@ -2045,8 +1981,9 @@
          * Fetches users from Firestore and populates CER/Reviewer dropdowns.
          */
         async function fetchUsers() {
-            if (!db) {
-                console.warn("Firestore not ready. Skipping user data fetch.");
+            // Only attempt to fetch users if a user is logged in
+            if (!db || !auth.currentUser) {
+                console.warn("Not logged in. Skipping user data fetch for dropdowns.");
                 return;
             }
             if (unsubscribeUsers) unsubscribeUsers();
