@@ -3,21 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - ICEA LION GROUP</title>
+    <title>Dashboard - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+
 
     <style>
         /* Base styles */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Garamond', serif;
             display: flex;
             align-items: flex-start;
             min-height: 100vh;
             background-color: #f3f4f6;
             margin: 0;
             padding: 0;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
+
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
         }
 
         /* ICEALION Branding Colors */
@@ -29,20 +40,6 @@
             color: #f57c00;
         }
 
-        /* Error/Message styles */
-        .error-message {
-            color: #dc2626;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            text-align: center;
-        }
-        .success-message {
-            color: #10b981;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            text-align: center;
-        }
-
         /* NEW TOP HEADER (Consistent across all pages) */
         .top-header {
             position: fixed;
@@ -50,55 +47,46 @@
             left: 0;
             width: 100%;
             height: 48px;
-            background-color: #800080;
+            background-color: #000080; /* Navy Blue */
             color: white;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             font-size: 1.125rem;
             font-weight: 600;
             z-index: 1000;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0 1rem;
+        }
+        .top-header img {
+            height: 40px;
+            width: auto;
         }
 
         /* Navigation styles (consistent sidebar) */
         .main-nav {
-            width: auto;
-            background-color: transparent;
-            color: inherit;
-            padding: 0;
-            display: block;
-            box-shadow: none;
+            width: 125px;
+            background-color: #000080;
+            color: white;
+            padding: 1rem 0;
             height: calc(100vh - 48px);
             position: fixed;
             top: 48px;
             left: 0;
             z-index: 100;
-        }
-
-        .sidebar {
-            width: 125px;
-            background-color: #800080;
-            color: white;
-            padding: 1rem 0;
-            height: 100%;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
-
         .sidebar ul {
             list-style: none;
             margin: 0;
             padding: 0;
             flex-grow: 1;
         }
-        .sidebar ul li {
-            margin-right: 0;
-            margin-bottom: 0.5rem;
-        }
         .sidebar ul li a {
+            font-family: 'Garamond', serif;
             color: white;
             text-decoration: none;
             font-weight: 500;
@@ -120,9 +108,11 @@
 
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #0d47a1;
+            background-color: #000050;
         }
-
+        .sidebar ul li.nav-tab {
+            display: none;
+        }
         .logout-button {
             background-color: #f57c00;
             color: white;
@@ -140,393 +130,225 @@
             background-color: #e65100;
         }
 
-        /* Main content area for admin.html */
+        /* Main content area for Dashboard.html */
         .main-content {
             margin-left: 125px;
             margin-top: 48px;
             width: calc(100% - 125px);
             min-height: calc(100vh - 48px);
             box-sizing: border-box;
+            padding: 1.5rem;
         }
-        .admin-container {
+        
+        .dashboard-container {
             background-color: white;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 0.5rem;
             overflow: hidden;
-            margin-bottom: 2rem;
-            max-width: 900px;
-            margin: 0 auto;
+            padding: 1.5rem;
         }
 
-        /* Login Container (re-used for this page) */
-        .login-container {
+        /* KPI Card styles */
+        .kpi-card {
+            background-color: #f0f9ff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 150px;
+        }
+        .kpi-card .icon {
+            font-size: 2.5rem;
+            color: #1a73e8;
+            margin-bottom: 0.5rem;
+        }
+        .kpi-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .kpi-card .label {
+            font-size: 0.9rem;
+            color: #4b5563;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        /* Chart container styles */
+        .chart-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .chart-container h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .chart-container svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Loader styles */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Message box styles (copied from index.html for consistency) */
+        .message-box-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
             display: flex;
-            align-items: center;
             justify-content: center;
-            background-color: rgba(243, 244, 246, 0.95);
+            align-items: center;
             z-index: 1000;
         }
-
-        /* Admin section styling */
-        .admin-section {
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            padding: 24px;
-            margin-bottom: 24px;
-            width: 100%;
-        }
-
-        .admin-section h2 {
-            color: #0d47a1;
-            font-size: 1.75rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .form-group-admin {
-            margin-bottom: 16px;
-        }
-
-        .form-group-admin label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: #4a5568;
-        }
-
-        .form-group-admin input[type="text"],
-        .form-group-admin input[type="email"],
-        .form-group-admin input[type="number"],
-        .form-group-admin select,
-        .form-group-admin textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #cbd5e0;
-            border-radius: 6px;
-            font-size: 1rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .form-group-admin input[type="text"]:focus,
-        .form-group-admin input[type="email"]:focus,
-        .form-group-admin input[type="number"]:focus,
-        .form-group-admin select:focus,
-        .form-group-admin textarea:focus {
-            outline: none;
-            border-color: #4299e1;
-            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
-        }
-
-        .admin-btn {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            margin-top: 8px;
-        }
-
-        .admin-btn-primary {
-            background-color: #3182ce;
-            color: white;
-        }
-
-        .admin-btn-primary:hover {
-            background-color: #2b6cb0;
-        }
-
-        .admin-btn-danger {
-            background-color: #e53e3e;
-            color: white;
-        }
-
-        .admin-btn-danger:hover {
-            background-color: #c53030;
-        }
-
-        .admin-message {
-            margin-top: 16px;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: 500;
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             text-align: center;
+            max-width: 400px;
+            width: 90%;
         }
-
-        .admin-message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .admin-message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .current-items-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #eee;
-            padding-top: 5px;
-            padding-bottom: 5px;
-            border-radius: 5px;
-        }
-        .current-items-list li {
-            padding: 8px 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #f0f0f0;
-            cursor: pointer;
-        }
-        .current-items-list li:last-child {
-            border-bottom: none;
-        }
-        .current-items-list li.selected {
-            background-color: #bfdbfe;
+        .message-box h3 {
+            font-size: 1.25rem;
             font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a73e8;
         }
-        .current-items-list li .item-text {
-            flex-grow: 1;
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #333;
         }
-        .current-items-list li button {
-            margin-left: 10px;
-            padding: 4px 8px;
-            font-size: 0.8em;
+        .message-box button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
         }
-        /* Flex container for checkbox and label */
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 10px;
+        .message-box button:hover {
+            background-color: #0d47a1;
+        }
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-    <!-- NEW TOP HEADER BAR -->
     <div class="top-header">
-        ICEA LION QUALITY EVALUATION AND MONITORING
+        <span>ICEA LION QUALITY EVALUATION AND MONITORING</span>
+        <img id="header-logo" src="https://placehold.co/40x40/e5e7eb/6b7280?text=Logo" alt="Company Logo" class="logo">
     </div>
 
-    <!-- Main Navigation / Sidebar -->
-    <nav class="main-nav" id="mainNav">
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="loader hidden"></div>
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseBtn" class="hidden">OK</button>
+        </div>
+    </div>
+
+    <nav class="main-nav" id="mainNav" style="display: none;">
         <div class="sidebar">
-            <ul>
-                <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li><a href="Dashboard.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Dashboard</a></li> <!-- Updated link -->
-                <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="admin.html" id="adminTab" class="active"><i class="fas fa-user-cog"></i> Admin</a></li>
+            <ul id="sidebar-menu">
+                <li class="nav-tab" data-role="all"><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li class="nav-tab" data-role="admin"><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+                <li class="nav-tab" data-role="all"><a href="myEvaluations.html" id="myEvaluationsTab"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li class="nav-tab" data-role="admin"><a href="Dashboard.html" id="reportsTab" class="active"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li class="nav-tab" data-role="admin"><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li class="nav-tab" data-role="admin"><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
+                <li class="nav-tab" data-role="all"><a href="images.html" id="imagesTab"><i class="fas fa-image"></i> Images</a></li>
+                <li class="nav-tab" data-role="admin"><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
+                <li class="nav-tab" data-role="admin"><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
     </nav>
 
-    <!-- Login Page (re-used from index.html) -->
-    <div class="login-container" id="loginPage" style="display: none;">
-        <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-md">
-            <div class="icealion-blue p-6 rounded-t-lg text-center">
-                <h1 class="text-2xl font-semibold">ICEALION GROUP Login</h1>
+    <div class="main-content" id="reportsContent">
+        <div class="dashboard-container">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Quality Control Dashboard</h2>
+
+            <!-- KPI Cards Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="kpi-card">
+                    <i class="fas fa-clipboard-list icon"></i>
+                    <div class="value" id="totalEvaluations">0</div>
+                    <div class="label">Total Evaluations</div>
+                </div>
+                <div class="kpi-card">
+                    <i class="fas fa-users-cog icon"></i>
+                    <div class="value" id="teamAverageScore">0%</div>
+                    <div class="label">Team Average Score</div>
+                </div>
+                <div class="kpi-card">
+                    <i class="fas fa-star icon"></i>
+                    <div class="value" id="perfectScores">0</div>
+                    <div class="label">Perfect Scores (100%)</div>
+                </div>
+                <div class="kpi-card">
+                    <i class="fas fa-arrow-alt-circle-down icon"></i>
+                    <div class="value" id="belowAverage">0</div>
+                    <div class="label">Below Average (< 70%)</div>
+                </div>
             </div>
 
-            <form id="loginForm" class="p-8 space-y-6">
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="username" name="username"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                           required placeholder="Enter your username">
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" name="password"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                           required placeholder="Enter your password">
-                </div>
-                <button type="button" id="loginButton"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                    Login
-                </button>
-                <div id="loginMessage" class="error-message hidden"></div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Main Content Area for Admin -->
-    <div class="main-content" id="adminContent">
-        <div class="admin-container">
-            <div class="icealion-blue p-4 text-xl font-semibold text-center">
-                Admin Panel - Configuration
-            </div>
-            <div class="p-6">
-                <p class="text-gray-700 mb-6">
-                    Use this section to manage the dynamic dropdown options and assessment questions.
-                </p>
-
-                <!-- Dropdown Type Management Section -->
-                <div class="admin-section mb-6">
-                    <h2>Manage General Dropdowns</h2>
-                    <div class="form-group-admin">
-                        <label for="dropdownTypeSelect">Choose a dropdown to manage:</label>
-                        <select id="dropdownTypeSelect" class="block w-full">
-                            <option value="">-- Select a dropdown type --</option>
-                            <option value="cerNames">CER Names</option>
-                            <option value="cerRoles">CER Roles</option>
-                            <option value="reviewerNames">Reviewer Names</option>
-                            <option value="autofailTypes">Autofail Types</option>
-                        </select>
-                    </div>
-
-                    <div id="manageDropdownValuesSection" style="display: none;">
-                        <h3 id="currentDropdownTitle" class="text-lg font-semibold text-gray-800 mb-2">Manage Items</h3>
-                        <div class="form-group-admin">
-                            <label>Current Items:</label>
-                            <ul id="currentDropdownItems" class="current-items-list">
-                                <!-- Dynamically populated list -->
-                                <li>No items loaded. Select a dropdown type.</li>
-                            </ul>
-                        </div>
-
-                        <div class="form-group-admin mt-4">
-                            <label for="newDropdownValue">Add New Item:</label>
-                            <input type="text" id="newDropdownValue" placeholder="Enter new item name">
-                            <input type="email" id="newDropdownEmail" class="mt-2" placeholder="Enter email (for CER Names only)" style="display: none;">
-                        </div>
-
-                        <button class="admin-btn admin-btn-primary" id="addDropdownValueBtn">Add Item</button>
-                        <button class="admin-btn admin-btn-danger ml-2" id="removeDropdownValueBtn">Remove Selected Items</button>
-                        <div id="dropdownMessage" class="admin-message hidden"></div>
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="chart-container">
+                    <h3>Key Issues Identified</h3>
+                    <div id="keyIssuesChart" class="w-full h-full flex items-center justify-center">
+                        <p class="text-gray-500">Loading chart...</p>
                     </div>
                 </div>
-
-                <!-- Question Management Section -->
-                <div class="admin-section mb-6">
-                    <h2>Manage Questions</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-group-admin">
-                            <label for="questionRoleSelect">CER Role:</label>
-                            <select id="questionRoleSelect" class="block w-full">
-                                <option value="">-- Select CER Role --</option>
-                                <!-- Populated dynamically from cerRoles -->
-                            </select>
-                        </div>
-                        <div class="form-group-admin">
-                            <label for="questionSectionSelect">Section Type:</label>
-                            <select id="questionSectionSelect" class="block w-full">
-                                <option value="">-- Select Section --</option>
-                                <option value="CUSTOMER EXPERIENCE">CUSTOMER EXPERIENCE</option>
-                                <option value="PROBLEM SOLVING SKILLS">PROBLEM SOLVING SKILLS</option>
-                                <option value="COMPLIANCE AND BUSINESS CRITICAL ACCURACY">COMPLIANCE AND BUSINESS CRITICAL ACCURACY</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="manageQuestionsSubsection" style="display: none;">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-2 mt-4">Current Questions for Selected Role & Section:</h3>
-                        <ul id="currentQuestionsList" class="current-items-list">
-                            <li>Select a CER Role and Section to view questions.</li>
-                        </ul>
-
-                        <h3 class="text-lg font-semibold text-gray-800 mb-2 mt-6">Add New Question:</h3>
-                        <div class="form-group-admin">
-                            <label for="newQuestionDescription">Description:</label>
-                            <textarea id="newQuestionDescription" rows="2" placeholder="Enter question description"></textarea>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="form-group-admin">
-                                <label for="newQuestionWeightage">Weightage:</label>
-                                <input type="number" id="newQuestionWeightage" min="1" max="100" placeholder="e.g., 10">
-                            </div>
-                            <div class="form-group-admin">
-                                <label for="newQuestionDefaultRating">Default Rating:</label>
-                                <select id="newQuestionDefaultRating" class="block w-full">
-                                    <option value="Yes">Yes</option>
-                                    <option value="No">No</option>
-                                    <option value="N/A">N/A</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="checkbox-container">
-                            <input type="checkbox" id="newQuestionAutofail" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
-                            <label for="newQuestionAutofail" class="font-medium text-gray-700">Autofail (if rated 'No')</label>
-                        </div>
-
-                        <button class="admin-btn admin-btn-primary" id="addQuestionBtn">Add Question</button>
-                        <button class="admin-btn admin-btn-danger ml-2" id="removeQuestionBtn">Remove Selected Questions</button>
-                        <div id="questionMessage" class="admin-message hidden"></div>
+                <div class="chart-container">
+                    <h3>Top Employees by Call Quality</h3>
+                    <div id="topEmployeesChart" class="w-full h-full flex items-center justify-center">
+                        <p class="text-gray-500">Loading chart...</p>
                     </div>
                 </div>
-
-                <!-- NEW: Custom Form Fields Management Section -->
-                <div class="admin-section">
-                    <h2>Manage Custom Form Fields</h2>
-                    <div class="form-group-admin">
-                        <label for="customFieldTypeSelect">Field Type:</label>
-                        <select id="customFieldTypeSelect" class="block w-full">
-                            <option value="">-- Select Field Type --</option>
-                            <option value="text">Text Box</option>
-                            <option value="select">Dropdown</option>
-                        </select>
-                    </div>
-
-                    <div id="customFieldDetails" style="display: none;">
-                        <div class="form-group-admin">
-                            <label for="customFieldLabel">Field Label:</label>
-                            <input type="text" id="customFieldLabel" placeholder="e.g., Customer Segment">
-                        </div>
-                        <div class="form-group-admin">
-                            <label for="customFieldId">Field ID (Unique):</label>
-                            <input type="text" id="customFieldId" placeholder="e.g., customer-segment (no spaces/special chars)">
-                            <p class="text-sm text-gray-500 mt-1">This will be used as the internal identifier. Use lowercase, no spaces.</p>
-                        </div>
-                        <div class="form-group-admin">
-                            <label for="customFieldOrder">Display Order:</label>
-                            <input type="number" id="customFieldOrder" min="0" value="0" placeholder="e.g., 1">
-                            <p class="text-sm text-gray-500 mt-1">Higher numbers appear later in the form.</p>
-                        </div>
-                        <div class="checkbox-container">
-                            <input type="checkbox" id="customFieldRequired" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
-                            <label for="customFieldRequired" class="font-medium text-gray-700">Required Field</label>
-                        </div>
-                        <div class="form-group-admin mt-4" id="customFieldOptionsContainer" style="display: none;">
-                            <label for="customFieldOptions">Dropdown Options (comma-separated):</label>
-                            <textarea id="customFieldOptions" rows="3" placeholder="Option 1, Option 2, Option 3"></textarea>
-                            <p class="text-sm text-gray-500 mt-1">Enter options separated by commas (e.g., 'High, Medium, Low').</p>
-                        </div>
-                        <button class="admin-btn admin-btn-primary" id="addCustomFieldBtn">Add Custom Field</button>
-                        <button class="admin-btn admin-btn-danger ml-2" id="removeCustomFieldBtn">Remove Selected Fields</button>
-                        <div id="customFieldMessage" class="admin-message hidden"></div>
-                    </div>
-
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2 mt-4">Current Custom Fields:</h3>
-                    <ul id="currentCustomFieldsList" class="current-items-list">
-                        <li>No custom fields added yet.</li>
-                    </ul>
-                </div>
-
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK (for Firestore and Auth) -->
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut, getRedirectResult, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, query, getDocs, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -535,13 +357,11 @@
             projectId: "icea-lion-qa",
             storageBucket: "icea-lion-qa.firebasestorage.app",
             messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b667faf811", // Consistent App ID
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
             measurementId: "G-1RJJTT3QET"
         };
-
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
-        // Initialize Firebase App and Services ONCE
         let appInstance;
         if (!getApps().length) {
             appInstance = initializeApp(firebaseConfig);
@@ -551,792 +371,404 @@
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
 
-        // Define Firestore Paths
-        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
-        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
-        const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations'); // NEW: Custom fields config doc
+        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
 
-        // Global variables for admin page state
-        let currentDropdownData = {
-            cerNames: [],
-            cerRoles: [],
-            reviewerNames: [],
-            autofailTypes: []
-        };
-        let allRolesQuestions = {};
-        let customFormFields = []; // NEW: Stores custom form field configurations
+        let allRecords = [];
         let currentUserRole = null;
-        let unsubscribeDropdownListener = null;
-        let unsubscribeQuestionsListener = null;
-        let unsubscribeCustomFieldsListener = null; // NEW: Listener for custom fields
 
         // --- Utility Functions ---
-        const showMessage = (element, message, type) => {
-            element.textContent = message;
-            element.classList.remove('hidden', 'success', 'error');
-            element.classList.add(type);
-            setTimeout(() => { element.classList.add('hidden'); }, 3000);
-        };
+        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+            const messageBoxTitle = document.getElementById('messageBoxTitle');
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
 
-        const showLoginErrorMessage = (message) => {
-            document.getElementById('loginMessage').textContent = message;
-            document.getElementById('loginMessage').classList.remove('hidden');
-        };
+            messageBoxTitle.textContent = title;
+            messageBoxContent.textContent = message;
 
-        const hideLoginErrorMessage = () => {
-            document.getElementById('loginMessage').classList.add('hidden');
-            document.getElementById('loginMessage').textContent = '';
-        };
+            messageBoxOverlay.classList.remove('hidden');
+            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
 
-        // --- Authentication Logic ---
-        const initializeAdminPage = () => {
-            const loginPage = document.getElementById('loginPage');
+            if (isError) {
+                messageBoxTitle.style.color = '#dc2626';
+            } else {
+                messageBoxTitle.style.color = '#1a73e8';
+            }
+
+            messageBoxCloseBtn.onclick = null;
+            if (showCloseButton) {
+                messageBoxCloseBtn.onclick = () => {
+                    messageBoxOverlay.classList.add('hidden');
+                    if (onClose) onClose();
+                };
+            }
+        }
+
+        function hideMessageBox() {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            messageBoxOverlay.classList.add('hidden');
+        }
+        
+        const renderNavigationForRole = (role) => {
+            const allNavTabs = document.querySelectorAll('.nav-tab');
+            allNavTabs.forEach(tab => {
+                const requiredRole = tab.dataset.role;
+                if (requiredRole === 'all' || requiredRole === role) {
+                    tab.style.display = 'block';
+                } else {
+                    tab.style.display = 'none';
+                }
+            });
+        }
+        
+        async function fetchAndSetLogo() {
+            try {
+                const docSnap = await getDoc(LOGO_DOC_REF);
+                if (docSnap.exists() && docSnap.data().logoUrl) {
+                    const logoUrl = docSnap.data().logoUrl;
+                    const logoHeader = document.getElementById('header-logo');
+                    if (logoHeader) {
+                        logoHeader.src = logoUrl;
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching logo:", error);
+            }
+        }
+        
+        const initializeDashboardPage = async (user) => {
             const mainNav = document.getElementById('mainNav');
-            const adminContent = document.getElementById('adminContent');
+            const reportsContent = document.getElementById('reportsContent');
+            
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+            try {
+                const docSnap = await getDoc(userProfileDocRef);
+                currentUserRole = docSnap.exists() ? docSnap.data().role : null;
+            } catch (error) {
+                console.error("Error fetching user role:", error);
+                currentUserRole = 'guest';
+            }
+            
+            if (currentUserRole !== 'admin' && currentUserRole !== 'supervisor') {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            mainNav.style.display = 'block';
+            reportsContent.style.display = 'block';
+            document.body.classList.add('loaded');
+            renderNavigationForRole(currentUserRole);
+            fetchAndRenderDashboardData();
+        };
+
+        // --- Data Fetching and Processing ---
+        async function fetchAndRenderDashboardData() {
+            showMessageBox("Loading Dashboard", "Fetching data for analytics...", false, true, false);
+            try {
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
+                const querySnapshot = await getDocs(recordsColRef);
+                allRecords = [];
+                querySnapshot.forEach(doc => {
+                    allRecords.push(doc.data());
+                });
+
+                if (allRecords.length === 0) {
+                    showMessageBox("No Data", "No evaluation records found to display analytics.", false, false, true);
+                    return;
+                }
+
+                processAndDisplayMetrics(allRecords);
+                drawKeyIssuesChart(allRecords);
+                drawTopEmployeesChart(allRecords);
+                hideMessageBox();
+
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+                showMessageBox("Error", `Failed to load dashboard data: ${error.message}`, true, false, true);
+            }
+        }
+
+        function processAndDisplayMetrics(records) {
+            const totalEvaluations = records.length;
+            let totalOverallScore = 0;
+            let perfectScores = 0;
+            let belowAverage = 0;
+            const belowAverageThreshold = 70;
+
+            records.forEach(record => {
+                const overallScoreStr = record['Overall Score'] || '0%';
+                const score = parseFloat(overallScoreStr.replace('%', ''));
+
+                if (!isNaN(score)) {
+                    totalOverallScore += score;
+                    if (score === 100) {
+                        perfectScores++;
+                    }
+                    if (score < belowAverageThreshold) {
+                        belowAverage++;
+                    }
+                }
+            });
+
+            const teamAverageScore = totalEvaluations > 0 ? (totalOverallScore / totalEvaluations).toFixed(2) : 0;
+
+            document.getElementById('totalEvaluations').textContent = totalEvaluations;
+            document.getElementById('teamAverageScore').textContent = `${teamAverageScore}%`;
+            document.getElementById('perfectScores').textContent = perfectScores;
+            document.getElementById('belowAverage').textContent = belowAverage;
+            document.getElementById('belowAverage').closest('.kpi-card').querySelector('.label').textContent = `Below Average (< ${belowAverageThreshold}%)`;
+        }
+
+        function drawKeyIssuesChart(records) {
+            const chartContainer = document.getElementById('keyIssuesChart');
+            chartContainer.innerHTML = '';
+
+            const issueCounts = {};
+            records.forEach(record => {
+                const autofailType = record['Auto Fail Type'] || 'No Autofail Selected';
+                issueCounts[autofailType] = (issueCounts[autofailType] || 0) + 1;
+            });
+
+            const data = Object.keys(issueCounts).map(key => ({
+                label: key,
+                value: issueCounts[key]
+            }));
+
+            if (data.length === 0) {
+                chartContainer.innerHTML = '<p class="text-gray-500">No issues data available.</p>';
+                return;
+            }
+
+            const width = chartContainer.clientWidth;
+            const height = Math.min(width, 400);
+            const radius = Math.min(width, height) / 2 - 20;
+
+            const svg = d3.select(chartContainer)
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+            const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+            const pie = d3.pie()
+                .value(d => d.value)
+                .sort(null);
+
+            const arc = d3.arc()
+                .innerRadius(0)
+                .outerRadius(radius);
+
+            const outerArc = d3.arc()
+                .innerRadius(radius * 0.9)
+                .outerRadius(radius * 0.9);
+
+            const arcs = svg.selectAll(".arc")
+                .data(pie(data))
+                .enter()
+                .append("g")
+                .attr("class", "arc");
+
+            arcs.append("path")
+                .attr("d", arc)
+                .attr("fill", d => color(d.data.label))
+                .attr("stroke", "white")
+                .style("stroke-width", "2px");
+
+            arcs.append("text")
+                .attr("transform", d => `translate(${outerArc.centroid(d)})`)
+                .attr("text-anchor", d => {
+                    const midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                    return (midangle < Math.PI ? "start" : "end");
+                })
+                .text(d => `${d.data.label} (${d3.format(".1%")(d.data.value / d3.sum(data, v => v.value))})`)
+                .style("font-size", "10px")
+                .style("fill", "#333");
+
+            arcs.append("polyline")
+                .attr("stroke", "#ccc")
+                .style("fill", "none")
+                .attr("stroke-width", 1)
+                .attr("points", function(d) {
+                    const posA = arc.centroid(d);
+                    const posB = outerArc.centroid(d);
+                    const posC = outerArc.centroid(d);
+                    const midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                    posC[0] = radius * 0.95 * (midangle < Math.PI ? 1 : -1);
+                    return [posA, posB, posC];
+                });
+
+            window.addEventListener('resize', () => drawKeyIssuesChart(records));
+        }
+
+        function drawTopEmployeesChart(records) {
+            const chartContainer = document.getElementById('topEmployeesChart');
+            chartContainer.innerHTML = '';
+
+            const employeeScores = {};
+            records.forEach(record => {
+                const cerName = record['CER Name'];
+                const overallScoreStr = record['Overall Score'] || '0%';
+                const score = parseFloat(overallScoreStr.replace('%', ''));
+
+                if (cerName && !isNaN(score)) {
+                    if (!employeeScores[cerName]) {
+                        employeeScores[cerName] = { totalScore: 0, count: 0 };
+                    }
+                    employeeScores[cerName].totalScore += score;
+                    employeeScores[cerName].count++;
+                }
+            });
+
+            const data = Object.keys(employeeScores).map(name => ({
+                employee: name,
+                averageScore: employeeScores[name].totalScore / employeeScores[name].count
+            }));
+
+            data.sort((a, b) => b.averageScore - a.averageScore);
+
+            const topN = 5;
+            const topEmployees = data.slice(0, topN);
+
+            if (topEmployees.length === 0) {
+                chartContainer.innerHTML = '<p class="text-gray-500">No employee data available.</p>';
+                return;
+            }
+
+            const margin = { top: 20, right: 30, bottom: 40, left: 100 };
+            const width = chartContainer.clientWidth - margin.left - margin.right;
+            const height = Math.max(topEmployees.length * 50, 250) - margin.top - margin.bottom;
+
+            const svg = d3.select(chartContainer)
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleLinear()
+                .domain([0, 100])
+                .range([0, width]);
+
+            const y = d3.scaleBand()
+                .domain(topEmployees.map(d => d.employee))
+                .range([0, height])
+                .padding(0.1);
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+
+            svg.append("g")
+                .call(d3.axisLeft(y));
+
+            svg.selectAll(".bar")
+                .data(topEmployees)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", 0)
+                .attr("y", d => y(d.employee))
+                .attr("width", d => x(d.averageScore))
+                .attr("height", y.bandwidth())
+                .attr("fill", "#1a73e8");
+
+            svg.selectAll(".bar-label")
+                .data(topEmployees)
+                .enter()
+                .append("text")
+                .attr("class", "bar-label")
+                .attr("x", d => x(d.averageScore) + 5)
+                .attr("y", d => y(d.employee) + y.bandwidth() / 2 + 4)
+                .text(d => `${d.averageScore.toFixed(1)}%`)
+                .style("font-size", "10px")
+                .style("fill", "#555");
+
+            window.addEventListener('resize', () => drawTopEmployeesChart(records));
+        }
+
+        // --- DOMContentLoaded Event Listener ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            const mainNav = document.getElementById('mainNav');
+            const reportsContent = document.getElementById('reportsContent');
+
+            const navItems = {
+                'auditFormTab': 'index.html',
+                'databaseTab': 'index.html#database',
+                'myEvaluationsTab': 'myEvaluations.html',
+                'reportsTab': 'Dashboard.html',
+                'autofailsTab': 'autofails.html',
+                'shareResponseTab': 'index.html#shareResponse',
+                'imagesTab': 'images.html',
+                'usersTab': 'users.html',
+                'adminTab': 'admin.html'
+            };
+            
+            const renderNavigationForRole = (role) => {
+                const allNavTabs = document.querySelectorAll('.nav-tab');
+                allNavTabs.forEach(tab => {
+                    const requiredRole = tab.dataset.role;
+                    if (requiredRole === 'all' || requiredRole === role) {
+                        tab.style.display = 'block';
+                    } else {
+                        tab.style.display = 'none';
+                    }
+                });
+            }
+
+            Object.keys(navItems).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        window.location.href = navItems[id];
+                    });
+                }
+            });
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async function() {
+                    await signOut(auth);
+                    sessionStorage.removeItem('loggedIn');
+                    window.location.href = 'index.html';
+                });
+            }
 
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                     try {
-                        const userDocSnap = await getDoc(userProfileDocRef);
-                        if (userDocSnap.exists()) {
-                            currentUserRole = userDocSnap.data().role;
+                        const docSnap = await getDoc(userProfileDocRef);
+                        const userRole = docSnap.exists() ? docSnap.data().role : null;
+                        
+                        if (userRole === 'admin' || userRole === 'supervisor') {
+                            mainNav.style.display = 'block';
+                            reportsContent.style.display = 'block';
+                            document.body.classList.add('loaded');
+                            renderNavigationForRole(userRole);
+                            fetchAndRenderDashboardData();
                         } else {
-                            const idTokenResult = await user.getIdTokenResult(true);
-                            currentUserRole = idTokenResult.claims.role || 'Guest';
+                            window.location.href = 'index.html';
                         }
                     } catch (error) {
                         console.error("Error fetching user role:", error);
-                        currentUserRole = 'Guest';
-                    }
-
-                    if (sessionStorage.getItem('loggedIn') === 'true') {
-                        loginPage.style.display = 'none';
-                        mainNav.style.display = 'block';
-                        adminContent.style.display = 'block';
-                        document.querySelectorAll('.sidebar ul li a').forEach(link => {
-                            link.classList.remove('active');
-                            if (link.href.includes('admin.html')) {
-                                link.classList.add('active');
-                            }
-                        });
-                        setupDropdownsListener();
-                        setupQuestionsListener();
-                        setupCustomFieldsListener(); // NEW: Start listening to custom fields
-                    } else {
-                        sessionStorage.removeItem('loggedIn');
-                        loginPage.style.display = 'flex';
-                        mainNav.style.display = 'none';
-                        adminContent.style.display = 'none';
-                        showLoginErrorMessage("Access Denied: Please log in to access this page.");
-                        if(user) signOut(auth);
+                        window.location.href = 'index.html';
                     }
                 } else {
-                    loginPage.style.display = 'flex';
-                    mainNav.style.display = 'none';
-                    adminContent.style.display = 'none';
-                    sessionStorage.removeItem('loggedIn');
+                    window.location.href = 'index.html';
                 }
             });
-        };
-
-        // Setup real-time listener for general dropdown options document
-        const setupDropdownsListener = () => {
-            if (unsubscribeDropdownListener) {
-                unsubscribeDropdownListener();
-            }
-
-            unsubscribeDropdownListener = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
-                if (docSnap.exists()) {
-                    currentDropdownData = docSnap.data();
-                    console.log("General dropdown data updated from Firestore:", currentDropdownData);
-                } else {
-                    console.warn("General dropdown options document does not exist. Initializing with empty arrays locally.");
-                    currentDropdownData = {
-                        cerNames: [],
-                        cerRoles: [],
-                        reviewerNames: [],
-                        autofailTypes: []
-                    };
-                }
-                const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
-                if (dropdownTypeSelect) {
-                    renderCurrentDropdownItems(dropdownTypeSelect.value);
-                    populateQuestionRoleSelect(currentDropdownData.cerRoles);
-                } else {
-                    renderCurrentDropdownItems('');
-                }
-            }, (error) => {
-                console.error("Error listening to general dropdown data:", error);
-                showMessage(document.getElementById('dropdownMessage'), "Error loading general dropdown data. Please check console.", 'error');
-            });
-        };
-
-        // Setup real-time listener for questions configuration document
-        const setupQuestionsListener = () => {
-            if (unsubscribeQuestionsListener) {
-                unsubscribeQuestionsListener();
-            }
-
-            unsubscribeQuestionsListener = onSnapshot(QUESTIONS_CONFIG_DOC_REF, (docSnap) => {
-                if (docSnap.exists()) {
-                    allRolesQuestions = docSnap.data();
-                    console.log("Questions data updated from Firestore:", allRolesQuestions);
-                } else {
-                    console.warn("Questions configuration document does not exist. Initializing with empty object locally.");
-                    allRolesQuestions = {};
-                }
-                const questionRoleSelect = document.getElementById('questionRoleSelect');
-                const questionSectionSelect = document.getElementById('questionSectionSelect');
-                if (questionRoleSelect && questionSectionSelect) {
-                    renderCurrentQuestions(questionRoleSelect.value, questionSectionSelect.value);
-                } else {
-                    renderCurrentQuestions('', '');
-                }
-            }, (error) => {
-                console.error("Error listening to questions data:", error);
-                showMessage(document.getElementById('questionMessage'), "Error loading questions data. Please check console.", 'error');
-            });
-        };
-
-        // NEW: Setup real-time listener for custom form fields configuration document
-        const setupCustomFieldsListener = () => {
-            if (unsubscribeCustomFieldsListener) {
-                unsubscribeCustomFieldsListener();
-            }
-
-            unsubscribeCustomFieldsListener = onSnapshot(CUSTOM_FIELDS_CONFIG_DOC_REF, (docSnap) => {
-                if (docSnap.exists() && docSnap.data().fields) {
-                    customFormFields = docSnap.data().fields.sort((a, b) => a.order - b.order); // Sort by order
-                    console.log("Custom form fields data updated from Firestore:", customFormFields);
-                } else {
-                    console.warn("Custom form fields configuration document does not exist or is empty. Initializing with empty array locally.");
-                    customFormFields = [];
-                }
-                renderCustomFieldsList(); // Render the list in the admin panel
-            }, (error) => {
-                console.error("Error listening to custom fields data:", error);
-                showMessage(document.getElementById('customFieldMessage'), "Error loading custom fields data. Please check console.", 'error');
-            });
-        };
-
-        // --- Helper to render general dropdown items ---
-        function renderCurrentDropdownItems(typeToRender) {
-            const currentDropdownItemsList = document.getElementById('currentDropdownItems');
-            if (!currentDropdownItemsList) {
-                return;
-            }
-
-            currentDropdownItemsList.innerHTML = '';
-
-            const items = currentDropdownData[typeToRender] || [];
-
-            if (items.length === 0) {
-                currentDropdownItemsList.innerHTML = '<li>No items added yet.</li>';
-                return;
-            }
-
-            items.forEach(item => {
-                const li = document.createElement('li');
-                let displayText = item;
-                let valueToStore = item;
-
-                if (typeToRender === 'cerNames' && typeof item === 'object' && item.name) {
-                    displayText = `${item.name} (${item.email || 'No Email'})`;
-                    valueToStore = { name: item.name, email: item.email || '' };
-                }
-
-                li.innerHTML = `<span class="item-text">${displayText}</span>`;
-                li.dataset.value = JSON.stringify(valueToStore);
-
-                li.addEventListener('click', () => {
-                    li.classList.toggle('selected');
-                });
-                currentDropdownItemsList.appendChild(li);
-            });
-        }
-
-        // Function to populate CER Roles dropdown in Question Management section
-        function populateQuestionRoleSelect(cerRoles) {
-            const questionRoleSelect = document.getElementById('questionRoleSelect');
-            const currentSelectedValue = questionRoleSelect.value;
-            questionRoleSelect.innerHTML = '<option value="">-- Select CER Role --</option>';
-            if (Array.isArray(cerRoles)) {
-                cerRoles.forEach(role => {
-                    const option = document.createElement('option');
-                    option.value = role;
-                    option.textContent = role;
-                    questionRoleSelect.appendChild(option);
-                });
-            }
-            if (Array.from(questionRoleSelect.options).some(opt => opt.value === currentSelectedValue)) {
-                questionRoleSelect.value = currentSelectedValue;
-            } else {
-                questionRoleSelect.value = '';
-            }
-        }
-
-        // Function to render questions for selected Role and Section
-        function renderCurrentQuestions(role, section) {
-            const currentQuestionsList = document.getElementById('currentQuestionsList');
-            const manageQuestionsSubsection = document.getElementById('manageQuestionsSubsection');
-
-            if (!currentQuestionsList) return;
-
-            currentQuestionsList.innerHTML = '';
-
-            if (!role || !section) {
-                currentQuestionsList.innerHTML = '<li>Select a CER Role and Section to view questions.</li>';
-                manageQuestionsSubsection.style.display = 'none';
-                return;
-            }
-
-            manageQuestionsSubsection.style.display = 'block';
-            const questions = (allRolesQuestions[role] && allRolesQuestions[role][section]) || [];
-
-            if (questions.length === 0) {
-                currentQuestionsList.innerHTML = '<li>No questions configured for this Role and Section.</li>';
-                return;
-            }
-
-            questions.forEach(q => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <span class="item-text">
-                        ${q.desc} (W: ${q.weightage}, Def: ${q.defaultRating}, Autofail: ${q.autofail ? 'Yes' : 'No'})
-                    </span>
-                `;
-                li.dataset.questionData = JSON.stringify(q);
-                li.addEventListener('click', () => {
-                    li.classList.toggle('selected');
-                });
-                currentQuestionsList.appendChild(li);
-            });
-        }
-
-        // NEW: Function to render the list of custom form fields
-        function renderCustomFieldsList() {
-            const currentCustomFieldsList = document.getElementById('currentCustomFieldsList');
-            if (!currentCustomFieldsList) return;
-
-            currentCustomFieldsList.innerHTML = '';
-
-            if (customFormFields.length === 0) {
-                currentCustomFieldsList.innerHTML = '<li>No custom fields added yet.</li>';
-                return;
-            }
-
-            // Sort fields by their 'order' property
-            const sortedFields = [...customFormFields].sort((a, b) => a.order - b.order);
-
-            sortedFields.forEach(field => {
-                const li = document.createElement('li');
-                let displayText = `Label: ${field.label}, Type: ${field.type}`;
-                if (field.type === 'select' && field.options && field.options.length > 0) {
-                    displayText += `, Options: ${field.options.join(', ')}`;
-                }
-                displayText += `, Required: ${field.required ? 'Yes' : 'No'}, Order: ${field.order}`;
-
-                li.innerHTML = `<span class="item-text">${displayText}</span>`;
-                li.dataset.fieldData = JSON.stringify(field);
-                li.addEventListener('click', () => {
-                    li.classList.toggle('selected');
-                });
-                currentCustomFieldsList.appendChild(li);
-            });
-        }
-
-
-        // --- DOMContentLoaded Event Listener ---
-        document.addEventListener('DOMContentLoaded', function() {
-            const loginButton = document.getElementById('loginButton');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const logoutBtn = document.getElementById('logoutBtn');
-
-            const dropdownTypeSelect = document.getElementById('dropdownTypeSelect');
-            const manageDropdownValuesSection = document.getElementById('manageDropdownValuesSection');
-            const currentDropdownTitle = document.getElementById('currentDropdownTitle');
-            const currentDropdownItems = document.getElementById('currentDropdownItems');
-            const newDropdownValueInput = document.getElementById('newDropdownValue');
-            const newDropdownEmailInput = document.getElementById('newDropdownEmail');
-            const addDropdownValueBtn = document.getElementById('addDropdownValueBtn');
-            const removeDropdownValueBtn = document.getElementById('removeDropdownValueBtn');
-            const dropdownMessage = document.getElementById('dropdownMessage');
-
-            const questionRoleSelect = document.getElementById('questionRoleSelect');
-            const questionSectionSelect = document.getElementById('questionSectionSelect');
-            const manageQuestionsSubsection = document.getElementById('manageQuestionsSubsection');
-            const currentQuestionsList = document.getElementById('currentQuestionsList');
-            const newQuestionDescriptionInput = document.getElementById('newQuestionDescription');
-            const newQuestionWeightageInput = document.getElementById('newQuestionWeightage');
-            const newQuestionAutofailCheckbox = document.getElementById('newQuestionAutofail');
-            const newQuestionDefaultRatingSelect = document.getElementById('newQuestionDefaultRating');
-            const addQuestionBtn = document.getElementById('addQuestionBtn');
-            const removeQuestionBtn = document.getElementById('removeQuestionBtn');
-            const questionMessage = document.getElementById('questionMessage');
-
-            // NEW Elements for Custom Form Fields Management
-            const customFieldTypeSelect = document.getElementById('customFieldTypeSelect');
-            const customFieldDetailsContainer = document.getElementById('customFieldDetails');
-            const customFieldLabelInput = document.getElementById('customFieldLabel');
-            const customFieldIdInput = document.getElementById('customFieldId');
-            const customFieldOrderInput = document.getElementById('customFieldOrder');
-            const customFieldRequiredCheckbox = document.getElementById('customFieldRequired');
-            const customFieldOptionsContainer = document.getElementById('customFieldOptionsContainer');
-            const customFieldOptionsTextarea = document.getElementById('customFieldOptions');
-            const addCustomFieldBtn = document.getElementById('addCustomFieldBtn');
-            const removeCustomFieldBtn = document.getElementById('removeCustomFieldBtn');
-            const customFieldMessage = document.getElementById('customFieldMessage');
-            const currentCustomFieldsList = document.getElementById('currentCustomFieldsList');
-
-
-            // Initialize the page view based on login state
-            initializeAdminPage();
-
-
-            // --- Login Button Listener ---
-            if (loginButton) {
-                loginButton.addEventListener('click', async function(event) {
-                    event.preventDefault();
-                    hideLoginErrorMessage();
-
-                    const enteredUsername = usernameInput.value;
-                    const enteredPassword = passwordInput.value;
-
-                    try {
-                        await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
-                        sessionStorage.setItem('loggedIn', 'true');
-                    } catch (error) {
-                        console.error("Firebase Login Error:", error);
-                        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                            showLoginErrorMessage('Invalid email or password.');
-                        } else if (error.code === 'auth/invalid-email') {
-                            showLoginErrorMessage('Please enter a valid email address.');
-                        } else if (error.code === 'auth/too-many-requests') {
-                            showLoginErrorMessage('Too many login attempts. Please try again later.');
-                        } else {
-                            showLoginErrorMessage(`Login failed: ${error.message}`);
-                        }
-                    }
-                });
-            }
-
-            // --- Logout Button Listener ---
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', async function() {
-                    sessionStorage.removeItem('loggedIn');
-                    if (unsubscribeDropdownListener) unsubscribeDropdownListener();
-                    if (unsubscribeQuestionsListener) unsubscribeQuestionsListener();
-                    if (unsubscribeCustomFieldsListener) unsubscribeCustomFieldsListener(); // NEW
-                    await signOut(auth);
-                });
-            }
-
-            // --- General Dropdown Management Event Listeners ---
-            if (dropdownTypeSelect) {
-                dropdownTypeSelect.addEventListener('change', function() {
-                    const selectedType = this.value;
-                    dropdownMessage.classList.add('hidden');
-
-                    if (selectedType) {
-                        manageDropdownValuesSection.style.display = 'block';
-                        currentDropdownTitle.textContent = `Manage ${this.options[this.selectedIndex].text}`;
-
-                        if (selectedType === 'cerNames') {
-                            newDropdownEmailInput.style.display = 'block';
-                            newDropdownEmailInput.setAttribute('required', 'required');
-                            newDropdownValueInput.placeholder = "Enter CER Name";
-                        } else {
-                            newDropdownEmailInput.style.display = 'none';
-                            newDropdownEmailInput.removeAttribute('required');
-                            newDropdownEmailInput.value = '';
-                            newDropdownValueInput.placeholder = "Enter new value";
-                        }
-                        renderCurrentDropdownItems(selectedType);
-                    } else {
-                        manageDropdownValuesSection.style.display = 'none';
-                        currentDropdownItems.innerHTML = '<li>No items loaded. Select a dropdown type.</li>';
-                    }
-                });
-            }
-
-            if (addDropdownValueBtn) {
-                addDropdownValueBtn.addEventListener('click', async function() {
-                    const newItemValue = newDropdownValueInput.value.trim();
-                    const selectedType = dropdownTypeSelect.value;
-                    let itemToAdd;
-
-                    if (!selectedType) {
-                        showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
-                        return;
-                    }
-                    if (!newItemValue) {
-                        showMessage(dropdownMessage, 'Item name cannot be empty.', 'error');
-                        return;
-                    }
-
-                    if (selectedType === 'cerNames') {
-                        const newEmailValue = newDropdownEmailInput.value.trim();
-                        if (!newEmailValue) {
-                            showMessage(dropdownMessage, 'Email is required for CER Names.', 'error');
-                            return;
-                        }
-                        itemToAdd = { name: newItemValue, email: newEmailValue };
-                        const isDuplicate = currentDropdownData.cerNames.some(cer => typeof cer === 'object' && cer.name === newItemValue);
-                        if (isDuplicate) {
-                            showMessage(dropdownMessage, 'CER Name already exists.', 'error');
-                            return;
-                        }
-                    } else {
-                        itemToAdd = newItemValue;
-                        const currentItemsArray = currentDropdownData[selectedType] || [];
-                        const isDuplicate = currentItemsArray.includes(newItemValue);
-                        if (isDuplicate) {
-                            showMessage(dropdownMessage, 'This item already exists.', 'error');
-                            return;
-                        }
-                    }
-
-                    try {
-                        const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
-                        if (!docSnap.exists()) {
-                            const initialData = {
-                                cerNames: [],
-                                cerRoles: [],
-                                reviewerNames: [],
-                                autofailTypes: []
-                            };
-                            if (initialData[selectedType]) {
-                                initialData[selectedType].push(itemToAdd);
-                            }
-                            await setDoc(DROPDOWN_DATA_DOC_REF, initialData);
-                            console.log("Created initial general_options document with first item.");
-                        } else {
-                            const updateData = {
-                                [selectedType]: arrayUnion(itemToAdd)
-                            };
-                            await updateDoc(DROPDOWN_DATA_DOC_REF, updateData);
-                        }
-
-                        showMessage(dropdownMessage, 'Item added successfully!', 'success');
-                        newDropdownValueInput.value = '';
-                        newDropdownEmailInput.value = '';
-                    } catch (error) {
-                        console.error("Error adding dropdown item:", error);
-                        showMessage(dropdownMessage, `Failed to add item: ${error.message}`, 'error');
-                    }
-                });
-            }
-
-            if (removeDropdownValueBtn) {
-                removeDropdownValueBtn.addEventListener('click', async function() {
-                    const selectedListItems = Array.from(currentDropdownItems.children).filter(li => li.classList.contains('selected'));
-                    const selectedType = dropdownTypeSelect.value;
-
-                    if (!selectedType) {
-                        showMessage(dropdownMessage, 'Please select a dropdown type first.', 'error');
-                        return;
-                    }
-                    if (selectedListItems.length === 0) {
-                        showMessage(dropdownMessage, 'Please select at least one item to remove.', 'error');
-                        return;
-                    }
-
-                    if (!confirm(`Are you sure you want to remove these ${selectedListItems.length} item(s)?`)) {
-                        return;
-                    }
-
-                    try {
-                        const itemsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.value));
-
-                        const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
-                        let currentData = docSnap.exists() ? docSnap.data() : { fields: [] };
-                        
-                        if (currentData[selectedType]) {
-                            currentData[selectedType] = currentData[selectedType].filter(existingItem =>
-                                !itemsToRemove.some(itemToRemove => JSON.stringify(itemToRemove) === JSON.stringify(existingItem))
-                            );
-                            await setDoc(DROPDOWN_DATA_DOC_REF, currentData);
-                            showMessage(dropdownMessage, 'Item(s) removed successfully!', 'success');
-                        } else {
-                            showMessage(dropdownMessage, 'No items found for the selected type.', 'error');
-                        }
-                    } catch (error) {
-                        console.error("Error removing dropdown item(s):", error);
-                        showMessage(dropdownMessage, `Failed to remove item(s): ${error.message}`, 'error');
-                    }
-                });
-            }
-
-            // --- Question Management Event Listeners ---
-            if (questionRoleSelect && questionSectionSelect) {
-                const updateQuestionList = () => {
-                    const selectedRole = questionRoleSelect.value;
-                    const selectedSection = questionSectionSelect.value;
-                    renderCurrentQuestions(selectedRole, selectedSection);
-                };
-                questionRoleSelect.addEventListener('change', updateQuestionList);
-                questionSectionSelect.addEventListener('change', updateQuestionList);
-            }
-
-            if (addQuestionBtn) {
-                addQuestionBtn.addEventListener('click', async () => {
-                    const role = questionRoleSelect.value;
-                    const section = questionSectionSelect.value;
-                    const desc = newQuestionDescriptionInput.value.trim();
-                    const weightage = parseInt(newQuestionWeightageInput.value, 10);
-                    const autofail = newQuestionAutofailCheckbox.checked;
-                    const defaultRating = newQuestionDefaultRatingSelect.value;
-
-                    if (!role || !section) {
-                        showMessage(questionMessage, 'Please select a CER Role and Section.', 'error');
-                        return;
-                    }
-                    if (!desc) {
-                        showMessage(questionMessage, 'Question description cannot be empty.', 'error');
-                        return;
-                    }
-                    if (isNaN(weightage) || weightage <= 0 || weightage > 100) {
-                        showMessage(questionMessage, 'Weightage must be a number between 1 and 100.', 'error');
-                        return;
-                    }
-
-                    const newQuestion = {
-                        desc: desc,
-                        weightage: weightage,
-                        autofail: autofail,
-                        defaultRating: defaultRating,
-                        hasNA: true
-                    };
-
-                    try {
-                        const docSnap = await getDoc(QUESTIONS_CONFIG_DOC_REF);
-                        let updatedQuestions = docSnap.exists() ? docSnap.data() : {};
-
-                        if (!updatedQuestions[role]) {
-                            updatedQuestions[role] = {};
-                        }
-                        if (!updatedQuestions[role][section]) {
-                            updatedQuestions[role][section] = [];
-                        }
-
-                        const isDuplicate = updatedQuestions[role][section].some(q => q.desc === newQuestion.desc);
-                        if (isDuplicate) {
-                            showMessage(questionMessage, 'A question with this description already exists in this section.', 'error');
-                            return;
-                        }
-
-                        updatedQuestions[role][section].push(newQuestion);
-
-                        await setDoc(QUESTIONS_CONFIG_DOC_REF, updatedQuestions);
-                        showMessage(questionMessage, 'Question added successfully!', 'success');
-                        newQuestionDescriptionInput.value = '';
-                        newQuestionWeightageInput.value = '';
-                        newQuestionAutofailCheckbox.checked = false;
-                        newQuestionDefaultRatingSelect.value = 'Yes';
-                    } catch (error) {
-                        console.error("Error adding question:", error);
-                        showMessage(questionMessage, `Failed to add question: ${error.message}`, 'error');
-                    }
-                });
-            }
-
-            if (removeQuestionBtn) {
-                removeQuestionBtn.addEventListener('click', async () => {
-                    const role = questionRoleSelect.value;
-                    const section = questionSectionSelect.value;
-                    const selectedListItems = Array.from(currentQuestionsList.children).filter(li => li.classList.contains('selected'));
-
-                    if (!role || !section) {
-                        showMessage(questionMessage, 'Please select a CER Role and Section.', 'error');
-                        return;
-                    }
-                    if (selectedListItems.length === 0) {
-                        showMessage(questionMessage, 'Please select at least one question to remove.', 'error');
-                        return;
-                    }
-
-                    if (!confirm(`Are you sure you want to remove these ${selectedListItems.length} question(s)?`)) {
-                        return;
-                    }
-
-                    try {
-                        const questionsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.questionData));
-
-                        const docSnap = await getDoc(QUESTIONS_CONFIG_DOC_REF);
-                        let updatedQuestions = docSnap.exists() ? docSnap.data() : {};
-
-                        if (!updatedQuestions[role] || !updatedQuestions[role][section]) {
-                            showMessage(questionMessage, 'No questions found for the selected Role and Section.', 'error');
-                            return;
-                        }
-
-                        updatedQuestions[role][section] = updatedQuestions[role][section].filter(existingQ =>
-                            !questionsToRemove.some(qToRemove =>
-                                qToRemove.desc === existingQ.desc && qToRemove.weightage === existingQ.weightage && qToRemove.autofail === existingQ.autofail && qToRemove.defaultRating === existingQ.defaultRating
-                            )
-                        );
-
-                        await setDoc(QUESTIONS_CONFIG_DOC_REF, updatedQuestions);
-                        showMessage(questionMessage, 'Question(s) removed successfully!', 'success');
-                    } catch (error) {
-                        console.error("Error removing question(s):", error);
-                        showMessage(questionMessage, `Failed to remove question(s): ${error.message}`, 'error');
-                    }
-                });
-            }
-
-            // --- NEW: Custom Form Fields Management Event Listeners ---
-            if (customFieldTypeSelect) {
-                customFieldTypeSelect.addEventListener('change', () => {
-                    const selectedType = customFieldTypeSelect.value;
-                    customFieldMessage.classList.add('hidden');
-
-                    if (selectedType) {
-                        customFieldDetailsContainer.style.display = 'block';
-                        if (selectedType === 'select') {
-                            customFieldOptionsContainer.style.display = 'block';
-                            customFieldOptionsTextarea.setAttribute('required', 'required');
-                        } else {
-                            customFieldOptionsContainer.style.display = 'none';
-                            customFieldOptionsTextarea.removeAttribute('required');
-                            customFieldOptionsTextarea.value = '';
-                        }
-                    } else {
-                        customFieldDetailsContainer.style.display = 'none';
-                        customFieldOptionsContainer.style.display = 'none';
-                        customFieldOptionsTextarea.removeAttribute('required');
-                        customFieldOptionsTextarea.value = '';
-                    }
-                    customFieldLabelInput.value = '';
-                    customFieldIdInput.value = '';
-                    customFieldOrderInput.value = '0';
-                    customFieldRequiredCheckbox.checked = false;
-                });
-            }
-
-            if (addCustomFieldBtn) {
-                addCustomFieldBtn.addEventListener('click', async () => {
-                    const type = customFieldTypeSelect.value;
-                    const label = customFieldLabelInput.value.trim();
-                    const id = customFieldIdInput.value.trim();
-                    const order = parseInt(customFieldOrderInput.value, 10);
-                    const required = customFieldRequiredCheckbox.checked;
-                    let options = [];
-
-                    if (!type || !label || !id || isNaN(order)) {
-                        showMessage(customFieldMessage, 'Please fill in all required field details.', 'error');
-                        return;
-                    }
-                    if (!/^[a-z0-9-]+$/.test(id)) {
-                        showMessage(customFieldMessage, 'Field ID must be lowercase, alphanumeric, and can use hyphens (no spaces or special characters).', 'error');
-                        return;
-                    }
-
-                    if (type === 'select') {
-                        const optionsStr = customFieldOptionsTextarea.value.trim();
-                        if (!optionsStr) {
-                            showMessage(customFieldMessage, 'Dropdown options are required for "Dropdown" type.', 'error');
-                            return;
-                        }
-                        options = optionsStr.split(',').map(opt => opt.trim()).filter(opt => opt !== '');
-                        if (options.length === 0) {
-                            showMessage(customFieldMessage, 'Please enter valid options for the dropdown.', 'error');
-                            return;
-                        }
-                    }
-
-                    const newField = {
-                        id: id,
-                        label: label,
-                        type: type,
-                        required: required,
-                        order: order
-                    };
-                    if (type === 'select') {
-                        newField.options = options;
-                    }
-
-                    try {
-                        const docSnap = await getDoc(CUSTOM_FIELDS_CONFIG_DOC_REF);
-                        let currentFieldsData = docSnap.exists() ? docSnap.data() : { fields: [] };
-
-                        if (!Array.isArray(currentFieldsData.fields)) {
-                            currentFieldsData.fields = [];
-                        }
-
-                        const isDuplicateId = currentFieldsData.fields.some(field => field.id === newField.id);
-                        if (isDuplicateId) {
-                            showMessage(customFieldMessage, `A custom field with ID '${newField.id}' already exists. Please use a unique ID.`, 'error');
-                            return;
-                        }
-
-                        currentFieldsData.fields.push(newField);
-
-                        await setDoc(CUSTOM_FIELDS_CONFIG_DOC_REF, currentFieldsData);
-                        showMessage(customFieldMessage, 'Custom field added successfully!', 'success');
-
-                        customFieldTypeSelect.value = '';
-                        customFieldDetailsContainer.style.display = 'none';
-                        customFieldOptionsContainer.style.display = 'none';
-                        customFieldLabelInput.value = '';
-                        customFieldIdInput.value = '';
-                        customFieldOrderInput.value = '0';
-                        customFieldRequiredCheckbox.checked = false;
-                        customFieldOptionsTextarea.value = '';
-                    } catch (error) {
-                        console.error("Error adding custom field:", error);
-                        showMessage(customFieldMessage, `Failed to add custom field: ${error.message}`, 'error');
-                    }
-                });
-            }
-
-            if (removeCustomFieldBtn) {
-                removeCustomFieldBtn.addEventListener('click', async () => {
-                    const selectedListItems = Array.from(currentCustomFieldsList.children).filter(li => li.classList.contains('selected'));
-
-                    if (selectedListItems.length === 0) {
-                        showMessage(customFieldMessage, 'Please select at least one custom field to remove.', 'error');
-                        return;
-                    }
-
-                    if (!confirm(`Are you sure you want to remove these ${selectedListItems.length} custom field(s)?`)) {
-                        return;
-                    }
-
-                    try {
-                        const fieldsToRemove = selectedListItems.map(li => JSON.parse(li.dataset.fieldData));
-
-                        const docSnap = await getDoc(CUSTOM_FIELDS_CONFIG_DOC_REF);
-                        let currentFieldsData = docSnap.exists() ? docSnap.data() : { fields: [] };
-
-                        if (!Array.isArray(currentFieldsData.fields)) {
-                            currentFieldsData.fields = [];
-                        }
-
-                        currentFieldsData.fields = currentFieldsData.fields.filter(existingField =>
-                            !fieldsToRemove.some(fieldToRemove => JSON.stringify(fieldToRemove) === JSON.stringify(existingField))
-                        );
-
-                        await setDoc(CUSTOM_FIELDS_CONFIG_DOC_REF, currentFieldsData);
-                        showMessage(customFieldMessage, 'Custom field(s) removed successfully!', 'success');
-                    } catch (error) {
-                        console.error("Error removing custom field(s):", error);
-                        showMessage(customFieldMessage, `Failed to remove custom field(s): ${error.message}`, 'error');
-                    }
-                });
-            }
-
-
-            // --- Navigation Link Event Listeners (for other pages) ---
-            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
-            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
-            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'Dashboard.html'; }); // Updated link
-            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
-            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
-            document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
         });
     </script>
 </body>
