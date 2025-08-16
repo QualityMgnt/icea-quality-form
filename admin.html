@@ -545,20 +545,28 @@
 
         // --- Utility Functions ---
         const showMessage = (element, message, type) => {
-            element.textContent = message;
-            element.classList.remove('hidden', 'success', 'error');
-            element.classList.add(type);
-            setTimeout(() => { element.classList.add('hidden'); }, 3000);
+            if (element) {
+                element.textContent = message;
+                element.classList.remove('hidden', 'success', 'error');
+                element.classList.add(type);
+                setTimeout(() => { element.classList.add('hidden'); }, 3000);
+            }
         };
 
         const showLoginErrorMessage = (message) => {
-            document.getElementById('loginMessage').textContent = message;
-            document.getElementById('loginMessage').classList.remove('hidden');
+            const loginMessage = document.getElementById('loginMessage');
+            if (loginMessage) {
+                loginMessage.textContent = message;
+                loginMessage.classList.remove('hidden');
+            }
         };
 
         const hideLoginErrorMessage = () => {
-            document.getElementById('loginMessage').classList.add('hidden');
-            document.getElementById('loginMessage').textContent = '';
+            const loginMessage = document.getElementById('loginMessage');
+            if (loginMessage) {
+                loginMessage.classList.add('hidden');
+                loginMessage.textContent = '';
+            }
         };
 
         // --- Authentication & Page Initialization ---
@@ -579,26 +587,25 @@
                     }
 
                     if (currentUserRole === 'admin') {
-                        loginPage.style.display = 'none';
-                        mainNav.style.display = 'block';
-                        adminContent.style.display = 'block';
+                        if (loginPage) loginPage.style.display = 'none';
+                        if (mainNav) mainNav.style.display = 'block';
+                        if (adminContent) adminContent.style.display = 'block';
                         renderNavigationForRole(currentUserRole);
                         setupListeners();
                     } else {
-                        loginPage.style.display = 'flex';
-                        mainNav.style.display = 'none';
-                        adminContent.style.display = 'none';
+                        if (loginPage) loginPage.style.display = 'flex';
+                        if (mainNav) mainNav.style.display = 'none';
+                        if (adminContent) adminContent.style.display = 'none';
                         if (user) {
-                             // This is a logged-in user, but not an admin. Show access denied message.
                             showLoginErrorMessage("Access Denied: You must be an administrator to view this page.");
                         } else {
                             showLoginErrorMessage("Access Denied: Please log in with an administrator account.");
                         }
                     }
                 } else {
-                    loginPage.style.display = 'flex';
-                    mainNav.style.display = 'none';
-                    adminContent.style.display = 'none';
+                    if (loginPage) loginPage.style.display = 'flex';
+                    if (mainNav) mainNav.style.display = 'none';
+                    if (adminContent) adminContent.style.display = 'none';
                     sessionStorage.removeItem('loggedIn');
                 }
             });
@@ -812,7 +819,6 @@
             if (unsubscribeQuestionsListener) unsubscribeQuestionsListener();
             if (unsubscribeCustomFieldsListener) unsubscribeCustomFieldsListener();
             await signOut(auth);
-            window.location.href = 'index.html';
         };
 
         const handleAddDropdownItem = async function() {
@@ -1190,6 +1196,17 @@
                 'imagesTab': 'images.html',
                 'usersTab': 'users.html',
                 'adminTab': 'admin.html'
+            };
+
+            const renderNavigationForRole = (role) => {
+                const allNavTabs = document.querySelectorAll('li.nav-tab');
+                allNavTabs.forEach(tab => {
+                    if (tab.dataset.role === 'all' || tab.dataset.role === role) {
+                        tab.style.display = 'block';
+                    } else {
+                        tab.style.display = 'none';
+                    }
+                });
             };
 
             Object.keys(navItems).forEach(id => {
