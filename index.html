@@ -550,10 +550,6 @@
                     <option value="">Select Autofail Type</option>
                 </select>
             </div>
-            <div id="autofailDescriptionContainer" class="hidden">
-                <label for="autofail-description" class="block top-field-label">Autofail Description</label>
-                <textarea id="autofail-description" name="Autofail Description" rows="2" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input remarks-textarea border border-blue-600" placeholder="Provide details about the autofail" oninput="autoExpandTextarea(this)"></textarea>
-            </div>
             <div>
                 <label for="review-date" class="block top-field-label">Evaluation Date</label>
                 <input type="date" id="review-date" name="Evaluation Date" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" required>
@@ -801,7 +797,6 @@
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
-        // --- Firebase Configuration ---
         const firebaseConfig = {
           apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
           authDomain: "icea-lion-qa.firebaseapp.com",
@@ -823,7 +818,14 @@
         const db = getFirestore(appInstance);
         const storage = getStorage(appInstance);
 
-        // --- GLOBAL DATA STORES & STATE VARIABLES ---
+        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
+        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
+        const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations');
+        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
+
         let allRecords = [];
         let allUsers = [];
         let allWebhooks = [];
@@ -855,8 +857,6 @@
         let globalBusinessComplianceAccuracyValue = 0;
         let latestSavedRecordId = null;
 
-        // --- All Core Functions ---
-
         window.autoExpandTextarea = function(element) {
             element.style.height = 'auto';
             element.style.height = (element.scrollHeight) + 'px';
@@ -874,10 +874,8 @@
             let currentMaxPossiblePoints = 0;
             let autofailQuestionTriggered = false;
             let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== '');
-
             let complianceCurrentPoints = 0;
             let complianceMaxPoints = 0;
-
             const allRatingSelects = document.querySelectorAll('.rating-select');
 
             allRatingSelects.forEach(selectElement => {
@@ -1639,10 +1637,85 @@
         /**
          * Handles the "PDF & Share" button click.
          */
-        window.handlePdfAndShare = async function() {
+        window.generateAndDownloadPdf = async function() {
             showMessageBox("Generating PDF", "Generating PDF document...", false, true, false);
             try {
-                const canvas = await generateFormPdf();
+                const auditFormContentDiv = document.getElementById('auditFormContent');
+
+                const originalStyles = [];
+                const elementsToModify = auditFormContentDiv.querySelectorAll('input, select, textarea');
+
+                elementsToModify.forEach(el => {
+                    if (el && el.style) {
+                        originalStyles.push({
+                            element: el,
+                            border: el.style.border,
+                            backgroundColor: el.style.backgroundColor,
+                            color: el.style.color,
+                            readOnly: el.readOnly,
+                            disabled: el.disabled,
+                            pointerEvents: el.style.pointerEvents,
+                            boxShadow: el.style.boxShadow,
+                            resize: el.style.resize
+                        });
+
+                        el.style.border = '1px solid #ccc';
+                        el.style.backgroundColor = 'white';
+                        el.style.color = '#333';
+                        el.readOnly = true;
+                        el.disabled = true;
+                        el.style.pointerEvents = 'none';
+                        el.style.boxShadow = 'none';
+                        el.style.resize = 'none';
+                    }
+                });
+
+                const buttonsContainer = auditFormContentDiv.querySelector('.flex.space-x-4');
+                const lastEvaluationsContainer = document.getElementById('lastEvaluationsContainer');
+
+                let originalButtonsDisplay = '';
+                if (buttonsContainer) {
+                    originalButtonsDisplay = buttonsContainer.style.display;
+                    buttonsContainer.style.display = 'none';
+                }
+                let originalLastEvaluationsDisplay = '';
+                if (lastEvaluationsContainer) {
+                    originalLastEvaluationsDisplay = lastEvaluationsContainer.style.display;
+                    lastEvaluationsContainer.style.display = 'none';
+                }
+
+                const originalAuditFormOverflow = auditFormContentDiv.style.overflow;
+                auditFormContentDiv.style.overflow = 'visible';
+
+                const canvas = await html2canvas(auditFormContentDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                });
+
+                originalStyles.forEach(elData => {
+                    if (elData.element && elData.element.style) {
+                        elData.element.style.border = elData.border;
+                        elData.element.style.backgroundColor = elData.backgroundColor;
+                        elData.element.style.color = elData.color;
+                        elData.element.readOnly = elData.readOnly;
+                        elData.element.disabled = elData.disabled;
+                        elData.element.style.pointerEvents = elData.pointerEvents;
+                        elData.element.style.boxShadow = elData.boxShadow;
+                        elData.element.style.resize = elData.resize;
+                    }
+                });
+
+                if (buttonsContainer) {
+                    buttonsContainer.style.display = originalButtonsDisplay;
+                }
+                if (lastEvaluationsContainer) {
+                    lastEvaluationsContainer.style.display = originalLastEvaluationsDisplay;
+                }
+
+                auditFormContentDiv.style.overflow = originalAuditFormOverflow;
+
+
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
@@ -1679,25 +1752,12 @@
                 document.body.removeChild(link);
 
                 hideMessageBox();
-
-                showTab('shareResponse');
-                
-                setTimeout(() => {
-                    const record = allRecords.find(r => r.id === latestSavedRecordId);
-                    if (record) {
-                        document.getElementById('select-record-to-share').value = latestSavedRecordId;
-                        populateShareEmailFields(latestSavedRecordId);
-                        
-                        const shareEmailBody = document.getElementById('share-email-body');
-                        shareEmailBody.value += `\n\n(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)`;
-                        autoExpandTextarea(shareEmailBody);
-                    }
-                }, 100);
+                showMessageBox("Download Complete", `PDF "${pdfFileName}" has been downloaded.`, false, false, true);
 
             } catch (error) {
                 console.error("Error generating PDF or preparing for sharing:", error);
                 hideMessageBox();
-                showMessageBox("Action Failed", `Could not generate PDF or prepare for sharing: ${error.message}. Please try again.`, true, false, true);
+                showMessageBox("PDF Generation Failed", `Could not generate PDF: ${error.message}. Please try again.`, true, false, true);
             }
         };
 
@@ -1924,6 +1984,7 @@
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
             const cerEmailInput = document.getElementById('cer-email');
+
             const autofailTypeSelect = document.getElementById('autofail-type');
             const autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             const autofailDescriptionInput = document.getElementById('autofail-description');
@@ -1950,7 +2011,7 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUserId = user.uid;
-                    loggedInUserEmail = user.email || "anonymous";
+                    loggedInUserEmail = user.email;
 
                     const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                     try {
@@ -1997,6 +2058,7 @@
                     const enteredPassword = passwordInput.value;
 
                     try {
+                        await signOut(auth);
                         await signInWithEmailAndPassword(auth, enteredUsername, enteredPassword);
                         sessionStorage.setItem('loggedIn', 'true');
                     } catch (error) {
@@ -2165,3 +2227,4 @@
     </script>
 </body>
 </html>
+ 
