@@ -2045,9 +2045,8 @@
          * Fetches users from Firestore and populates CER/Reviewer dropdowns.
          */
         async function fetchUsers() {
-            // Only attempt to fetch users if a user is logged in
-            if (!db || !auth.currentUser) {
-                console.warn("Not logged in. Skipping user data fetch for dropdowns.");
+            if (!db) {
+                console.warn("Firestore not ready. Skipping user data fetch.");
                 return;
             }
             if (unsubscribeUsers) unsubscribeUsers();
@@ -2058,7 +2057,6 @@
                 populateUserDropdowns();
             }, (error) => {
                 console.error("Error fetching users for dropdowns:", error);
-                // Gracefully handle the error by clearing the dropdowns
                 populateUserDropdowns();
             });
         }
@@ -2095,7 +2093,6 @@
                 option.textContent = user.name;
                 reviewerNameSelect.appendChild(option);
             });
-            // Prefill reviewer name with logged-in user's name
             if (auth.currentUser && auth.currentUser.displayName) {
                  const loggedInUser = allUsers.find(user => user.name === auth.currentUser.displayName);
                  if (loggedInUser && loggedInUser.isActive) {
@@ -2488,7 +2485,7 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
+
                 hideMessageBox();
 
                 showTab('shareResponse'); 
