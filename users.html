@@ -253,7 +253,7 @@
         </div>
     </nav>
 
-    <!-- This section will act as the login gate for the Users page -->
+    <!-- Main Content Area - Initially Hidden to allow for auth checks -->
     <div class="main-content hidden" id="mainContent">
         <div id="loadingMessage" class="text-center py-12 text-lg text-gray-500">
             <div class="spinner mx-auto mb-4"></div>
@@ -326,10 +326,7 @@
             </div>
         </div>
     </div>
-    <div class="login-container hidden" id="loginPage">
-        <!-- Login UI here (not shown for brevity, as it exists in index.html) -->
-    </div>
-
+    
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signOut, signInAnonymously, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
@@ -358,13 +355,10 @@
         
         // --- UI Elements ---
         const mainContent = document.getElementById('mainContent');
-        const loginGate = document.getElementById('loginGate');
-        const adminLoginForm = document.getElementById('adminLoginForm');
-        const adminUsernameInput = document.getElementById('admin-username');
-        const adminPasswordInput = document.getElementById('admin-password');
-        const adminLoginMessage = document.getElementById('adminLoginMessage');
+        const usersContent = document.getElementById('adminContent'); // Corrected ID
+        const loadingMessage = document.getElementById('loadingMessage');
+        const permissionDeniedMessage = document.getElementById('permissionDeniedMessage');
         const mainNav = document.getElementById('mainNav');
-        const usersContent = document.getElementById('usersContent');
         const logoutBtn = document.getElementById('logoutBtn');
         const userTableBody = document.getElementById('userTableBody');
         const newNameInput = document.getElementById('new-user-name');
@@ -414,14 +408,8 @@
         async function fetchAndRenderUsers() {
             userTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>';
             
-            if (currentUserRole === 'admin') {
-                adminToolsSection.style.display = 'block';
-                actionsHeader.style.display = 'table-cell';
-            } else {
-                adminToolsSection.style.display = 'none';
-                actionsHeader.style.display = 'none';
-                userTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">You do not have permission to view users. (Admin access required)</td></tr>`;
-                return;
+            if (currentUserRole !== 'admin') {
+                return; // Do not fetch or render for non-admins. The permission denied message is already handled.
             }
             
             if (unsubscribeUsers) unsubscribeUsers();
@@ -610,85 +598,45 @@
         }
         
         const initializePage = (user) => {
-            if (!user) {
-                // Not authenticated at all, show login gate
-                document.getElementById('loginGate').classList.remove('hidden');
-                document.getElementById('usersContent').classList.add('hidden');
-                document.getElementById('mainNav').style.display = 'none';
-                return;
-            }
+            document.getElementById('mainContent').classList.remove('hidden');
             
             const userProfileDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
             getDoc(userProfileDocRef).then(docSnap => {
                 currentUserRole = docSnap.exists() ? docSnap.data().role : 'guest';
                 
                 if (currentUserRole === 'admin') {
-                    document.getElementById('loginGate').classList.add('hidden');
-                    document.getElementById('usersContent').classList.remove('hidden');
-                    document.getElementById('mainNav').style.display = 'block';
+                    document.getElementById('adminContent').classList.remove('hidden');
+                    loadingMessage.classList.add('hidden');
+                    permissionDeniedMessage.classList.add('hidden');
                     fetchAndRenderUsers();
                 } else {
-                    document.getElementById('loginGate').classList.remove('hidden');
-                    document.getElementById('usersContent').classList.add('hidden');
-                    document.getElementById('mainNav').style.display = 'block';
-                    document.getElementById('adminLoginMessage').textContent = 'Permission denied. Please log in with an administrator account.';
-                    document.getElementById('adminLoginMessage').classList.remove('hidden');
+                    loadingMessage.classList.add('hidden');
+                    permissionDeniedMessage.classList.remove('hidden');
+                    document.getElementById('adminContent').classList.add('hidden');
+                    userTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Access denied. This page is for administrators only.</td></tr>`;
                 }
                 renderNavigationForRole(currentUserRole);
 
             }).catch(error => {
                 console.error("Error fetching user role:", error);
-                document.getElementById('loginGate').classList.remove('hidden');
-                document.getElementById('usersContent').classList.add('hidden');
-                document.getElementById('mainNav').style.display = 'block';
-                document.getElementById('adminLoginMessage').textContent = 'Error verifying user role. Please try logging in again.';
-                document.getElementById('adminLoginMessage').classList.remove('hidden');
+                loadingMessage.classList.add('hidden');
+                permissionDeniedMessage.classList.remove('hidden');
+                document.getElementById('adminContent').classList.add('hidden');
+                userTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error verifying user role. Please try logging in again.</td></tr>`;
             });
         };
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Initial auth check
+            // Check auth state on page load
             const authUnsubscribe = onAuthStateChanged(auth, (user) => {
                 authUnsubscribe();
-                initializePage(user);
+                if (user) {
+                    initializePage(user);
+                } else {
+                    // No user logged in, handle redirect
+                    window.location.href = 'index.html';
+                }
             });
-
-            // Admin login form submission handler
-            const adminLoginBtn = document.getElementById('adminLoginBtn');
-            if(adminLoginBtn) {
-                 adminLoginBtn.addEventListener('click', async (e) => {
-                     e.preventDefault();
-                     adminLoginMessage.classList.add('hidden');
-                     
-                     const email = adminUsernameInput.value;
-                     const password = adminPasswordInput.value;
-                     
-                     showMessageBox("Logging In", "Verifying credentials...", false, true, false);
-
-                     try {
-                         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                         const user = userCredential.user;
-                         
-                         const userProfileDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
-                         const docSnap = await getDoc(userProfileDocRef);
-                         
-                         if (docSnap.exists() && docSnap.data().role === 'admin') {
-                             hideMessageBox();
-                             sessionStorage.setItem('loggedIn', 'true');
-                             window.location.reload(); 
-                         } else {
-                             await signOut(auth);
-                             hideMessageBox();
-                             adminLoginMessage.textContent = 'Invalid credentials or not an administrator.';
-                             adminLoginMessage.classList.remove('hidden');
-                         }
-                     } catch (error) {
-                         hideMessageBox();
-                         adminLoginMessage.textContent = 'Invalid credentials or not an administrator.';
-                         adminLoginMessage.classList.remove('hidden');
-                     }
-                 });
-            }
 
             logoutBtn.addEventListener('click', async () => {
                 if (unsubscribeUsers) unsubscribeUsers();
