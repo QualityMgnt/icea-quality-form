@@ -189,7 +189,7 @@
         }
         
         .main-nav ul li.nav-tab {
-            display: block;
+            display: none;
         }
 
         .sidebar ul li a {
@@ -1526,7 +1526,7 @@
             const evaluationDate = record.submittedAt ? new Date(record.submittedAt.toDate()).toLocaleDateString() : 'N/A';
             const overallScore = record['Overall Score'] || 'N/A';
 
-            const cerEmail = cerNameEmailsMap[cerName] || '';
+            const cerEmail = allUsers.find(user => user.name === cerName)?.email || '';
 
             const subject = `Quality Assessment Feedback - ${cerName} - ${contactId}`;
             const body = `Dear ${cerName},\n\n` +
@@ -2043,7 +2043,11 @@
          * Fetches users from Firestore and populates CER/Reviewer dropdowns.
          */
         async function fetchUsers() {
-            if (!db || !auth.currentUser) return;
+            // Only attempt to fetch users if a user is logged in
+            if (!db || !auth.currentUser) {
+                console.warn("Not logged in. Skipping user data fetch for dropdowns.");
+                return;
+            }
             if (unsubscribeUsers) unsubscribeUsers();
             
             const usersCollectionRef = collection(db, USERS_PROFILE_COLLECTION_PATH);
@@ -2052,6 +2056,8 @@
                 populateUserDropdowns();
             }, (error) => {
                 console.error("Error fetching users for dropdowns:", error);
+                // Gracefully handle the error by clearing the dropdowns
+                populateUserDropdowns();
             });
         }
         
@@ -2065,7 +2071,7 @@
             if (!cerNameSelect || !reviewerNameSelect) return;
 
             const agents = allUsers.filter(user => user.role === 'agent' && user.isActive !== false);
-            const reviewers = allUsers.filter(user => user.role === 'admin' || user.role === 'supervisor' || user.role === 'agent' && user.isActive !== false);
+            const reviewers = allUsers.filter(user => user.isActive !== false);
             
             const currentCerName = cerNameSelect.value;
             cerNameSelect.innerHTML = '<option value="">Select CER</option>';
@@ -2087,10 +2093,16 @@
                 option.textContent = user.name;
                 reviewerNameSelect.appendChild(option);
             });
-            if (loggedInUserName && reviewers.some(user => user.name === loggedInUserName)) {
-                reviewerNameSelect.value = loggedInUserName;
+            // Prefill reviewer name with logged-in user's name
+            if (auth.currentUser && auth.currentUser.displayName) {
+                 const loggedInUser = allUsers.find(user => user.name === auth.currentUser.displayName);
+                 if (loggedInUser && loggedInUser.isActive) {
+                    reviewerNameSelect.value = auth.currentUser.displayName;
+                 }
             } else if (reviewers.some(user => user.name === currentReviewerName)) {
                 reviewerNameSelect.value = currentReviewerName;
+            } else {
+                 reviewerNameSelect.value = '';
             }
         }
 
@@ -2326,7 +2338,7 @@
                 const contactId = record['Contact ID'] || 'N/A';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
                 const overallScore = record['Overall Score'] || 'N/A';
-                const cerEmail = cerNameEmailsMap[cerName] || '';
+                const cerEmail = allUsers.find(user => user.name === cerName)?.email || '';
 
                 shareEmailTo.value = cerEmail;
                 shareEmailFrom.value = loggedInUserEmail;
@@ -2551,7 +2563,7 @@
                 const cerName = record['CER Name'] || 'Client';
                 const evaluationDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate().toLocaleDateString() : new Date(record.submittedAt).toLocaleDateString()) : 'N/A';
                 const overallScore = record['Overall Score'] || 'N/A';
-                const cerEmail = cerNameEmailsMap[cerName] || '';
+                const cerEmail = allUsers.find(user => user.name === cerName)?.email || '';
 
                 const emailSubject = `Quality Assessment Feedback - ${cerName} - Contact ID: ${contactId}`;
                 const emailBody = `Dear ${cerName},\n\n` +
