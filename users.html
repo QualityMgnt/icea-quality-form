@@ -81,7 +81,7 @@
             background-color: #000050;
         }
         .sidebar ul li.nav-tab {
-            display: block; /* Always visible in this file */
+            display: block;
         }
         .logout-button {
             background-color: #f57c00;
@@ -113,7 +113,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 0.5rem;
             overflow: hidden;
-            max-width: 1200px; /* Increased max-width for more columns */
+            max-width: 1200px;
             margin: 0 auto;
         }
         .login-container {
@@ -241,11 +241,11 @@
         <div class="sidebar">
             <ul id="sidebar-menu">
                 <li><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li><a href="index.html#myEvaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li><a href="myEvaluations.html"><i class="fas fa-user-check"></i> My Evaluations</a></li>
                 <li id="database-nav-item"><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
                 <li id="reports-nav-item"><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
                 <li id="autofails-nav-item"><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li id="images-nav-item"><a href="index.html#images"><i class="fas fa-image"></i> Images</a></li>
+                <li id="images-nav-item"><a href="images.html"><i class="fas fa-image"></i> Images</a></li>
                 <li id="users-nav-item"><a href="users.html" class="active"><i class="fas fa-users"></i> Users</a></li>
                 <li id="admin-nav-item"><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
@@ -315,12 +315,12 @@
         </div>
     </div>
 
-    <script type="module" src="firebase-config.js"></script>
     <script type="module">
-        import { getAuth, signOut, signInAnonymously, createUserWithEmailAndPassword, updatePassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, signOut, signInAnonymously, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, getDocs, deleteDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-functions.js";
         
+        // --- Firebase Configuration ---
         const firebaseConfig = {
           apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
           authDomain: "icea-lion-qa.firebaseapp.com",
@@ -355,6 +355,7 @@
         const userMessage = document.getElementById('userMessage');
 
         let currentUserRole = null;
+        let unsubscribeUsers = null;
         
         // Helper to display a custom message box
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
@@ -396,10 +397,11 @@
                 return;
             }
             
-            try {
-                const usersCollectionRef = collection(db, `artifacts/${appId}/users`);
-                const querySnapshot = await getDocs(usersCollectionRef);
-                const users = querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+            if (unsubscribeUsers) unsubscribeUsers();
+
+            const usersCollectionRef = collection(db, `artifacts/${appId}/users`);
+            unsubscribeUsers = onSnapshot(usersCollectionRef, (snapshot) => {
+                const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
                 
                 userTableBody.innerHTML = '';
                 if (users.length === 0) {
@@ -426,11 +428,11 @@
                         </td>
                     `;
                 });
-            } catch (error) {
+            }, (error) => {
                 console.error("Error fetching users:", error);
                 userTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Failed to load users: ${error.message}</td></tr>`;
                 showMessageBox("Error", `Failed to load users: ${error.message}`, true, false, true);
-            }
+            });
         }
         
         window.deleteUser = async function(uid, email) {
@@ -462,7 +464,7 @@
                 
                 hideMessageBox();
                 showMessageBox("Success", `User '${email}' deleted successfully! (Note: Auth account still exists)`, false, false, true);
-                fetchAndRenderUsers();
+                fetchAndRenderUsers(); // Re-render table on successful deletion
             } catch (error) {
                 hideMessageBox();
                 console.error("Error deleting user:", error);
@@ -519,6 +521,11 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const uid = userCredential.user.uid;
                 
+                // Update the user's profile with their name
+                await updateProfile(userCredential.user, {
+                    displayName: name
+                });
+
                 const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
                 await setDoc(userDocRef, {
                     name: name,
@@ -534,7 +541,7 @@
                 newEmailInput.value = '';
                 newPasswordInput.value = '';
                 newUserRoleSelect.value = '';
-                fetchAndRenderUsers();
+                // The onSnapshot listener will handle re-rendering the table
             } catch (error) {
                 hideMessageBox();
                 console.error("Error creating user:", error);
@@ -562,7 +569,8 @@
                             usersContent.style.display = 'block';
                             fetchAndRenderUsers();
                         } else {
-                            window.location.href = 'index.html'; // Redirect non-admins
+                            // Redirect non-admins to the home page
+                            window.location.href = 'index.html';
                         }
                     }).catch(error => {
                         console.error("Error fetching user role:", error);
@@ -573,7 +581,6 @@
                 }
             };
             
-            // Check auth state on page load
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     checkAndRender();
@@ -583,6 +590,7 @@
             });
             
             logoutBtn.addEventListener('click', async () => {
+                if (unsubscribeUsers) unsubscribeUsers();
                 await signOut(auth);
                 window.location.href = 'index.html';
             });
