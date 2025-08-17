@@ -1,923 +1,918 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - ICEA LION GROUP</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ICEA LION GROUP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
 
 
-    <style>
-        /* Base styles */
-        body {
-            font-family: 'Garamond', serif;
-            display: flex;
-            align-items: flex-start;
-            min-height: 100vh;
-            background-color: #f3f4f6;
-            margin: 0;
-            padding: 0;
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0s, opacity 0.3s ease;
-        }
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Garamond', serif;
+            display: flex;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
 
-        body.loaded {
-            visibility: visible;
-            opacity: 1;
-        }
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
+        }
 
-        /* ICEALION Branding Colors */
-        .icealion-blue {
-            background-color: #1a73e8;
-            color: white;
-        }
-        .icealion-orange-text {
-            color: #f57c00;
-        }
+        /* ICEALION Branding Colors */
+        .icealion-blue {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .icealion-orange-text {
+            color: #f57c00;
+        }
 
-        /* NEW TOP HEADER (Consistent across all pages) */
-        .top-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 48px;
-            background-color: #000080; /* Navy Blue */
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 1.125rem;
-            font-weight: 600;
-            z-index: 1000;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            padding: 0 1rem;
-        }
-        .top-header img {
-            height: 40px;
-            width: auto;
-        }
+        /* NEW TOP HEADER (Consistent across all pages) */
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            background-color: #000080; /* Navy Blue */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 1.125rem;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0 1rem;
+        }
+        .top-header img {
+            height: 40px;
+            width: auto;
+        }
 
-        /* Navigation styles (consistent sidebar) */
-        .main-nav {
-            width: 125px;
-            background-color: #000080;
-            color: white;
-            padding: 1rem 0;
-            height: calc(100vh - 48px);
-            position: fixed;
-            top: 48px;
-            left: 0;
-            z-index: 100;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .sidebar ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            flex-grow: 1;
-        }
-        .sidebar ul li a {
-            font-family: 'Garamond', serif;
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 0.75rem 0.5rem;
-            display: block;
-            border-radius: 0;
-            transition: background-color 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.25rem;
-            font-size: 0.75rem;
-            text-align: center;
-        }
-        .sidebar ul li a .fas {
-            margin-bottom: 0.25rem;
-            font-size: 1.2rem;
-        }
+        /* Navigation styles (consistent sidebar) */
+        .main-nav {
+            width: 125px;
+            background-color: #000080;
+            color: white;
+            padding: 1rem 0;
+            height: calc(100vh - 48px);
+            position: fixed;
+            top: 48px;
+            left: 0;
+            z-index: 100;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .sidebar ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex-grow: 1;
+        }
+        .sidebar ul li a {
+            font-family: 'Garamond', serif;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.75rem 0.5rem;
+            display: block;
+            border-radius: 0;
+            transition: background-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            text-align: center;
+        }
+        .sidebar ul li a .fas {
+            margin-bottom: 0.25rem;
+            font-size: 1.2rem;
+        }
 
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
-            background-color: #000050;
-        }
-        .sidebar ul li.nav-tab {
-            display: none;
-        }
-        .logout-button {
-            background-color: #f57c00;
-            color: white;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-            margin: 1rem auto;
-            width: calc(100% - 2rem);
-            font-size: 0.75rem;
-        }
-        .logout-button:hover {
-            background-color: #e65100;
-        }
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: #000050;
+        }
+        .sidebar ul li.nav-tab {
+            display: none;
+        }
+        .logout-button {
+            background-color: #f57c00;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
+        }
+        .logout-button:hover {
+            background-color: #e65100;
+        }
 
-        /* Main content area for Dashboard.html */
-        .main-content {
-            margin-left: 125px;
-            margin-top: 48px;
-            width: calc(100% - 125px);
-            min-height: calc(100vh - 48px);
-            box-sizing: border-box;
-            padding: 1.5rem;
-        }
-        
-        .dashboard-container {
-            background-color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0.5rem;
-            overflow: hidden;
-            padding: 1.5rem;
-        }
-        
-        .filter-section {
-            background-color: #f0f9ff;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
+        /* Main content area for Dashboard.html */
+        .main-content {
+            margin-left: 125px;
+            margin-top: 48px;
+            width: calc(100% - 125px);
+            min-height: calc(100vh - 48px);
+            box-sizing: border-box;
+            padding: 1.5rem;
+        }
+        
+        .dashboard-container {
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            padding: 1.5rem;
+        }
+        
+        .filter-section {
+            background-color: #f0f9ff;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
 
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .filter-group label {
-            font-weight: 600;
-            color: #374151;
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
-        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
 
-        .filter-group input,
-        .filter-group select {
-            padding: 0.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
+        .filter-group input,
+        .filter-group select {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
 
-        .filter-group input:focus,
-        .filter-group select:focus {
-            border-color: #1a73e8;
-            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
-        }
+        .filter-group input:focus,
+        .filter-group select:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+        }
 
-        /* KPI Card styles */
-        .kpi-card {
-            background-color: #f0f9ff;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 150px;
-        }
-        .kpi-card .icon {
-            font-size: 2.5rem;
-            color: #1a73e8;
-            margin-bottom: 0.5rem;
-        }
-        .kpi-card .value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1f2937;
-        }
-        .kpi-card .label {
-            font-size: 0.9rem;
-            color: #4b5563;
-            font-weight: 500;
-            margin-top: 0.25rem;
-        }
+        /* KPI Card styles */
+        .kpi-card {
+            background-color: #f0f9ff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 150px;
+        }
+        .kpi-card .icon {
+            font-size: 2.5rem;
+            color: #1a73e8;
+            margin-bottom: 0.5rem;
+        }
+        .kpi-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .kpi-card .label {
+            font-size: 0.9rem;
+            color: #4b5563;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
 
-        /* Chart container styles */
-        .chart-container {
-            background-color: white;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            min-height: 400px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .chart-container h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-        .chart-container svg {
-            max-width: 100%;
-            height: auto;
-        }
+        /* Chart container styles */
+        .chart-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .chart-container h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .chart-container svg {
+            max-width: 100%;
+            height: auto;
+        }
 
-        /* Loader styles */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #1a73e8;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        /* Loader styles */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1a73e8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-        /* Message box styles (copied from index.html for consistency) */
-        .message-box-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .message-box {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .message-box h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #1a73e8;
-        }
-        .message-box p {
-            margin-bottom: 1.5rem;
-            color: #333;
-        }
-        .message-box button {
-            background-color: #1a73e8;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-        }
-        .message-box button:hover {
-            background-color: #0d47a1;
-        }
-        .hidden {
-            display: none !important;
-        }
-    </style>
+        /* Message box styles (copied from index.html for consistency) */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a73e8;
+        }
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .message-box button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .message-box button:hover {
+            background-color: #0d47a1;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-    <div class="top-header">
-        <span>ICEA LION QUALITY EVALUATION AND MONITORING</span>
-        <img id="header-logo" src="https://placehold.co/40x40/e5e7eb/6b7280?text=Logo" alt="Company Logo" class="logo">
-    </div>
-
-    <div id="messageBoxOverlay" class="message-box-overlay hidden">
-        <div class="message-box">
-            <div id="messageBoxSpinner" class="loader hidden"></div>
-            <h3 id="messageBoxTitle"></h3>
-            <p id="messageBoxContent"></p>
-            <button id="messageBoxCloseBtn" class="hidden">OK</button>
-        </div>
-    </div>
-
-    <nav class="main-nav" id="mainNav" style="display: none;">
-        <div class="sidebar">
-            <ul id="sidebar-menu">
-                <li class="nav-tab" data-role="all"><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li class="nav-tab" data-role="admin"><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li class="nav-tab" data-role="all"><a href="myEvaluations.html" id="myEvaluationsTab"><i class="fas fa-user-check"></i> My Evaluations</a></li>
-                <li class="nav-tab" data-role="admin"><a href="Dashboard.html" id="reportsTab" class="active"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
-                <li class="nav-tab" data-role="admin"><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li class="nav-tab" data-role="admin"><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li class="nav-tab" data-role="all"><a href="images.html" id="imagesTab"><i class="fas fa-image"></i> Images</a></li>
-                <li class="nav-tab" data-role="admin"><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
-                <li class="nav-tab" data-role="admin"><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
-            </ul>
-            <button id="logoutBtn" class="logout-button">Logout</button>
-        </div>
-    </nav>
-
-    <div class="main-content" id="reportsContent" style="display: none;">
-        <div class="dashboard-container">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Quality Control Dashboard</h2>
-            
-            <!-- Filter Section -->
-            <div class="filter-section">
-                <div class="filter-group">
-                    <label for="startDateFilter">Start Date:</label>
-                    <input type="date" id="startDateFilter" class="w-full">
-                </div>
-                <div class="filter-group">
-                    <label for="endDateFilter">End Date:</label>
-                    <input type="date" id="endDateFilter" class="w-full">
-                </div>
-                <div class="filter-group">
-                    <label for="cerRoleFilter">CER Role:</label>
-                    <select id="cerRoleFilter" class="w-full">
-                        <option value="all">All Roles</option>
-                        <!-- Options populated dynamically from Firestore -->
-                    </select>
-                </div>
-            </div>
-
-            <!-- KPI Cards Section -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="kpi-card">
-                    <i class="fas fa-clipboard-list icon"></i>
-                    <div class="value" id="totalEvaluations">0</div>
-                    <div class="label">Total Evaluations</div>
-                </div>
-                <div class="kpi-card">
-                    <i class="fas fa-users-cog icon"></i>
-                    <div class="value" id="teamAverageScore">0%</div>
-                    <div class="label">Team Average Score</div>
-                </div>
-                <div class="kpi-card">
-                    <i class="fas fa-star icon"></i>
-                    <div class="value" id="perfectScores">0</div>
-                    <div class="label">Perfect Scores (100%)</div>
-                </div>
-                <div class="kpi-card">
-                    <i class="fas fa-arrow-alt-circle-down icon"></i>
-                    <div class="value" id="belowAverage">0</div>
-                    <div class="label">Below Average (< 70%)</div>
-                </div>
-            </div>
-
-            <!-- Charts Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="chart-container">
-                    <h3>Key Issues Identified</h3>
-                    <div id="keyIssuesChart" class="w-full h-full flex items-center justify-center">
-                        <p class="text-gray-500">Loading chart...</p>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <h3>Top Employees by Call Quality</h3>
-                    <div id="topEmployeesChart" class="w-full h-full flex items-center justify-center">
-                        <p class="text-gray-500">Loading chart...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, query, getDocs, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
-
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-            authDomain: "icea-lion-qa.firebaseapp.com",
-            projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
-            messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
-            measurementId: "G-1RJJTT3QET"
-        };
-        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-
-        let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
-            appInstance = getApp();
-        }
-        const auth = getAuth(appInstance);
-        const db = getFirestore(appInstance);
-
-        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
-        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
-        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
-
-        let allRecords = [];
-        let cerRoles = [];
-        let currentUserRole = null;
-
-        // --- Utility Functions ---
-        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
-            const messageBoxTitle = document.getElementById('messageBoxTitle');
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-
-            messageBoxTitle.textContent = title;
-            messageBoxContent.textContent = message;
-
-            messageBoxOverlay.classList.remove('hidden');
-            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
-            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
-
-            if (isError) {
-                messageBoxTitle.style.color = '#dc2626';
-            } else {
-                messageBoxTitle.style.color = '#1a73e8';
-            }
-
-            messageBoxCloseBtn.onclick = null;
-            if (showCloseButton) {
-                messageBoxCloseBtn.onclick = () => {
-                    messageBoxOverlay.classList.add('hidden');
-                    if (onClose) onClose();
-                };
-            }
-        }
-
-        function hideMessageBox() {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            messageBoxOverlay.classList.add('hidden');
-        }
-        
-        const renderNavigationForRole = (role) => {
-            const allNavTabs = document.querySelectorAll('.nav-tab');
-            allNavTabs.forEach(tab => {
-                const requiredRole = tab.dataset.role;
-                if (requiredRole === 'all' || (role && (role === 'admin' || role === 'supervisor'))) {
-                    tab.style.display = 'block';
-                } else if (role === 'agent' && (requiredRole === 'all' || tab.id === 'myEvaluationsTab')) {
-                     tab.style.display = 'block';
-                } else {
-                    tab.style.display = 'none';
-                }
-            });
-        }
-        
-        async function fetchAndSetLogo() {
-            try {
-                const docSnap = await getDoc(LOGO_DOC_REF);
-                if (docSnap.exists() && docSnap.data().logoUrl) {
-                    const logoUrl = docSnap.data().logoUrl;
-                    const logoHeader = document.getElementById('header-logo');
-                    if (logoHeader) {
-                        logoHeader.src = logoUrl;
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching logo:", error);
-            }
-        }
-        
-        const initializeDashboardPage = async (user) => {
-            const mainNav = document.getElementById('mainNav');
-            const reportsContent = document.getElementById('reportsContent');
-            
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-            try {
-                const docSnap = await getDoc(userProfileDocRef);
-                currentUserRole = docSnap.exists() ? docSnap.data().role : null;
-            } catch (error) {
-                console.error("Error fetching user role:", error);
-                currentUserRole = 'guest';
-            }
-            
-            if (currentUserRole !== 'admin' && currentUserRole !== 'supervisor') {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            if (mainNav) mainNav.style.display = 'block';
-            if (reportsContent) reportsContent.style.display = 'block';
-            document.body.classList.add('loaded');
-            renderNavigationForRole(currentUserRole);
-            fetchFilterData();
-        };
-        
-        async function fetchFilterData() {
-            showMessageBox("Loading Dashboard", "Fetching data for analytics...", false, true, false);
-            try {
-                // Fetch CER Roles for the filter dropdown
-                const dropdownDoc = await getDoc(DROPDOWN_DATA_DOC_REF);
-                if (dropdownDoc.exists()) {
-                    cerRoles = dropdownDoc.data().cerRoles || [];
-                    populateCerRoleFilter(cerRoles);
-                }
-                
-                // Fetch all records initially
-                await fetchAllRecordsAndRender();
-
-            } catch (error) {
-                console.error("Error fetching filter data:", error);
-                showMessageBox("Error", `Failed to load filter data: ${error.message}`, true, false, true);
-            }
-        }
-        
-        function populateCerRoleFilter(roles) {
-            const selectElement = document.getElementById('cerRoleFilter');
-            if (!selectElement) return;
-            
-            const currentSelectedValue = selectElement.value;
-            selectElement.innerHTML = '<option value="all">All Roles</option>';
-            
-            roles.forEach(role => {
-                const option = document.createElement('option');
-                option.value = role;
-                option.textContent = role;
-                selectElement.appendChild(option);
-            });
-            
-            if (Array.from(selectElement.options).some(opt => opt.value === currentSelectedValue)) {
-                selectElement.value = currentSelectedValue;
-            } else {
-                selectElement.value = 'all';
-            }
-        }
-        
-        async function fetchAllRecordsAndRender() {
-            try {
-                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
-                const querySnapshot = await getDocs(recordsColRef);
-                allRecords = [];
-                querySnapshot.forEach(doc => {
-                    allRecords.push(doc.data());
-                });
-                console.log("Fetched records for dashboard:", allRecords.length);
-                fetchAndRenderDashboardData(); // Call the rendering function with all fetched records
-            } catch (error) {
-                console.error("Error fetching all records:", error);
-                showMessageBox("Error", `Failed to load all records: ${error.message}`, true, false, true);
-            }
-        }
-
-
-        // --- Data Filtering and Rendering ---
-        function fetchAndRenderDashboardData() {
-            const startDate = document.getElementById('startDateFilter').value;
-            const endDate = document.getElementById('endDateFilter').value;
-            const cerRole = document.getElementById('cerRoleFilter').value;
-            
-            let filteredRecords = [...allRecords];
-
-            // Apply Date Filter
-            if (startDate) {
-                const start = new Date(startDate);
-                filteredRecords = filteredRecords.filter(record => {
-                    const recordDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt)) : null;
-                    return recordDate && recordDate >= start;
-                });
-            }
-
-            if (endDate) {
-                const end = new Date(endDate);
-                filteredRecords = filteredRecords.filter(record => {
-                    const recordDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt)) : null;
-                    return recordDate && recordDate <= end;
-                });
-            }
-            
-            // Apply CER Role Filter
-            if (cerRole && cerRole !== 'all') {
-                filteredRecords = filteredRecords.filter(record => record['CER Role'] === cerRole);
-            }
-
-            if (filteredRecords.length === 0) {
-                showMessageBox("No Data", "No evaluation records found for the selected filters.", false, false, true);
-                processAndDisplayMetrics([]);
-                drawKeyIssuesChart([]);
-                drawTopEmployeesChart([]);
-                return;
-            }
-
-            processAndDisplayMetrics(filteredRecords);
-            drawKeyIssuesChart(filteredRecords);
-            drawTopEmployeesChart(filteredRecords);
-            hideMessageBox();
-        }
-
-        function processAndDisplayMetrics(records) {
-            const totalEvaluations = records.length;
-            let totalOverallScore = 0;
-            let perfectScores = 0;
-            let belowAverage = 0;
-            const belowAverageThreshold = 70;
-
-            records.forEach(record => {
-                const overallScoreStr = record['Overall Score'] || '0%';
-                const score = parseFloat(overallScoreStr.replace('%', ''));
-
-                if (!isNaN(score)) {
-                    totalOverallScore += score;
-                    if (score === 100) {
-                        perfectScores++;
-                    }
-                    if (score < belowAverageThreshold) {
-                        belowAverage++;
-                    }
-                }
-            });
-
-            const teamAverageScore = totalEvaluations > 0 ? (totalOverallScore / totalEvaluations).toFixed(2) : 0;
-
-            document.getElementById('totalEvaluations').textContent = totalEvaluations;
-            document.getElementById('teamAverageScore').textContent = `${teamAverageScore}%`;
-            document.getElementById('perfectScores').textContent = perfectScores;
-            document.getElementById('belowAverage').textContent = belowAverage;
-            document.getElementById('belowAverage').closest('.kpi-card').querySelector('.label').textContent = `Below Average (< ${belowAverageThreshold}%)`;
-        }
-
-        function drawKeyIssuesChart(records) {
-            const chartContainer = document.getElementById('keyIssuesChart');
-            chartContainer.innerHTML = '';
-
-            const issueCounts = {};
-            records.forEach(record => {
-                const autofailType = record['Auto Fail Type'] || 'No Autofail Selected';
-                issueCounts[autofailType] = (issueCounts[autofailType] || 0) + 1;
-            });
-
-            const data = Object.keys(issueCounts).map(key => ({
-                label: key,
-                value: issueCounts[key]
-            }));
-
-            if (data.length === 0) {
-                chartContainer.innerHTML = '<p class="text-gray-500">No issues data available.</p>';
-                return;
-            }
-
-            const width = chartContainer.clientWidth;
-            const height = Math.min(width, 400);
-            const radius = Math.min(width, height) / 2 - 20;
-
-            const svg = d3.select(chartContainer)
-                .append("svg")
-                .attr("width", width)
-                .attr("height", height)
-                .append("g")
-                .attr("transform", `translate(${width / 2}, ${height / 2})`);
-
-            const color = d3.scaleOrdinal(d3.schemeCategory10);
-
-            const pie = d3.pie()
-                .value(d => d.value)
-                .sort(null);
-
-            const arc = d3.arc()
-                .innerRadius(0)
-                .outerRadius(radius);
-
-            const outerArc = d3.arc()
-                .innerRadius(radius * 0.9)
-                .outerRadius(radius * 0.9);
-
-            const arcs = svg.selectAll(".arc")
-                .data(pie(data))
-                .enter()
-                .append("g")
-                .attr("class", "arc");
-
-            arcs.append("path")
-                .attr("d", arc)
-                .attr("fill", d => color(d.data.label))
-                .attr("stroke", "white")
-                .style("stroke-width", "2px");
-
-            arcs.append("text")
-                .attr("transform", d => `translate(${outerArc.centroid(d)})`)
-                .attr("text-anchor", d => {
-                    const midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
-                    return (midangle < Math.PI ? "start" : "end");
-                })
-                .text(d => `${d.data.label} (${d3.format(".1%")(d.data.value / d3.sum(data, v => v.value))})`)
-                .style("font-size", "10px")
-                .style("fill", "#333");
-
-            arcs.append("polyline")
-                .attr("stroke", "#ccc")
-                .style("fill", "none")
-                .attr("stroke-width", 1)
-                .attr("points", function(d) {
-                    const posA = arc.centroid(d);
-                    const posB = outerArc.centroid(d);
-                    const posC = outerArc.centroid(d);
-                    const midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
-                    posC[0] = radius * 0.95 * (midangle < Math.PI ? 1 : -1);
-                    return [posA, posB, posC];
-                });
-
-            window.addEventListener('resize', () => drawKeyIssuesChart(records));
-        }
-
-        function drawTopEmployeesChart(records) {
-            const chartContainer = document.getElementById('topEmployeesChart');
-            chartContainer.innerHTML = '';
-
-            const employeeScores = {};
-            records.forEach(record => {
-                const cerName = record['CER Name'];
-                const overallScoreStr = record['Overall Score'] || '0%';
-                const score = parseFloat(overallScoreStr.replace('%', ''));
-
-                if (cerName && !isNaN(score)) {
-                    if (!employeeScores[cerName]) {
-                        employeeScores[cerName] = { totalScore: 0, count: 0 };
-                    }
-                    employeeScores[cerName].totalScore += score;
-                    employeeScores[cerName].count++;
-                }
-            });
-
-            const data = Object.keys(employeeScores).map(name => ({
-                employee: name,
-                averageScore: employeeScores[name].totalScore / employeeScores[name].count
-            }));
-
-            data.sort((a, b) => b.averageScore - a.averageScore);
-
-            const topN = 5;
-            const topEmployees = data.slice(0, topN);
-
-            if (topEmployees.length === 0) {
-                chartContainer.innerHTML = '<p class="text-gray-500">No employee data available.</p>';
-                return;
-            }
-
-            const margin = { top: 20, right: 30, bottom: 40, left: 100 };
-            const width = chartContainer.clientWidth - margin.left - margin.right;
-            const height = Math.max(topEmployees.length * 50, 250) - margin.top - margin.bottom;
-
-            const svg = d3.select(chartContainer)
-                .append("svg")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform", `translate(${margin.left},${margin.top})`);
-
-            const x = d3.scaleLinear()
-                .domain([0, 100])
-                .range([0, width]);
-
-            const y = d3.scaleBand()
-                .domain(topEmployees.map(d => d.employee))
-                .range([0, height])
-                .padding(0.1);
-
-            svg.append("g")
-                .attr("transform", `translate(0,${height})`)
-                .call(d3.axisBottom(x));
-
-            svg.append("g")
-                .call(d3.axisLeft(y));
-
-            svg.selectAll(".bar")
-                .data(topEmployees)
-                .enter()
-                .append("rect")
-                .attr("class", "bar")
-                .attr("x", 0)
-                .attr("y", d => y(d.employee))
-                .attr("width", d => x(d.averageScore))
-                .attr("height", y.bandwidth())
-                .attr("fill", "#1a73e8");
-
-            svg.selectAll(".bar-label")
-                .data(topEmployees)
-                .enter()
-                .append("text")
-                .attr("class", "bar-label")
-                .attr("x", d => x(d.averageScore) + 5)
-                .attr("y", d => y(d.employee) + y.bandwidth() / 2 + 4)
-                .text(d => `${d.averageScore.toFixed(1)}%`)
-                .style("font-size", "10px")
-                .style("fill", "#555");
-
-            window.addEventListener('resize', () => drawTopEmployeesChart(records));
-        }
-
-        // --- DOMContentLoaded Event Listener ---
-        document.addEventListener('DOMContentLoaded', function() {
-            const logoutBtn = document.getElementById('logoutBtn');
-            const mainNav = document.getElementById('mainNav');
-            const reportsContent = document.getElementById('reportsContent');
-            const startDateFilter = document.getElementById('startDateFilter');
-            const endDateFilter = document.getElementById('endDateFilter');
-            const cerRoleFilter = document.getElementById('cerRoleFilter');
-
-            const navItems = {
-                'auditFormTab': 'index.html',
-                'databaseTab': 'index.html#database',
-                'myEvaluationsTab': 'myEvaluations.html',
-                'reportsTab': 'Dashboard.html',
-                'autofailsTab': 'autofails.html',
-                'shareResponseTab': 'index.html#shareResponse',
-                'imagesTab': 'images.html',
-                'usersTab': 'users.html',
-                'adminTab': 'admin.html'
-            };
-            
-            const renderNavigationForRole = (role) => {
-                const allNavTabs = document.querySelectorAll('.nav-tab');
-                allNavTabs.forEach(tab => {
-                    const requiredRole = tab.dataset.role;
-                    if (requiredRole === 'all' || (role && (role === 'admin' || role === 'supervisor'))) {
-                        tab.style.display = 'block';
-                    } else if (role === 'agent' && (requiredRole === 'all' || tab.id === 'myEvaluationsTab')) {
-                         tab.style.display = 'block';
-                    } else {
-                        tab.style.display = 'none';
-                    }
-                });
-            }
-
-            Object.keys(navItems).forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        window.location.href = navItems[id];
-                    });
-                }
-            });
-
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', async function() {
-                    await signOut(auth);
-                    sessionStorage.removeItem('loggedIn');
-                    window.location.href = 'index.html';
-                });
-            }
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-                    try {
-                        const docSnap = await getDoc(userProfileDocRef);
-                        const userRole = docSnap.exists() ? docSnap.data().role : null;
-                        
-                        if (userRole === 'admin' || userRole === 'supervisor') {
-                            if (mainNav) mainNav.style.display = 'block';
-                            if (reportsContent) reportsContent.style.display = 'block';
-                            document.body.classList.add('loaded');
-                            renderNavigationForRole(userRole);
-                            
-                            // Load filter data and render dashboard
-                            await fetchFilterData();
-
-                            // Add event listeners to filters to re-render the dashboard
-                            if (startDateFilter) startDateFilter.addEventListener('change', fetchAndRenderDashboardData);
-                            if (endDateFilter) endDateFilter.addEventListener('change', fetchAndRenderDashboardData);
-                            if (cerRoleFilter) cerRoleFilter.addEventListener('change', fetchAndRenderDashboardData);
-                        } else {
-                            window.location.href = 'index.html';
-                        }
-                    } catch (error) {
-                        console.error("Error fetching user role:", error);
-                        window.location.href = 'index.html';
-                    }
-                } else {
-                    window.location.href = 'index.html';
-                }
-            });
-        });
-    </script>
+    <div class="top-header">
+        <span>ICEA LION QUALITY EVALUATION AND MONITORING</span>
+        <img id="header-logo" src="https://placehold.co/40x40/e5e7eb/6b7280?text=Logo" alt="Company Logo" class="logo">
+    </div>
+
+    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+        <div class="message-box">
+            <div id="messageBoxSpinner" class="loader hidden"></div>
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseBtn" class="hidden">OK</button>
+        </div>
+    </div>
+
+    <nav class="main-nav" id="mainNav" style="display: none;">
+        <div class="sidebar">
+            <ul id="sidebar-menu">
+                <li class="nav-tab" data-role="all"><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li class="nav-tab" data-role="admin"><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+                <li class="nav-tab" data-role="all"><a href="myEvaluations.html" id="myEvaluationsTab"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li class="nav-tab" data-role="admin"><a href="Dashboard.html" id="reportsTab" class="active"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li class="nav-tab" data-role="admin"><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li class="nav-tab" data-role="admin"><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
+                <li class="nav-tab" data-role="all"><a href="images.html" id="imagesTab"><i class="fas fa-image"></i> Images</a></li>
+                <li class="nav-tab" data-role="admin"><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
+                <li class="nav-tab" data-role="admin"><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button">Logout</button>
+        </div>
+    </nav>
+
+    <div class="main-content" id="reportsContent" style="display: none;">
+        <div class="dashboard-container">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Quality Control Dashboard</h2>
+            
+                        <div class="filter-section">
+                <div class="filter-group">
+                    <label for="startDateFilter">Start Date:</label>
+                    <input type="date" id="startDateFilter" class="w-full">
+                </div>
+                <div class="filter-group">
+                    <label for="endDateFilter">End Date:</label>
+                    <input type="date" id="endDateFilter" class="w-full">
+                </div>
+                <div class="filter-group">
+                    <label for="cerRoleFilter">CER Role:</label>
+                    <select id="cerRoleFilter" class="w-full">
+                        <option value="all">All Roles</option>
+                                            </select>
+                </div>
+            </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="kpi-card">
+                    <i class="fas fa-clipboard-list icon"></i>
+                    <div class="value" id="totalEvaluations">0</div>
+                    <div class="label">Total Evaluations</div>
+                </div>
+                <div class="kpi-card">
+                    <i class="fas fa-users-cog icon"></i>
+                    <div class="value" id="teamAverageScore">0%</div>
+                    <div class="label">Team Average Score</div>
+                </div>
+                <div class="kpi-card">
+                    <i class="fas fa-star icon"></i>
+                    <div class="value" id="perfectScores">0</div>
+                    <div class="label">Perfect Scores (100%)</div>
+                </div>
+                <div class="kpi-card">
+                    <i class="fas fa-arrow-alt-circle-down icon"></i>
+                    <div class="value" id="belowAverage">0</div>
+                    <div class="label">Below Average (< 70%)</div>
+                </div>
+            </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="chart-container">
+                    <h3>Key Issues Identified</h3>
+                    <div id="keyIssuesChart" class="w-full h-full flex items-center justify-center">
+                        <p class="text-gray-500">Loading chart...</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>Top Employees by Call Quality</h3>
+                    <div id="topEmployeesChart" class="w-full h-full flex items-center justify-center">
+                        <p class="text-gray-500">Loading chart...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, query, getDocs, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
+            measurementId: "G-1RJJTT3QET"
+        };
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+
+        let appInstance;
+        if (!getApps().length) {
+            appInstance = initializeApp(firebaseConfig);
+        } else {
+            appInstance = getApp();
+        }
+        const auth = getAuth(appInstance);
+        const db = getFirestore(appInstance);
+
+        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
+        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
+
+        let allRecords = [];
+        let cerRoles = [];
+        let currentUserRole = null;
+
+        // --- Utility Functions ---
+        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
+            const messageBoxTitle = document.getElementById('messageBoxTitle');
+            const messageBoxContent = document.getElementById('messageBoxContent');
+            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+
+            messageBoxTitle.textContent = title;
+            messageBoxContent.textContent = message;
+
+            messageBoxOverlay.classList.remove('hidden');
+            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
+            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
+
+            if (isError) {
+                messageBoxTitle.style.color = '#dc2626';
+            } else {
+                messageBoxTitle.style.color = '#1a73e8';
+            }
+
+            messageBoxCloseBtn.onclick = null;
+            if (showCloseButton) {
+                messageBoxCloseBtn.onclick = () => {
+                    messageBoxOverlay.classList.add('hidden');
+                    if (onClose) onClose();
+                };
+            }
+        }
+
+        function hideMessageBox() {
+            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
+            messageBoxOverlay.classList.add('hidden');
+        }
+        
+        const renderNavigationForRole = (role) => {
+            const allNavTabs = document.querySelectorAll('.nav-tab');
+            allNavTabs.forEach(tab => {
+                const requiredRole = tab.dataset.role;
+                if (requiredRole === 'all' || (role && (role === 'admin' || role === 'supervisor'))) {
+                    tab.style.display = 'block';
+                } else if (role === 'agent' && (requiredRole === 'all' || tab.id === 'myEvaluationsTab')) {
+                     tab.style.display = 'block';
+                } else {
+                    tab.style.display = 'none';
+                }
+            });
+        }
+        
+        async function fetchAndSetLogo() {
+            try {
+                const docSnap = await getDoc(LOGO_DOC_REF);
+                if (docSnap.exists() && docSnap.data().logoUrl) {
+                    const logoUrl = docSnap.data().logoUrl;
+                    const logoHeader = document.getElementById('header-logo');
+                    if (logoHeader) {
+                        logoHeader.src = logoUrl;
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching logo:", error);
+            }
+        }
+        
+        const initializeDashboardPage = async (user) => {
+            const mainNav = document.getElementById('mainNav');
+            const reportsContent = document.getElementById('reportsContent');
+            
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+            try {
+                const docSnap = await getDoc(userProfileDocRef);
+                currentUserRole = docSnap.exists() ? docSnap.data().role : null;
+            } catch (error) {
+                console.error("Error fetching user role:", error);
+                currentUserRole = 'guest';
+            }
+            
+            if (currentUserRole !== 'admin' && currentUserRole !== 'supervisor') {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            if (mainNav) mainNav.style.display = 'block';
+            if (reportsContent) reportsContent.style.display = 'block';
+            document.body.classList.add('loaded');
+            renderNavigationForRole(currentUserRole);
+            fetchFilterData();
+        };
+        
+        async function fetchFilterData() {
+            showMessageBox("Loading Dashboard", "Fetching data for analytics...", false, true, false);
+            try {
+                // Fetch CER Roles for the filter dropdown
+                const dropdownDoc = await getDoc(DROPDOWN_DATA_DOC_REF);
+                if (dropdownDoc.exists()) {
+                    cerRoles = dropdownDoc.data().cerRoles || [];
+                    populateCerRoleFilter(cerRoles);
+                }
+                
+                // Fetch all records initially
+                await fetchAllRecordsAndRender();
+
+            } catch (error) {
+                console.error("Error fetching filter data:", error);
+                showMessageBox("Error", `Failed to load filter data: ${error.message}`, true, false, true);
+            }
+        }
+        
+        function populateCerRoleFilter(roles) {
+            const selectElement = document.getElementById('cerRoleFilter');
+            if (!selectElement) return;
+            
+            const currentSelectedValue = selectElement.value;
+            selectElement.innerHTML = '<option value="all">All Roles</option>';
+            
+            roles.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role;
+                option.textContent = role;
+                selectElement.appendChild(option);
+            });
+            
+            if (Array.from(selectElement.options).some(opt => opt.value === currentSelectedValue)) {
+                selectElement.value = currentSelectedValue;
+            } else {
+                selectElement.value = 'all';
+            }
+        }
+        
+        async function fetchAllRecordsAndRender() {
+            try {
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
+                const querySnapshot = await getDocs(recordsColRef);
+                allRecords = [];
+                querySnapshot.forEach(doc => {
+                    allRecords.push(doc.data());
+                });
+                console.log("Fetched records for dashboard:", allRecords.length);
+                fetchAndRenderDashboardData(); // Call the rendering function with all fetched records
+            } catch (error) {
+                console.error("Error fetching all records:", error);
+                showMessageBox("Error", `Failed to load all records: ${error.message}`, true, false, true);
+            }
+        }
+
+
+        // --- Data Filtering and Rendering ---
+        function fetchAndRenderDashboardData() {
+            const startDate = document.getElementById('startDateFilter').value;
+            const endDate = document.getElementById('endDateFilter').value;
+            const cerRole = document.getElementById('cerRoleFilter').value;
+            
+            let filteredRecords = [...allRecords];
+
+            // Apply Date Filter
+            if (startDate) {
+                const start = new Date(startDate);
+                filteredRecords = filteredRecords.filter(record => {
+                    const recordDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt)) : null;
+                    return recordDate && recordDate >= start;
+                });
+            }
+
+            if (endDate) {
+                const end = new Date(endDate);
+                filteredRecords = filteredRecords.filter(record => {
+                    const recordDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt)) : null;
+                    return recordDate && recordDate <= end;
+                });
+            }
+            
+            // Apply CER Role Filter
+            if (cerRole && cerRole !== 'all') {
+                filteredRecords = filteredRecords.filter(record => record['CER Role'] === cerRole);
+            }
+
+            if (filteredRecords.length === 0) {
+                showMessageBox("No Data", "No evaluation records found for the selected filters.", false, false, true);
+                processAndDisplayMetrics([]);
+                drawKeyIssuesChart([]);
+                drawTopEmployeesChart([]);
+                return;
+            }
+
+            processAndDisplayMetrics(filteredRecords);
+            drawKeyIssuesChart(filteredRecords);
+            drawTopEmployeesChart(filteredRecords);
+            hideMessageBox();
+        }
+
+        function processAndDisplayMetrics(records) {
+            const totalEvaluations = records.length;
+            let totalOverallScore = 0;
+            let perfectScores = 0;
+            let belowAverage = 0;
+            const belowAverageThreshold = 70;
+
+            records.forEach(record => {
+                const overallScoreStr = record['Overall Score'] || '0%';
+                const score = parseFloat(overallScoreStr.replace('%', ''));
+
+                if (!isNaN(score)) {
+                    totalOverallScore += score;
+                    if (score === 100) {
+                        perfectScores++;
+                    }
+                    if (score < belowAverageThreshold) {
+                        belowAverage++;
+                    }
+                }
+            });
+
+            const teamAverageScore = totalEvaluations > 0 ? (totalOverallScore / totalEvaluations).toFixed(2) : 0;
+
+            document.getElementById('totalEvaluations').textContent = totalEvaluations;
+            document.getElementById('teamAverageScore').textContent = `${teamAverageScore}%`;
+            document.getElementById('perfectScores').textContent = perfectScores;
+            document.getElementById('belowAverage').textContent = belowAverage;
+            document.getElementById('belowAverage').closest('.kpi-card').querySelector('.label').textContent = `Below Average (< ${belowAverageThreshold}%)`;
+        }
+
+        function drawKeyIssuesChart(records) {
+            const chartContainer = document.getElementById('keyIssuesChart');
+            chartContainer.innerHTML = '';
+
+            const issueCounts = {};
+            records.forEach(record => {
+                const autofailType = record['Auto Fail Type'] || 'No Autofail Selected';
+                issueCounts[autofailType] = (issueCounts[autofailType] || 0) + 1;
+            });
+
+            const data = Object.keys(issueCounts).map(key => ({
+                label: key,
+                value: issueCounts[key]
+            }));
+
+            if (data.length === 0) {
+                chartContainer.innerHTML = '<p class="text-gray-500">No issues data available.</p>';
+                return;
+            }
+
+            const width = chartContainer.clientWidth;
+            const height = Math.min(width, 400);
+            const radius = Math.min(width, height) / 2 - 20;
+
+            const svg = d3.select(chartContainer)
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", `translate(${width / 2}, ${height / 2})`);
+
+            const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+            const pie = d3.pie()
+                .value(d => d.value)
+                .sort(null);
+
+            const arc = d3.arc()
+                .innerRadius(0)
+                .outerRadius(radius);
+
+            const outerArc = d3.arc()
+                .innerRadius(radius * 0.9)
+                .outerRadius(radius * 0.9);
+
+            const arcs = svg.selectAll(".arc")
+                .data(pie(data))
+                .enter()
+                .append("g")
+                .attr("class", "arc");
+
+            arcs.append("path")
+                .attr("d", arc)
+                .attr("fill", d => color(d.data.label))
+                .attr("stroke", "white")
+                .style("stroke-width", "2px");
+
+            arcs.append("text")
+                .attr("transform", d => `translate(${outerArc.centroid(d)})`)
+                .attr("text-anchor", d => {
+                    const midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                    return (midangle < Math.PI ? "start" : "end");
+                })
+                .text(d => `${d.data.label} (${d3.format(".1%")(d.data.value / d3.sum(data, v => v.value))})`)
+                .style("font-size", "10px")
+                .style("fill", "#333");
+
+            arcs.append("polyline")
+                .attr("stroke", "#ccc")
+                .style("fill", "none")
+                .attr("stroke-width", 1)
+                .attr("points", function(d) {
+                    const posA = arc.centroid(d);
+                    const posB = outerArc.centroid(d);
+                    const posC = outerArc.centroid(d);
+                    const midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                    posC[0] = radius * 0.95 * (midangle < Math.PI ? 1 : -1);
+                    return [posA, posB, posC];
+                });
+
+            window.addEventListener('resize', () => drawKeyIssuesChart(records));
+        }
+
+        function drawTopEmployeesChart(records) {
+            const chartContainer = document.getElementById('topEmployeesChart');
+            chartContainer.innerHTML = '';
+
+            const employeeScores = {};
+            records.forEach(record => {
+                const cerName = record['CER Name'];
+                const overallScoreStr = record['Overall Score'] || '0%';
+                const score = parseFloat(overallScoreStr.replace('%', ''));
+
+                if (cerName && !isNaN(score)) {
+                    if (!employeeScores[cerName]) {
+                        employeeScores[cerName] = { totalScore: 0, count: 0 };
+                    }
+                    employeeScores[cerName].totalScore += score;
+                    employeeScores[cerName].count++;
+                }
+            });
+
+            const data = Object.keys(employeeScores).map(name => ({
+                employee: name,
+                averageScore: employeeScores[name].totalScore / employeeScores[name].count
+            }));
+
+            data.sort((a, b) => b.averageScore - a.averageScore);
+
+            const topN = 5;
+            const topEmployees = data.slice(0, topN);
+
+            if (topEmployees.length === 0) {
+                chartContainer.innerHTML = '<p class="text-gray-500">No employee data available.</p>';
+                return;
+            }
+
+            const margin = { top: 20, right: 30, bottom: 40, left: 100 };
+            const width = chartContainer.clientWidth - margin.left - margin.right;
+            const height = Math.max(topEmployees.length * 50, 250) - margin.top - margin.bottom;
+
+            const svg = d3.select(chartContainer)
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleLinear()
+                .domain([0, 100])
+                .range([0, width]);
+
+            const y = d3.scaleBand()
+                .domain(topEmployees.map(d => d.employee))
+                .range([0, height])
+                .padding(0.1);
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+
+            svg.append("g")
+                .call(d3.axisLeft(y));
+
+            svg.selectAll(".bar")
+                .data(topEmployees)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", 0)
+                .attr("y", d => y(d.employee))
+                .attr("width", d => x(d.averageScore))
+                .attr("height", y.bandwidth())
+                .attr("fill", "#1a73e8");
+
+            svg.selectAll(".bar-label")
+                .data(topEmployees)
+                .enter()
+                .append("text")
+                .attr("class", "bar-label")
+                .attr("x", d => x(d.averageScore) + 5)
+                .attr("y", d => y(d.employee) + y.bandwidth() / 2 + 4)
+                .text(d => `${d.averageScore.toFixed(1)}%`)
+                .style("font-size", "10px")
+                .style("fill", "#555");
+
+            window.addEventListener('resize', () => drawTopEmployeesChart(records));
+        }
+
+        // --- DOMContentLoaded Event Listener ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            const mainNav = document.getElementById('mainNav');
+            const reportsContent = document.getElementById('reportsContent');
+            const startDateFilter = document.getElementById('startDateFilter');
+            const endDateFilter = document.getElementById('endDateFilter');
+            const cerRoleFilter = document.getElementById('cerRoleFilter');
+
+            const navItems = {
+                'auditFormTab': 'index.html',
+                'databaseTab': 'index.html#database',
+                'myEvaluationsTab': 'myEvaluations.html',
+                'reportsTab': 'Dashboard.html',
+                'autofailsTab': 'autofails.html',
+                'shareResponseTab': 'index.html#shareResponse',
+                'imagesTab': 'images.html',
+                'usersTab': 'users.html',
+                'adminTab': 'admin.html'
+            };
+            
+            const renderNavigationForRole = (role) => {
+                const allNavTabs = document.querySelectorAll('.nav-tab');
+                allNavTabs.forEach(tab => {
+                    const requiredRole = tab.dataset.role;
+                    if (requiredRole === 'all' || (role && (role === 'admin' || role === 'supervisor'))) {
+                        tab.style.display = 'block';
+                    } else if (role === 'agent' && (requiredRole === 'all' || tab.id === 'myEvaluationsTab')) {
+                         tab.style.display = 'block';
+                    } else {
+                        tab.style.display = 'none';
+                    }
+                });
+            }
+
+            Object.keys(navItems).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        window.location.href = navItems[id];
+                    });
+                }
+            });
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async function() {
+                    await signOut(auth);
+                    sessionStorage.removeItem('loggedIn');
+                    window.location.href = 'index.html';
+                });
+            }
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+                    try {
+                        const docSnap = await getDoc(userProfileDocRef);
+                        const userRole = docSnap.exists() ? docSnap.data().role : null;
+                        
+                        if (userRole === 'admin' || userRole === 'supervisor') {
+                            if (mainNav) mainNav.style.display = 'block';
+                            if (reportsContent) reportsContent.style.display = 'block';
+                            document.body.classList.add('loaded');
+                            renderNavigationForRole(userRole);
+                            
+                            // Load filter data and render dashboard
+                            await fetchFilterData();
+
+                            // Add event listeners to filters to re-render the dashboard
+                            if (startDateFilter) startDateFilter.addEventListener('change', fetchAndRenderDashboardData);
+                            if (endDateFilter) endDateFilter.addEventListener('change', fetchAndRenderDashboardData);
+                            if (cerRoleFilter) cerRoleFilter.addEventListener('change', fetchAndRenderDashboardData);
+                        } else {
+                            window.location.href = 'index.html';
+                        }
+                    } catch (error) {
+                        console.error("Error fetching user role:", error);
+                        window.location.href = 'index.html';
+                    }
+                } else {
+                    window.location.href = 'index.html';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
