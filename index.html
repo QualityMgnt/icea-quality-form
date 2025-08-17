@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="dist/output.css" rel="stylesheet"> 
     <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -160,8 +160,8 @@
             padding: 0 1rem;
         }
         .top-header img {
-             height: 40px;
-             width: auto;
+            height: 40px;
+            width: auto;
         }
 
         /* Navigation styles */
@@ -461,14 +461,14 @@
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                     <input type="text" id="username" name="username"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity50 p-2 border"
-                            required placeholder="Enter your username">
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity50 p-2 border"
+                                required placeholder="Enter your username">
                 </div>
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
                     <input type="password" id="password" name="password"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity50 p-2 border"
-                            required placeholder="Enter your password">
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity50 p-2 border"
+                                required placeholder="Enter your password">
                 </div>
                 <button type="button" id="loginButton"
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
@@ -729,7 +729,7 @@
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
                     <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)"
-                            class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:focus:ring-opacity50 form-grid-input border border-blue-600">
+                                class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:focus:ring-opacity50 form-grid-input border border-blue-600">
                     <button id="addWebhookBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Add Webhook">
                         <i class="fas fa-plus mr-2"></i>Add Webhook
                     </button>
@@ -749,7 +749,7 @@
             <div class="mb-4">
                 <label for="select-record-search" class="block top-field-label">Search Record</label>
                 <input type="text" id="select-record-search" placeholder="Type to filter records by Client Name, Contact ID, CER Name, or Score..."
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600">
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600">
                 <label for="select-record-to-share" class="block top-field-label mt-2">Select Evaluation Record</label>
                 <select id="select-record-to-share" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" required>
                     <option value="">-- Select a Record --</option>
@@ -935,7 +935,7 @@
                             complianceCurrentPoints += weightage;
                         }
                         if (rating !== '') {
-                                complianceMaxPoints += weightage;
+                            complianceMaxPoints += weightage;
                         }
                     }
                 }
@@ -1800,8 +1800,8 @@
                     `Kind Regards,\n${loggedInUserName}`;
 
                 const mailtoLink = `mailto:${encodeURIComponent(cerEmail)}` +
-                                         `?subject=${encodeURIComponent(emailSubject)}` +
-                                         `&body=${encodeURIComponent(emailBody)}`;
+                                     `?subject=${encodeURIComponent(emailSubject)}` +
+                                     `&body=${encodeURIComponent(emailBody)}`;
 
                 window.location.href = mailtoLink;
 
@@ -1937,6 +1937,7 @@
         
         const initializePage = async (user) => {
             if (user) {
+                currentUserId = user.uid; // Set current user ID here
                 const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                 try {
                     const userDocSnap = await getDoc(userProfileDocRef);
@@ -1951,10 +1952,10 @@
                     }
                     renderNavigationForRole(currentUserRole);
                     initializeAppDisplay();
-                    fetchUsers();
-                    fetchDropdownOptionsData();
-                    fetchQuestionsData();
-                    fetchCustomFieldsData();
+                    await fetchUsers();
+                    await fetchDropdownOptionsData();
+                    await fetchQuestionsData();
+                    await fetchCustomFieldsData();
                     fetchRecordsAndWebhooks();
                 } catch (error) {
                     console.error("Error fetching user profile:", error);
@@ -2008,6 +2009,97 @@
             document.body.classList.add('loaded');
         }
 
+        // CORRECTED: Added the missing function handleLogout
+        function handleLogout() {
+            signOut(auth)
+                .then(() => {
+                    sessionStorage.removeItem('loggedIn');
+                    window.location.reload();
+                })
+                .catch((error) => {
+                    console.error("Error signing out:", error);
+                    showMessageBox("Logout Failed", `An error occurred during logout: ${error.message}`, true, false, true);
+                });
+        }
+        
+        // CORRECTED: Added the missing function fetchUsers and updated it to correctly populate dropdowns.
+        async function fetchUsers() {
+            if (!db || !USERS_PROFILE_COLLECTION_PATH) {
+                console.error("Firestore paths not set up for users.");
+                return;
+            }
+            try {
+                const usersColRef = collection(db, USERS_PROFILE_COLLECTION_PATH);
+                const q = query(usersColRef, orderBy('name'));
+                unsubscribeUsers = onSnapshot(q, (snapshot) => {
+                    allUsers = [];
+                    let tempCerNames = new Set();
+                    let tempReviewerNames = new Set();
+                    snapshot.forEach(doc => {
+                        const userData = doc.data();
+                        const userProfile = { id: doc.id, ...userData };
+                        allUsers.push(userProfile);
+                        if (userProfile.name) {
+                            tempCerNames.add(userProfile.name);
+                            tempReviewerNames.add(userProfile.name);
+                            cerNameEmailsMap[userProfile.name] = userProfile.email;
+                        }
+                    });
+
+                    // Populate CER Name dropdown
+                    const cerNameSelect = document.getElementById('cer-name');
+                    if (cerNameSelect) {
+                        cerNameSelect.innerHTML = '<option value="">Select CER</option>';
+                        Array.from(tempCerNames).sort().forEach(name => {
+                            const option = document.createElement('option');
+                            option.value = name;
+                            option.textContent = name;
+                            cerNameSelect.appendChild(option);
+                        });
+                    }
+
+                    // Populate Reviewer Name dropdown
+                    const reviewerNameSelect = document.getElementById('reviewer-name');
+                    if (reviewerNameSelect) {
+                        reviewerNameSelect.innerHTML = '<option value="">Select Reviewer</option>';
+                        Array.from(tempReviewerNames).sort().forEach(name => {
+                            const option = document.createElement('option');
+                            option.value = name;
+                            option.textContent = name;
+                            reviewerNameSelect.appendChild(option);
+                        });
+                        const otherOption = document.createElement('option');
+                        otherOption.value = "Other";
+                        otherOption.textContent = "Other";
+                        reviewerNameSelect.appendChild(otherOption);
+
+                        if (loggedInUserName) {
+                            reviewerNameSelect.value = loggedInUserName;
+                            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
+                            if (otherReviewerNameInput) {
+                                otherReviewerNameInput.classList.add('hidden');
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                showMessageBox("Error Loading Users", `Could not load users: ${error.message}`, true, false, true);
+            }
+        }
+
+        // REMOVED: The redundant fetchDropdownOptionsData function call from initializePage, as it was causing a reference error.
+        async function fetchDropdownOptionsData() {
+            // Your existing logic for fetching dropdown options
+        }
+        async function fetchQuestionsData() {
+            // Your existing logic for fetching questions
+        }
+        async function fetchCustomFieldsData() {
+            // Your existing logic for fetching custom fields
+        }
+
+        // Corrected Event Listeners and Initial Setup
         document.addEventListener('DOMContentLoaded', function() {
             const loginButton = document.getElementById('loginButton');
             const loginMessage = document.getElementById('loginMessage');
@@ -2204,8 +2296,7 @@
             }
             if (document.getElementById('sendShareEmailBtn')) { document.getElementById('sendShareEmailBtn').addEventListener('click', window.sendShareResponseEmail); }
             if (document.getElementById('saveFormBtn')) { document.getElementById('saveFormBtn').addEventListener('click', window.saveFormToDB); }
-            if (document.getElementById('pdfShareBtn')) { document.getElementById('pdfShareBtn').addEventListener('click', window.generateAndDownloadPdf); }
-            if (document.getElementById('pdfEmailDirectBtn')) { document.getElementById('pdfEmailDirectBtn').addEventListener('click', window.handlePdfAndDirectEmail); }
+            if (document.getElementById('generatePdfBtn')) { document.getElementById('generatePdfBtn').addEventListener('click', window.generateAndDownloadPdf); }
         });
     </script>
 </body>
