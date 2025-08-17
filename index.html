@@ -1078,7 +1078,8 @@
 
         let autofailDescriptionContainer, autofailDescriptionInput, otherReviewerNameInput, reviewerNameSelect, cerRoleSelect, cerNameSelect, cerEmailInput, customFieldsContainer;
 
-        // --- Helper Functions ---
+        // --- All Function Declarations (Hoisted to top to prevent 'not defined' errors) ---
+        
         window.autoExpandTextarea = function(element) {
             if (element) {
                 element.style.height = 'auto';
@@ -1311,7 +1312,6 @@
 
         // --- Data Fetching Functions (Adhering to security rules) ---
         async function fetchDropdownOptionsData() {
-            // Rule: 'read' access is granted to all authenticated users via `if request.auth != null;`
             if (!auth.currentUser) return;
             try {
                 const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
@@ -1320,13 +1320,11 @@
                 } else {
                     console.log("No dropdown options found, using default values.");
                 }
-                // Populate the dropdowns in the UI
                 populateDropdowns();
             } catch (e) { console.error("Error fetching dropdown data:", e); }
         }
 
         async function fetchQuestionsData() {
-            // Rule: 'read' access is granted to all authenticated users via `if request.auth != null;`
             if (!auth.currentUser) return;
             try {
                 const docSnap = await getDoc(QUESTIONS_CONFIG_DOC_REF);
@@ -1336,7 +1334,6 @@
                     console.log("No questions configured, using a default empty structure.");
                     allRolesQuestions = {};
                 }
-                // Render questions for the default or current role
                 if (cerRoleSelect && cerRoleSelect.value) {
                     renderQuestionsForRole(cerRoleSelect.value);
                 }
@@ -1344,7 +1341,6 @@
         }
 
         async function fetchCustomFieldsData() {
-            // Rule: 'read' access is granted to all authenticated users via `if request.auth != null;`
             if (!auth.currentUser) return;
             try {
                 const docSnap = await getDoc(CUSTOM_FIELDS_CONFIG_DOC_REF);
@@ -1354,13 +1350,11 @@
                     console.log("No custom fields configured.");
                     customFormFields = [];
                 }
-                // Render custom fields
                 renderCustomFormFields();
             } catch (e) { console.error("Error fetching custom fields data:", e); }
         }
 
         async function fetchRecordsAndWebhooks() {
-            // Rule: 'read' access to public data is granted to all authenticated users.
             if (!auth.currentUser) return;
             showMessageBox("Loading Data", "Fetching records and webhooks...", false, true, false);
             try {
@@ -1390,7 +1384,6 @@
         }
         
         async function fetchUsers() {
-            // Rule: 'read' access to other user profiles is allowed for all authenticated users.
             if (!auth.currentUser) return;
             try {
                 const q = query(collection(db, USERS_COLLECTION_PATH));
@@ -1399,6 +1392,22 @@
             } catch (error) {
                 console.error("Error fetching user list:", error);
                 showMessageBox("Error", "Could not fetch user list. Please check your permissions.", true, false, true);
+            }
+        }
+
+        async function fetchAndSetLogo() {
+            // Rule: 'read' access is granted to all authenticated users via `if request.auth != null;`
+            if (!auth.currentUser) return;
+            const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
+            try {
+                const docSnap = await getDoc(LOGO_DOC_REF);
+                if (docSnap.exists() && docSnap.data().logoUrl) {
+                    const logoUrl = docSnap.data().logoUrl;
+                    document.getElementById('logo-header').src = logoUrl;
+                    document.getElementById('audit-form-logo').src = logoUrl;
+                }
+            } catch (error) {
+                console.error("Error fetching logo:", error);
             }
         }
         
@@ -1416,7 +1425,6 @@
         }
 
         async function saveDropdownOptions() {
-            // Rule: 'write' access to public data is granted to all authenticated users.
             if (!auth.currentUser) { showMessageBox("Error", "Authentication required to save data.", true, false, true); return; }
             if (!dropdownOptions.cerNames.length && !dropdownOptions.cerRoles.length && !dropdownOptions.reviewerNames.length && !dropdownOptions.autofailTypes.length) {
                 await setDoc(DROPDOWN_DATA_DOC_REF, { 'cerNames': [], 'cerRoles': [], 'reviewerNames': [], 'autofailTypes': [] });
@@ -1426,13 +1434,11 @@
         }
         
         async function saveQuestionConfiguration() {
-            // Rule: 'write' access to public data is granted to all authenticated users.
             if (!auth.currentUser) { showMessageBox("Error", "Authentication required to save data.", true, false, true); return; }
             await setDoc(QUESTIONS_CONFIG_DOC_REF, allRolesQuestions);
         }
         
         async function saveCustomFieldsConfiguration() {
-            // Rule: 'write' access to public data is granted to all authenticated users.
             if (!auth.currentUser) { showMessageBox("Error", "Authentication required to save data.", true, false, true); return; }
             await setDoc(CUSTOM_FIELDS_CONFIG_DOC_REF, { fields: customFormFields });
         }
@@ -2071,7 +2077,7 @@
                 document.getElementById('customFieldId').value = '';
                 document.getElementById('customFieldOptions').value = '';
                 document.getElementById('customFieldRequired').checked = false;
-                renderCustomFormFields();
+                renderAdminCustomFields();
                 renderCustomFormFieldsOnForm();
             } catch (e) {
                 showMessageBox("Error", `Failed to add custom field: ${e.message}`, true, false, true);
