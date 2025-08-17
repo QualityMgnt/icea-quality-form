@@ -797,6 +797,7 @@
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
+        // --- Firebase Configuration ---
         const firebaseConfig = {
           apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
           authDomain: "icea-lion-qa.firebaseapp.com",
@@ -856,15 +857,20 @@
         let globalMaxPossiblePoints = 0;
         let globalBusinessComplianceAccuracyValue = 0;
         let latestSavedRecordId = null;
+
         let autofailDescriptionContainer, autofailDescriptionInput, otherReviewerNameInput, reviewerNameSelect, cerRoleSelect, cerNameSelect, cerEmailInput;
 
 
         window.autoExpandTextarea = function(element) {
-            element.style.height = 'auto';
-            element.style.height = (element.scrollHeight) + 'px';
+            if (element) {
+                element.style.height = 'auto';
+                element.style.height = (element.scrollHeight) + 'px';
+            }
         };
 
         function calculateScore() {
+            if (!cerRoleSelect) return;
+
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
@@ -951,10 +957,9 @@
                 finalOverallPercentage = 0;
             }
             
-            overallScoreDisplay.textContent = `${finalOverallPercentage}%`;
-            overallFinalPercentageDisplay.textContent = `${finalOverallPercentage}%`;
-
-            totalPtsPercentageDisplay.textContent = `${currentTotalPoints}`; 
+            if (overallScoreDisplay) overallScoreDisplay.textContent = `${finalOverallPercentage}%`;
+            if (overallFinalPercentageDisplay) overallFinalPercentageDisplay.textContent = `${finalOverallPercentage}%`;
+            if (totalPtsPercentageDisplay) totalPtsPercentageDisplay.textContent = `${currentTotalPoints}`; 
 
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
@@ -962,7 +967,7 @@
             } else {
                 businessCompliancePct = 0;
             }
-            businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
+            if (businessComplianceAccuracyDisplay) businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
 
             globalTotalPoints = currentTotalPoints;
             globalMaxPossiblePoints = currentMaxPossiblePoints;
@@ -1928,8 +1933,10 @@
             const allNavTabs = document.querySelectorAll('.nav-tab');
             allNavTabs.forEach(tab => {
                 const requiredRole = tab.dataset.role;
-                if (requiredRole === 'all' || requiredRole === role) {
+                if (requiredRole === 'all' || (role && (role === 'admin' || role === 'supervisor'))) {
                     tab.style.display = 'block';
+                } else if (role === 'agent' && (requiredRole === 'all' || tab.id === 'myEvaluationsTab')) {
+                     tab.style.display = 'block';
                 } else {
                     tab.style.display = 'none';
                 }
