@@ -405,7 +405,8 @@
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, query, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, query, getDocs, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -476,8 +477,10 @@
             const allNavTabs = document.querySelectorAll('.nav-tab');
             allNavTabs.forEach(tab => {
                 const requiredRole = tab.dataset.role;
-                if (requiredRole === 'all' || requiredRole === role) {
+                if (requiredRole === 'all' || (role && (role === 'admin' || role === 'supervisor'))) {
                     tab.style.display = 'block';
+                } else if (role === 'agent' && (requiredRole === 'all' || tab.id === 'myEvaluationsTab')) {
+                     tab.style.display = 'block';
                 } else {
                     tab.style.display = 'none';
                 }
@@ -504,7 +507,7 @@
             const reportsContent = document.getElementById('reportsContent');
             
             if (!user) {
-                window.location.href = 'index.html'; // Redirect to login if not authenticated
+                window.location.href = 'index.html';
                 return;
             }
 
@@ -540,7 +543,7 @@
                 }
                 
                 // Fetch all records initially
-                await fetchAndRenderDashboardData();
+                await fetchAllRecordsAndRender();
 
             } catch (error) {
                 console.error("Error fetching filter data:", error);
@@ -568,9 +571,26 @@
                 selectElement.value = 'all';
             }
         }
+        
+        async function fetchAllRecordsAndRender() {
+            try {
+                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
+                const querySnapshot = await getDocs(recordsColRef);
+                allRecords = [];
+                querySnapshot.forEach(doc => {
+                    allRecords.push(doc.data());
+                });
+                console.log("Fetched records for dashboard:", allRecords.length);
+                fetchAndRenderDashboardData(); // Call the rendering function with all fetched records
+            } catch (error) {
+                console.error("Error fetching all records:", error);
+                showMessageBox("Error", `Failed to load all records: ${error.message}`, true, false, true);
+            }
+        }
+
 
         // --- Data Filtering and Rendering ---
-        async function fetchAndRenderDashboardData() {
+        function fetchAndRenderDashboardData() {
             const startDate = document.getElementById('startDateFilter').value;
             const endDate = document.getElementById('endDateFilter').value;
             const cerRole = document.getElementById('cerRoleFilter').value;
@@ -838,8 +858,10 @@
                 const allNavTabs = document.querySelectorAll('.nav-tab');
                 allNavTabs.forEach(tab => {
                     const requiredRole = tab.dataset.role;
-                    if (requiredRole === 'all' || requiredRole === role) {
+                    if (requiredRole === 'all' || (role && (role === 'admin' || role === 'supervisor'))) {
                         tab.style.display = 'block';
+                    } else if (role === 'agent' && (requiredRole === 'all' || tab.id === 'myEvaluationsTab')) {
+                         tab.style.display = 'block';
                     } else {
                         tab.style.display = 'none';
                     }
@@ -878,7 +900,7 @@
                             renderNavigationForRole(userRole);
                             
                             // Load filter data and render dashboard
-                            await fetchAndRenderDashboardData();
+                            await fetchFilterData();
 
                             // Add event listeners to filters to re-render the dashboard
                             if (startDateFilter) startDateFilter.addEventListener('change', fetchAndRenderDashboardData);
