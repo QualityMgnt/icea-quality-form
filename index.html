@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
-    <link href="dist/output.css" rel="stylesheet"> 
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -366,10 +366,6 @@
             border: none;
             transition: background-color 0.3s ease;
             margin-right: 0.25rem;
-        }
-        .database-table .delete-record-btn {
-            background-color: #ef4444;
-            color: white;
         }
         .database-table .delete-record-btn:hover {
             background-color: #dc2626;
@@ -1937,7 +1933,6 @@
         
         const initializePage = async (user) => {
             if (user) {
-                currentUserId = user.uid; // Set current user ID here
                 const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                 try {
                     const userDocSnap = await getDoc(userProfileDocRef);
@@ -1952,10 +1947,10 @@
                     }
                     renderNavigationForRole(currentUserRole);
                     initializeAppDisplay();
-                    await fetchUsers();
-                    await fetchDropdownOptionsData();
-                    await fetchQuestionsData();
-                    await fetchCustomFieldsData();
+                    fetchUsers();
+                    fetchDropdownOptionsData();
+                    fetchQuestionsData();
+                    fetchCustomFieldsData();
                     fetchRecordsAndWebhooks();
                 } catch (error) {
                     console.error("Error fetching user profile:", error);
@@ -2009,97 +2004,6 @@
             document.body.classList.add('loaded');
         }
 
-        // CORRECTED: Added the missing function handleLogout
-        function handleLogout() {
-            signOut(auth)
-                .then(() => {
-                    sessionStorage.removeItem('loggedIn');
-                    window.location.reload();
-                })
-                .catch((error) => {
-                    console.error("Error signing out:", error);
-                    showMessageBox("Logout Failed", `An error occurred during logout: ${error.message}`, true, false, true);
-                });
-        }
-        
-        // CORRECTED: Added the missing function fetchUsers and updated it to correctly populate dropdowns.
-        async function fetchUsers() {
-            if (!db || !USERS_PROFILE_COLLECTION_PATH) {
-                console.error("Firestore paths not set up for users.");
-                return;
-            }
-            try {
-                const usersColRef = collection(db, USERS_PROFILE_COLLECTION_PATH);
-                const q = query(usersColRef, orderBy('name'));
-                unsubscribeUsers = onSnapshot(q, (snapshot) => {
-                    allUsers = [];
-                    let tempCerNames = new Set();
-                    let tempReviewerNames = new Set();
-                    snapshot.forEach(doc => {
-                        const userData = doc.data();
-                        const userProfile = { id: doc.id, ...userData };
-                        allUsers.push(userProfile);
-                        if (userProfile.name) {
-                            tempCerNames.add(userProfile.name);
-                            tempReviewerNames.add(userProfile.name);
-                            cerNameEmailsMap[userProfile.name] = userProfile.email;
-                        }
-                    });
-
-                    // Populate CER Name dropdown
-                    const cerNameSelect = document.getElementById('cer-name');
-                    if (cerNameSelect) {
-                        cerNameSelect.innerHTML = '<option value="">Select CER</option>';
-                        Array.from(tempCerNames).sort().forEach(name => {
-                            const option = document.createElement('option');
-                            option.value = name;
-                            option.textContent = name;
-                            cerNameSelect.appendChild(option);
-                        });
-                    }
-
-                    // Populate Reviewer Name dropdown
-                    const reviewerNameSelect = document.getElementById('reviewer-name');
-                    if (reviewerNameSelect) {
-                        reviewerNameSelect.innerHTML = '<option value="">Select Reviewer</option>';
-                        Array.from(tempReviewerNames).sort().forEach(name => {
-                            const option = document.createElement('option');
-                            option.value = name;
-                            option.textContent = name;
-                            reviewerNameSelect.appendChild(option);
-                        });
-                        const otherOption = document.createElement('option');
-                        otherOption.value = "Other";
-                        otherOption.textContent = "Other";
-                        reviewerNameSelect.appendChild(otherOption);
-
-                        if (loggedInUserName) {
-                            reviewerNameSelect.value = loggedInUserName;
-                            const otherReviewerNameInput = document.getElementById('other-reviewer-name');
-                            if (otherReviewerNameInput) {
-                                otherReviewerNameInput.classList.add('hidden');
-                            }
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error("Error fetching users:", error);
-                showMessageBox("Error Loading Users", `Could not load users: ${error.message}`, true, false, true);
-            }
-        }
-
-        // REMOVED: The redundant fetchDropdownOptionsData function call from initializePage, as it was causing a reference error.
-        async function fetchDropdownOptionsData() {
-            // Your existing logic for fetching dropdown options
-        }
-        async function fetchQuestionsData() {
-            // Your existing logic for fetching questions
-        }
-        async function fetchCustomFieldsData() {
-            // Your existing logic for fetching custom fields
-        }
-
-        // Corrected Event Listeners and Initial Setup
         document.addEventListener('DOMContentLoaded', function() {
             const loginButton = document.getElementById('loginButton');
             const loginMessage = document.getElementById('loginMessage');
