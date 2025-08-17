@@ -2083,6 +2083,52 @@
                 showMessageBox("Error Loading Users", `Could not load users: ${error.message}`, true, false, true);
             }
         }
+        // CORRECTED: Added the missing function fetchLastThreeEvaluations
+        async function fetchLastThreeEvaluations(cerName) {
+            if (!db) return;
+            const tableBody = document.getElementById('lastEvaluationsTableBody');
+            tableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading evaluations...</td></tr>';
+            
+            if (!cerName) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td></tr>';
+                return;
+            }
+
+            try {
+                const q = query(
+                    collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
+                    where('CER Name', '==', cerName),
+                    orderBy('submittedAt', 'desc'),
+                    limit(3)
+                );
+                const querySnapshot = await getDocs(q);
+                
+                let evaluations = [];
+                querySnapshot.forEach((doc) => {
+                    evaluations.push(doc.data());
+                });
+
+                tableBody.innerHTML = '';
+                if (evaluations.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No previous evaluations found for this CER.</td></tr>';
+                } else {
+                    evaluations.forEach((eval) => {
+                        const row = tableBody.insertRow();
+                        row.innerHTML = `
+                            <td class="py-2 px-4">${eval['CER Name'] || 'N/A'}</td>
+                            <td class="py-2 px-4">${eval['Overall Score'] || 'N/A'}</td>
+                            <td class="py-2 px-4">${eval['CER Role'] || 'N/A'}</td>
+                            <td class="py-2 px-4">${eval['Contact ID'] || 'N/A'}</td>
+                            <td class="py-2 px-4">${eval.submittedAt ? eval.submittedAt.toDate().toLocaleDateString() : 'N/A'}</td>
+                        `;
+                    });
+                }
+
+            } catch (error) {
+                console.error("Error fetching last three evaluations:", error);
+                tableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Error loading data.</td></tr>`;
+            }
+        }
 
         // REMOVED: The redundant fetchDropdownOptionsData function call from initializePage, as it was causing a reference error.
         async function fetchDropdownOptionsData() {
