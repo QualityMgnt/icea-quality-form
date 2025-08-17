@@ -11,11 +11,11 @@
     <style>
         /* Base styles */
         body {
-            font-family: 'Garamond', serif; /* Updated font */
+            font-family: 'Garamond', serif;
             display: flex;
             align-items: flex-start;
             min-height: 100vh;
-            background-color: #f3f4f6; /* bg-gray-100 */
+            background-color: #f3f4f6;
             margin: 0;
             padding: 0;
             visibility: hidden;
@@ -39,9 +39,9 @@
 
         /* Error/Message styles */
         .error-message {
-            color: #dc2626; /* red-700 */
-            font-size: 0.875rem; /* text-sm */
-            margin-top: 0.5rem; /* mt-2 */
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
             text-align: center;
         }
 
@@ -58,18 +58,18 @@
         .icon-bg-yellow { background-color: #ffc107; }
 
         /* Form Row Styling (zebra striping) */
-        .form-row-light { background-color: #f9fafb; /* gray-50 */ }
-        .form-row-dark { background-color: #edf2f7; /* gray-200 */ }
+        .form-row-light { background-color: #f9fafb; }
+        .form-row-dark { background-color: #edf2f7; }
 
         /* Adjustments for question descriptions, weightage, and points */
         .question-description {
             font-size: 12px;
-            font-weight: 600; /* font-semibold */
+            font-weight: 600;
         }
 
         .weightage-display {
             font-size: 12px;
-            font-weight: 600; /* font-semibold */
+            font-weight: 600;
         }
 
         /* ADJUSTED STYLES FOR INPUTS AND SELECTS TO REQUESTED FIXED SIZE */
@@ -148,11 +148,11 @@
             left: 0;
             width: 100%;
             height: 48px;
-            background-color: #000080; /* Updated to Navy Blue */
+            background-color: #000080;
             color: white;
             display: flex;
             align-items: center;
-            justify-content: space-between; /* Adjusted for logo on the right */
+            justify-content: space-between;
             font-size: 1.125rem;
             font-weight: 600;
             z-index: 1000;
@@ -167,7 +167,7 @@
         /* Navigation styles */
         .main-nav {
             width: 125px;
-            background-color: #000080; /* Updated to Navy Blue */
+            background-color: #000080;
             color: white;
             padding: 1rem 0;
             height: calc(100vh - 48px);
@@ -193,7 +193,7 @@
         }
 
         .sidebar ul li a {
-            font-family: 'Garamond', serif; /* Updated font */
+            font-family: 'Garamond', serif;
             color: white;
             text-decoration: none;
             font-weight: 500;
@@ -211,7 +211,7 @@
 
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #000050; /* Darker Navy Blue */
+            background-color: #000050;
         }
 
         .logout-button {
@@ -233,11 +233,11 @@
 
         /* Floating content container for the form */
         .form-container {
-            margin-left: calc(125px + 1cm); /* 125px (nav) + 1cm space */
-            margin-right: 1cm; /* 1cm space from the right edge */
-            margin-top: calc(48px + 1cm); /* 48px (header) + 1cm space */
+            margin-left: calc(125px + 1cm);
+            margin-right: 1cm;
+            margin-top: calc(48px + 1cm);
             margin-bottom: 1cm;
-            width: calc(100% - 125px - 2cm); /* Total width - nav - 2cm space */
+            width: calc(100% - 125px - 2cm);
             max-width: none;
             background-color: white;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -770,7 +770,7 @@
 
             <div class="mb-6">
                 <label for="share-email-body" class="block top-field-label">Email Body</label>
-                <textarea id="share-email-body" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 remarks-textarea border border-blue-600" oninput="autoExpandTextarea(this)" aria-label="Email Body"></textarea>
+                <textarea id="share-email-body" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 remarks-textarea border border-blue-600" aria-label="Email Body"></textarea>
             </div>
 
             <button id="sendShareEmailBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Send Share Email">
@@ -1034,7 +1034,7 @@
                             <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input border-blue-600" value="0" readonly placeholder="0">
                         </div>
                         <div class="col-span-2">
-                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md shadow-sm p-1 border remarks-textarea border-blue-600" oninput="autoExpandTextarea(this)"></textarea>
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md shadow-sm p-1 border remarks-textarea border-blue-600"></textarea>
                         </div>
                     `;
                     container.appendChild(rowDiv);
@@ -1043,10 +1043,16 @@
                     if (newSelect) {
                         newSelect.addEventListener('change', calculateScore);
                     }
+                    // CORRECTED: Attach event listener programmatically
+                    const newTextarea = rowDiv.querySelector('.remarks-textarea');
+                    if (newTextarea) {
+                        newTextarea.addEventListener('input', () => autoExpandTextarea(newTextarea));
+                    }
                     sectionQuestionNumber++;
                 });
             }
             calculateScore();
+            // CORRECTED: Call autoExpandTextarea for all textareas initially
             document.querySelectorAll('.remarks-textarea').forEach(textarea => {
                 autoExpandTextarea(textarea);
             });
@@ -2005,7 +2011,9 @@
             document.body.classList.add('loaded');
         }
 
-        // CORRECTED: Added the missing function handleLogout
+        /**
+         * Corrected: The handleLogout function was previously missing.
+         */
         function handleLogout() {
             signOut(auth)
                 .then(() => {
@@ -2018,7 +2026,9 @@
                 });
         }
         
-        // CORRECTED: Added the missing function fetchUsers and updated it to correctly populate dropdowns.
+        /**
+         * Corrected: The fetchUsers function was previously missing.
+         */
         async function fetchUsers() {
             if (!db || !USERS_PROFILE_COLLECTION_PATH) {
                 console.error("Firestore paths not set up for users.");
@@ -2083,7 +2093,10 @@
                 showMessageBox("Error Loading Users", `Could not load users: ${error.message}`, true, false, true);
             }
         }
-        // CORRECTED: Added the missing function fetchLastThreeEvaluations
+
+        /**
+         * Corrected: The fetchLastThreeEvaluations function was previously missing.
+         */
         async function fetchLastThreeEvaluations(cerName) {
             if (!db) return;
             const tableBody = document.getElementById('lastEvaluationsTableBody');
@@ -2130,17 +2143,96 @@
             }
         }
 
-        // REMOVED: The redundant fetchDropdownOptionsData function call from initializePage, as it was causing a reference error.
+        // CORRECTED: Added the missing function fetchDropdownOptionsData
         async function fetchDropdownOptionsData() {
-            // Your existing logic for fetching dropdown options
-        }
-        async function fetchQuestionsData() {
-            // Your existing logic for fetching questions
-        }
-        async function fetchCustomFieldsData() {
-            // Your existing logic for fetching custom fields
+            if (!db || !DROPDOWN_DATA_DOC_REF) {
+                console.error("Firestore dropdown data path not set up.");
+                return;
+            }
+            try {
+                const docSnap = await getDoc(DROPDOWN_DATA_DOC_REF);
+                if (docSnap.exists()) {
+                    dropdownOptions = docSnap.data();
+                    const cerRoleSelect = document.getElementById('cer-role');
+                    const autofailTypeSelect = document.getElementById('autofail-type');
+                    
+                    if (cerRoleSelect && dropdownOptions.cerRoles) {
+                        dropdownOptions.cerRoles.forEach(role => {
+                            const option = document.createElement('option');
+                            option.value = role;
+                            option.textContent = role;
+                            cerRoleSelect.appendChild(option);
+                        });
+                    }
+                    if (autofailTypeSelect && dropdownOptions.autofailTypes) {
+                        dropdownOptions.autofailTypes.forEach(type => {
+                            const option = document.createElement('option');
+                            option.value = type;
+                            option.textContent = type;
+                            autofailTypeSelect.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching dropdown options:", error);
+                showMessageBox("Error Loading Options", `Could not load dropdown options: ${error.message}`, true, false, true);
+            }
         }
 
+        // CORRECTED: Added the missing function fetchQuestionsData
+        async function fetchQuestionsData() {
+            if (!db || !QUESTIONS_CONFIG_DOC_REF) {
+                console.error("Firestore questions data path not set up.");
+                return;
+            }
+            try {
+                const docSnap = await getDoc(QUESTIONS_CONFIG_DOC_REF);
+                if (docSnap.exists()) {
+                    allRolesQuestions = docSnap.data();
+                    if (cerRoleSelect.value) {
+                        renderQuestionsForRole(cerRoleSelect.value);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching questions data:", error);
+                showMessageBox("Error Loading Questions", `Could not load questions: ${error.message}`, true, false, true);
+            }
+        }
+
+        // CORRECTED: Added the missing function fetchCustomFieldsData
+        async function fetchCustomFieldsData() {
+            if (!db || !CUSTOM_FIELDS_CONFIG_DOC_REF) {
+                console.error("Firestore custom fields path not set up.");
+                return;
+            }
+            try {
+                const docSnap = await getDoc(CUSTOM_FIELDS_CONFIG_DOC_REF);
+                if (docSnap.exists() && docSnap.data().fields) {
+                    customFormFields = docSnap.data().fields;
+                    renderCustomFields(customFormFields);
+                }
+            } catch (error) {
+                console.error("Error fetching custom fields:", error);
+                showMessageBox("Error Loading Fields", `Could not load custom fields: ${error.message}`, true, false, true);
+            }
+        }
+
+        // CORRECTED: Added the missing function renderCustomFields
+        function renderCustomFields(fields) {
+            const container = document.getElementById('customFieldsContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            fields.forEach(field => {
+                const fieldDiv = document.createElement('div');
+                const requiredAttr = field.required ? 'required' : '';
+                fieldDiv.innerHTML = `
+                    <label for="${field.id}" class="block top-field-label">${field.label}</label>
+                    <input type="${field.type}" id="${field.id}" name="${field.label}" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity50 form-grid-input border border-blue-600" ${requiredAttr}>
+                `;
+                container.appendChild(fieldDiv);
+            });
+        }
+        
         // Corrected Event Listeners and Initial Setup
         document.addEventListener('DOMContentLoaded', function() {
             const loginButton = document.getElementById('loginButton');
@@ -2159,11 +2251,15 @@
             const adminTab = document.getElementById('adminTab');
             const myEvaluationsTab = document.getElementById('myEvaluationsTab');
             const imagesTab = document.getElementById('imagesTab');
-            const npsTab = document.getElementById('npsTab');
 
             const saveFormBtn = document.getElementById('saveFormBtn');
-            const pdfShareBtn = document.getElementById('pdfShareBtn');
-            const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn');
+            const generatePdfBtn = document.getElementById('generatePdfBtn');
+            const addWebhookBtn = document.getElementById('addWebhookBtn');
+            const selectRecordSearch = document.getElementById('select-record-search');
+            const selectRecordToShare = document.getElementById('select-record-to-share');
+            const sendShareEmailBtn = document.getElementById('sendShareEmailBtn');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
 
             autofailDescriptionContainer = document.getElementById('autofailDescriptionContainer');
             autofailDescriptionInput = document.getElementById('autofail-description');
@@ -2172,13 +2268,6 @@
             cerRoleSelect = document.getElementById('cer-role');
             cerNameSelect = document.getElementById('cer-name');
             cerEmailInput = document.getElementById('cer-email');
-
-            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
-            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
-            const addWebhookBtn = document.getElementById('addWebhookBtn');
-            const selectRecordSearch = document.getElementById('select-record-search');
-            const selectRecordToShare = document.getElementById('select-record-to-share');
-            const sendShareEmailBtn = document.getElementById('sendShareEmailBtn');
 
             const reviewDateInput = document.getElementById('review-date');
             if (reviewDateInput) {
@@ -2221,8 +2310,7 @@
                         } else if (error.code === 'auth/too-many-requests') {
                             loginMessage.textContent = 'Too many login attempts. Please try again later.';
                             loginMessage.classList.remove('hidden');
-                        }
-                        else {
+                        } else {
                             loginMessage.textContent = `Login failed: ${error.message}`;
                             loginMessage.classList.remove('hidden');
                         }
@@ -2251,7 +2339,6 @@
                 });
             }
 
-
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', handleLogout);
             }
@@ -2263,14 +2350,13 @@
             if (adminTab) { adminTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `admin.html`; }); }
             if (shareResponseTab) { shareResponseTab.addEventListener('click', (e) => { e.preventDefault(); showTab('shareResponse'); }); }
             if (usersTab) { usersTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `users.html`; }); }
-            if (npsTab) { npsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `nps.html`; }); }
             if (myEvaluationsTab) { myEvaluationsTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `myEvaluations.html`; }); }
             if (imagesTab) { imagesTab.addEventListener('click', (e) => { e.preventDefault(); window.location.href = `images.html`; }); }
 
 
-            if (document.getElementById('selectAllRecordsCheckbox')) {
-                document.getElementById('selectAllRecordsCheckbox').addEventListener('change', () => {
-                    const isChecked = document.getElementById('selectAllRecordsCheckbox').checked;
+            if (selectAllRecordsCheckbox) {
+                selectAllRecordsCheckbox.addEventListener('change', () => {
+                    const isChecked = selectAllRecordsCheckbox.checked;
                     document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                         checkbox.checked = isChecked;
                     });
@@ -2278,17 +2364,18 @@
                 });
             }
 
-            if (document.getElementById('deleteSelectedRecordsBtn')) { document.getElementById('deleteSelectedRecordsBtn').addEventListener('click', () => {
+            if (deleteSelectedRecordsBtn) { deleteSelectedRecordsBtn.addEventListener('click', () => {
                 const checkedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
                 const idsToDelete = Array.from(checkedCheckboxes).map(cb => cb.dataset.recordId);
                 deleteSelectedRecords(idsToDelete);
             }); }
             
-            if (document.getElementById('addWebhookBtn')) { document.getElementById('addWebhookBtn').addEventListener('click', addWebhook); }
+            if (addWebhookBtn) { addWebhookBtn.addEventListener('click', addWebhook); }
 
-            if (document.getElementById('autofail-type')) {
-                document.getElementById('autofail-type').addEventListener('change', () => {
-                    if (document.getElementById('autofail-type').value !== '') {
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            if (autofailTypeSelect) {
+                autofailTypeSelect.addEventListener('change', () => {
+                    if (autofailTypeSelect.value !== '') {
                         if (autofailDescriptionContainer) autofailDescriptionContainer.classList.remove('hidden');
                         if (autofailDescriptionInput) autofailDescriptionInput.setAttribute('required', 'required');
                     } else {
@@ -2329,16 +2416,16 @@
                 });
             }
 
-            if (document.getElementById('selectRecordSearch')) { document.getElementById('selectRecordSearch').addEventListener('input', filterShareRecords); }
-            if (document.getElementById('select-record-to-share')) {
-                document.getElementById('select-record-to-share').addEventListener('change', (event) => {
+            if (selectRecordSearch) { selectRecordSearch.addEventListener('input', filterShareRecords); }
+            if (selectRecordToShare) {
+                selectRecordToShare.addEventListener('change', (event) => {
                     const selectedRecordId = event.target.value;
                     populateShareEmailFields(selectedRecordId);
                 });
             }
-            if (document.getElementById('sendShareEmailBtn')) { document.getElementById('sendShareEmailBtn').addEventListener('click', window.sendShareResponseEmail); }
-            if (document.getElementById('saveFormBtn')) { document.getElementById('saveFormBtn').addEventListener('click', window.saveFormToDB); }
-            if (document.getElementById('generatePdfBtn')) { document.getElementById('generatePdfBtn').addEventListener('click', window.generateAndDownloadPdf); }
+            if (sendShareEmailBtn) { sendShareEmailBtn.addEventListener('click', window.sendShareResponseEmail); }
+            if (saveFormBtn) { saveFormBtn.addEventListener('click', window.saveFormToDB); }
+            if (generatePdfBtn) { generatePdfBtn.addEventListener('click', window.generateAndDownloadPdf); }
         });
     </script>
 </body>
