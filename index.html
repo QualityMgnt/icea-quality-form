@@ -645,10 +645,7 @@
             </div>
             <div>
                 <label for="reviewer-name" class="block top-field-label">Reviewer's Name</label>
-                <select id="reviewer-name" name="Reviewer's Name" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border border-blue-600" required>
-                    <option value="">Select Reviewer</option>
-                </select>
-                <input type="text" id="other-reviewer-name" name="Other Reviewer Name" class="mt-1 block w-full rounded-md shadow-sm form-grid-input hidden border border-blue-600" placeholder="Enter Reviewer Name">
+                <input type="text" id="reviewer-name" name="Reviewer's Name" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border border-blue-600 bg-gray-100" readonly>
             </div>
             <div>
                 <label for="autofail-type" class="block top-field-label">Auto Fail Type</label>
@@ -1076,7 +1073,7 @@
         let globalBusinessComplianceAccuracyValue = 0;
         let latestSavedRecordId = null;
 
-        let autofailDescriptionContainer, autofailDescriptionInput, otherReviewerNameInput, reviewerNameSelect, cerRoleSelect, cerNameSelect, cerEmailInput, customFieldsContainer;
+        let autofailDescriptionContainer, autofailDescriptionInput, otherReviewerNameInput, reviewerNameInput, cerRoleSelect, cerNameSelect, cerEmailInput, customFieldsContainer;
 
         // --- All Function Declarations (Hoisted to top to prevent 'not defined' errors) ---
         
@@ -1398,7 +1395,6 @@
         async function fetchAndSetLogo() {
             // Rule: 'read' access is granted to all authenticated users via `if request.auth != null;`
             if (!auth.currentUser) return;
-            const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
             try {
                 const docSnap = await getDoc(LOGO_DOC_REF);
                 if (docSnap.exists() && docSnap.data().logoUrl) {
@@ -1426,11 +1422,7 @@
 
         async function saveDropdownOptions() {
             if (!auth.currentUser) { showMessageBox("Error", "Authentication required to save data.", true, false, true); return; }
-            if (!dropdownOptions.cerNames.length && !dropdownOptions.cerRoles.length && !dropdownOptions.reviewerNames.length && !dropdownOptions.autofailTypes.length) {
-                await setDoc(DROPDOWN_DATA_DOC_REF, { 'cerNames': [], 'cerRoles': [], 'reviewerNames': [], 'autofailTypes': [] });
-            } else {
-                await updateDoc(DROPDOWN_DATA_DOC_REF, dropdownOptions);
-            }
+            await setDoc(DROPDOWN_DATA_DOC_REF, dropdownOptions, { merge: true });
         }
         
         async function saveQuestionConfiguration() {
@@ -1457,8 +1449,7 @@
                 return;
             }
             if (!dropdownOptions[dropdownType]) dropdownOptions[dropdownType] = [];
-            let newItem = { name: newValue };
-            if (dropdownType === 'cerNames') { newItem.email = newEmail; }
+            let newItem = (dropdownType === 'cerNames') ? { name: newValue, email: newEmail } : newValue;
             dropdownOptions[dropdownType].push(newItem);
             try {
                 await saveDropdownOptions();
@@ -1466,6 +1457,7 @@
                 document.getElementById('newDropdownValue').value = '';
                 document.getElementById('newDropdownEmail').value = '';
                 renderAdminDropdownValues();
+                populateDropdowns();
             } catch (e) {
                 showMessageBox("Error", `Failed to add item: ${e.message}`, true, false, true);
             }
@@ -1479,12 +1471,23 @@
                 showMessageBox("No Selection", "Please select at least one item to remove.", true, false, true);
                 return;
             }
-            const itemsToRemove = selectedItems.map(li => li.textContent.trim());
-            dropdownOptions[dropdownType] = dropdownOptions[dropdownType].filter(item => !itemsToRemove.includes(item.name || item));
+            const itemsToRemove = selectedItems.map(li => {
+                const text = li.textContent.trim();
+                const match = text.match(/(.*)\s+\((.*)\)/);
+                if (match) {
+                    return { name: match[1].trim(), email: match[2].trim() };
+                }
+                return text;
+            });
+            dropdownOptions[dropdownType] = dropdownOptions[dropdownType].filter(item => {
+                const itemName = item.name || item;
+                return !itemsToRemove.some(itemToRemove => (itemToRemove.name || itemToRemove) === itemName);
+            });
             try {
                 await saveDropdownOptions();
                 showMessageBox("Success", "Items removed successfully.", false, false, true);
                 renderAdminDropdownValues();
+                populateDropdowns();
             } catch (e) {
                 showMessageBox("Error", `Failed to remove items: ${e.message}`, true, false, true);
             }
@@ -1513,6 +1516,9 @@
                 document.getElementById('newQuestionWeightage').value = '';
                 document.getElementById('newQuestionAutofail').checked = false;
                 renderAdminQuestions();
+                if (cerRoleSelect.value === role) {
+                    renderQuestionsForRole(role);
+                }
             } catch (e) {
                 showMessageBox("Error", `Failed to add question: ${e.message}`, true, false, true);
             }
@@ -1535,6 +1541,9 @@
                 await saveQuestionConfiguration();
                 showMessageBox("Success", "Questions removed successfully.", false, false, true);
                 renderAdminQuestions();
+                if (cerRoleSelect.value === role) {
+                    renderQuestionsForRole(role);
+                }
             } catch (e) {
                 showMessageBox("Error", `Failed to remove questions: ${e.message}`, true, false, true);
             }
@@ -1544,9 +1553,9 @@
         function populateDropdowns() {
             const cerNameSelect = document.getElementById('cer-name');
             const cerRoleSelect = document.getElementById('cer-role');
-            const reviewerNameSelect = document.getElementById('reviewer-name');
             const autofailTypeSelect = document.getElementById('autofail-type');
-
+            
+            // Populate CER Names
             if (cerNameSelect) {
                 cerNameSelect.innerHTML = '<option value="">Select CER</option>';
                 dropdownOptions.cerNames.forEach(user => {
@@ -1556,6 +1565,7 @@
                     cerNameSelect.appendChild(option);
                 });
             }
+            // Populate CER Roles
             if (cerRoleSelect) {
                 cerRoleSelect.innerHTML = '<option value="">Select Role</option>';
                 dropdownOptions.cerRoles.forEach(role => {
@@ -1565,19 +1575,7 @@
                     cerRoleSelect.appendChild(option);
                 });
             }
-            if (reviewerNameSelect) {
-                reviewerNameSelect.innerHTML = '<option value="">Select Reviewer</option>';
-                dropdownOptions.reviewerNames.forEach(reviewer => {
-                    const option = document.createElement('option');
-                    option.value = reviewer;
-                    option.textContent = reviewer;
-                    reviewerNameSelect.appendChild(option);
-                });
-                const otherOption = document.createElement('option');
-                otherOption.value = 'Other';
-                otherOption.textContent = 'Other';
-                reviewerNameSelect.appendChild(otherOption);
-            }
+            // Populate Autofail Types
             if (autofailTypeSelect) {
                 autofailTypeSelect.innerHTML = '<option value="">Select Autofail Type</option>';
                 dropdownOptions.autofailTypes.forEach(type => {
@@ -1758,7 +1756,14 @@
                 fetchDropdownOptionsData();
                 fetchQuestionsData();
                 fetchCustomFieldsData();
-                fetchUsers();
+                await fetchUsers(); // Await user fetching to populate reviewer name
+                
+                // Set the reviewer name to the logged-in user's name
+                reviewerNameInput = document.getElementById('reviewer-name');
+                if (reviewerNameInput) {
+                    reviewerNameInput.value = loggedInUserName;
+                }
+                
                 renderNavigationForRole(currentUserRole);
                 showTab(window.location.hash.substring(1) || 'auditForm');
                 document.getElementById('loginPage').style.display = 'none';
@@ -1885,11 +1890,12 @@
 
             // Add all other event listeners here
             const cerNameSelect = document.getElementById('cer-name');
+            const cerEmailInput = document.getElementById('cer-email');
             if(cerNameSelect) cerNameSelect.addEventListener('change', () => {
                 const selectedCerName = cerNameSelect.value;
                 const user = allUsers.find(u => u.name === selectedCerName);
-                if (user && document.getElementById('cer-email')) {
-                    document.getElementById('cer-email').value = user.email || '';
+                if (user && cerEmailInput) {
+                    cerEmailInput.value = user.email || '';
                 }
             });
             const cerRoleSelect = document.getElementById('cer-role');
