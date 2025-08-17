@@ -1249,6 +1249,7 @@
                         </div>
                     `;
                     container.appendChild(rowDiv);
+                    // Add event listener here
                     const newSelect = rowDiv.querySelector('.rating-select');
                     if (newSelect) {
                         newSelect.addEventListener('change', calculateScore);
@@ -1739,7 +1740,6 @@
                         loggedInUserName = userDocSnap.data().name || user.email;
                         loggedInUserEmail = user.email;
                     } else {
-                        // User exists in Auth but not in Firestore profile. This could happen on first sign-up.
                         currentUserRole = 'guest';
                         loggedInUserName = user.email || "Guest";
                         loggedInUserEmail = user.email || "Guest";
@@ -1751,14 +1751,12 @@
                     loggedInUserEmail = user.email || "Guest";
                 }
                 
-                // Fetch all necessary data based on the authenticated user and their role
                 fetchAndSetLogo();
                 fetchDropdownOptionsData();
                 fetchQuestionsData();
                 fetchCustomFieldsData();
-                await fetchUsers(); // Await user fetching to populate reviewer name
+                await fetchUsers();
                 
-                // Set the reviewer name to the logged-in user's name
                 reviewerNameInput = document.getElementById('reviewer-name');
                 if (reviewerNameInput) {
                     reviewerNameInput.value = loggedInUserName;
@@ -1893,7 +1891,7 @@
             const cerEmailInput = document.getElementById('cer-email');
             if(cerNameSelect) cerNameSelect.addEventListener('change', () => {
                 const selectedCerName = cerNameSelect.value;
-                const user = allUsers.find(u => u.name === selectedCerName);
+                const user = dropdownOptions.cerNames.find(u => u.name === selectedCerName);
                 if (user && cerEmailInput) {
                     cerEmailInput.value = user.email || '';
                 }
