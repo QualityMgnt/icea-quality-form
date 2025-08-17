@@ -189,7 +189,7 @@
         }
         
         .main-nav ul li.nav-tab {
-            display: block;
+            display: none;
         }
 
         .sidebar ul li a {
@@ -791,6 +791,7 @@
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
+        // --- Firebase Configuration ---
         const firebaseConfig = {
           apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
           authDomain: "icea-lion-qa.firebaseapp.com",
@@ -1499,7 +1500,7 @@
                 downloadAnchorNode.setAttribute("download", `record_${record.id}.json`);
                 document.body.appendChild(downloadAnchorNode);
                 downloadAnchorNode.click();
-                downloadAnchorNode.remove();
+                document.body.removeChild(downloadAnchorNode);
                 showMessageBox("Download Complete", "Record data downloaded successfully!", false, false, true);
             } catch (e) {
                 console.error("Error downloading record:", e);
@@ -1937,8 +1938,6 @@
         }
         
         const initializePage = async (user) => {
-            const loginPage = document.getElementById('loginPage');
-            
             if (user) {
                 const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                 try {
@@ -1968,6 +1967,7 @@
                     initializeAppDisplay();
                 }
             } else {
+                const loginPage = document.getElementById('loginPage');
                 if (loginPage) loginPage.classList.add('visible');
                 document.body.classList.add('loaded');
             }
