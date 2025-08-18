@@ -10,7 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <style>
-        /* Base styles - Copied from index.html for consistency */
+        /* Base styles */
         body {
             font-family: 'Inter', sans-serif;
             display: flex;
@@ -19,7 +19,6 @@
             background-color: #f3f4f6;
             margin: 0;
             padding: 0;
-            /* Start hidden to prevent flicker */
             visibility: hidden;
             opacity: 0;
             transition: visibility 0s, opacity 0.3s ease;
@@ -61,48 +60,20 @@
         .form-row-light { background-color: #f9fafb; }
         .form-row-dark { background-color: #edf2f7; }
 
-        /* Adjustments for question descriptions, weightage, and points */
-        .question-description {
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .weightage-display {
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        /* ADJUSTED STYLES FOR INPUTS AND SELECTS TO REQUESTED FIXED SIZE */
-        .form-grid-input {
-            padding: 2px;
-            font-size: 0.875rem;
-            width: 2.3cm;
-            height: 0.9cm;
-            min-height: 0.9cm;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        .points-input {
-            font-size: 0.875rem;
-            padding: 2px;
-            width: 2.3cm;
-            height: 0.9cm;
-            min-height: 0.9cm;
-            box-sizing: border-box;
-            text-align: center;
-            overflow: hidden;
-        }
-
+        /* Adjusted styles to use rem/px instead of cm */
+        .form-grid-input,
+        .points-input,
         .rating-select {
+            padding: 0.5rem;
             font-size: 0.875rem;
-            padding: 2px;
-            width: 2.3cm;
-            height: 0.9cm;
-            min-height: 0.9cm;
+            width: 100%; /* Use responsive width */
             box-sizing: border-box;
+            height: 2.2rem;
+            min-height: 2.2rem;
+        }
+        .points-input, .rating-select {
+            text-align: center;
             text-align-last: center;
-            overflow: hidden;
         }
 
         /* Remarks textarea size and wrapping */
@@ -124,23 +95,23 @@
             color: #374151;
         }
 
-        /* Specific adjustment for the overall score displays if they seem too small */
+        /* Specific adjustment for the overall score displays */
         #overall-score-display,
         #business-compliance-accuracy,
-        #nps-overall-score-display { /* Added NPS score display */
+        #nps-overall-score-display {
             font-size: 1.6rem;
         }
 
         /* Small adjustment for table headers for better alignment with smaller fonts */
         #npsTableContainer th, #npsTableContainer td,
         #npsEvaluationModalContent .nps-summary-table th,
-        #npsEvaluationModalContent .nps-summary-table td { /* Added for new table */
+        #npsEvaluationModalContent .nps-summary-table td {
             border: 1px solid #e5e7eb;
             padding: 0.7rem;
             font-size: 0.8rem;
         }
 
-        /* NEW TOP HEADER - Copied from index.html for consistency */
+        /* NEW TOP HEADER */
         .top-header {
             position: fixed;
             top: 0;
@@ -158,7 +129,7 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        /* Navigation styles - Copied from index.html for consistency */
+        /* Navigation styles */
         .main-nav {
             width: 125px;
             background-color: #800080;
@@ -230,7 +201,7 @@
             border-radius: 0;
         }
         
-        /* Specific styles for modal/message box - Copied for consistency */
+        /* Specific styles for modal/message box */
         .message-box-overlay {
             position: fixed;
             top: 0;
@@ -463,7 +434,6 @@
         .filter-bar button:hover {
             background-color: #0d47a1; /* darker blue */
         }
-
     </style>
 </head>
 <body>
@@ -516,7 +486,7 @@
                     <label for="agentFilter">Agent:</label>
                     <select id="agentFilter">
                         <option value="">All Agents</option>
-                        </select>
+                    </select>
                 </div>
                 <div>
                     <label for="statusFilter">Status:</label>
@@ -552,8 +522,10 @@
                 <table class="min-w-full">
                     <thead>
                         <tr>
-                            <th class="w-12"><input type="checkbox" class="hidden"></th> <th>Customer Contact ID</th>
-                            <th>Date</th> <th>Positive Feedback</th>
+                            <th class="w-12"><input type="checkbox" id="selectAllNpsRecordsCheckboxHeader"></th>
+                            <th>Customer Contact ID</th>
+                            <th>Date</th>
+                            <th>Positive Feedback</th>
                             <th>Area of Improvement</th>
                             <th>NPS Rating</th>
                             <th>Agent Handled</th>
@@ -671,64 +643,51 @@
     <script type="module">
         // Firebase Imports
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot, query, where, orderBy, updateDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Firebase Configuration ---
+        // DO NOT HARDCODE YOUR FIREBASE CREDENTIALS HERE.
+        // Use a secure method to inject these values from a build process or server.
         const firebaseConfig = {
-          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-          authDomain: "icea-lion-qa.firebaseapp.com",
-          projectId: "icea-lion-qa",
-          storageBucket: "icea-lion-qa.firebasestorage.app",
-          messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
-          measurementId: "G-1RJJTT3QET"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
-
-        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-        const initialAuthToken = (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== null) ? __initial_auth_token : null;
-
-        // Initialize Firebase App and Services ONCE at the top level of the module
-        let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
-            appInstance = getApp();
-        }
+        const appInstance = initializeApp(firebaseConfig);
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
 
         // Define Firebase Collection Paths
-        const NPS_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/nps_records`; // For Google Sheet data synced to Firestore
-        const NPS_EVALUATIONS_COLLECTION_PATH = `artifacts/${appId}/public/data/nps_evaluations`; // For NPS evaluation forms (new collection)
-        const DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${appId}/public/data/dropdown_options`;
-        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+        const NPS_RECORDS_COLLECTION_PATH = `artifacts/${firebaseConfig.appId}/public/data/nps_records`;
+        const NPS_EVALUATIONS_COLLECTION_PATH = `artifacts/${firebaseConfig.appId}/public/data/nps_evaluations`;
+        const DROPDOWN_DATA_COLLECTION_PATH = `artifacts/${firebaseConfig.appId}/public/data/dropdown_options`;
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${firebaseConfig.appId}/users`;
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
-        let allNpsRecordsFromFirestore = []; // Stores ALL NPS records fetched from Firestore
-        let filteredNpsRecords = []; // Stores NPS records AFTER applying filters
+        let allNpsRecordsFromFirestore = [];
+        let filteredNpsRecords = [];
         let dropdownOptions = {
             'reviewerNames': [],
             'autofailTypes': []
         };
-        let cerNameEmailsMap = {};
-
         let currentUserId = null;
         let currentUserRole = null;
-        let loggedInUserName = "Quality Evaluation Team";
-        let loggedInUserEmail = "anonymous";
+        let loggedInUserName = "Quality Evaluation Team"; // Will be fetched from user profile
+        let loggedInUserEmail = "anonymous"; // Will be fetched from user auth
 
-        let currentNpsRecordBeingEvaluated = null; // Stores the NPS record data for the current evaluation modal
-        let npsChartInstance = null; // To store the Chart.js instance
+        let currentNpsRecordBeingEvaluated = null;
+        let npsChartInstance = null;
 
-        // Object to hold current filter values
         const currentNpsFilters = {
             date: '',
             agent: '',
             status: ''
         };
 
-        // Questions for the NPS Evaluation Form (from Email role, first 14 questions)
         const npsEvaluationQuestions = {
             "NPS EVALUATION": [
                 { desc: "Did the CER provide proper branding and personalize the email?", weightage: 5, autofail: false, hasNA: true },
@@ -749,7 +708,6 @@
         };
 
         let unsubscribeNpsRecords = null;
-        let unsubscribeNpsEvaluations = null;
         let unsubscribeDropdowns = null;
 
         // --- Utility Functions ---
@@ -766,13 +724,7 @@
             const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
 
             messageBoxTitle.textContent = title;
-            if (typeof message === 'string' && message.startsWith('<pre>')) {
-                messageBoxContent.innerHTML = message;
-                messageBoxContent.classList.add('message-box-content-pre');
-            } else {
-                messageBoxContent.textContent = message;
-                messageBoxContent.classList.remove('message-box-content-pre');
-            }
+            messageBoxContent.textContent = message;
 
             messageBoxOverlay.classList.remove('hidden');
             messageBoxSpinner.classList.toggle('hidden', !showSpinner);
@@ -794,187 +746,95 @@
         }
 
         function hideMessageBox() {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            messageBoxOverlay.classList.add('hidden');
+            document.getElementById('messageBoxOverlay').classList.add('hidden');
         }
 
-        // --- CSV Parsing Functions ---
         /**
          * Parses CSV text into an array of objects.
          */
         function parseCsv(csv) {
             const lines = csv.trim().split('\n');
-            if (lines.length === 0) return [];
-
-            // Handle potential empty last line or blank lines
-            const nonEmptyLines = lines.filter(line => line.trim() !== '');
-
-            if (nonEmptyLines.length === 0) return [];
-
-            const headers = parseCsvLine(nonEmptyLines[0]).map(h => h.trim());
+            if (lines.length <= 1) return [];
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
             const data = [];
 
-            for (let i = 1; i < nonEmptyLines.length; i++) {
-                const values = parseCsvLine(nonEmptyLines[i]);
-                if (values.length === headers.length) { // Ensure row has same number of columns as headers
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const values = line.match(/(?:[^,"]+|"[^"]*")+/g).map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                if (values.length === headers.length) {
                     const row = {};
                     headers.forEach((header, index) => {
                         row[header] = values[index];
                     });
                     data.push(row);
                 } else {
-                    console.warn(`Skipping row ${i+1} due to column count mismatch. Expected ${headers.length}, got ${values.length}. Row: ${nonEmptyLines[i]}`);
+                    console.warn(`Skipping row ${i+1} due to column count mismatch.`);
                 }
             }
             return data;
         }
 
-        /**
-         * Helper to parse a single CSV line, handling commas within quoted fields.
-         */
-        function parseCsvLine(line) {
-            const result = [];
-            let inQuote = false;
-            let currentField = '';
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                if (char === '"') {
-                    // Handle escaped quotes within a quoted field (e.g., "abc""def")
-                    if (inQuote && line[i + 1] === '"') {
-                        currentField += '"';
-                        i++; // Skip the next quote
-                    } else {
-                        inQuote = !inQuote;
-                    }
-                } else if (char === ',' && !inQuote) {
-                    result.push(currentField);
-                    currentField = '';
-                } else {
-                    currentField += char;
-                }
-            }
-            result.push(currentField); // Add the last field
-            return result.map(field => field.trim().replace(/^"|"$/g, '')); // Trim and remove outer quotes
-        }
-
 
         /**
-         * Fetches NPS records directly from the published Google Sheet CSV and syncs with Firestore.
-         * IMPORTANT: This method may face CORS issues depending on browser and hosting environment.
+         * Fetches NPS records from a published Google Sheet and syncs them to Firestore.
          */
         async function fetchAndSyncNpsRecords() {
-            // THIS IS THE DIRECT CSV URL YOU PROVIDED.
-            // Be aware of potential CORS issues with this approach.
             const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQCPENshkMrKwLf39IbhCUUsm1OFYxgZ4zeXa0IWfSnMUxlEyuUH0pDjl-XFBsdatVXyAS5Fpu5EUbv/pub?gid=149380162&single=true&output=csv';
-
-            if (!csvUrl.startsWith('https://docs.google.com/spreadsheets/d/e/')) {
-                showMessageBox("Configuration Error", "The published CSV URL is not a valid Google Sheets published URL. Please verify.", true, false, true);
-                return;
-            }
-
-            showMessageBox("Loading NPS Data", "Fetching records directly from published Google Sheet...", false, true, false);
+            
+            showMessageBox("Loading NPS Data", "Fetching records from Google Sheet and syncing to Firestore...", false, true, false);
 
             try {
                 const response = await fetch(csvUrl);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}. This often indicates a CORS issue.`);
+                    throw new Error(`HTTP error! status: ${response.status}.`);
                 }
                 const csvText = await response.text();
                 const parsedData = parseCsv(csvText);
-
                 await syncGoogleSheetDataToFirestore(parsedData);
                 hideMessageBox();
             } catch (error) {
                 console.error("Error fetching or syncing Google Sheet CSV data:", error);
-                let errorMessage = `Failed to load NPS data: ${error.message}.`;
-                if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
-                    errorMessage += "\n\nThis is highly likely a CORS (Cross-Origin Resource Sharing) issue. Browsers often block direct CSV fetching from Google Sheets for security. The recommended solution is to use a Google Apps Script Web App as a proxy.";
-                } else {
-                    errorMessage += "\n\nPlease check the published URL and ensure your sheet's first row has exact matching headers.";
-                }
-                showMessageBox("Error", errorMessage, true, false, true);
+                showMessageBox("Error", `Failed to load NPS data: ${error.message}`, true, false, true);
             }
         }
         
         /**
-         * Syncs Google Sheet data (now as parsed objects from CSV) to Firestore, creating new records or updating existing ones.
+         * Optimized function to sync Google Sheet data to Firestore using a batch write.
          */
         async function syncGoogleSheetDataToFirestore(sheetData) {
-            if (!db || !currentUserId) {
-                console.error("Database not ready for sync. Skipping.");
-                return;
-            }
-
+            if (!db || !currentUserId) return;
             const npsRecordsColRef = collection(db, NPS_RECORDS_COLLECTION_PATH);
             const batch = writeBatch(db);
 
-            if (!Array.isArray(sheetData)) {
-                console.error("Expected sheetData to be an array but received:", sheetData);
-                showMessageBox("Data Format Error", "Received invalid data from published CSV. Expected an array of records.", true, false, true);
-                return;
-            }
+            // Fetch all existing documents once for efficient lookup
+            const existingRecordsMap = new Map();
+            const existingSnapshot = await getDocs(npsRecordsColRef);
+            existingSnapshot.forEach(doc => {
+                existingRecordsMap.set(doc.data()['Customer Contact ID'], doc.id);
+            });
 
             for (const row of sheetData) {
                 const contactId = row['Customer Contact ID'];
-                if (!contactId) {
-                    console.warn("Skipping row due to missing 'Customer Contact ID':", row);
-                    continue;
-                }
+                if (!contactId) continue;
 
-                const q = query(npsRecordsColRef, where('Customer Contact ID', '==', contactId));
-                const querySnapshot = await getDocs(q);
-
-                let recordData = { // Declare recordData with 'let'
+                const docId = existingRecordsMap.get(contactId);
+                const recordData = {
                     'Customer Contact ID': row['Customer Contact ID'] || '',
                     'Positive Feedback': row['Positive Feedback'] || '',
                     'Area of Improvement': row['Area of Improvement'] || '',
                     'NPS Rating': row['NPS Rating'] || '',
                     'Agent Handled': row['Agent Handled'] || 'Unassigned',
                     'Status': row['Status'] || 'Pending',
-                    'Review Score': row['Review Score'] || 'N/A',
+                    'Review Score': isNaN(parseFloat(row['Review Score'])) ? 0 : parseFloat(row['Review Score']),
                     'lastUpdated': new Date()
                 };
 
-                // Ensure Review Score is stored as a number if possible for charting
-                let reviewScoreValue = parseFloat(String(recordData['Review Score']).replace('%', ''));
-                if (!isNaN(reviewScoreValue)) {
-                    recordData['Review Score'] = reviewScoreValue;
+                if (docId) {
+                    batch.update(doc(db, NPS_RECORDS_COLLECTION_PATH, docId), recordData);
                 } else {
-                    recordData['Review Score'] = 0; // Default to 0 for charting if not a valid number
-                }
-
-
-                if (querySnapshot.empty) {
-                    recordData.receivedDate = new Date(); // Only set receivedDate for genuinely new records
-                    const newDocRef = doc(npsRecordsColRef);
-                    batch.set(newDocRef, recordData);
-                } else {
-                    querySnapshot.forEach(document => {
-                        const existingData = document.data();
-                        let needsUpdate = false;
-
-                        // Only update if source data (CSV) differs for these key fields
-                        if (existingData['Positive Feedback'] !== recordData['Positive Feedback'] ||
-                            existingData['Area of Improvement'] !== recordData['Area of Improvement'] ||
-                            existingData['NPS Rating'] !== recordData['NPS Rating']) {
-                            needsUpdate = true;
-                        }
-
-                        // Update Agent Handled only if it's currently 'Unassigned' in Firestore
-                        // AND the CSV provides a new (non-empty) value.
-                        // OR if it's different and non-empty in CSV.
-                        if (existingData['Agent Handled'] === 'Unassigned' && recordData['Agent Handled'] !== 'Unassigned') {
-                            needsUpdate = true;
-                        } else if (existingData['Agent Handled'] !== recordData['Agent Handled'] && recordData['Agent Handled'] !== '') {
-                             needsUpdate = true;
-                        }
-
-                        if (needsUpdate) {
-                            // Retain the existing 'receivedDate' for updates
-                            recordData.receivedDate = existingData.receivedDate || new Date(); // Use existing, or new date if not present
-                            batch.update(document.ref, recordData);
-                        }
-                    });
+                    batch.set(doc(npsRecordsColRef), { ...recordData, receivedDate: new Date() });
                 }
             }
             await batch.commit();
@@ -985,35 +845,30 @@
          * Applies filters to the allNpsRecordsFromFirestore and then renders table and graph.
          */
         function applyNpsFiltersAndRender() {
-            let recordsToDisplay = [...allNpsRecordsFromFirestore]; // Start with all records
+            let recordsToDisplay = [...allNpsRecordsFromFirestore];
 
-            // Filter by Date
             if (currentNpsFilters.date) {
-                const filterDate = currentNpsFilters.date; //YYYY-MM-DD format
+                const filterDate = currentNpsFilters.date;
                 recordsToDisplay = recordsToDisplay.filter(record => {
-                    if (!record.receivedDate) return false;
-                    const recordDate = typeof record.receivedDate.toDate === 'function' ? record.receivedDate.toDate() : new Date(record.receivedDate);
-                    // Ensure valid date object before converting to ISO string
-                    if (isNaN(recordDate.getTime())) return false;
+                    const recordDate = record.receivedDate instanceof Date ? record.receivedDate : (record.receivedDate?.toDate ? record.receivedDate.toDate() : null);
+                    if (!recordDate || isNaN(recordDate.getTime())) return false;
                     return recordDate.toISOString().substring(0, 10) === filterDate;
                 });
             }
 
-            // Filter by Agent Handled
             if (currentNpsFilters.agent) {
                 recordsToDisplay = recordsToDisplay.filter(record =>
                     (record['Agent Handled'] || '').toLowerCase().includes(currentNpsFilters.agent.toLowerCase())
                 );
             }
 
-            // Filter by Status
             if (currentNpsFilters.status) {
                 recordsToDisplay = recordsToDisplay.filter(record =>
                     (record.Status || '').toLowerCase() === currentNpsFilters.status.toLowerCase()
                 );
             }
 
-            filteredNpsRecords = recordsToDisplay; // Update the globally filtered array
+            filteredNpsRecords = recordsToDisplay;
             renderNpsRecordsTable(filteredNpsRecords);
             renderNpsBarGraph(filteredNpsRecords);
         }
@@ -1042,21 +897,23 @@
                 unsubscribeNpsRecords = onSnapshot(q, (snapshot) => {
                     allNpsRecordsFromFirestore = [];
                     const today = new Date();
+                    const batch = writeBatch(db);
+
                     snapshot.forEach(doc => {
                         const record = { id: doc.id, ...doc.data() };
-                        
                         if (record.Status === 'Pending' && record.receivedDate) {
-                            const receivedDate = typeof record.receivedDate.toDate === 'function' ? record.receivedDate.toDate() : new Date(record.receivedDate);
+                            const receivedDate = record.receivedDate?.toDate ? record.receivedDate.toDate() : new Date(record.receivedDate);
                             if (!isNaN(receivedDate.getTime())) {
                                 const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000;
                                 if ((today.getTime() - receivedDate.getTime()) > sevenDaysInMillis) {
                                     record.Status = 'Overdue';
-                                    updateDoc(doc(db, NPS_RECORDS_COLLECTION_PATH, record.id), { Status: 'Overdue', lastUpdated: new Date() }).catch(e => console.error("Error updating NPS status to Overdue:", e));
+                                    batch.update(doc.ref, { Status: 'Overdue', lastUpdated: new Date() });
                                 }
                             }
                         }
                         allNpsRecordsFromFirestore.push(record);
                     });
+                    batch.commit().catch(e => console.error("Error committing batch update for Overdue status:", e));
                     applyNpsFiltersAndRender();
                 }, (error) => {
                     console.error("Error listening to NPS records from Firestore:", error);
@@ -1072,24 +929,23 @@
 
         /**
          * Renders the NPS records table based on provided records.
-         * @param {Array<Object>} records - Array of NPS record objects to display.
          */
         function renderNpsRecordsTable(records) {
             const npsRecordsTableBody = document.getElementById('npsRecordsTableBody');
-            const selectAllNpsRecordsCheckbox = document.getElementById('selectAllNpsRecordsCheckbox');
+            const selectAllNpsRecordsCheckboxHeader = document.getElementById('selectAllNpsRecordsCheckboxHeader');
             const deleteSelectedNpsRecordsBtn = document.getElementById('deleteSelectedNpsRecordsBtn');
 
             npsRecordsTableBody.innerHTML = '';
 
             if (records.length === 0) {
                 npsRecordsTableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-gray-500">No matching NPS records found.</td></tr>`;
-                selectAllNpsRecordsCheckbox.disabled = true;
+                selectAllNpsRecordsCheckboxHeader.disabled = true;
                 deleteSelectedNpsRecordsBtn.disabled = true;
-                selectAllNpsRecordsCheckbox.checked = false;
+                selectAllNpsRecordsCheckboxHeader.checked = false;
                 return;
             }
 
-            selectAllNpsRecordsCheckbox.disabled = false;
+            selectAllNpsRecordsCheckboxHeader.disabled = false;
 
             const agentFilterSelect = document.getElementById('agentFilter');
             const currentAgentFilterValue = agentFilterSelect.value;
@@ -1107,7 +963,6 @@
                 agentFilterSelect.value = currentNpsFilters.agent;
             }
 
-
             records.forEach(record => {
                 const row = npsRecordsTableBody.insertRow();
                 let statusClass = 'status-default';
@@ -1122,7 +977,7 @@
                 let formattedReceivedDate = 'N/A';
                 if (record.receivedDate) {
                     try {
-                        const dateObj = typeof record.receivedDate.toDate === 'function' ? record.receivedDate.toDate() : new Date(record.receivedDate);
+                        const dateObj = record.receivedDate?.toDate ? record.receivedDate.toDate() : new Date(record.receivedDate);
                         if (!isNaN(dateObj.getTime())) {
                             formattedReceivedDate = dateObj.toLocaleDateString();
                         }
@@ -1146,7 +1001,7 @@
                             <option value="Overdue" ${record.Status === 'Overdue' ? 'selected' : ''}>Overdue</option>
                         </select>
                     </td>
-                    <td class="py-2 px-4">${record['Review Score'] || 'N/A'}</td>
+                    <td class="py-2 px-4">${record['Review Score'] !== undefined && record['Review Score'] !== null ? record['Review Score'] + '%' : 'N/A'}</td>
                     <td class="py-2 px-4 whitespace-nowrap">
                         <button class="review-btn" data-id="${record.id}">Review</button>
                         <button class="share-nps-btn" data-id="${record.id}">Share</button>
@@ -1175,24 +1030,18 @@
 
         /**
          * Renders the vertical bar graph for Agent Handled vs Average Overall Score.
-         * @param {Array<Object>} records - The records to use for generating the graph.
          */
         function renderNpsBarGraph(records) {
             const ctx = document.getElementById('npsBarChart');
             if (!ctx) return;
-
-            // Destroy existing chart if it exists
             if (npsChartInstance) {
                 npsChartInstance.destroy();
             }
 
-            // Calculate average score per agent
             const agentScores = {};
-
             records.forEach(record => {
                 const agent = record['Agent Handled'] || 'Unassigned';
-                const score = parseFloat(String(record['Review Score']).replace('%', ''));
-
+                const score = parseFloat(record['Review Score']);
                 if (!isNaN(score)) {
                     if (!agentScores[agent]) {
                         agentScores[agent] = { totalScore: 0, count: 0 };
@@ -1203,10 +1052,7 @@
             });
 
             const labels = Object.keys(agentScores).sort();
-            const data = labels.map(agent => {
-                const avg = agentScores[agent].totalScore / agentScores[agent].count;
-                return parseFloat(avg.toFixed(1));
-            });
+            const data = labels.map(agent => parseFloat((agentScores[agent].totalScore / agentScores[agent].count).toFixed(1)));
 
             npsChartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -1215,63 +1061,27 @@
                     datasets: [{
                         label: 'Average Overall Score',
                         data: data,
-                        backgroundColor: [
-                            'rgba(26, 115, 232, 0.8)',
-                            'rgba(245, 124, 0, 0.8)',
-                            'rgba(76, 175, 80, 0.8)',
-                            'rgba(255, 193, 7, 0.8)',
-                            'rgba(156, 39, 176, 0.8)',
-                            'rgba(3, 169, 244, 0.8)',
-                            'rgba(255, 87, 34, 0.8)'
-                        ],
-                        borderColor: [
-                            'rgba(26, 115, 232, 1)',
-                            'rgba(245, 124, 0, 1)',
-                            'rgba(76, 175, 80, 1)',
-                            'rgba(255, 193, 7, 1)',
-                            'rgba(156, 39, 176, 1)',
-                            'rgba(3, 169, 244, 1)',
-                            'rgba(255, 87, 34, 1)'
-                        ],
+                        backgroundColor: 'rgba(26, 115, 232, 0.8)',
+                        borderColor: 'rgba(26, 115, 232, 1)',
                         borderWidth: 1
                     }]
                 },
                 options: {
-                    indexAxis: 'x',
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: false,
-                        },
-                        title: {
-                            display: true,
-                            text: 'Average Score by Agent',
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            }
-                        }
+                        legend: { display: false },
+                        title: { display: true, text: 'Average Score by Agent', font: { size: 14, weight: 'bold' } }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Average Score (%)'
-                            },
+                            title: { display: true, text: 'Average Score (%)' },
                             max: 100
                         },
                         x: {
-                            title: {
-                                display: true,
-                                text: 'Agent Handled'
-                            },
-                            ticks: {
-                                autoSkip: false,
-                                maxRotation: 90,
-                                minRotation: 90
-                            }
+                            title: { display: true, text: 'Agent Handled' },
+                            ticks: { autoSkip: false, maxRotation: 90, minRotation: 90 }
                         }
                     }
                 }
@@ -1283,8 +1093,8 @@
          */
         function updateDeleteButtonState() {
             const deleteSelectedNpsRecordsBtnElement = document.getElementById('deleteSelectedNpsRecordsBtn');
+            const checkedCount = document.querySelectorAll('.nps-record-checkbox:checked').length;
             if (deleteSelectedNpsRecordsBtnElement) {
-                const checkedCount = document.querySelectorAll('.nps-record-checkbox:checked').length;
                 deleteSelectedNpsRecordsBtnElement.disabled = checkedCount === 0;
             }
         }
@@ -1292,52 +1102,27 @@
         /**
          * Deletes selected NPS records from Firestore.
          */
-        window.deleteSelectedNpsRecords = async function() { // Made global
+        window.deleteSelectedNpsRecords = async function() {
             const checkedCheckboxes = document.querySelectorAll('.nps-record-checkbox:checked');
             const idsToDelete = Array.from(checkedCheckboxes).map(cb => cb.dataset.recordId);
-
             if (idsToDelete.length === 0) {
                 showMessageBox("No Records Selected", "Please select at least one record to delete.", false, false, true);
                 return;
             }
 
-            const confirmDelete = await new Promise(resolve => {
-                showMessageBox(
-                    "Confirm Deletion",
-                    `Are you sure you want to delete ${idsToDelete.length} selected record(s)? This action cannot be undone.`,
-                    false,
-                    false,
-                    true,
-                    () => resolve(false)
-                );
-                const messageBoxContentElement = document.getElementById('messageBoxContent');
-                const messageBoxCloseBtnElement = document.getElementById('messageBoxCloseBtn');
-                messageBoxCloseBtnElement.classList.add('hidden');
-                const confirmBtn = document.createElement('button');
-                confirmBtn.textContent = 'Delete';
-                confirmBtn.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md mr-2';
-                confirmBtn.onclick = () => { hideMessageBox(); resolve(true); };
-                const cancelBtn = document.createElement('button');
-                cancelBtn.textContent = 'Cancel';
-                cancelBtn.className = 'bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md';
-                cancelBtn.onclick = () => { hideMessageBox(); resolve(false); };
-                messageBoxContentElement.innerHTML = '';
-                messageBoxContentElement.appendChild(confirmBtn);
-                messageBoxContentElement.appendChild(cancelBtn);
-            });
-
-            if (!confirmDelete) return;
+            if (!confirm(`Are you sure you want to delete ${idsToDelete.length} selected record(s)?`)) {
+                return;
+            }
 
             showMessageBox("Deleting", "Deleting selected records...", false, true, false);
             try {
                 const batch = writeBatch(db);
                 idsToDelete.forEach(id => {
-                    const docRef = doc(db, NPS_RECORDS_COLLECTION_PATH, id);
-                    batch.delete(docRef);
+                    batch.delete(doc(db, NPS_RECORDS_COLLECTION_PATH, id));
                 });
                 await batch.commit();
                 showMessageBox("Success", "Selected records deleted successfully!", false, false, true, () => {
-                    document.getElementById('selectAllNpsRecordsCheckbox').checked = false;
+                    document.getElementById('selectAllNpsRecordsCheckboxHeader').checked = false;
                     updateDeleteButtonState();
                 });
             } catch (e) {
@@ -1352,7 +1137,6 @@
         function enableInlineEdit(event) {
             const cell = event.target;
             if (cell.classList.contains('editing')) return;
-
             const originalText = cell.textContent.trim();
             const recordId = cell.dataset.id;
             const field = cell.dataset.field;
@@ -1361,7 +1145,6 @@
             const input = cell.querySelector('input');
             input.focus();
             input.select();
-
             cell.classList.add('editing');
 
             const saveChanges = async () => {
@@ -1371,8 +1154,7 @@
 
                 if (newText !== originalText) {
                     try {
-                        const docRef = doc(db, NPS_RECORDS_COLLECTION_PATH, recordId);
-                        await updateDoc(docRef, { [field]: newText, lastUpdated: new Date() });
+                        await updateDoc(doc(db, NPS_RECORDS_COLLECTION_PATH, recordId), { [field]: newText, lastUpdated: new Date() });
                         showMessageBox("Update Success", `${field} updated successfully!`, false, false, true);
                     } catch (e) {
                         console.error("Error updating field:", e);
@@ -1400,21 +1182,9 @@
             const originalStatus = select.dataset.originalStatus;
 
             try {
-                const docRef = doc(db, NPS_RECORDS_COLLECTION_PATH, recordId);
-                updateDoc(docRef, { Status: newStatus, lastUpdated: new Date() });
+                updateDoc(doc(db, NPS_RECORDS_COLLECTION_PATH, recordId), { Status: newStatus, lastUpdated: new Date() });
                 select.dataset.originalStatus = newStatus;
-                
-                select.classList.remove('status-completed', 'status-pending', 'status-overdue', 'status-default');
-                if (newStatus === 'Completed') {
-                    select.classList.add('status-completed');
-                } else if (newStatus === 'Pending') {
-                    select.classList.add('status-pending');
-                } else if (newStatus === 'Overdue') {
-                    select.classList.add('status-overdue');
-                } else {
-                    select.classList.add('status-default');
-                }
-                
+                select.className = `nps-status-select ` + (newStatus === 'Completed' ? 'status-completed' : newStatus === 'Pending' ? 'status-pending' : newStatus === 'Overdue' ? 'status-overdue' : 'status-default');
                 showMessageBox("Status Updated", `Record status changed to ${newStatus}.`, false, false, true);
             } catch (e) {
                 console.error("Error updating NPS record status:", e);
@@ -1426,9 +1196,8 @@
         /**
          * Opens the NPS evaluation modal and populates it.
          */
-        function openNpsEvaluationModal(npsRecordId) {
+        async function openNpsEvaluationModal(npsRecordId) {
             const modalOverlay = document.getElementById('npsEvaluationModalOverlay');
-            const npsEvaluationForm = document.getElementById('nps-evaluation-form');
             const npsContactIdInput = document.getElementById('nps-contact-id');
             const npsAgentHandledInput = document.getElementById('nps-agent-handled');
             const npsReviewDateInput = document.getElementById('nps-review-date');
@@ -1437,7 +1206,6 @@
             const npsAutofailDescriptionContainer = document.getElementById('npsAutofailDescriptionContainer');
             const npsAutofailDescriptionInput = document.getElementById('nps-autofail-description');
             const npsSummaryTableBody = document.getElementById('npsSummaryTableBody');
-
 
             const record = allNpsRecordsFromFirestore.find(r => r.id === npsRecordId);
             if (!record) {
@@ -1450,15 +1218,11 @@
             npsAgentHandledInput.value = record['Agent Handled'] || '';
             
             const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            npsReviewDateInput.value = `${year}-${month}-${day}`;
+            npsReviewDateInput.value = today.toISOString().substring(0, 10);
 
             populateSelect(npsReviewerNameSelect, dropdownOptions.reviewerNames, 'reviewerNames');
             populateSelect(npsAutofailTypeSelect, dropdownOptions.autofailTypes, 'autofailTypes');
 
-            // Populate NPS Summary Table within the modal
             npsSummaryTableBody.innerHTML = `
                 <tr>
                     <td>${record['NPS Rating'] || 'N/A'}</td>
@@ -1468,7 +1232,6 @@
             `;
 
             renderNpsEvaluationQuestions();
-
             npsAutofailTypeSelect.value = '';
             npsAutofailDescriptionInput.value = '';
             npsAutofailDescriptionContainer.classList.add('hidden');
@@ -1490,14 +1253,13 @@
         function renderNpsEvaluationQuestions() {
             const npsQuestionsContainer = document.getElementById('npsQuestionsContainer');
             npsQuestionsContainer.innerHTML = '';
-
             const questions = npsEvaluationQuestions["NPS EVALUATION"];
             let questionNumber = 1;
 
             questions.forEach(q => {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${questionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
-
+                
                 let iconColorClass;
                 const iconIndex = (questionNumber - 1) % 4;
                 if (iconIndex === 0) iconColorClass = 'icon-bg-orange';
@@ -1511,7 +1273,7 @@
                         ${q.desc}
                     </div>
                     <div class="col-span-2">
-                        <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" ${q.autofail ? 'data-autofail-question="true"' : ''} data-has-na="${q.hasNA}">
+                        <select name="${q.desc} (Rating)" class="w-full rounded-md border-gray-300 shadow-sm p-1 text-center border rating-select" data-autofail-question="${q.autofail}" data-has-na="${q.hasNA}">
                             <option value="">Select Rating</option>
                             <option value="Yes" selected>Yes</option>
                             <option value="No">No</option>
@@ -1520,14 +1282,13 @@
                     </div>
                     <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
                     <div class="col-span-1 text-center">
-                        <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly placeholder="0">
+                        <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input" value="0" readonly>
                     </div>
                     <div class="col-span-2">
                         <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md border-gray-300 shadow-sm p-1 border remarks-textarea" oninput="autoExpandTextarea(this)"></textarea>
                     </div>
                 `;
                 npsQuestionsContainer.appendChild(rowDiv);
-
                 const newSelect = rowDiv.querySelector('.rating-select');
                 if (newSelect) {
                     newSelect.addEventListener('change', calculateNpsEvaluationScore);
@@ -1546,26 +1307,18 @@
         function calculateNpsEvaluationScore() {
             const overallScoreDisplay = document.getElementById('nps-overall-score-display');
             const autofailTypeSelect = document.getElementById('nps-autofail-type');
-
             let currentTotalPoints = 0;
             let currentMaxPossiblePoints = 0;
             let autofailQuestionTriggered = false;
-            let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== '');
+            let autofailTypeSelected = autofailTypeSelect && autofailTypeSelect.value !== '';
 
             const allRatingSelects = document.querySelectorAll('#nps-evaluation-form .rating-select');
-
             allRatingSelects.forEach(selectElement => {
                 const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
-                if (!rowDiv) return;
-
                 const pointsElement = rowDiv.querySelector('.points-input');
                 const weightageDisplay = rowDiv.querySelector('.weightage-display');
-                const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
-                
-                if (!pointsElement || !weightageDisplay) {
-                    console.warn(`Missing associated elements for select: ${selectElement.name}`);
-                    return;
-                }
+                const isAutofailQuestion = selectElement.dataset.autofailQuestion === 'true';
+                if (!pointsElement || !weightageDisplay) return;
 
                 const rating = selectElement.value;
                 const weightage = parseFloat(weightageDisplay.dataset.weightage);
@@ -1574,14 +1327,11 @@
                 pointsElement.style.backgroundColor = '#e9ecef';
                 pointsElement.style.color = '#555';
 
-                if (rating === 'Yes' || rating === 'N/A') {
+                if (rating === 'Yes') {
                     pointsForThisQuestion = weightage;
-                    pointsElement.readOnly = false;
                     pointsElement.style.backgroundColor = '#fff';
                 } else if (rating === 'No') {
                     pointsForThisQuestion = 0;
-                    pointsElement.readOnly = true;
-
                     if (isAutofailQuestion) {
                         pointsElement.style.backgroundColor = '#fca5a5';
                         pointsElement.style.color = '#dc2626';
@@ -1589,18 +1339,16 @@
                     } else {
                         pointsElement.style.backgroundColor = '#e0e0e0';
                     }
-                } else { // Handle empty selection ("Select Rating")
+                } else if (rating === 'N/A') {
+                    pointsForThisQuestion = weightage;
+                    pointsElement.style.backgroundColor = '#fff';
+                } else {
                     pointsForThisQuestion = 0;
-                    pointsElement.readOnly = true;
-                    pointsElement.style.backgroundColor = '#e9ecef';
                 }
 
                 pointsElement.value = pointsForThisQuestion;
                 currentTotalPoints += pointsForThisQuestion;
-
-                if (rating !== '') {
-                    currentMaxPossiblePoints += weightage;
-                }
+                currentMaxPossiblePoints += weightage;
             });
 
             let overallPercentage = 0;
@@ -1609,8 +1357,6 @@
             } else {
                 if (currentMaxPossiblePoints > 0) {
                     overallPercentage = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
-                } else {
-                    overallPercentage = 0;
                 }
             }
             overallScoreDisplay.textContent = `${overallPercentage}%`;
@@ -1669,27 +1415,21 @@
                 const weightageDisplay = selectElement.closest('.grid').querySelector('.weightage-display');
                 
                 evaluationData[`${questionDesc} (Rating)`] = rating;
-                evaluationData[`${questionDesc} (Points)`] = pointsInput ? pointsInput.value : '';
-                evaluationData[`${questionDesc} (Remarks)`] = remarksInput ? remarksInput.value : '';
-                evaluationData[`${questionDesc} (Weightage)`] = weightageDisplay ? weightageDisplay.dataset.weightage : '';
+                evaluationData[`${questionDesc} (Points)`] = pointsInput?.value || '';
+                evaluationData[`${questionDesc} (Remarks)`] = remarksInput?.value || '';
+                evaluationData[`${questionDesc} (Weightage)`] = weightageDisplay?.dataset.weightage || '';
             });
 
             showMessageBox("Saving Evaluation", "Saving NPS evaluation...", false, true, false);
 
             try {
-                const docRef = await addDoc(collection(db, NPS_EVALUATIONS_COLLECTION_PATH), evaluationData);
-                console.log("NPS Evaluation saved with ID:", docRef.id);
-
-                const originalNpsDocRef = doc(db, NPS_RECORDS_COLLECTION_PATH, currentNpsRecordBeingEvaluated.id);
-                await updateDoc(originalNpsDocRef, {
+                await addDoc(collection(db, NPS_EVALUATIONS_COLLECTION_PATH), evaluationData);
+                await updateDoc(doc(db, NPS_RECORDS_COLLECTION_PATH, currentNpsRecordBeingEvaluated.id), {
                     'Status': 'Completed',
-                    'Review Score': npsOverallScore,
+                    'Review Score': parseFloat(npsOverallScore),
                     'lastUpdated': new Date()
                 });
-                console.log("Original NPS record updated to 'Completed' with score.");
-
                 showMessageBox("Success", "NPS Evaluation saved and original record updated!", false, false, true, closeNpsEvaluationModal);
-
             } catch (e) {
                 console.error("Error saving NPS evaluation:", e);
                 showMessageBox("Save Failed", `Failed to save NPS evaluation: ${e.message}`, true, false, true);
@@ -1699,8 +1439,8 @@
         /**
          * Generates a PDF of the NPS evaluation modal content and prompts for sharing.
          */
-        window.handleNpsPdfAndShare = async function() { // Made global
-             if (!currentNpsRecordBeingEvaluated) {
+        window.handleNpsPdfAndShare = async function() {
+            if (!currentNpsRecordBeingEvaluated) {
                 showMessageBox("Error", "No NPS evaluation selected to generate PDF.", true, false, true);
                 return;
             }
@@ -1716,26 +1456,10 @@
                     buttonsContainer.style.display = 'none';
                 }
 
-                const canvas = await html2canvas(npsEvaluationModalContentDiv, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    windowWidth: npsEvaluationModalContentDiv.scrollWidth,
-                    windowHeight: npsEvaluationModalContentDiv.scrollHeight,
-                    x: npsEvaluationModalContentDiv.scrollLeft,
-                    y: npsEvaluationModalContentDiv.scrollTop,
-                    scrollX: 0,
-                    scrollY: 0,
-                });
+                const canvas = await html2canvas(npsEvaluationModalContentDiv, { scale: 2 });
                 const imgData = canvas.toDataURL('image/jpeg', 0.8);
-
                 const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                 const imgWidth = 210;
                 const pageHeight = 297;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
@@ -1744,7 +1468,6 @@
 
                 pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
-
                 while (heightLeft >= 0) {
                     position = heightLeft - pageHeight;
                     pdf.addPage();
@@ -1761,12 +1484,10 @@
                 
                 const subject = `NPS Evaluation Feedback - ${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'N/A'}`;
                 const body = `Dear Team,\n\nPlease find the NPS evaluation attached for Contact ID: ${currentNpsRecordBeingEvaluated['Customer Contact ID'] || 'N/A'}.\n\n(IMPORTANT: The PDF document "${pdfFileName}" has been downloaded to your device. Please attach it manually to this email before sending.)\n\nKind Regards,\n${loggedInUserName}`;
-                
                 window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
                 hideMessageBox();
                 showMessageBox("PDF Downloaded & Email Opened", `The PDF "${pdfFileName}" has been downloaded. Your email client should open shortly. Please remember to manually attach the downloaded PDF.`, false, false, true);
-
             } catch (error) {
                 console.error("Error generating NPS PDF or preparing for sharing:", error);
                 hideMessageBox();
@@ -1775,7 +1496,7 @@
         }
 
         /**
-         * Placeholder for share functionality - you can expand this
+         * Downloads the current filtered NPS records as a CSV file.
          */
         function downloadNpsRecordsAsCsv() {
             if (filteredNpsRecords.length === 0) {
@@ -1792,12 +1513,12 @@
                 ];
 
                 const csvRows = [];
-                csvRows.push(header.join(',')); // Add header row
+                csvRows.push(header.join(','));
 
                 filteredNpsRecords.forEach(record => {
                     const row = [
                         `"${(record['Customer Contact ID'] || '').replace(/"/g, '""')}"`,
-                        `"${(record.receivedDate ? (typeof record.receivedDate.toDate === 'function' ? record.receivedDate.toDate().toLocaleDateString('en-CA') : new Date(record.receivedDate).toLocaleDateString('en-CA')) : 'N/A').replace(/"/g, '""')}"`,
+                        `"${(record.receivedDate ? (record.receivedDate?.toDate ? record.receivedDate.toDate().toLocaleDateString('en-CA') : new Date(record.receivedDate).toLocaleDateString('en-CA')) : 'N/A').replace(/"/g, '""')}"`,
                         `"${(record['Positive Feedback'] || '').replace(/"/g, '""')}"`,
                         `"${(record['Area of Improvement'] || '').replace(/"/g, '""')}"`,
                         `"${(record['NPS Rating'] || '').replace(/"/g, '""')}"`,
@@ -1820,7 +1541,6 @@
 
                 hideMessageBox();
                 showMessageBox("Download Complete", "NPS records downloaded successfully as CSV.", false, false, true);
-
             } catch (error) {
                 console.error("Error downloading NPS records as CSV:", error);
                 hideMessageBox();
@@ -1843,19 +1563,17 @@
          */
         const populateSelect = (selectElement, optionsArray, type) => {
             const currentSelectedValue = selectElement.value;
-            let defaultOptionText = 'Select ' + (type === 'cerNames' ? 'CER' : type.replace('Names', '').replace('Types', '').replace('Roles', ''));
+            let defaultOptionText = 'Select ' + (type === 'reviewerNames' ? 'Reviewer' : type.replace('Names', '').replace('Types', ''));
             selectElement.innerHTML = `<option value="">${defaultOptionText}</option>`;
             
             if (Array.isArray(optionsArray)) {
                 optionsArray.forEach(option => {
-                    const value = (type === 'cerNames' && typeof option === 'object' && option.name) ? option.name : option;
+                    const value = option;
                     const optionElement = document.createElement('option');
                     optionElement.value = value;
                     optionElement.textContent = value;
                     selectElement.appendChild(optionElement);
                 });
-            } else {
-                console.warn(`Dropdown options for ${type} is not an array:`, optionsArray);
             }
 
             if (Array.from(selectElement.options).some(opt => opt.value === currentSelectedValue)) {
@@ -1889,13 +1607,10 @@
                     const data = docSnap.data();
                     dropdownOptions.reviewerNames = data.reviewerNames || [];
                     dropdownOptions.autofailTypes = data.autofailTypes || [];
-
-                    console.log("Dropdown data updated from Firestore:", dropdownOptions);
                 } else {
                     console.warn("Dropdown options document does not exist.");
                     dropdownOptions = { reviewerNames: [], autofailTypes: [] };
                 }
-                
                 const npsReviewerNameSelect = document.getElementById('nps-reviewer-name');
                 const npsAutofailTypeSelect = document.getElementById('nps-autofail-type');
                 populateSelect(npsReviewerNameSelect, dropdownOptions.reviewerNames, 'reviewerNames');
@@ -1910,51 +1625,39 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("NPS DOM fully loaded and parsed. Script starting.");
 
-            // Get filter elements
             const dateFilterInput = document.getElementById('dateFilter');
             const agentFilterSelect = document.getElementById('agentFilter');
             const statusFilterSelect = document.getElementById('statusFilter');
             const applyFiltersBtn = document.getElementById('applyFiltersBtn');
             const clearFiltersBtn = document.getElementById('clearFiltersBtn');
             const downloadNpsRecordsBtn = document.getElementById('downloadNpsRecordsBtn');
-
-            // Set up main navigation links
+            
             document.querySelectorAll('.main-nav ul li a').forEach(link => {
                 link.addEventListener('click', function(e) {
                     const href = this.getAttribute('href');
-                    if (href === '#' || href.startsWith('index.html#')) {
+                    if (href.startsWith('index.html#')) {
                         e.preventDefault();
-                        if (href === '#') {
-                            console.log("Already on NPS page.");
-                        } else {
-                            window.location.href = href;
-                        }
-                    } else {
-                        // Let default behavior happen (browser navigates to the new page)
+                        window.location.href = href;
                     }
                 });
             });
 
-            // Logout button listener
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async function() {
-                    sessionStorage.removeItem('loggedIn');
+                    sessionStorage.clear();
                     if (unsubscribeNpsRecords) unsubscribeNpsRecords();
-                    if (unsubscribeNpsEvaluations) unsubscribeNpsEvaluations();
                     if (unsubscribeDropdowns) unsubscribeDropdowns();
                     await signOut(auth);
                     window.location.href = 'index.html';
                 });
             }
 
-            // Set active class for NPS tab
             const npsFeedbackTab = document.getElementById('npsFeedbackTab');
             if (npsFeedbackTab) {
                 npsFeedbackTab.classList.add('active');
             }
 
-            // Listeners for NPS Evaluation Modal buttons
             const npsCloseModalBtn = document.getElementById('npsCloseModalBtn');
             if (npsCloseModalBtn) {
                 npsCloseModalBtn.addEventListener('click', closeNpsEvaluationModal);
@@ -1965,28 +1668,26 @@
             }
             const npsShareBtn = document.getElementById('npsShareBtn');
             if (npsShareBtn) {
-                 npsShareBtn.addEventListener('click', window.handleNpsPdfAndShare); // Global reference
+                npsShareBtn.addEventListener('click', window.handleNpsPdfAndShare);
             }
 
-            // Autofail description toggle in NPS modal
             const npsAutofailTypeSelect = document.getElementById('nps-autofail-type');
             const npsAutofailDescriptionContainer = document.getElementById('npsAutofailDescriptionContainer');
             const npsAutofailDescriptionInput = document.getElementById('nps-autofail-description');
             if (npsAutofailTypeSelect) {
                 npsAutofailTypeSelect.addEventListener('change', () => {
-                    if (npsAutofailTypeSelect.value !== '') {
-                        npsAutofailDescriptionContainer.classList.remove('hidden');
+                    const isAutofailSelected = npsAutofailTypeSelect.value !== '';
+                    npsAutofailDescriptionContainer.classList.toggle('hidden', !isAutofailSelected);
+                    if (isAutofailSelected) {
                         npsAutofailDescriptionInput.setAttribute('required', 'required');
                     } else {
-                        npsAutofailDescriptionContainer.classList.add('hidden');
-                        npsAutofailDescriptionInput.value = '';
                         npsAutofailDescriptionInput.removeAttribute('required');
+                        npsAutofailDescriptionInput.value = '';
                     }
                     calculateNpsEvaluationScore();
                 });
             }
 
-            // Event listeners for Filters
             if (applyFiltersBtn) {
                 applyFiltersBtn.addEventListener('click', () => {
                     currentNpsFilters.date = dateFilterInput.value;
@@ -2007,18 +1708,16 @@
                 });
             }
 
-            // Event listener for Download button
             if (downloadNpsRecordsBtn) {
                 downloadNpsRecordsBtn.addEventListener('click', downloadNpsRecordsAsCsv);
             }
 
-            // Listeners for Select All checkbox and Delete Selected button
-            const selectAllNpsRecordsCheckbox = document.getElementById('selectAllNpsRecordsCheckbox');
+            const selectAllNpsRecordsCheckboxHeader = document.getElementById('selectAllNpsRecordsCheckboxHeader');
             const deleteSelectedNpsRecordsBtn = document.getElementById('deleteSelectedNpsRecordsBtn');
 
-            if (selectAllNpsRecordsCheckbox) {
-                selectAllNpsRecordsCheckbox.addEventListener('change', () => {
-                    const isChecked = selectAllNpsRecordsCheckbox.checked;
+            if (selectAllNpsRecordsCheckboxHeader) {
+                selectAllNpsRecordsCheckboxHeader.addEventListener('change', () => {
+                    const isChecked = selectAllNpsRecordsCheckboxHeader.checked;
                     document.querySelectorAll('.nps-record-checkbox').forEach(checkbox => {
                         checkbox.checked = isChecked;
                     });
@@ -2027,40 +1726,48 @@
             }
 
             if (deleteSelectedNpsRecordsBtn) {
-                deleteSelectedNpsRecordsBtn.addEventListener('click', window.deleteSelectedNpsRecords); // Global reference
+                deleteSelectedNpsRecordsBtn.addEventListener('click', window.deleteSelectedNpsRecords);
             }
 
-            // Initial authentication check
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUserId = user.uid;
-                    const isLoggedInFromSession = sessionStorage.getItem('loggedIn');
+                    try {
+                        const userProfileRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+                        const userProfileSnap = await getDoc(userProfileRef);
 
-                    if (isLoggedInFromSession === 'true') {
-                        console.log("NPS Page: User is logged in, proceeding with data fetches.");
-                        await fetchDropdownOptionsData();
-                        await fetchAndSyncNpsRecords(); // This will use the CSV URL
-                        await fetchNpsRecordsFromFirestore();
-                        document.body.classList.add('loaded');
-                    } else {
-                        console.warn("NPS Page: Firebase user detected but session invalid. Redirecting to login.");
-                        await signOut(auth);
-                        window.location.href = 'index.html';
+                        if (userProfileSnap.exists()) {
+                            const profile = userProfileSnap.data();
+                            currentUserRole = profile.role;
+                            loggedInUserName = profile.name;
+                            loggedInUserEmail = user.email;
+
+                            if (currentUserRole === 'supervisor' || currentUserRole === 'admin') {
+                                console.log("User is authorized. Loading NPS data.");
+                                fetchAndSyncNpsRecords();
+                                fetchNpsRecordsFromFirestore();
+                                fetchDropdownOptionsData();
+                                document.body.classList.add('loaded');
+                            } else {
+                                console.warn("Unauthorized access. Redirecting to login.");
+                                await signOut(auth);
+                                window.location.href = 'index.html';
+                            }
+                        } else {
+                            console.warn("User profile not found. Redirecting to login.");
+                            await signOut(auth);
+                            window.location.href = 'index.html';
+                        }
+                    } catch (e) {
+                        console.error("Error during authorization check:", e);
+                        showMessageBox("Authentication Error", "Failed to verify user permissions. Please try logging in again.", true, false, true, () => {
+                            signOut(auth);
+                            window.location.href = 'index.html';
+                        });
                     }
                 } else {
-                    console.log("NPS Page: No user logged in. Attempting anonymous sign-in for public data access.");
-                    try {
-                        await signInAnonymously(auth);
-                        currentUserId = auth.currentUser.uid;
-                        console.log("NPS Page: Signed in anonymously. Fetching dropdowns and NPS records.");
-                        await fetchDropdownOptionsData();
-                        await fetchNpsRecordsFromFirestore();
-                        await fetchAndSyncNpsRecords();
-                        document.body.classList.add('loaded');
-                    } catch (anonError) {
-                        console.error("NPS Page: Anonymous sign-in failed. Redirecting to login.", anonError);
-                        window.location.href = 'index.html';
-                    }
+                    console.log("No user logged in. Redirecting to login page.");
+                    window.location.href = 'index.html';
                 }
             });
         });
