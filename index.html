@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
         /* Base styles */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Garamond', serif;
             display: flex;
             align-items: flex-start;
             min-height: 100vh;
@@ -153,14 +153,18 @@
             color: white;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             font-size: 1.125rem;
             font-weight: 600;
             z-index: 1000;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0 1rem;
         }
-
-        /* Navigation styles */
+        .top-header img {
+            height: 1.5cm; /* Resized */
+            width: 2.5cm;  /* Resized */
+            object-fit: contain;
+        }
         .main-nav {
             width: 125px; /* Fixed width for the sidebar */
             background-color: #000080; /* Navy Blue */
@@ -195,7 +199,7 @@
             padding: 0.75rem 0.5rem;
             display: block;
             border-radius: 0;
-            transition: background-color 0.3s ease;
+            transition: background-color: 0.3s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -366,7 +370,7 @@
             font-size: 0.75rem;
             cursor: pointer;
             border: none;
-            transition: background-color 0.3s ease;
+            transition: background-color: 0.3s ease;
             margin-right: 0.25rem;
         }
         #databaseTableContainer .delete-record-btn {
@@ -442,7 +446,8 @@
 </head>
 <body>
     <div class="top-header">
-        ICEA LION QUALITY EVALUATION AND MONITORING
+        <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
+        <img id="header-logo" src="https://placehold.co/95x57/000080/FFFFFF?text=Logo" alt="Company Logo">
     </div>
 
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
@@ -512,7 +517,7 @@
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="auditFormContent" style="display: none;">
         <div class="icealion-blue p-4 flex items-center justify-between">
             <div class="text-xl font-semibold">Quality Assessment Form - ICEA LION GROUP Contact Centre</div>
-            <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
+            <img id="audit-form-logo" src="https://placehold.co/95x57/1a73e8/FFFFFF?text=Logo" alt="ICEALION Logo" style="height: 1.5cm; width: 2.5cm; object-fit: contain;">
         </div>
 
         <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -835,6 +840,7 @@
         const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
         const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
         const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations');
+        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
         let allRecords = [];
@@ -922,6 +928,7 @@
                 fetchCustomFieldsData();
                 fetchRecordsAndWebhooks();
                 fetchAgentUsersForDropdown(); // Fetch agents for CER dropdown
+                fetchAndSetLogo(); // Fetch and set logo for all pages
             } else {
                 console.log("Firebase Auth State Changed: No user logged in.");
                 currentUserId = null;
@@ -1296,7 +1303,7 @@
                 showMessageBox("Deletion Failed", `Error: ${e.message}`, true, false, true);
             }
         }
-
+        
         function renderWebhookList(webhooks) {
             const webhookList = document.getElementById('webhookList');
             if(!webhookList) return;
@@ -1603,6 +1610,7 @@
                     try {
                         await signInWithEmailAndPassword(auth, email, pass);
                         sessionStorage.setItem('loggedIn', 'true');
+                        window.location.reload(); // RELOAD on successful login
                     } catch (e) {
                         loginMessage.textContent = e.message;
                     }
