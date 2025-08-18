@@ -449,7 +449,7 @@
                         <div class="chart-container">
                             <h3 class="text-lg font-semibold mb-2">Average QA Score by Month</h3>
                             <canvas id="averageScoreChart"></canvas>
-                            <p class="text-sm text-gray-500 mt-2 text-center">Data is based on all evaluations submitted by or about you.</p>
+                            <p class="text-sm text-gray-500 mt-2 text-center">Data is based on evaluations where you were the CER.</p>
                         </div>
 
                         <!-- Autofail Analysis Table -->
@@ -512,6 +512,7 @@
         let myReviewedEvaluations = [];
         let myCerScores = [];
         let loggedInUserName = null;
+        let currentUserId = null; // CORRECTED: Variable is declared
         let unsubscribeReviewed = null;
         let unsubscribeCer = null;
         let startDate = null;
@@ -563,23 +564,9 @@
                 unsubscribeCer = onSnapshot(cerQuery, (snapshot) => {
                     myCerScores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderFilteredTables();
+                    renderChartsAndAutofailAnalysis(myCerScores, myReviewedEvaluations); // Update charts with new data
                 });
 
-                // Fetch combined data for charts
-                const [reviewedSnapshot, cerSnapshot] = await Promise.all([getDocs(reviewedQuery), getDocs(cerQuery)]);
-                const allMyRecords = [];
-                const recordIds = new Set();
-                reviewedSnapshot.forEach(doc => {
-                    allMyRecords.push({ id: doc.id, ...doc.data() });
-                    recordIds.add(doc.id);
-                });
-                cerSnapshot.forEach(doc => {
-                    if (!recordIds.has(doc.id)) {
-                        allMyRecords.push({ id: doc.id, ...doc.data() });
-                    }
-                });
-
-                renderChartsAndAutofailAnalysis(allMyRecords);
                 hideMessageBox();
 
             } catch (error) {
@@ -628,8 +615,8 @@
                 return;
             }
 
-            // For deviation, sort records from oldest to newest
-            const recordsForDisplay = isReviewedTable ? records : [...records].reverse();
+            // For deviation, sort records from oldest to newest (ascending)
+            const recordsForDisplay = [...records].sort((a, b) => (a.submittedAt?.toDate() || 0) - (b.submittedAt?.toDate() || 0));
 
             recordsForDisplay.forEach((record, index) => {
                 const row = tableBody.insertRow();
@@ -690,29 +677,115 @@
             showMessageBox('Record Details', detailsHtml);
         }
 
-        function renderChartsAndAutofailAnalysis(allEvaluations) {
-            // This function remains the same as before
+        /**
+         * Renders the bar chart and the autofail analysis table.
+         * @param {Array<Object>} cerScores - Evaluations where user is the CER.
+         * @param {Array<Object>} reviewedScores - Evaluations where user is the Reviewer.
+         */
+        function renderChartsAndAutofailAnalysis(cerScores, reviewedScores) {
+            const monthlyScores = {};
+            const autofailCounts = {};
+
+            // Chart data is ONLY from scores where user was the CER
+            cerScores.forEach(record => {
+                const submittedDate = record.submittedAt?.toDate();
+                const score = parseFloat(record['Overall Score']) || 0;
+                if (submittedDate) {
+                    const monthKey = submittedDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                    if (!monthlyScores[monthKey]) {
+                        monthlyScores[monthKey] = { totalScore: 0, count: 0 };
+                    }
+                    monthlyScores[monthKey].totalScore += score;
+                    monthlyScores[monthKey].count++;
+                }
+            });
+
+            // Autofail data is from ALL evaluations connected to the user
+            const allEvaluations = [...cerScores, ...reviewedScores];
+            const uniqueIds = new Set();
+            const uniqueEvaluations = allEvaluations.filter(el => {
+                const duplicate = uniqueIds.has(el.id);
+                uniqueIds.add(el.id);
+                return !duplicate;
+            });
+
+            uniqueEvaluations.forEach(record => {
+                const autofailType = record['Auto Fail Type'];
+                if (autofailType) {
+                    const submittedDate = record.submittedAt?.toDate();
+                    if (submittedDate) {
+                        const monthKey = submittedDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                        if (!autofailCounts[monthKey]) {
+                            autofailCounts[monthKey] = {};
+                        }
+                        if (!autofailCounts[monthKey][autofailType]) {
+                            autofailCounts[monthKey][autofailType] = 0;
+                        }
+                        autofailCounts[monthKey][autofailType]++;
+                    }
+                }
+            });
+
+            const sortedMonths = Object.keys(monthlyScores).sort((a, b) => new Date(a) - new Date(b));
+            const averageScores = sortedMonths.map(month => (monthlyScores[month].totalScore / monthlyScores[month].count).toFixed(2));
+            
+            const chartCanvas = document.getElementById('averageScoreChart');
+            if (chartCanvas) {
+                if (Chart.getChart('averageScoreChart')) {
+                    Chart.getChart('averageScoreChart').destroy();
+                }
+                new Chart(chartCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedMonths,
+                        datasets: [{
+                            label: 'Average Score',
+                            data: averageScores,
+                            backgroundColor: 'rgba(26, 115, 232, 0.6)',
+                            borderColor: 'rgba(26, 115, 232, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: { scales: { y: { beginAtZero: true, max: 100 } } }
+                });
+            }
+
+            const autofailTableBody = document.getElementById('autofailAnalysisTableBody');
+            if (autofailTableBody) {
+                autofailTableBody.innerHTML = '';
+                if (Object.keys(autofailCounts).length === 0) {
+                     autofailTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">No autofail records found.</td></tr>';
+                     return;
+                }
+                const sortedAutofailMonths = Object.keys(autofailCounts).sort((a, b) => new Date(a) - new Date(b));
+                sortedAutofailMonths.forEach(month => {
+                    for (const type in autofailCounts[month]) {
+                        const row = autofailTableBody.insertRow();
+                        row.innerHTML = `<td>${month}</td><td>${type}</td><td>${autofailCounts[month][type]}</td>`;
+                    }
+                });
+            }
         }
 
         // --- Auth State Listener ---
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
+            if (user && !user.isAnonymous) {
                 currentUserId = user.uid;
                 const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                 try {
                     const docSnap = await getDoc(userProfileDocRef);
-                    if (docSnap.exists() && !user.isAnonymous) {
+                    if (docSnap.exists()) {
                         loggedInUserName = docSnap.data().name || user.email;
                     } else {
-                        loggedInUserName = null; // Set to null if not a registered user
+                        loggedInUserName = user.email || 'User';
                     }
                 } catch (e) {
-                    loggedInUserName = null;
+                    loggedInUserName = user.email || 'User';
                 }
             } else {
                 loggedInUserName = null;
             }
-            initializePage(user); // Initialize the page regardless of login state
+            initializePage();
         });
 
         // --- Event Listeners ---
