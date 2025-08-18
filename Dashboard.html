@@ -12,8 +12,8 @@
     <style>
         body {
             font-family: 'Garamond', serif;
-            background-color: #f3f4f6; /* Light gray background for content area */
-            color: #1f2937; /* Dark text for content */
+            background-color: #f3f4f6;
+            color: #1f2937;
             margin: 0;
         }
         .main-content {
@@ -38,6 +38,10 @@
             z-index: 1000;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             padding: 0 1rem;
+        }
+        .top-header img {
+            height: 40px;
+            width: auto;
         }
         .main-nav {
             width: 125px;
@@ -67,7 +71,7 @@
             gap: 0.25rem;
             font-size: 0.75rem;
             text-align: center;
-            transition: background-color 0.3s ease;
+            transition: background-color: 0.3s ease;
         }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
@@ -81,18 +85,29 @@
             font-weight: 600;
             cursor: pointer;
             border: none;
-            transition: background-color 0.3s ease;
+            transition: background-color: 0.3s ease;
             margin: 1rem auto;
             width: calc(100% - 2rem);
             font-size: 0.75rem;
         }
         .logout-button:hover { background-color: #e65100; }
         .dashboard-card {
-            background-color: #000080; /* Navy Blue card background */
+            background-color: white;
             border-radius: 0.5rem;
             padding: 1.5rem;
-            color: white; /* White text for cards */
+            color: #1f2937;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .summary-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .summary-card .icon {
+            font-size: 2rem;
+            padding: 1rem;
+            border-radius: 50%;
+            color: white;
         }
         .filter-section {
             background-color: white;
@@ -100,17 +115,19 @@
             border-radius: 0.5rem;
             margin-bottom: 1.5rem;
             display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
-            align-items: center;
+            align-items: flex-end;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .filter-section label { font-weight: bold; color: #374151; }
+        .filter-section label { font-weight: bold; color: #374151; display: block; margin-bottom: 0.5rem; }
         .filter-section input, .filter-section select {
             background-color: #f9fafb;
             color: #333;
             border: 1px solid #d1d5db;
             border-radius: 0.375rem;
             padding: 0.5rem;
+            width: 100%;
         }
         .filter-section button {
             background-color: #1a73e8;
@@ -118,9 +135,10 @@
             padding: 0.5rem 1rem;
             border-radius: 0.375rem;
             cursor: pointer;
+            height: fit-content;
         }
         .chart-container {
-            height: 400px;
+            height: 300px;
         }
         .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
@@ -131,6 +149,15 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .leaderboard-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -166,48 +193,76 @@
 
             <!-- Filter Section -->
             <div class="filter-section">
-                <label for="startDate">From:</label>
-                <input type="date" id="startDate">
-                <label for="endDate">To:</label>
-                <input type="date" id="endDate">
-                <label for="cerRoleFilter">CER Role:</label>
-                <select id="cerRoleFilter">
-                    <option value="">All Roles</option>
-                </select>
-                <button id="applyFilterBtn">Apply Filter</button>
+                <div>
+                    <label for="startDate">From</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div>
+                    <label for="endDate">To</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div>
+                    <label for="cerRoleFilter">CER Role</label>
+                    <select id="cerRoleFilter">
+                        <option value="">All Roles</option>
+                    </select>
+                </div>
+                <div>
+                    <button id="applyFilterBtn">Apply Filters</button>
+                    <button id="resetFiltersBtn" class="bg-gray-500 hover:bg-gray-600">Reset</button>
+                </div>
             </div>
 
-            <!-- Main Dashboard Grid -->
+            <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                <div class="dashboard-card">
-                    <h2 class="text-lg font-semibold">Total Evaluations</h2>
-                    <p id="totalEvaluations" class="text-4xl font-bold">0</p>
-                </div>
-                <div class="dashboard-card">
-                    <h2 class="text-lg font-semibold">Average Score</h2>
-                    <p id="averageScore" class="text-4xl font-bold">0%</p>
-                </div>
-                <div class="dashboard-card">
-                    <h2 class="text-lg font-semibold">Total Autofails</h2>
-                    <p id="totalAutofails" class="text-4xl font-bold">0</p>
-                </div>
-                <div class="dashboard-card">
-                    <h2 class="text-lg font-semibold">Top Performing Agent</h2>
-                    <p id="topAgent" class="text-2xl font-bold">-</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="dashboard-card">
-                    <h2 class="text-xl font-semibold mb-4">Scores by CER Role</h2>
-                    <div class="chart-container">
-                        <canvas id="scoresByRoleChart"></canvas>
+                <div class="dashboard-card summary-card">
+                    <div class="icon bg-blue-500"><i class="fas fa-file-signature"></i></div>
+                    <div>
+                        <h2 class="text-lg font-semibold">Total Evaluations</h2>
+                        <p id="totalEvaluations" class="text-4xl font-bold">0</p>
                     </div>
                 </div>
-                <div class="dashboard-card">
-                    <h2 class="text-xl font-semibold mb-4">Autofail Reasons Breakdown</h2>
+                <div class="dashboard-card summary-card">
+                    <div class="icon bg-green-500"><i class="fas fa-star"></i></div>
+                    <div>
+                        <h2 class="text-lg font-semibold">Average Score</h2>
+                        <p id="averageScore" class="text-4xl font-bold">0%</p>
+                    </div>
+                </div>
+                <div class="dashboard-card summary-card">
+                    <div class="icon bg-red-500"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div>
+                        <h2 class="text-lg font-semibold">Total Autofails</h2>
+                        <p id="totalAutofails" class="text-4xl font-bold">0</p>
+                    </div>
+                </div>
+                <div class="dashboard-card summary-card">
+                    <div class="icon bg-purple-500"><i class="fas fa-user-ninja"></i></div>
+                    <div>
+                        <h2 class="text-lg font-semibold">Top Performing Agent</h2>
+                        <p id="topAgent" class="text-2xl font-bold">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Performance Trend Chart -->
+                <div class="dashboard-card lg:col-span-2">
+                    <h2 class="text-xl font-semibold mb-4">Performance Over Time</h2>
                     <div class="chart-container">
-                        <canvas id="autofailReasonsChart"></canvas>
+                        <canvas id="performanceTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Leaderboards -->
+                <div class="space-y-6">
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-semibold mb-4">Top Performers</h2>
+                        <table id="topPerformersTable" class="leaderboard-table"></table>
+                    </div>
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-semibold mb-4">Agents Needing Improvement</h2>
+                        <table id="needsImprovementTable" class="leaderboard-table"></table>
                     </div>
                 </div>
             </div>
@@ -217,7 +272,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -266,7 +321,6 @@
             const totalAutofails = data.filter(r => r['Auto Fail Type']).length;
             document.getElementById('totalAutofails').textContent = totalAutofails;
             
-            // Top Agent Calculation
             const agentScores = {};
             data.forEach(rec => {
                 const agent = rec['CER Name'];
@@ -277,46 +331,44 @@
                 }
             });
 
-            let topAgent = '-';
-            let maxAvg = 0;
-            for(const agent in agentScores) {
-                const avg = agentScores[agent].total / agentScores[agent].count;
-                if(avg > maxAvg) {
-                    maxAvg = avg;
-                    topAgent = agent;
-                }
-            }
-            document.getElementById('topAgent').textContent = topAgent;
+            const agentAverages = Object.keys(agentScores).map(agent => ({
+                name: agent,
+                avg: agentScores[agent].total / agentScores[agent].count
+            })).sort((a, b) => b.avg - a.avg);
 
+            document.getElementById('topAgent').textContent = agentAverages.length > 0 ? agentAverages[0].name : '-';
+            renderLeaderboards(agentAverages);
             updateCharts(data);
         }
         
-        function updateCharts(data) {
-            // Scores by Role Chart
-            const scoresByRole = {};
-            data.forEach(rec => {
-                const role = rec['CER Role'];
-                if(role) {
-                    if(!scoresByRole[role]) scoresByRole[role] = { total: 0, count: 0 };
-                    scoresByRole[role].total += parseFloat(rec['Overall Score']) || 0;
-                    scoresByRole[role].count++;
-                }
-            });
-            const roleLabels = Object.keys(scoresByRole);
-            const roleData = roleLabels.map(role => (scoresByRole[role].total / scoresByRole[role].count).toFixed(1));
-            renderChart('scoresByRoleChart', 'bar', roleLabels, roleData, 'Average Score by Role');
+        function renderLeaderboards(agentAverages) {
+            const topTable = document.getElementById('topPerformersTable');
+            const bottomTable = document.getElementById('needsImprovementTable');
+            topTable.innerHTML = '';
+            bottomTable.innerHTML = '';
 
-            // Autofail Reasons Chart
-            const autofailReasons = {};
+            agentAverages.slice(0, 5).forEach(agent => {
+                topTable.innerHTML += `<tr><td>${agent.name}</td><td class="text-right font-bold text-green-600">${agent.avg.toFixed(1)}%</td></tr>`;
+            });
+
+            agentAverages.slice(-5).reverse().forEach(agent => {
+                bottomTable.innerHTML += `<tr><td>${agent.name}</td><td class="text-right font-bold text-red-600">${agent.avg.toFixed(1)}%</td></tr>`;
+            });
+        }
+
+        function updateCharts(data) {
+            const trendData = {};
             data.forEach(rec => {
-                const reason = rec['Auto Fail Type'];
-                if(reason) {
-                    autofailReasons[reason] = (autofailReasons[reason] || 0) + 1;
+                if(rec.submittedAt?.toDate){
+                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                    if(!trendData[month]) trendData[month] = { total: 0, count: 0 };
+                    trendData[month].total += parseFloat(rec['Overall Score']) || 0;
+                    trendData[month].count++;
                 }
             });
-            const reasonLabels = Object.keys(autofailReasons);
-            const reasonData = Object.values(autofailReasons);
-            renderChart('autofailReasonsChart', 'pie', reasonLabels, reasonData, 'Autofail Reasons');
+            const trendLabels = Object.keys(trendData).sort((a,b) => new Date(a) - new Date(b));
+            const trendScores = trendLabels.map(label => (trendData[label].total / trendData[label].count).toFixed(1));
+            renderChart('performanceTrendChart', 'line', trendLabels, trendScores, 'Average Score Over Time');
         }
 
         function renderChart(canvasId, type, labels, data, label) {
@@ -331,23 +383,16 @@
                     datasets: [{
                         label: label,
                         data: data,
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)',
-                            'rgba(153, 102, 255, 0.7)', 'rgba(255, 159, 64, 0.7)'
-                        ],
-                        borderColor: 'rgba(255, 255, 255, 0.8)',
-                        borderWidth: 1
+                        borderColor: '#1a73e8',
+                        backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                        fill: true,
+                        tension: 0.1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: 'white' } } }, // White labels for legend
-                    scales: type === 'bar' ? {
-                        y: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.2)' } },
-                        x: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.2)' } }
-                    } : {}
+                    scales: { y: { beginAtZero: true, max: 100 } }
                 }
             });
         }
@@ -374,18 +419,23 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                document.getElementById('mainNav').style.display = 'flex';
                 fetchData().then(() => {
                     document.getElementById('loadingMessage').classList.add('hidden');
                     document.getElementById('dashboardContent').classList.remove('hidden');
                     updateDashboard(allEvaluations);
                 });
             } else {
-                window.location.href = 'index.html'; // Redirect if not logged in
+                window.location.href = 'index.html';
             }
         });
 
         document.getElementById('applyFilterBtn').addEventListener('click', applyFilters);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('cerRoleFilter').value = '';
+            applyFilters();
+        });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
     </script>
