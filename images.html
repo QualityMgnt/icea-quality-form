@@ -5,18 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Management - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Base styles for consistency */
         body {
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            align-items: flex-start;
-            min-height: 100vh;
+            font-family: 'Garamond', serif;
             background-color: #f3f4f6;
+            color: #1f2937;
             margin: 0;
-            padding: 0;
+        }
+        .main-content {
+            margin-left: 125px;
+            margin-top: 48px;
+            width: calc(100% - 125px);
+            padding: 1.5rem;
         }
         .top-header {
             position: fixed;
@@ -24,24 +26,25 @@
             left: 0;
             width: 100%;
             height: 48px;
-            background-color: #800080;
+            background-color: #000080; /* Navy Blue */
             color: white;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             font-size: 1.125rem;
             font-weight: 600;
             z-index: 1000;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0 1rem;
         }
         .top-header img {
-             height: 40px; /* New: for the logo in the header */
-             width: auto;
-             margin-right: 1rem;
+            height: 1.5cm; /* Resized */
+            width: 2.5cm;  /* Resized */
+            object-fit: contain;
         }
         .main-nav {
             width: 125px;
-            background-color: #800080;
+            background-color: #000080; /* Navy Blue */
             color: white;
             padding: 1rem 0;
             height: calc(100vh - 48px);
@@ -54,30 +57,24 @@
             flex-direction: column;
             justify-content: space-between;
         }
-        .main-nav ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            flex-grow: 1;
-        }
+        .sidebar ul { list-style: none; margin: 0; padding: 0; flex-grow: 1; }
         .sidebar ul li a {
+            font-family: 'Garamond', serif;
             color: white;
             text-decoration: none;
             font-weight: 500;
             padding: 0.75rem 0.5rem;
-            display: block;
-            border-radius: 0;
-            transition: background-color 0.3s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0.25rem;
             font-size: 0.75rem;
             text-align: center;
+            transition: background-color: 0.3s ease;
         }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #6a006a;
+            background-color: #000050; /* Darker Navy */
         }
         .logout-button {
             background-color: #f57c00;
@@ -92,71 +89,7 @@
             width: calc(100% - 2rem);
             font-size: 0.75rem;
         }
-        .logout-button:hover {
-            background-color: #e65100;
-        }
-        .main-content {
-            margin-left: calc(125px + 1.5rem);
-            margin-top: calc(48px + 1.5rem);
-            width: calc(100% - 125px - 3rem);
-            min-height: calc(100vh - 48px - 3rem);
-            max-width: none;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-        }
-        .main-content.mx-auto {
-            margin-right: 1.5rem;
-        }
-        .icealion-blue {
-            background-color: #1a73e8;
-            color: white;
-        }
-        .message-box-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .message-box {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .message-box h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #1a73e8;
-        }
-        .message-box p {
-            margin-bottom: 1.5rem;
-            color: #333;
-        }
-        .message-box button {
-            background-color: #1a73e8;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-        }
-        .message-box button:hover {
-            background-color: #0d47a1;
-        }
+        .logout-button:hover { background-color: #e65100; }
         .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
             border-left-color: #1a73e8;
@@ -166,22 +99,39 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 1rem auto;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+        .message-box-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
         }
-        .hidden {
-            display: none !important;
+        .message-box {
+            background-color: white; padding: 2rem; border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;
+            max-width: 400px; width: 90%;
+        }
+        .message-box h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1a73e8; }
+        .message-box p { margin-bottom: 1.5rem; color: #333; }
+        .message-box button {
+            background-color: #1a73e8; color: white; padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem; font-weight: 500; cursor: pointer;
+            border: none; transition: background-color 0.3s ease;
+        }
+        .message-box button:hover { background-color: #0d47a1; }
+        #currentLogo {
+            height: 1.5cm; /* Resized */
+            width: 2.5cm;  /* Resized */
+            object-fit: contain;
         }
     </style>
 </head>
 <body>
-    <div class="top-header">
-        <img id="logo-header" src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
-        <span>ICEA LION QUALITY EVALUATION AND MONITORING</span>
-    </div>
-    
-    <!-- Message Box Overlay -->
+    <header class="top-header">
+        <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
+        <img id="header-logo" src="https://placehold.co/95x57/000080/FFFFFF?text=Logo" alt="Company Logo">
+    </header>
+
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
         <div class="message-box">
             <div id="messageBoxSpinner" class="spinner hidden" aria-label="Loading..."></div>
@@ -191,35 +141,27 @@
         </div>
     </div>
 
-    <!-- Main Navigation Sidebar -->
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
-            <ul>
-                <li class="nav-tab" data-role="all"><a href="index.html" id="auditFormTab" aria-label="Evaluation Form"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li class="nav-tab" data-role="admin"><a href="index.html#database" id="databaseTab" aria-label="Database"><i class="fas fa-database"></i> Database</a></li>
-                <li class="nav-tab" data-role="all"><a href="myEvaluations.html" id="myEvaluationsTab" aria-label="My Evaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
-                <li class="nav-tab" data-role="admin"><a href="Dashboard.html" id="reportsTab" aria-label="Dashboard"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
-                <li class="nav-tab" data-role="admin"><a href="autofails.html" id="autofailsTab" aria-label="Autofails"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li class="nav-tab" data-role="admin"><a href="index.html#shareResponse" id="shareResponseTab" aria-label="Share Response"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li class="nav-tab" data-role="admin"><a href="images.html" id="imagesTab" class="active" aria-label="Images"><i class="fas fa-image"></i> Images</a></li>
-                <li class="nav-tab" data-role="admin"><a href="users.html" id="usersTab" aria-label="Users"><i class="fas fa-users"></i> Users</a></li>
-                <li class="nav-tab" data-role="admin"><a href="admin.html" id="adminTab" aria-label="Admin"><i class="fas fa-user-cog"></i> Admin</a></li>
-                <li class="nav-tab" data-role="admin"><a href="nps.html" id="npsTab" aria-label="NPS"><i class="fas fa-comment-alt"></i> NPS</a></li>
+            <ul id="sidebar-menu">
+                <li><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="myEvaluations.html"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="Dashboard.html"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="images.html" class="active"><i class="fas fa-image"></i> Images</a></li>
+                <li><a href="users.html"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
-            <button id="logoutBtn" class="logout-button" aria-label="Logout">Logout</button>
+            <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
     </nav>
 
-    <!-- Main Content Area for Images -->
-    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden main-content">
-        <div class="icealion-blue p-4 text-xl font-semibold text-center rounded-t-lg">
-            Image Management
-        </div>
-        <div class="p-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Upload and Manage Logos</h2>
-            <p class="text-gray-600 mb-4">
-                Upload a company logo to be displayed on the top left of the header and the login page.
-            </p>
+    <div class="main-content">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">Image Management</h1>
+            <p class="text-gray-600 mb-6">Upload a company logo to be displayed on the login page and in the top header across the application.</p>
+            
             <div class="border-2 border-dashed border-gray-300 p-6 rounded-md text-center">
                 <input type="file" id="logoUploadInput" class="hidden" accept="image/*">
                 <button id="uploadButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
@@ -227,232 +169,78 @@
                 </button>
                 <p id="uploadStatus" class="mt-4 text-sm text-gray-500 hidden">Uploading...</p>
                 <div id="previewContainer" class="mt-6 flex flex-col items-center hidden">
-                    <p class="font-semibold mb-2">Current Logo:</p>
-                    <img id="currentLogo" class="max-h-32 object-contain rounded-md border p-2" src="https://placehold.co/120x40/f3f4f6/1a73e8?text=No+Logo" alt="Current Logo">
+                    <p class="font-semibold mb-2 text-gray-700">Current Logo:</p>
+                    <img id="currentLogo" class="rounded-md border p-2" src="https://placehold.co/95x57/f3f4f6/1a73e8?text=No+Logo" alt="Current Logo">
                 </div>
             </div>
-            
         </div>
     </div>
-    
+
     <script type="module">
-        // Firebase Imports
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
 
-        // --- Firebase Configuration ---
         const firebaseConfig = {
-          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-          authDomain: "icea-lion-qa.firebaseapp.com",
-          projectId: "icea-lion-qa",
-          storageBucket: "icea-lion-qa.firebasestorage.app",
-          messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b667faf811",
-          measurementId: "G-1RJJTT3QET"
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
         };
-        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
-        // Initialize Firebase App and Services ONCE
-        let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
-            appInstance = getApp();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        function showMessageBox(title, message, isError = false) {
+            const overlay = document.getElementById('messageBoxOverlay');
+            document.getElementById('messageBoxTitle').textContent = title;
+            document.getElementById('messageBoxContent').textContent = message;
+            document.getElementById('messageBoxCloseBtn').classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            document.getElementById('messageBoxCloseBtn').onclick = () => overlay.classList.add('hidden');
         }
-        const auth = getAuth(appInstance);
-        const db = getFirestore(appInstance);
-        const storage = getStorage(appInstance);
 
-        // Define Firebase paths
-        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
-        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
-
-        // --- GLOBAL DATA STORES & STATE VARIABLES ---
-        let currentUserRole = null;
-        let currentUserId = null;
-
-        /**
-         * Displays a custom message box (modal) to the user.
-         */
-        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
-            const messageBoxTitle = document.getElementById('messageBoxTitle');
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            
-            messageBoxTitle.textContent = title;
-            messageBoxContent.textContent = message;
-            messageBoxOverlay.classList.remove('hidden');
-            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
-            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
-
-            if (isError) {
-                messageBoxTitle.style.color = '#dc2626';
-            } else {
-                messageBoxTitle.style.color = '#1a73e8';
-            }
-
-            messageBoxCloseBtn.onclick = null;
-            if (showCloseButton) {
-                messageBoxCloseBtn.onclick = () => {
-                    messageBoxOverlay.classList.add('hidden');
-                    if (onClose) onClose();
-                };
+        function fetchAndSetLogo() {
+            const logoUrl = localStorage.getItem('companyLogoUrl');
+            if (logoUrl) {
+                document.getElementById('header-logo').src = logoUrl;
+                document.getElementById('currentLogo').src = logoUrl;
+                document.getElementById('previewContainer').classList.remove('hidden');
             }
         }
 
-        /**
-         * Hides the custom message box.
-         */
-        function hideMessageBox() {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            messageBoxOverlay.classList.add('hidden');
-        }
-
-        /**
-         * Renders the navigation tabs based on the user's role.
-         */
-        function renderNavigationForRole(role) {
-            const allNavTabs = document.querySelectorAll('.nav-tab');
-            allNavTabs.forEach(tab => {
-                const requiredRole = tab.dataset.role;
-                if (requiredRole === 'all' || requiredRole === role) {
-                    tab.style.display = 'block';
-                } else {
-                    tab.style.display = 'none';
-                }
-            });
-        }
-        
-        /**
-         * Fetches logo URL from Firestore and updates the displayed logo.
-         */
-        async function fetchAndSetLogo() {
-            try {
-                const docSnap = await getDoc(LOGO_DOC_REF);
-                if (docSnap.exists() && docSnap.data().logoUrl) {
-                    const logoUrl = docSnap.data().logoUrl;
-                    const logoHeader = document.getElementById('logo-header');
-                    const currentLogo = document.getElementById('currentLogo');
-                    const previewContainer = document.getElementById('previewContainer');
-                    if (logoHeader) {
-                        logoHeader.src = logoUrl;
-                    }
-                    if (currentLogo) {
-                        currentLogo.src = logoUrl;
-                        previewContainer.classList.remove('hidden');
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching logo:", error);
-            }
-        }
-        
-        /**
-         * Uploads the selected file to Firebase Storage and saves the URL to Firestore.
-         */
-        async function uploadLogo() {
+        function uploadLogo() {
             const fileInput = document.getElementById('logoUploadInput');
-            const uploadStatus = document.getElementById('uploadStatus');
-            const uploadButton = document.getElementById('uploadButton');
-            const currentLogo = document.getElementById('currentLogo');
-            const previewContainer = document.getElementById('previewContainer');
-
             const file = fileInput.files[0];
             if (!file) {
                 showMessageBox("No file selected", "Please select an image file to upload.", true);
                 return;
             }
 
-            uploadStatus.classList.remove('hidden');
-            uploadStatus.textContent = "Uploading...";
-            uploadButton.disabled = true;
-
-            try {
-                // Upload image to Firebase Storage
-                const storageRef = ref(storage, 'logos/' + file.name);
-                const snapshot = await uploadBytes(storageRef, file);
-                const logoUrl = await getDownloadURL(snapshot.ref);
-
-                // Save the URL to Firestore
-                await setDoc(LOGO_DOC_REF, { logoUrl: logoUrl });
-                
-                uploadStatus.textContent = "Upload successful!";
-                currentLogo.src = logoUrl;
-                previewContainer.classList.remove('hidden');
-                showMessageBox("Success", "Logo uploaded successfully!", false);
-                
-            } catch (error) {
-                console.error("Error uploading logo:", error);
-                uploadStatus.textContent = `Upload failed: ${error.message}`;
-                showMessageBox("Upload Failed", `Error uploading file: ${error.message}`, true);
-            } finally {
-                uploadButton.disabled = false;
-                fileInput.value = ''; // Clear the file input
-            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const logoUrl = e.target.result;
+                localStorage.setItem('companyLogoUrl', logoUrl);
+                fetchAndSetLogo();
+                showMessageBox("Success", "Logo updated locally!");
+            };
+            reader.readAsDataURL(file);
         }
 
-        // --- Event Listeners and Initialization ---
-        document.addEventListener('DOMContentLoaded', function() {
-            const logoUploadInput = document.getElementById('logoUploadInput');
-            const uploadButton = document.getElementById('uploadButton');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const navTabs = document.querySelectorAll('.nav-tab');
-
-            // Handle file input trigger
-            if (uploadButton) {
-                uploadButton.addEventListener('click', () => {
-                    logoUploadInput.click();
-                });
-            }
-            // Handle file selection
-            if (logoUploadInput) {
-                logoUploadInput.addEventListener('change', uploadLogo);
-            }
-
-            // Navigation and Logout functionality
-            navTabs.forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    const href = e.currentTarget.querySelector('a').getAttribute('href');
-                    if (href.startsWith('#')) {
-                        e.preventDefault();
-                        window.location.href = `index.html${href}`;
-                    }
-                    // For external pages, let the link work normally
-                });
-            });
-
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', async () => {
-                    await signOut(auth);
-                    window.location.href = "index.html";
-                });
-            }
-            
-            // Auth State Listener
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                    const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-                    try {
-                        const userDocSnap = await getDoc(userProfileDocRef);
-                        currentUserRole = userDocSnap.exists() ? userDocSnap.data().role : 'Guest';
-                    } catch (error) {
-                        console.error("Error fetching user role:", error);
-                        currentUserRole = 'Guest';
-                    }
-                } else {
-                    currentUserId = null;
-                    currentUserRole = 'Guest'; // Ensure default role if no user
-                }
-                renderNavigationForRole(currentUserRole);
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+            } else {
                 fetchAndSetLogo();
-            });
-
+            }
         });
+
+        document.getElementById('uploadButton').addEventListener('click', () => {
+            document.getElementById('logoUploadInput').click();
+        });
+        document.getElementById('logoUploadInput').addEventListener('change', uploadLogo);
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
     </script>
 </body>
 </html>
