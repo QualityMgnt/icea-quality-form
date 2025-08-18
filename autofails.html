@@ -12,8 +12,8 @@
     <style>
         body {
             font-family: 'Garamond', serif;
-            background-color: #f3f4f6; /* Light gray background for content area */
-            color: #1f2937; /* Dark text for content */
+            background-color: #f3f4f6;
+            color: #1f2937;
             margin: 0;
         }
         .main-content {
@@ -131,6 +131,23 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .autofail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .autofail-table th, .autofail-table td {
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .autofail-table th {
+            background-color: #eff6ff;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -161,35 +178,39 @@
             Loading Autofail Data...
         </div>
 
-        <div id="dashboardContent" class="hidden">
-            <h1 class="text-3xl font-bold mb-6 text-gray-800">Autofail Dashboard</h1>
-
-            <!-- Filter Section -->
-            <div class="filter-section">
-                <label for="startDate">From:</label>
-                <input type="date" id="startDate">
-                <label for="endDate">To:</label>
-                <input type="date" id="endDate">
-                <label for="cerRoleFilter">CER Role:</label>
-                <select id="cerRoleFilter">
-                    <option value="">All Roles</option>
-                </select>
-                <button id="applyFilterBtn">Apply Filter</button>
-            </div>
-
-            <!-- Main Dashboard Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                <div class="dashboard-card">
-                    <h2 class="text-xl font-semibold mb-4">Autofails by CER Role</h2>
+        <div id="autofailContent" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Autofail Records</h1>
+            
+            <div class="dashboard-card bg-white mb-6">
+                 <h2 class="text-xl font-semibold mb-4 text-gray-800">Autofail Analytics</h2>
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="chart-container">
                         <canvas id="autofailByRoleChart"></canvas>
                     </div>
-                </div>
-                <div class="dashboard-card">
-                    <h2 class="text-xl font-semibold mb-4">Autofails by Type</h2>
                     <div class="chart-container">
                         <canvas id="autofailByTypeChart"></canvas>
                     </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card bg-white">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Autofail Records Details</h2>
+                <div class="overflow-x-auto">
+                    <table class="autofail-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Contact ID</th>
+                                <th>Client Name</th>
+                                <th>CER Name</th>
+                                <th>Overall Score</th>
+                                <th>Reason for Autofail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="autofailRecordsTableBody">
+                            <!-- Data will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -198,7 +219,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -215,53 +236,68 @@
         const db = getFirestore(app);
 
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        const DROPDOWN_OPTIONS_PATH = `artifacts/${appId}/public/data/dropdown_options/general_options`;
 
-        let allAutofailData = [];
         let charts = {};
 
-        async function fetchData() {
-            const q = query(collection(db, EVALUATION_RECORDS_PATH), where("Auto Fail Type", "!=", ""));
-            const querySnapshot = await getDocs(q);
-            allAutofailData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        async function fetchDataAndRender() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            const autofailContent = document.getElementById('autofailContent');
             
-            const dropdownDoc = await getDoc(doc(db, DROPDOWN_OPTIONS_PATH));
-            if (dropdownDoc.exists()) {
-                const roles = dropdownDoc.data().cerRoles || [];
-                const roleFilter = document.getElementById('cerRoleFilter');
-                roles.forEach(role => {
-                    const option = document.createElement('option');
-                    option.value = role;
-                    option.textContent = role;
-                    roleFilter.appendChild(option);
-                });
+            try {
+                const q = query(collection(db, EVALUATION_RECORDS_PATH), where("Auto Fail Type", "!=", ""));
+                const querySnapshot = await getDocs(q);
+                const autofailRecords = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                renderTable(autofailRecords);
+                updateCharts(autofailRecords);
+
+                loadingMessage.classList.add('hidden');
+                autofailContent.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error fetching autofail data: ", error);
+                loadingMessage.textContent = "Failed to load data. Please try again.";
             }
         }
 
+        function renderTable(records) {
+            const tableBody = document.getElementById('autofailRecordsTableBody');
+            tableBody.innerHTML = '';
+            if (records.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No autofail records found.</td></tr>`;
+                return;
+            }
+
+            records.forEach(record => {
+                const row = tableBody.insertRow();
+                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleString() : 'N/A';
+                row.innerHTML = `
+                    <td>${submittedAt}</td>
+                    <td>${record['Contact ID'] || 'N/A'}</td>
+                    <td>${record['Client Name'] || 'N/A'}</td>
+                    <td>${record['CER Name'] || 'N/A'}</td>
+                    <td>${record['Overall Score'] || '0%'}</td>
+                    <td>${record['Autofail Description'] || record['Auto Fail Type'] || 'N/A'}</td>
+                `;
+            });
+        }
+
         function updateCharts(data) {
-            // Scores by Role Chart
+            // Autofails by Role Chart
             const autofailsByRole = {};
             data.forEach(rec => {
-                const role = rec['CER Role'];
-                if(role) {
-                    autofailsByRole[role] = (autofailsByRole[role] || 0) + 1;
-                }
+                const role = rec['CER Role'] || 'Unknown';
+                autofailsByRole[role] = (autofailsByRole[role] || 0) + 1;
             });
-            const roleLabels = Object.keys(autofailsByRole);
-            const roleData = Object.values(autofailsByRole);
-            renderChart('autofailByRoleChart', 'bar', roleLabels, roleData, 'Autofails by Role');
+            renderChart('autofailByRoleChart', 'bar', Object.keys(autofailsByRole), Object.values(autofailsByRole), 'Autofails by Role');
 
             // Autofail Reasons Chart
             const autofailReasons = {};
             data.forEach(rec => {
-                const reason = rec['Auto Fail Type'];
-                if(reason) {
-                    autofailReasons[reason] = (autofailReasons[reason] || 0) + 1;
-                }
+                const reason = rec['Auto Fail Type'] || 'Unknown';
+                autofailReasons[reason] = (autofailReasons[reason] || 0) + 1;
             });
-            const reasonLabels = Object.keys(autofailReasons);
-            const reasonData = Object.values(autofailReasons);
-            renderChart('autofailByTypeChart', 'pie', reasonLabels, reasonData, 'Autofail Reasons');
+            renderChart('autofailByTypeChart', 'pie', Object.keys(autofailReasons), Object.values(autofailReasons), 'Autofail Reasons');
         }
 
         function renderChart(canvasId, type, labels, data, label) {
@@ -277,12 +313,8 @@
                         label: label,
                         data: data,
                         backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)',
-                            'rgba(153, 102, 255, 0.7)', 'rgba(255, 159, 64, 0.7)'
-                        ],
-                        borderColor: 'rgba(255, 255, 255, 0.8)',
-                        borderWidth: 1
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                        ]
                     }]
                 },
                 options: {
@@ -297,42 +329,15 @@
             });
         }
 
-        function applyFilters() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const role = document.getElementById('cerRoleFilter').value;
-
-            let filteredData = allAutofailData;
-
-            if (startDate) {
-                filteredData = filteredData.filter(r => r['Evaluation Date'] && r['Evaluation Date'] >= startDate);
-            }
-            if (endDate) {
-                filteredData = filteredData.filter(r => r['Evaluation Date'] && r['Evaluation Date'] <= endDate);
-            }
-            if (role) {
-                filteredData = filteredData.filter(r => r['CER Role'] === role);
-            }
-            
-            updateCharts(filteredData);
-        }
-
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                document.getElementById('mainNav').style.display = 'flex';
-                fetchData().then(() => {
-                    document.getElementById('loadingMessage').classList.add('hidden');
-                    document.getElementById('dashboardContent').classList.remove('hidden');
-                    updateCharts(allAutofailData);
-                });
+                fetchDataAndRender();
             } else {
-                window.location.href = 'index.html'; // Redirect if not logged in
+                window.location.href = 'index.html';
             }
         });
 
-        document.getElementById('applyFilterBtn').addEventListener('click', applyFilters);
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-
     </script>
 </body>
 </html>
