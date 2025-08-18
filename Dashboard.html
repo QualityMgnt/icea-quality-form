@@ -266,6 +266,14 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- NEW: Average Score by Agent Chart -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">Average Score by Agent</h2>
+                <div class="chart-container">
+                    <canvas id="averageScoreByAgentChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -338,7 +346,7 @@
 
             document.getElementById('topAgent').textContent = agentAverages.length > 0 ? agentAverages[0].name : '-';
             renderLeaderboards(agentAverages);
-            updateCharts(data);
+            updateCharts(data, agentAverages);
         }
         
         function renderLeaderboards(agentAverages) {
@@ -356,7 +364,7 @@
             });
         }
 
-        function updateCharts(data) {
+        function updateCharts(data, agentAverages) {
             const trendData = {};
             data.forEach(rec => {
                 if(rec.submittedAt?.toDate){
@@ -369,6 +377,11 @@
             const trendLabels = Object.keys(trendData).sort((a,b) => new Date(a) - new Date(b));
             const trendScores = trendLabels.map(label => (trendData[label].total / trendData[label].count).toFixed(1));
             renderChart('performanceTrendChart', 'line', trendLabels, trendScores, 'Average Score Over Time');
+
+            // New chart data
+            const agentLabels = agentAverages.map(a => a.name);
+            const agentData = agentAverages.map(a => a.avg.toFixed(1));
+            renderChart('averageScoreByAgentChart', 'bar', agentLabels, agentData, 'Average Score by Agent');
         }
 
         function renderChart(canvasId, type, labels, data, label) {
