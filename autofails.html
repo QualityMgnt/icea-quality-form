@@ -524,23 +524,25 @@
         }
 
         function updateCharts(data) {
-            const autofailTrend = {};
+            const trendData = {};
             data.forEach(rec => {
                 if(rec.submittedAt?.toDate){
                     const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
-                    autofailTrend[month] = (autofailTrend[month] || 0) + 1;
+                    if(!trendData[month]) trendData[month] = { total: 0, count: 0 };
+                    trendData[month].total += 1;
+                    trendData[month].count++;
                 }
             });
-            const trendLabels = Object.keys(autofailTrend).sort((a,b) => new Date(a) - new Date(b));
-            const trendData = trendLabels.map(label => autofailTrend[label]);
-            renderChart('autofailTrendChart', 'line', trendLabels, trendData, 'Autofails Over Time');
+            const trendLabels = Object.keys(trendData).sort((a,b) => new Date(a) - new Date(b));
+            const trendScores = trendLabels.map(label => trendData[label].total);
+            renderChart('autofailTrendChart', 'line', trendLabels, trendScores, 'Autofails Over Time');
 
-            const autofailReasons = {};
+            const autofailByType = {};
             data.forEach(rec => {
-                const reason = rec['Auto Fail Type'] || 'Unknown';
-                autofailReasons[reason] = (autofailReasons[reason] || 0) + 1;
+                const type = rec['Auto Fail Type'] || 'Unknown';
+                autofailByType[type] = (autofailByType[type] || 0) + 1;
             });
-            renderChart('autofailByTypeChart', 'pie', Object.keys(autofailReasons), Object.values(autofailReasons), 'Autofail Reasons');
+            renderChart('autofailByTypeChart', 'pie', Object.keys(autofailByType), Object.values(autofailByType), 'Autofails by Type');
         }
 
         function renderChart(canvasId, type, labels, data, label) {
@@ -572,7 +574,76 @@
             });
         }
         
-        // ... (rest of your functions: reviewRecord, deleteRecord, emailRecord, generateCsvReport, etc.)
+        window.reviewRecord = (id) => {
+            const record = allAutofailData.find(r => r.id === id);
+            if(record) {
+                document.getElementById('editRecordId').value = id;
+                document.getElementById('editCerName').value = record['CER Name'];
+                document.getElementById('editAutofailReason').value = record['Autofail Description'] || '';
+                document.getElementById('reviewModalOverlay').classList.remove('hidden');
+            }
+        };
+
+        async function saveReviewChanges() {
+            const id = document.getElementById('editRecordId').value;
+            const reason = document.getElementById('editAutofailReason').value;
+            const recordRef = doc(db, EVALUATION_RECORDS_PATH, id);
+            try {
+                await updateDoc(recordRef, { 'Autofail Description': reason });
+                document.getElementById('reviewModalOverlay').classList.add('hidden');
+                fetchDataAndRender(); // Refresh data
+            } catch (error) {
+                console.error("Error saving review changes:", error);
+            }
+        }
+
+        window.deleteRecord = async (id) => {
+            if(confirm('Are you sure you want to delete this record?')) {
+                try {
+                    await deleteDoc(doc(db, EVALUATION_RECORDS_PATH, id));
+                    fetchDataAndRender();
+                } catch(error) {
+                    console.error("Error deleting record:", error);
+                }
+            }
+        };
+
+        window.emailRecord = (id) => {
+            const record = allAutofailData.find(r => r.id === id);
+            if(record) {
+                const subject = `Autofail Feedback for ${record['CER Name']}`;
+                const body = `Hi ${record['CER Name']},\n\nThis is a notification regarding an autofail on Contact ID: ${record['Contact ID']}.\n\nReason: ${record['Autofail Description'] || record['Auto Fail Type']}\n\nPlease review this case.`;
+                window.location.href = `mailto:${record['CER Email']}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            }
+        };
+
+        function generateCsvReport() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            const headers = ["Timestamp", "Contact ID", "Client Name", "CER Name", "Overall Score", "Reason for Autofail"];
+            csvContent += headers.join(",") + "\r\n";
+
+            const filteredData = allAutofailData; // Or use the currently filtered data
+            filteredData.forEach(record => {
+                const row = [
+                    `"${record.submittedAt?.toDate().toLocaleString() || 'N/A'}"`,
+                    `"${record['Contact ID'] || ''}"`,
+                    `"${record['Client Name'] || ''}"`,
+                    `"${record['CER Name'] || ''}"`,
+                    `"${record['Overall Score'] || '0%'}"`,
+                    `"${(record['Autofail Description'] || record['Auto Fail Type'] || '').replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "autofail_report.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
     </script>
 </body>
 </html>
