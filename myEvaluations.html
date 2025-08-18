@@ -98,43 +98,6 @@
             color: #1f2937;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .filter-section {
-            background-color: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .filter-section label { font-weight: bold; color: #374151; }
-        .filter-section input, .filter-section select {
-            background-color: #f9fafb;
-            color: #333;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            padding: 0.5rem;
-        }
-        .filter-section button {
-            background-color: #1a73e8;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            cursor: pointer;
-        }
-        .chart-container {
-            height: 400px;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #1a73e8;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
         .evaluation-table {
             width: 100%;
             border-collapse: collapse;
@@ -152,24 +115,6 @@
             color: #1f2937;
         }
         .hidden { display: none !important; }
-        .message-box-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); display: flex;
-            justify-content: center; align-items: center; z-index: 1000;
-        }
-        .message-box {
-            background-color: white; padding: 2rem; border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;
-            max-width: 800px; width: 90%;
-        }
-        .message-box h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1a73e8; }
-        .message-box p { margin-bottom: 1.5rem; color: #333; }
-        .message-box button {
-            background-color: #1a73e8; color: white; padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem; font-weight: 500; cursor: pointer;
-            border: none; transition: background-color 0.3s ease;
-        }
-        .message-box button:hover { background-color: #0d47a1; }
     </style>
 </head>
 <body>
@@ -178,15 +123,6 @@
         <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
     </header>
 
-    <div id="messageBoxOverlay" class="message-box-overlay hidden">
-        <div class="message-box">
-            <div id="messageBoxSpinner" class="spinner hidden" aria-label="Loading..."></div>
-            <h3 id="messageBoxTitle"></h3>
-            <p id="messageBoxContent"></p>
-            <button id="messageBoxCloseBtn" class="hidden">OK</button>
-        </div>
-    </div>
-    
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
             <ul id="sidebar-menu">
@@ -205,7 +141,6 @@
 
     <div class="main-content" id="mainContent">
         <div id="loadingMessage" class="text-center py-12 text-lg text-gray-600">
-            <div class="spinner mx-auto mb-4"></div>
             Loading Your Evaluations...
         </div>
 
@@ -238,6 +173,7 @@
                                 <th>Timestamp</th>
                                 <th>Contact ID</th>
                                 <th>CER Name</th>
+                                <th>CER Role</th>
                                 <th>Overall Score</th>
                             </tr>
                         </thead>
@@ -255,8 +191,14 @@
                             <tr>
                                 <th>Timestamp</th>
                                 <th>Reviewer's Name</th>
+                                <th>CER Role</th>
                                 <th>Overall Score</th>
                                 <th>Scores Deviation</th>
+                                <th>Customer Experience</th>
+                                <th>Problem Solving</th>
+                                <th>Compliance & Accuracy</th>
+                                <th>Autofail Type</th>
+                                <th>Reason for Autofail</th>
                             </tr>
                         </thead>
                         <tbody id="myCerScoresTableBody"></tbody>
@@ -309,21 +251,19 @@
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const NPS_RECORDS_PATH = `artifacts/${appId}/public/data/nps_records`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
 
         let loggedInUserName = null;
-
-        // ... (rest of your functions: showMessageBox, etc.)
+        let allRolesQuestions = {};
 
         async function fetchData(user) {
             const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
             const docSnap = await getDoc(userProfileDocRef);
-            if (docSnap.exists()) {
-                loggedInUserName = docSnap.data().name;
-            } else {
-                loggedInUserName = user.email;
-            }
+            loggedInUserName = docSnap.exists() ? docSnap.data().name : user.email;
 
-            // Fetch all three sets of data
+            const questionsSnap = await getDoc(QUESTIONS_CONFIG_DOC_REF);
+            allRolesQuestions = questionsSnap.exists() ? questionsSnap.data() : {};
+
             const reviewedQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("Reviewer's Name", "==", loggedInUserName));
             const cerQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("CER Name", "==", loggedInUserName));
             const npsQuery = query(collection(db, NPS_RECORDS_PATH), where("Agent Handled", "==", loggedInUserName));
@@ -331,19 +271,20 @@
             onSnapshot(reviewedQuery, (snapshot) => {
                 const records = snapshot.docs.map(doc => doc.data());
                 renderReviewedTable(records);
-                updateSummaryCards();
+                document.getElementById('totalEvalsDone').textContent = records.length;
             });
 
             onSnapshot(cerQuery, (snapshot) => {
                 const records = snapshot.docs.map(doc => doc.data());
                 renderCerScoresTable(records);
-                updateSummaryCards();
+                const totalScore = records.reduce((sum, rec) => sum + (parseFloat(rec['Overall Score']) || 0), 0);
+                document.getElementById('myAverageScore').textContent = records.length > 0 ? `${(totalScore / records.length).toFixed(1)}%` : '0%';
             });
 
             onSnapshot(npsQuery, (snapshot) => {
                 const records = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderNpsAuditsTable(records);
-                updateSummaryCards();
+                document.getElementById('pendingNpsAudits').textContent = records.filter(r => r.Status === 'Pending').length;
             });
 
             document.getElementById('loadingMessage').classList.add('hidden');
@@ -354,7 +295,7 @@
             const tableBody = document.getElementById('myReviewedEvaluationsTableBody');
             tableBody.innerHTML = '';
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4">No evaluations found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4">No evaluations found.</td></tr>`;
                 return;
             }
             records.forEach(record => {
@@ -363,16 +304,38 @@
                     <td>${record.submittedAt?.toDate().toLocaleString() || 'N/A'}</td>
                     <td>${record['Contact ID'] || 'N/A'}</td>
                     <td>${record['CER Name'] || 'N/A'}</td>
+                    <td>${record['CER Role'] || 'N/A'}</td>
                     <td>${record['Overall Score'] || 'N/A'}</td>
                 `;
             });
+        }
+
+        function calculateSectionScores(record) {
+            const scores = {
+                'CUSTOMER EXPERIENCE': 0,
+                'PROBLEM SOLVING SKILLS': 0,
+                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': 0
+            };
+            const role = record['CER Role'];
+            if (!role || !allRolesQuestions[role]) return scores;
+
+            for (const section in scores) {
+                const questions = allRolesQuestions[role][section] || [];
+                questions.forEach(q => {
+                    const points = parseFloat(record[`${q.desc} (Points)`]);
+                    if (!isNaN(points)) {
+                        scores[section] += points;
+                    }
+                });
+            }
+            return scores;
         }
 
         function renderCerScoresTable(records) {
             const tableBody = document.getElementById('myCerScoresTableBody');
             tableBody.innerHTML = '';
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4">No scores found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="10" class="text-center py-4">No scores found.</td></tr>`;
                 return;
             }
             const sortedRecords = records.sort((a, b) => (a.submittedAt?.toDate() || 0) - (b.submittedAt?.toDate() || 0));
@@ -387,11 +350,18 @@
                     const sign = deviation > 0 ? '+' : '';
                     deviationHtml = `<td class="${color}">${sign}${deviation.toFixed(1)}%</td>`;
                 }
+                const sectionScores = calculateSectionScores(record);
                 row.innerHTML = `
                     <td>${record.submittedAt?.toDate().toLocaleString() || 'N/A'}</td>
                     <td>${record["Reviewer's Name"] || 'N/A'}</td>
+                    <td>${record['CER Role'] || 'N/A'}</td>
                     <td>${record['Overall Score'] || 'N/A'}</td>
                     ${deviationHtml}
+                    <td>${sectionScores['CUSTOMER EXPERIENCE']}</td>
+                    <td>${sectionScores['PROBLEM SOLVING SKILLS']}</td>
+                    <td>${sectionScores['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']}</td>
+                    <td>${record['Auto Fail Type'] || 'N/A'}</td>
+                    <td>${record['Autofail Description'] || 'N/A'}</td>
                 `;
             });
         }
@@ -425,11 +395,7 @@
                 updateDoc(recordRef, { Status: 'Completed' });
             }
         };
-
-        function updateSummaryCards() {
-            // This function would be called after each data fetch to update the cards
-        }
-
+        
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 fetchData(user);
