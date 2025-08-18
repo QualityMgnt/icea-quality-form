@@ -39,6 +39,10 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             padding: 0 1rem;
         }
+        .top-header img {
+            height: 40px;
+            width: auto;
+        }
         .main-nav {
             width: 125px;
             background-color: #000080; /* Navy Blue */
@@ -67,7 +71,7 @@
             gap: 0.25rem;
             font-size: 0.75rem;
             text-align: center;
-            transition: background-color 0.3s ease;
+            transition: background-color: 0.3s ease;
         }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
@@ -99,18 +103,20 @@
             padding: 1rem;
             border-radius: 0.5rem;
             margin-bottom: 1.5rem;
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
-            align-items: center;
+            align-items: end;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .filter-section label { font-weight: bold; color: #374151; }
+        .filter-section label { font-weight: bold; color: #374151; display: block; margin-bottom: 0.5rem; }
         .filter-section input, .filter-section select {
             background-color: #f9fafb;
             color: #333;
             border: 1px solid #d1d5db;
             border-radius: 0.375rem;
             padding: 0.5rem;
+            width: 100%;
         }
         .filter-section button {
             background-color: #1a73e8;
@@ -118,6 +124,7 @@
             padding: 0.5rem 1rem;
             border-radius: 0.375rem;
             cursor: pointer;
+            height: fit-content;
         }
         .chart-container {
             height: 400px;
@@ -181,6 +188,33 @@
         <div id="autofailContent" class="hidden">
             <h1 class="text-3xl font-bold mb-6 text-gray-800">Autofail Records</h1>
             
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <div>
+                    <label for="filterYear">Year</label>
+                    <select id="filterYear">
+                        <option value="">All Years</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterMonth">Month</label>
+                    <select id="filterMonth">
+                        <option value="">All Months</option>
+                        <option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterCerRole">CER Role</label>
+                    <select id="filterCerRole">
+                        <option value="">All Roles</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filterCerName">CER Name</label>
+                    <input type="text" id="filterCerName" placeholder="Filter by name...">
+                </div>
+            </div>
+
             <div class="dashboard-card bg-white mb-6">
                  <h2 class="text-xl font-semibold mb-4 text-gray-800">Autofail Analytics</h2>
                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -219,7 +253,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -236,7 +270,9 @@
         const db = getFirestore(app);
 
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const DROPDOWN_OPTIONS_PATH = `artifacts/${appId}/public/data/dropdown_options/general_options`;
 
+        let allAutofailData = [];
         let charts = {};
 
         async function fetchDataAndRender() {
@@ -246,10 +282,10 @@
             try {
                 const q = query(collection(db, EVALUATION_RECORDS_PATH), where("Auto Fail Type", "!=", ""));
                 const querySnapshot = await getDocs(q);
-                const autofailRecords = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allAutofailData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                renderTable(autofailRecords);
-                updateCharts(autofailRecords);
+                populateFilters(allAutofailData);
+                applyFilters(); // Initial render with all data
 
                 loadingMessage.classList.add('hidden');
                 autofailContent.classList.remove('hidden');
@@ -260,11 +296,61 @@
             }
         }
 
+        function populateFilters(records) {
+            const roles = new Set();
+            const years = new Set();
+            records.forEach(rec => {
+                if(rec['CER Role']) roles.add(rec['CER Role']);
+                if(rec.submittedAt?.toDate) years.add(rec.submittedAt.toDate().getFullYear());
+            });
+
+            const roleFilter = document.getElementById('cerRoleFilter');
+            Array.from(roles).sort().forEach(role => {
+                const option = document.createElement('option');
+                option.value = role;
+                option.textContent = role;
+                roleFilter.appendChild(option);
+            });
+
+            const yearFilter = document.getElementById('filterYear');
+            Array.from(years).sort((a,b) => b-a).forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearFilter.appendChild(option);
+            });
+        }
+
+        function applyFilters() {
+            const year = document.getElementById('filterYear').value;
+            const month = document.getElementById('filterMonth').value;
+            const role = document.getElementById('cerRoleFilter').value;
+            const name = document.getElementById('filterCerName').value.toLowerCase();
+
+            let filteredData = allAutofailData;
+
+            if (year) {
+                filteredData = filteredData.filter(r => r.submittedAt?.toDate().getFullYear() == year);
+            }
+            if (month) {
+                filteredData = filteredData.filter(r => r.submittedAt?.toDate().getMonth() + 1 == month);
+            }
+            if (role) {
+                filteredData = filteredData.filter(r => r['CER Role'] === role);
+            }
+            if (name) {
+                filteredData = filteredData.filter(r => r['CER Name']?.toLowerCase().includes(name));
+            }
+            
+            renderTable(filteredData);
+            updateCharts(filteredData);
+        }
+
         function renderTable(records) {
             const tableBody = document.getElementById('autofailRecordsTableBody');
             tableBody.innerHTML = '';
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No autofail records found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No autofail records found matching the criteria.</td></tr>`;
                 return;
             }
 
@@ -283,7 +369,6 @@
         }
 
         function updateCharts(data) {
-            // Autofails by Role Chart
             const autofailsByRole = {};
             data.forEach(rec => {
                 const role = rec['CER Role'] || 'Unknown';
@@ -291,7 +376,6 @@
             });
             renderChart('autofailByRoleChart', 'bar', Object.keys(autofailsByRole), Object.values(autofailsByRole), 'Autofails by Role');
 
-            // Autofail Reasons Chart
             const autofailReasons = {};
             data.forEach(rec => {
                 const reason = rec['Auto Fail Type'] || 'Unknown';
@@ -337,6 +421,10 @@
             }
         });
 
+        document.getElementById('filterYear').addEventListener('change', applyFilters);
+        document.getElementById('filterMonth').addEventListener('change', applyFilters);
+        document.getElementById('filterCerRole').addEventListener('change', applyFilters);
+        document.getElementById('filterCerName').addEventListener('input', applyFilters);
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
     </script>
 </body>
