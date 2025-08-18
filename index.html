@@ -818,10 +818,10 @@
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
         let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
+        try {
             appInstance = getApp();
+        } catch (e) {
+            appInstance = initializeApp(firebaseConfig);
         }
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
@@ -2114,7 +2114,18 @@
             }
         }
         
-
+        async function fetchUsers() {
+            try {
+                const querySnapshot = await getDocs(collection(db, USERS_PROFILE_COLLECTION_PATH));
+                allUsers = [];
+                querySnapshot.forEach(doc => {
+                    allUsers.push({ id: doc.id, ...doc.data() });
+                });
+                console.log("Fetched users:", allUsers.length);
+            } catch (e) {
+                console.error("Error fetching users:", e);
+            }
+        }
 
         const handleLogout = async function() {
             sessionStorage.removeItem('loggedIn');
@@ -2381,4 +2392,3 @@
     </script>
 </body>
 </html>
-
