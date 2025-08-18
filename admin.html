@@ -1416,6 +1416,7 @@
                 });
                 return;
             }
+            populateDropdowns(); // Ensure dropdowns are populated before rendering other content
             renderAdminDropdownValues();
             renderAdminQuestions();
             renderAdminCustomFields();
@@ -2009,6 +2010,23 @@
             const questionsList = document.getElementById('currentQuestionsList');
             const manageSection = document.getElementById('manageQuestionsSubsection');
             
+            // Re-populate the questionRoleSelect dropdown with the latest data
+            const adminQuestionRoleSelect = document.getElementById('questionRoleSelect');
+            if (adminQuestionRoleSelect) {
+                adminQuestionRoleSelect.innerHTML = '<option value="">-- Select CER Role --</option>';
+                dropdownOptions.cerRoles.forEach(r => {
+                    const option = document.createElement('option');
+                    option.value = r;
+                    option.textContent = r;
+                    adminQuestionRoleSelect.appendChild(option);
+                });
+                 // Re-select the previously selected role if available
+                if (role) {
+                    adminQuestionRoleSelect.value = role;
+                }
+            }
+
+
             if (!role || !section) {
                 manageSection.style.display = 'none';
                 return;
