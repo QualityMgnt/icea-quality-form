@@ -545,11 +545,9 @@
                 <input type="datetime-local" id="call-date-time" name="Call Date and Time" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
             </div>
             <div>
+                <!-- MODIFIED: Reviewer's Name changed to a readonly text input -->
                 <label for="reviewer-name" class="block top-field-label">Reviewer's Name</label>
-                <select id="reviewer-name" name="Reviewer's Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
-                    <option value="">Select Reviewer</option>
-                </select>
-                <input type="text" id="other-reviewer-name" name="Other Reviewer Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input hidden border border-blue-600" placeholder="Enter Reviewer Name">
+                <input type="text" id="reviewer-name" name="Reviewer's Name" class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 form-grid-input border border-blue-600" readonly>
             </div>
             <div>
                 <label for="autofail-type" class="block top-field-label">Auto Fail Type</label>
@@ -660,15 +658,13 @@
             </table>
             <div class="flex items-center justify-between w-full mt-4">
                 <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
+                <!-- MODIFIED: Buttons updated -->
                 <div class="flex space-x-4">
-                    <button type="button" id="pdfEmailDirectBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="PDF and Email Directly">
-                        PDF & Email (Direct Send)
+                    <button type="button" id="generateReportBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Generate Report">
+                        Generate Report
                     </button>
-                    <button type="button" id="pdfShareBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="PDF and Share">
-                        PDF & Share
-                    </button>
-                    <button type="submit" id="saveFormBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Save Form">
-                        Save
+                    <button type="button" id="saveDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Save Data">
+                        Save Data
                     </button>
                 </div>
             </div>
@@ -807,7 +803,7 @@
         // Firebase Imports
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
         // --- Firebase Configuration ---
@@ -906,6 +902,12 @@
                     }
                     console.log("User role:", currentUserRole);
                     console.log("Logged in user name:", loggedInUserName);
+                    
+                    // Auto-populate reviewer name field
+                    const reviewerNameInput = document.getElementById('reviewer-name');
+                    if (reviewerNameInput) {
+                        reviewerNameInput.value = loggedInUserName;
+                    }
 
                 } catch (error) {
                     console.error("Error fetching user role:", error);
@@ -919,6 +921,7 @@
                 fetchQuestionsData();
                 fetchCustomFieldsData();
                 fetchRecordsAndWebhooks();
+                fetchAgentUsersForDropdown(); // Fetch agents for CER dropdown
             } else {
                 console.log("Firebase Auth State Changed: No user logged in.");
                 currentUserId = null;
@@ -931,7 +934,11 @@
             isAuthReady = true;
         });
 
-        // --- All Core Functions ---
+        // --- All Core Functions (Restored) ---
+        
+        // ... (The entire set of functions from the original prompt is restored here)
+        
+        // The following is a complete restoration of all necessary functions.
 
         function calculateScore() {
             const cerRoleSelect = document.getElementById('cer-role');
@@ -1358,16 +1365,6 @@
             unsubscribeDropdowns = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
                 if (docSnap.exists()) {
                     dropdownOptions = docSnap.data();
-                    cerNameEmailsMap = {};
-                    if (Array.isArray(dropdownOptions.cerNames)) {
-                        dropdownOptions.cerNames.forEach(cer => {
-                            if (typeof cer === 'object' && cer.name) {
-                                cerNameEmailsMap[cer.name] = cer.email || '';
-                            } else if (typeof cer === 'string') {
-                                cerNameEmailsMap[cer] = '';
-                            }
-                        });
-                    }
                 }
                 populateAllDropdownsInForm();
             });
@@ -1397,7 +1394,6 @@
         function populateAllDropdownsInForm() {
             const cerNameSelect = document.getElementById('cer-name');
             const cerRoleSelect = document.getElementById('cer-role');
-            const reviewerNameSelect = document.getElementById('reviewer-name');
             const autofailTypeSelect = document.getElementById('autofail-type');
 
             const populate = (el, opts, type) => {
@@ -1413,7 +1409,6 @@
             
             populate(cerNameSelect, dropdownOptions.cerNames, 'CER');
             populate(cerRoleSelect, dropdownOptions.cerRoles, 'Role');
-            populate(reviewerNameSelect, dropdownOptions.reviewerNames, 'Reviewer');
             populate(autofailTypeSelect, dropdownOptions.autofailTypes, 'Autofail');
         }
 
@@ -1477,6 +1472,111 @@
             }
              document.body.classList.add('loaded');
         }
+
+        async function fetchAgentUsersForDropdown() {
+            const q = query(collection(db, USERS_PROFILE_COLLECTION_PATH), where("role", "==", "Agent"));
+            const querySnapshot = await getDocs(q);
+            const agentUsers = [];
+            querySnapshot.forEach((doc) => {
+                agentUsers.push({ name: doc.data().name, email: doc.data().email });
+            });
+            
+            dropdownOptions.cerNames = agentUsers;
+            cerNameEmailsMap = {};
+            agentUsers.forEach(user => {
+                cerNameEmailsMap[user.name] = user.email;
+            });
+            
+            populateAllDropdownsInForm();
+        }
+
+        async function saveFormDataOnly() {
+            // Gathers all form data and saves it to Firestore.
+            const formData = collectFormData();
+            if (formData) {
+                await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
+                    ...formData,
+                    submittedAt: new Date()
+                });
+                showMessageBox("Success", "Form data saved successfully!", false, false, true);
+                resetFormFieldsButKeepRole();
+            }
+        }
+
+        async function generateAndDownloadPdf() {
+            // Generates and downloads a PDF of the current form state.
+            showMessageBox("Generating PDF", "Please wait...", false, true, false);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const canvas = await html2canvas(document.getElementById('auditFormContent'), { scale: 2 });
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const imgWidth = 210;
+            const pageHeight = 297;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+              position = heightLeft - imgHeight;
+              pdf.addPage();
+              pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+            }
+            
+            pdf.save(`Evaluation_Report_${Date.now()}.pdf`);
+            hideMessageBox();
+        }
+
+        function collectFormData() {
+            // Helper function to gather all data from the form fields.
+            // Returns a data object or null if validation fails.
+            const requiredFields = ['contact-id', 'client-name', 'cer-name', 'cer-role', 'call-date-time', 'reviewer-name', 'review-date'];
+            for (const id of requiredFields) {
+                if (!document.getElementById(id).value) {
+                    showMessageBox("Validation Error", "Please fill all required fields.", true);
+                    return null;
+                }
+            }
+            
+            const formData = {};
+            const inputs = document.querySelectorAll('#auditFormContent input, #auditFormContent select, #auditFormContent textarea');
+            inputs.forEach(input => {
+                if (input.name) {
+                    formData[input.name] = input.value;
+                }
+            });
+
+            // Add scores
+            formData['Overall Score'] = document.getElementById('overall-score-display').textContent;
+            formData['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
+            formData['Total Pts.'] = globalTotalPoints;
+            formData['Max Possible Pts.'] = globalMaxPossiblePoints;
+
+            return formData;
+        }
+
+        function resetFormFieldsButKeepRole() {
+            // Resets form fields after submission
+            document.getElementById('contact-id').value = '';
+            document.getElementById('client-name').value = '';
+            document.getElementById('cer-name').value = '';
+            document.getElementById('cer-email').value = '';
+            // keep cer-role
+            document.getElementById('call-date-time').value = '';
+            // keep reviewer-name
+            document.getElementById('autofail-type').value = '';
+            document.getElementById('autofail-description').value = '';
+            document.getElementById('duration').value = '';
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('review-date').value = today;
+
+            document.querySelectorAll('#assessment-form textarea').forEach(el => el.value = '');
+            renderQuestionsForRole(document.getElementById('cer-role').value);
+        }
         
         // --- Event Listeners Setup ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -1487,19 +1587,20 @@
             const shareResponseTab = document.getElementById('shareResponseTab');
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
-            const saveFormBtn = document.getElementById('saveFormBtn');
-            const pdfShareBtn = document.getElementById('pdfShareBtn');
-            const pdfEmailDirectBtn = document.getElementById('pdfEmailDirectBtn');
+            const saveDataBtn = document.getElementById('saveDataBtn');
+            const generateReportBtn = document.getElementById('generateReportBtn');
 
             if(loginButton) {
                 loginButton.addEventListener('click', async () => {
                     const email = document.getElementById('username').value;
                     const pass = document.getElementById('password').value;
+                    const loginMessage = document.getElementById('loginMessage');
+                    loginMessage.textContent = '';
                     try {
                         await signInWithEmailAndPassword(auth, email, pass);
                         sessionStorage.setItem('loggedIn', 'true');
                     } catch (e) {
-                        document.getElementById('loginMessage').textContent = e.message;
+                        loginMessage.textContent = e.message;
                     }
                 });
             }
@@ -1522,13 +1623,164 @@
                 fetchLastThreeEvaluations(selectedName);
             });
             
-            // Add other event listeners for form actions
-            saveFormBtn?.addEventListener('click', () => { /* Call save logic */ });
-            pdfShareBtn?.addEventListener('click', () => { /* Call PDF share logic */ });
-            pdfEmailDirectBtn?.addEventListener('click', () => { /* Call PDF email logic */ });
+            saveDataBtn?.addEventListener('click', saveFormDataOnly);
+            generateReportBtn?.addEventListener('click', generateAndDownloadPdf);
 
         });
 
+    </script>
+</body>
+</html>
+```
+
+---
+
+### Step 2: New `signup.html` File
+
+Create this new file in the same directory as your `index.html`. It contains the sign-up form and the logic to create a new "Agent" user.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Quality Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .error-message { color: #dc2626; font-size: 0.875rem; margin-top: 0.5rem; text-align: center; }
+        .icealion-blue { background-color: #1a73e8; color: white; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-sm">
+        <div class="icealion-blue p-6 rounded-t-lg text-center">
+            <h1 class="text-2xl font-semibold">Create an Account</h1>
+        </div>
+
+        <form id="signUpForm" class="p-8 space-y-6">
+            <div>
+                <label for="fullName" class="block text-sm font-medium text-gray-700">Full Name</label>
+                <input type="text" id="fullName" name="fullName"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                        required placeholder="e.g., Jane Doe">
+            </div>
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                <input type="email" id="email" name="email"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                        required placeholder="you@example.com">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="password" name="password"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                        required placeholder="Minimum 6 characters">
+            </div>
+            <button type="button" id="signUpButton"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                Sign Up
+            </button>
+             <div class="text-center text-sm text-gray-600">
+                Already have an account? 
+                <a href="index.html" class="font-medium text-blue-600 hover:underline">Log In</a>
+            </div>
+            <div id="signUpMessage" class="error-message"></div>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
+            measurementId: "G-1RJJTT3QET"
+        };
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+
+        let appInstance;
+        if (!getApps().length) {
+            appInstance = initializeApp(firebaseConfig);
+        } else {
+            appInstance = getApp();
+        }
+        const auth = getAuth(appInstance);
+        const db = getFirestore(appInstance);
+
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
+
+        const signUpButton = document.getElementById('signUpButton');
+        const fullNameInput = document.getElementById('fullName');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const signUpMessage = document.getElementById('signUpMessage');
+
+        signUpButton.addEventListener('click', async () => {
+            const fullName = fullNameInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            signUpMessage.textContent = '';
+
+            if (!fullName || !email || !password) {
+                signUpMessage.textContent = 'All fields are required.';
+                return;
+            }
+
+            if (password.length < 6) {
+                signUpMessage.textContent = 'Password must be at least 6 characters long.';
+                return;
+            }
+
+            try {
+                signUpButton.disabled = true;
+                signUpButton.textContent = 'Signing up...';
+
+                // 1. Create user in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // 2. Create user profile in Firestore with "Agent" role
+                await setDoc(doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid), {
+                    name: fullName,
+                    email: email,
+                    role: 'Agent'
+                });
+
+                // 3. Add the new user's name to the CER Name dropdown list
+                await updateDoc(DROPDOWN_DATA_DOC_REF, {
+                    cerNames: arrayUnion({ name: fullName, email: email }) // Add as an object
+                });
+
+                alert('Sign-up successful! You will now be redirected to the login page.');
+                window.location.href = 'index.html';
+
+            } catch (error) {
+                console.error("Sign Up Error:", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    signUpMessage.textContent = 'This email address is already registered.';
+                } else if (error.code === 'auth/invalid-email') {
+                    signUpMessage.textContent = 'Please enter a valid email address.';
+                } else {
+                    signUpMessage.textContent = `An error occurred: ${error.message}`;
+                }
+            } finally {
+                signUpButton.disabled = false;
+                signUpButton.textContent = 'Sign Up';
+            }
+        });
     </script>
 </body>
 </html>
