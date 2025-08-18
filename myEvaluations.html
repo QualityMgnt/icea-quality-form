@@ -10,15 +10,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
 
     <style>
-        /* Base styles from index.html for consistency */
         body {
             font-family: 'Garamond', serif;
-            display: flex;
-            align-items: flex-start;
-            min-height: 100vh;
             background-color: #f3f4f6;
+            color: #1f2937;
             margin: 0;
-            padding: 0;
+        }
+        .main-content {
+            margin-left: 125px;
+            margin-top: 48px;
+            width: calc(100% - 125px);
+            padding: 1.5rem;
         }
         .top-header {
             position: fixed;
@@ -26,7 +28,7 @@
             left: 0;
             width: 100%;
             height: 48px;
-            background-color: #000080;
+            background-color: #000080; /* Navy Blue */
             color: white;
             display: flex;
             align-items: center;
@@ -41,30 +43,9 @@
             height: 40px;
             width: auto;
         }
-        .top-header .notification-bell {
-            position: relative;
-            cursor: pointer;
-        }
-        .top-header .notification-bell .fa-bell {
-            font-size: 1.5rem;
-            color: white;
-        }
-        .top-header .notification-bell .notification-badge {
-            position: absolute;
-            top: 0;
-            right: -5px;
-            background-color: #f57c00;
-            color: white;
-            border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 0.7rem;
-            line-height: 1;
-            font-weight: bold;
-            display: none;
-        }
         .main-nav {
             width: 125px;
-            background-color: #000080;
+            background-color: #000080; /* Navy Blue */
             color: white;
             padding: 1rem 0;
             height: calc(100vh - 48px);
@@ -77,34 +58,24 @@
             flex-direction: column;
             justify-content: space-between;
         }
-        .sidebar ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            flex-grow: 1;
-        }
+        .sidebar ul { list-style: none; margin: 0; padding: 0; flex-grow: 1; }
         .sidebar ul li a {
             font-family: 'Garamond', serif;
             color: white;
             text-decoration: none;
             font-weight: 500;
             padding: 0.75rem 0.5rem;
-            display: block;
-            border-radius: 0;
-            transition: background-color 0.3s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0.25rem;
             font-size: 0.75rem;
             text-align: center;
+            transition: background-color: 0.3s ease;
         }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #000050;
-        }
-        .sidebar ul li.nav-tab {
-            display: block; /* Ensure all tabs are visible */
+            background-color: #000050; /* Darker Navy */
         }
         .logout-button {
             background-color: #f57c00;
@@ -114,121 +85,46 @@
             font-weight: 600;
             cursor: pointer;
             border: none;
-            transition: background-color 0.3s ease;
+            transition: background-color: 0.3s ease;
             margin: 1rem auto;
             width: calc(100% - 2rem);
             font-size: 0.75rem;
         }
-        .logout-button:hover {
-            background-color: #e65100;
-        }
-        .main-content {
-            margin-left: 125px;
-            margin-top: 48px;
-            width: calc(100% - 125px);
+        .logout-button:hover { background-color: #e65100; }
+        .dashboard-card {
+            background-color: white;
+            border-radius: 0.5rem;
             padding: 1.5rem;
-            min-height: calc(100vh - 48px);
-            box-sizing: border-box;
-            background-color: #f3f4f6;
-        }
-        .users-container {
-            background-color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0.5rem;
-            overflow: hidden;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .login-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(243, 244, 246, 0.95);
-            z-index: 1000;
-        }
-        .error-message, .success-message {
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            text-align: center;
-        }
-        .error-message { color: #dc2626; }
-        .success-message { color: #10b981; }
-        .user-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        .user-table th, .user-table td {
-            border: 1px solid #e5e7eb;
-            padding: 0.75rem;
-            text-align: left;
-            font-size: 0.875rem;
-        }
-        .user-table th {
-            background-color: #eff6ff;
-            font-weight: 600;
             color: #1f2937;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .user-table tbody tr:nth-child(even) { background-color: #f9fafb; }
-        .user-table tbody tr:hover { background-color: #f3f4f6; }
-        .user-table .action-btn {
-            padding: 0.3rem 0.6rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-            margin-right: 0.25rem;
-        }
-        .user-table .delete-btn {
-            background-color: #EF4444;
-            color: white;
-        }
-        .user-table .delete-btn:hover {
-            background-color: #DC2626;
-        }
-        .user-table .deactivate-btn {
-            background-color: #9ca3af;
-            color: white;
-        }
-        .user-table .deactivate-btn:hover {
-            background-color: #6b7280;
-        }
-        .user-table .activate-btn {
-            background-color: #10b981;
-            color: white;
-        }
-        .user-table .activate-btn:hover {
-            background-color: #059669;
-        }
-        .hidden {
-            display: none !important;
-        }
-        .message-box-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .message-box {
+        .filter-section {
             background-color: white;
-            padding: 2rem;
+            padding: 1rem;
             border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .filter-section label { font-weight: bold; color: #374151; }
+        .filter-section input, .filter-section select {
+            background-color: #f9fafb;
+            color: #333;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+        }
+        .filter-section button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+        }
+        .chart-container {
+            height: 400px;
         }
         .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
@@ -238,10 +134,8 @@
             height: 36px;
             animation: spin 1s linear infinite;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .evaluation-table table {
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .evaluation-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 1rem;
@@ -256,234 +150,148 @@
             background-color: #eff6ff;
             font-weight: 600;
             color: #1f2937;
-            position: sticky;
-            top: 0;
-            z-index: 10;
         }
-        .evaluation-table tbody tr:nth-child(even) { background-color: #f9fafb; }
-        .evaluation-table tbody tr:hover { background-color: #f3f4f6; }
-        .view-record-btn, .download-record-btn, .download-pdf-btn {
-            padding: 0.375rem 0.75rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-            margin-right: 0.25rem;
-        }
-        .view-record-btn { background-color: #2196f3; color: white; }
-        .view-record-btn:hover { background-color: #1976d2; }
-        .download-record-btn { background-color: #4caf50; color: white; }
-        .download-record-btn:hover { background-color: #388e3c; }
-        .download-pdf-btn { background-color: #800080; color: white; }
-        .download-pdf-btn:hover { background-color: #6a006a; }
         .hidden { display: none !important; }
-        .message-box-content-pre {
-            text-align: left;
-            white-space: pre-wrap;
-            font-family: 'Garamond', serif;
-            background-color: #f8f8f8;
-            padding: 1rem;
-            border-radius: 0.25rem;
-            max-height: 70vh;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            font-size: 0.875rem;
+        .message-box-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
         }
-        .content-section {
-            background-color: #fff;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            margin-bottom: 1.5rem;
+        .message-box {
+            background-color: white; padding: 2rem; border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;
+            max-width: 800px; width: 90%;
         }
-        .table-container, .chart-container {
-            margin-top: 1rem;
-            overflow-x: auto;
+        .message-box h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1a73e8; }
+        .message-box p { margin-bottom: 1.5rem; color: #333; }
+        .message-box button {
+            background-color: #1a73e8; color: white; padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem; font-weight: 500; cursor: pointer;
+            border: none; transition: background-color 0.3s ease;
         }
-        .filter-section {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .filter-section label {
-            font-weight: bold;
-            color: #4b5563;
-        }
-        .filter-section input[type="date"] {
-            border: 1px solid #d1d5db;
-            padding: 0.5rem;
-            border-radius: 0.375rem;
-            font-family: 'Garamond', serif;
-        }
-        .filter-section button {
-            padding: 0.5rem 1rem;
-            background-color: #1a73e8;
-            color: white;
-            border-radius: 0.375rem;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .filter-section button:hover {
-            background-color: #0d47a1;
-        }
+        .message-box button:hover { background-color: #0d47a1; }
     </style>
 </head>
 <body>
+    <header class="top-header">
+        <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
+        <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
+    </header>
+
     <div id="messageBoxOverlay" class="message-box-overlay hidden">
         <div class="message-box">
-            <div id="messageBoxSpinner" class="spinner hidden mx-auto mb-4"></div>
-            <h3 id="messageBoxTitle" class="text-xl font-semibold mb-4 text-center"></h3>
-            <p id="messageBoxContent" class="text-gray-700 mb-4 text-center"></p>
-            <div class="flex justify-center space-x-2">
-                <button id="messageBoxCloseBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Close</button>
-            </div>
+            <div id="messageBoxSpinner" class="spinner hidden" aria-label="Loading..."></div>
+            <h3 id="messageBoxTitle"></h3>
+            <p id="messageBoxContent"></p>
+            <button id="messageBoxCloseBtn" class="hidden">OK</button>
         </div>
     </div>
     
-    <header class="top-header">
-        <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
-        <img id="header-logo" src="https://placehold.co/40x40/e5e7eb/6b7280?text=Logo" alt="Company Logo" class="logo">
-    </header>
-
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
             <ul id="sidebar-menu">
-                <li class="nav-tab"><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li class="nav-tab"><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li class="nav-tab"><a href="myEvaluations.html" id="myEvaluationsTab" class="active"><i class="fas fa-user-check"></i> My Evaluations</a></li>
-                <li class="nav-tab"><a href="Dashboard.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
-                <li class="nav-tab"><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li class="nav-tab"><a href="images.html" id="imagesTab"><i class="fas fa-image"></i> Images</a></li>
-                <li class="nav-tab"><a href="users.html"><i class="fas fa-users"></i> Users</a></li>
-                <li class="nav-tab"><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="myEvaluations.html" class="active"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="Dashboard.html"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="images.html"><i class="fas fa-image"></i> Images</a></li>
+                <li><a href="users.html"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
     </nav>
 
-    <!-- Main Content Area for My Evaluations -->
     <div class="main-content" id="mainContent">
-        <div id="loadingMessage" class="text-center py-12 text-lg text-gray-500">
+        <div id="loadingMessage" class="text-center py-12 text-lg text-gray-600">
             <div class="spinner mx-auto mb-4"></div>
-            Loading user data...
+            Loading Your Evaluations...
         </div>
 
-        <div class="users-container hidden" id="myEvaluationsContent">
-            <div class="icealion-blue p-4 text-xl font-semibold text-center rounded-t-lg">
-                My Evaluations
+        <div id="myEvaluationsContent" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">My Evaluations</h1>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="dashboard-card text-center">
+                    <h2 class="text-lg font-semibold">Total Evaluations Done</h2>
+                    <p id="totalEvalsDone" class="text-4xl font-bold">0</p>
+                </div>
+                <div class="dashboard-card text-center">
+                    <h2 class="text-lg font-semibold">My Average Score as CER</h2>
+                    <p id="myAverageScore" class="text-4xl font-bold">0%</p>
+                </div>
+                <div class="dashboard-card text-center">
+                    <h2 class="text-lg font-semibold">Pending NPS Audits</h2>
+                    <p id="pendingNpsAudits" class="text-4xl font-bold">0</p>
+                </div>
             </div>
-            <div class="p-6">
-                <!-- Date Filter Section -->
-                <div class="filter-section">
-                    <label for="startDate">From:</label>
-                    <input type="date" id="startDate">
-                    <label for="endDate">To:</label>
-                    <input type="date" id="endDate">
-                    <button id="applyFilterBtn">Apply Filter</button>
+
+            <!-- Evaluations I Have Done -->
+            <div class="dashboard-card mb-6">
+                <h2 class="text-xl font-semibold mb-4">Evaluations I Have Done</h2>
+                <div class="overflow-x-auto">
+                    <table class="evaluation-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Contact ID</th>
+                                <th>CER Name</th>
+                                <th>Overall Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myReviewedEvaluationsTableBody"></tbody>
+                    </table>
                 </div>
+            </div>
 
-                <!-- Table for Evaluations I Have Done -->
-                <div class="content-section">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-semibold text-gray-800">Evaluations I Have Done</h2>
-                        <button id="downloadReviewedPdfBtn" class="download-pdf-btn">Download PDF</button>
-                    </div>
-                    <p class="text-gray-600 mb-4">These are the records you have submitted as a reviewer.</p>
-                    <div class="table-container">
-                        <table class="evaluation-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Contact ID</th>
-                                    <th>Client Name</th>
-                                    <th>CER Name</th>
-                                    <th>Overall Score</th>
-                                    <th>Evaluation Date</th>
-                                    <th>CER Role</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="myReviewedEvaluationsTableBody">
-                                <!-- Rows will be dynamically inserted here -->
-                            </tbody>
-                        </table>
-                    </div>
+            <!-- My QA Audit Scores -->
+            <div class="dashboard-card mb-6">
+                <h2 class="text-xl font-semibold mb-4">My QA Audit Scores</h2>
+                <div class="overflow-x-auto">
+                    <table class="evaluation-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Reviewer's Name</th>
+                                <th>Overall Score</th>
+                                <th>Scores Deviation</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myCerScoresTableBody"></tbody>
+                    </table>
                 </div>
-
-                <!-- Table for My QA Audit Scores -->
-                <div class="content-section">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-semibold text-gray-800">My QA Audit Scores</h2>
-                        <button id="downloadMyScoresPdfBtn" class="download-pdf-btn">Download PDF</button>
-                    </div>
-                    <p class="text-gray-600 mb-4">These are the scores you have received as a CER.</p>
-                    <div class="table-container">
-                        <table class="evaluation-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Contact ID</th>
-                                    <th>Client Name</th>
-                                    <th>Reviewer's Name</th>
-                                    <th>Overall Score</th>
-                                    <th>Scores Deviation</th> <!-- NEW COLUMN -->
-                                    <th>Evaluation Date</th>
-                                    <th>CER Role</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="myCerScoresTableBody">
-                                <!-- Rows will be dynamically inserted here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Charts Section -->
-                <div class="content-section">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Performance Insights</h2>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <!-- Bar Graph -->
-                        <div class="chart-container">
-                            <h3 class="text-lg font-semibold mb-2">Average QA Score by Month</h3>
-                            <canvas id="averageScoreChart"></canvas>
-                            <p class="text-sm text-gray-500 mt-2 text-center">Data is based on evaluations where you were the CER.</p>
-                        </div>
-
-                        <!-- Autofail Analysis Table -->
-                        <div class="chart-container">
-                            <h3 class="text-lg font-semibold mb-2">Autofail Areas by Month</h3>
-                            <div class="overflow-x-auto">
-                                <table class="evaluation-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Month</th>
-                                            <th>Autofail Type</th>
-                                            <th>Count</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="autofailAnalysisTableBody">
-                                        <!-- Rows will be dynamically inserted here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+            </div>
+            
+            <!-- NPS Feedback Audits -->
+            <div class="dashboard-card">
+                <h2 class="text-xl font-semibold mb-4">NPS Feedback Audits</h2>
+                <div class="overflow-x-auto">
+                    <table class="evaluation-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Contact ID</th>
+                                <th>Positive Feedback</th>
+                                <th>Area of Improvement</th>
+                                <th>NPS Rating</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="npsAuditsTableBody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <script type="module">
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query, where, orderBy, getDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        
-        // --- Firebase Configuration ---
+        import { getFirestore, collection, getDocs, doc, getDoc, query, where, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
             authDomain: "icea-lion-qa.firebaseapp.com",
@@ -491,324 +299,146 @@
             storageBucket: "icea-lion-qa.firebasestorage.app",
             messagingSenderId: "820082472004",
             appId: "1:820082472004:web:8caddf941e1b5b667faf811",
-            measurementId: "G-1RJJTT3QET"
         };
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
-        let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
-            appInstance = getApp();
-        }
-        const auth = getAuth(appInstance);
-        const db = getFirestore(appInstance);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // Define Firebase Collection Paths
-        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const NPS_RECORDS_PATH = `artifacts/${appId}/public/data/nps_records`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
-        
-        // --- GLOBAL DATA STORES & STATE VARIABLES ---
-        let myReviewedEvaluations = [];
-        let myCerScores = [];
-        let loggedInUserName = null;
-        let currentUserId = null; // CORRECTED: Variable is declared
-        let unsubscribeReviewed = null;
-        let unsubscribeCer = null;
-        let startDate = null;
-        let endDate = null;
 
-        /**
-         * Initializes the page after checking authentication status.
-         */
-        const initializePage = () => {
+        let loggedInUserName = null;
+
+        // ... (rest of your functions: showMessageBox, etc.)
+
+        async function fetchData(user) {
+            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+            const docSnap = await getDoc(userProfileDocRef);
+            if (docSnap.exists()) {
+                loggedInUserName = docSnap.data().name;
+            } else {
+                loggedInUserName = user.email;
+            }
+
+            // Fetch all three sets of data
+            const reviewedQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("Reviewer's Name", "==", loggedInUserName));
+            const cerQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("CER Name", "==", loggedInUserName));
+            const npsQuery = query(collection(db, NPS_RECORDS_PATH), where("Agent Handled", "==", loggedInUserName));
+
+            onSnapshot(reviewedQuery, (snapshot) => {
+                const records = snapshot.docs.map(doc => doc.data());
+                renderReviewedTable(records);
+                updateSummaryCards();
+            });
+
+            onSnapshot(cerQuery, (snapshot) => {
+                const records = snapshot.docs.map(doc => doc.data());
+                renderCerScoresTable(records);
+                updateSummaryCards();
+            });
+
+            onSnapshot(npsQuery, (snapshot) => {
+                const records = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                renderNpsAuditsTable(records);
+                updateSummaryCards();
+            });
+
             document.getElementById('loadingMessage').classList.add('hidden');
             document.getElementById('myEvaluationsContent').classList.remove('hidden');
-            fetchMyEvaluations();
-        };
-
-        /**
-         * Fetches evaluations relevant to the logged-in user.
-         */
-        async function fetchMyEvaluations() {
-            if (!db || !loggedInUserName) {
-                const msg = 'Please log in to view your evaluation data.';
-                document.getElementById('myReviewedEvaluationsTableBody').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">${msg}</td></tr>`;
-                document.getElementById('myCerScoresTableBody').innerHTML = `<tr><td colspan="9" class="text-center py-4 text-gray-500">${msg}</td></tr>`;
-                return;
-            }
-
-            if (unsubscribeReviewed) unsubscribeReviewed();
-            if (unsubscribeCer) unsubscribeCer();
-
-            showMessageBox("Loading", "Fetching your evaluations...", false, true, false);
-
-            try {
-                // Query for evaluations where the current user was the REVIEWER
-                const reviewedQuery = query(
-                    collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
-                    where("Reviewer's Name", "==", loggedInUserName),
-                    orderBy('submittedAt', 'desc')
-                );
-                unsubscribeReviewed = onSnapshot(reviewedQuery, (snapshot) => {
-                    myReviewedEvaluations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderFilteredTables();
-                });
-
-                // Query for evaluations where the current user was the CER
-                const cerQuery = query(
-                    collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
-                    where("CER Name", "==", loggedInUserName),
-                    orderBy('submittedAt', 'desc')
-                );
-                unsubscribeCer = onSnapshot(cerQuery, (snapshot) => {
-                    myCerScores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderFilteredTables();
-                    renderChartsAndAutofailAnalysis(myCerScores, myReviewedEvaluations); // Update charts with new data
-                });
-
-                hideMessageBox();
-
-            } catch (error) {
-                console.error("Error fetching evaluations:", error);
-                showMessageBox("Error", `Failed to load data: ${error.message}`, true, false, true);
-            }
         }
 
-        /**
-         * Renders both tables with an optional date filter applied.
-         */
-        function renderFilteredTables() {
-            const start = startDate ? new Date(startDate) : null;
-            if(start) start.setHours(0,0,0,0);
-            const end = endDate ? new Date(endDate) : null;
-            if(end) end.setHours(23,59,59,999);
-
-            const filterRecords = (records) => {
-                if (!start && !end) return records;
-                return records.filter(record => {
-                    const recordDate = record.submittedAt?.toDate ? record.submittedAt.toDate() : null;
-                    if (!recordDate) return false;
-                    const isAfterStart = !start || recordDate >= start;
-                    const isBeforeEnd = !end || recordDate <= end;
-                    return isAfterStart && isBeforeEnd;
-                });
-            };
-
-            renderEvaluationsTable(filterRecords(myReviewedEvaluations), 'myReviewedEvaluationsTableBody', true);
-            renderEvaluationsTable(filterRecords(myCerScores), 'myCerScoresTableBody', false);
-        }
-        
-        /**
-         * Renders a specific evaluation table.
-         * @param {Array<Object>} records - The records to display.
-         * @param {string} tableBodyId - The ID of the tbody element.
-         * @param {boolean} isReviewedTable - Flag to differentiate between the two tables.
-         */
-        function renderEvaluationsTable(records, tableBodyId, isReviewedTable) {
-            const tableBody = document.getElementById(tableBodyId);
-            if (!tableBody) return;
+        function renderReviewedTable(records) {
+            const tableBody = document.getElementById('myReviewedEvaluationsTableBody');
             tableBody.innerHTML = '';
-            const colspan = isReviewedTable ? 8 : 9;
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="${colspan}" class="text-center py-4 text-gray-500">No evaluations found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4">No evaluations found.</td></tr>`;
                 return;
             }
-
-            // For deviation, sort records from oldest to newest (ascending)
-            const recordsForDisplay = [...records].sort((a, b) => (a.submittedAt?.toDate() || 0) - (b.submittedAt?.toDate() || 0));
-
-            recordsForDisplay.forEach((record, index) => {
+            records.forEach(record => {
                 const row = tableBody.insertRow();
-                let submittedDateFormatted = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleString() : 'N/A';
-                
-                let deviationCellHtml = '';
-                if (!isReviewedTable) {
-                    if (index > 0) {
-                        const previousRecord = recordsForDisplay[index - 1];
-                        const currentScore = parseFloat(record['Overall Score']) || 0;
-                        const previousScore = parseFloat(previousRecord['Overall Score']) || 0;
-                        const deviation = currentScore - previousScore;
-                        
-                        let colorClass = deviation > 0 ? 'text-green-600' : (deviation < 0 ? 'text-red-600' : 'text-gray-700');
-                        let sign = deviation > 0 ? '+' : '';
-                        deviationCellHtml = `<td class="${colorClass} font-bold">${sign}${deviation.toFixed(0)}%</td>`;
-                    } else {
-                        deviationCellHtml = `<td>N/A</td>`;
-                    }
-                }
-
                 row.innerHTML = `
-                    <td>${submittedDateFormatted}</td>
-                    <td>${record['Contact ID'] || ''}</td>
-                    <td>${record['Client Name'] || ''}</td>
-                    <td>${isReviewedTable ? (record['CER Name'] || 'N/A') : (record["Reviewer's Name"] || 'N/A')}</td>
-                    <td>${record['Overall Score'] || ''}</td>
-                    ${!isReviewedTable ? deviationCellHtml : ''}
-                    <td>${record['Evaluation Date'] || 'N/A'}</td>
-                    <td>${record['CER Role'] || 'N/A'}</td>
-                    <td class="whitespace-nowrap">
-                        <button class="view-record-btn" data-record-id="${record.id}">View</button>
-                    </td>
+                    <td>${record.submittedAt?.toDate().toLocaleString() || 'N/A'}</td>
+                    <td>${record['Contact ID'] || 'N/A'}</td>
+                    <td>${record['CER Name'] || 'N/A'}</td>
+                    <td>${record['Overall Score'] || 'N/A'}</td>
                 `;
             });
-            
-            // Re-attach event listeners
-            document.querySelectorAll(`#${tableBodyId} .view-record-btn`).forEach(button => {
-                button.addEventListener('click', (e) => viewRecordDetails(e.currentTarget.dataset.recordId));
+        }
+
+        function renderCerScoresTable(records) {
+            const tableBody = document.getElementById('myCerScoresTableBody');
+            tableBody.innerHTML = '';
+            if (records.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4">No scores found.</td></tr>`;
+                return;
+            }
+            const sortedRecords = records.sort((a, b) => (a.submittedAt?.toDate() || 0) - (b.submittedAt?.toDate() || 0));
+            sortedRecords.forEach((record, index) => {
+                const row = tableBody.insertRow();
+                let deviationHtml = '<td>N/A</td>';
+                if (index > 0) {
+                    const currentScore = parseFloat(record['Overall Score']) || 0;
+                    const prevScore = parseFloat(sortedRecords[index - 1]['Overall Score']) || 0;
+                    const deviation = currentScore - prevScore;
+                    const color = deviation > 0 ? 'text-green-600' : deviation < 0 ? 'text-red-600' : '';
+                    const sign = deviation > 0 ? '+' : '';
+                    deviationHtml = `<td class="${color}">${sign}${deviation.toFixed(1)}%</td>`;
+                }
+                row.innerHTML = `
+                    <td>${record.submittedAt?.toDate().toLocaleString() || 'N/A'}</td>
+                    <td>${record["Reviewer's Name"] || 'N/A'}</td>
+                    <td>${record['Overall Score'] || 'N/A'}</td>
+                    ${deviationHtml}
+                `;
+            });
+        }
+
+        function renderNpsAuditsTable(records) {
+            const tableBody = document.getElementById('npsAuditsTableBody');
+            tableBody.innerHTML = '';
+            if (records.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4">No NPS audits assigned.</td></tr>`;
+                return;
+            }
+            records.forEach(record => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${record.submittedAt?.toDate().toLocaleString() || 'N/A'}</td>
+                    <td>${record['Contact ID'] || 'N/A'}</td>
+                    <td>${record['Positive Feedback'] || 'N/A'}</td>
+                    <td>${record['Area of Improvement'] || 'N/A'}</td>
+                    <td>${record['NPS Rating'] || 'N/A'}</td>
+                    <td class="${record.Status === 'Completed' ? 'status-completed' : record.Status === 'Pending' ? 'status-pending' : 'status-overdue'}">${record.Status || 'Pending'}</td>
+                    <td><button class="bg-blue-500 text-white px-2 py-1 rounded text-xs" onclick="window.reviewNps('${record.id}')">Review</button></td>
+                `;
             });
         }
         
-        function viewRecordDetails(recordId) {
-            const record = [...myReviewedEvaluations, ...myCerScores].find(r => r.id === recordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found.", true);
-                return;
+        window.reviewNps = (recordId) => {
+            // This is where you would open your NPS evaluation modal.
+            // For now, it will just mark the record as "Completed".
+            if(confirm("Do you want to mark this NPS record as reviewed? This will change its status to Completed.")) {
+                const recordRef = doc(db, NPS_RECORDS_PATH, recordId);
+                updateDoc(recordRef, { Status: 'Completed' });
             }
-            let detailsHtml = '<pre class="text-left whitespace-pre-wrap">';
-            for (const key in record) {
-                let value = record[key];
-                if (key === 'submittedAt' && value?.toDate) {
-                    value = value.toDate().toLocaleString();
-                }
-                detailsHtml += `<strong>${key}:</strong> ${JSON.stringify(value, null, 2)}\n`;
-            }
-            detailsHtml += '</pre>';
-            showMessageBox('Record Details', detailsHtml);
+        };
+
+        function updateSummaryCards() {
+            // This function would be called after each data fetch to update the cards
         }
 
-        /**
-         * Renders the bar chart and the autofail analysis table.
-         * @param {Array<Object>} cerScores - Evaluations where user is the CER.
-         * @param {Array<Object>} reviewedScores - Evaluations where user is the Reviewer.
-         */
-        function renderChartsAndAutofailAnalysis(cerScores, reviewedScores) {
-            const monthlyScores = {};
-            const autofailCounts = {};
-
-            // Chart data is ONLY from scores where user was the CER
-            cerScores.forEach(record => {
-                const submittedDate = record.submittedAt?.toDate();
-                const score = parseFloat(record['Overall Score']) || 0;
-                if (submittedDate) {
-                    const monthKey = submittedDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-                    if (!monthlyScores[monthKey]) {
-                        monthlyScores[monthKey] = { totalScore: 0, count: 0 };
-                    }
-                    monthlyScores[monthKey].totalScore += score;
-                    monthlyScores[monthKey].count++;
-                }
-            });
-
-            // Autofail data is from ALL evaluations connected to the user
-            const allEvaluations = [...cerScores, ...reviewedScores];
-            const uniqueIds = new Set();
-            const uniqueEvaluations = allEvaluations.filter(el => {
-                const duplicate = uniqueIds.has(el.id);
-                uniqueIds.add(el.id);
-                return !duplicate;
-            });
-
-            uniqueEvaluations.forEach(record => {
-                const autofailType = record['Auto Fail Type'];
-                if (autofailType) {
-                    const submittedDate = record.submittedAt?.toDate();
-                    if (submittedDate) {
-                        const monthKey = submittedDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-                        if (!autofailCounts[monthKey]) {
-                            autofailCounts[monthKey] = {};
-                        }
-                        if (!autofailCounts[monthKey][autofailType]) {
-                            autofailCounts[monthKey][autofailType] = 0;
-                        }
-                        autofailCounts[monthKey][autofailType]++;
-                    }
-                }
-            });
-
-            const sortedMonths = Object.keys(monthlyScores).sort((a, b) => new Date(a) - new Date(b));
-            const averageScores = sortedMonths.map(month => (monthlyScores[month].totalScore / monthlyScores[month].count).toFixed(2));
-            
-            const chartCanvas = document.getElementById('averageScoreChart');
-            if (chartCanvas) {
-                if (Chart.getChart('averageScoreChart')) {
-                    Chart.getChart('averageScoreChart').destroy();
-                }
-                new Chart(chartCanvas, {
-                    type: 'bar',
-                    data: {
-                        labels: sortedMonths,
-                        datasets: [{
-                            label: 'Average Score',
-                            data: averageScores,
-                            backgroundColor: 'rgba(26, 115, 232, 0.6)',
-                            borderColor: 'rgba(26, 115, 232, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: { scales: { y: { beginAtZero: true, max: 100 } } }
-                });
-            }
-
-            const autofailTableBody = document.getElementById('autofailAnalysisTableBody');
-            if (autofailTableBody) {
-                autofailTableBody.innerHTML = '';
-                if (Object.keys(autofailCounts).length === 0) {
-                     autofailTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">No autofail records found.</td></tr>';
-                     return;
-                }
-                const sortedAutofailMonths = Object.keys(autofailCounts).sort((a, b) => new Date(a) - new Date(b));
-                sortedAutofailMonths.forEach(month => {
-                    for (const type in autofailCounts[month]) {
-                        const row = autofailTableBody.insertRow();
-                        row.innerHTML = `<td>${month}</td><td>${type}</td><td>${autofailCounts[month][type]}</td>`;
-                    }
-                });
-            }
-        }
-
-        // --- Auth State Listener ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user && !user.isAnonymous) {
-                currentUserId = user.uid;
-                const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-                try {
-                    const docSnap = await getDoc(userProfileDocRef);
-                    if (docSnap.exists()) {
-                        loggedInUserName = docSnap.data().name || user.email;
-                    } else {
-                        loggedInUserName = user.email || 'User';
-                    }
-                } catch (e) {
-                    loggedInUserName = user.email || 'User';
-                }
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                fetchData(user);
             } else {
-                loggedInUserName = null;
-            }
-            initializePage();
-        });
-
-        // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const applyFilterBtn = document.getElementById('applyFilterBtn');
-            if (applyFilterBtn) {
-                applyFilterBtn.addEventListener('click', () => {
-                    startDate = document.getElementById('startDate').value;
-                    endDate = document.getElementById('endDate').value;
-                    renderFilteredTables();
-                });
-            }
-
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', async () => {
-                    if (unsubscribeReviewed) unsubscribeReviewed();
-                    if (unsubscribeCer) unsubscribeCer();
-                    await signOut(auth);
-                    window.location.href = 'index.html';
-                });
+                window.location.href = 'index.html';
             }
         });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
     </script>
 </body>
 </html>
