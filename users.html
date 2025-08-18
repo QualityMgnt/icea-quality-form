@@ -144,6 +144,28 @@
         <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
     </header>
 
+    <div id="editUserModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Edit User</h2>
+            <input type="hidden" id="edit-user-uid">
+            <div class="mb-4">
+                <label for="edit-user-name" class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" id="edit-user-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+            <div class="mb-4">
+                <label for="edit-user-email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="edit-user-email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+            <div class="flex justify-between items-center mt-6">
+                <button id="resetPasswordBtn" class="bg-yellow-500 text-white px-4 py-2 rounded">Reset Password</button>
+                <div>
+                    <button id="cancelEditBtn" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                    <button id="saveUserChangesBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
             <ul id="sidebar-menu">
@@ -153,8 +175,8 @@
                 <li><a href="Dashboard.html"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
                 <li><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
                 <li><a href="images.html"><i class="fas fa-image"></i> Images</a></li>
-                <li><a href="users.html"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="admin.html" class="active"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li><a href="users.html" class="active"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
@@ -169,6 +191,24 @@
             <div class="admin-container">
                 <h1 class="text-3xl font-bold mb-6 text-gray-800">User Management</h1>
                 
+                <div class="admin-section">
+                    <h2>Manage Users</h2>
+                    <div class="overflow-x-auto">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="admin-section">
                     <h2>Manage Profiles & Permissions</h2>
                     <div class="flex items-end gap-4 mb-4">
@@ -189,22 +229,6 @@
                     </div>
                 </div>
 
-                <div class="admin-section">
-                    <h2>Assign Roles to Users</h2>
-                    <div class="overflow-x-auto">
-                        <table class="user-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                </tr>
-                            </thead>
-                            <tbody id="userRolesTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-
             </div>
         </div>
 
@@ -216,7 +240,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -258,6 +282,112 @@
             } catch (error) {
                 console.error("Error checking admin role:", error);
                 return false;
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tableBody = document.getElementById('userTableBody');
+            tableBody.innerHTML = '';
+            users.forEach(user => {
+                const row = tableBody.insertRow();
+                let roleOptions = Object.keys(allRoles).map(role => `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`).join('');
+                
+                row.innerHTML = `
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>
+                        <select class="role-select border rounded p-1" data-uid="${user.uid}">
+                            ${roleOptions}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="status-select border rounded p-1" data-uid="${user.uid}">
+                            <option value="active" ${!user.disabled ? 'selected' : ''}>Active</option>
+                            <option value="deactivated" ${user.disabled ? 'selected' : ''}>Deactivated</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="bg-blue-500 text-white px-2 py-1 rounded text-sm edit-btn" data-uid="${user.uid}">Edit</button>
+                    </td>
+                `;
+            });
+
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const user = users.find(u => u.uid === e.target.dataset.uid);
+                    openEditModal(user);
+                });
+            });
+            document.querySelectorAll('.role-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const uid = e.target.dataset.uid;
+                    const newRole = e.target.value;
+                    updateUserRole(uid, newRole);
+                });
+            });
+            document.querySelectorAll('.status-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const uid = e.target.dataset.uid;
+                    const isDisabled = e.target.value === 'deactivated';
+                    updateUserStatus(uid, isDisabled);
+                });
+            });
+        }
+        
+        function openEditModal(user) {
+            document.getElementById('edit-user-uid').value = user.uid;
+            document.getElementById('edit-user-name').value = user.name;
+            document.getElementById('edit-user-email').value = user.email;
+            document.getElementById('editUserModal').classList.remove('hidden');
+            document.getElementById('editUserModal').classList.add('flex');
+        }
+
+        async function saveUserChanges() {
+            const uid = document.getElementById('edit-user-uid').value;
+            const name = document.getElementById('edit-user-name').value;
+            const email = document.getElementById('edit-user-email').value;
+            
+            const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
+            try {
+                await updateDoc(userDocRef, { name, email });
+                alert('User details updated in Firestore!');
+                document.getElementById('editUserModal').classList.add('hidden');
+            } catch (error) {
+                console.error("Error updating user:", error);
+                alert('Failed to update user details.');
+            }
+        }
+
+        async function resetPassword() {
+            const email = document.getElementById('edit-user-email').value;
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert(`Password reset email sent to ${email}`);
+            } catch (error) {
+                console.error("Error sending password reset email:", error);
+                alert('Failed to send password reset email.');
+            }
+        }
+
+        async function updateUserStatus(uid, isDisabled) {
+            const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
+            try {
+                await updateDoc(userDocRef, { disabled: isDisabled });
+                alert(`User status updated to ${isDisabled ? 'Deactivated' : 'Active'}.`);
+            } catch (error) {
+                console.error("Error updating user status:", error);
+                alert('Failed to update user status.');
+            }
+        }
+
+        async function updateUserRole(uid, newRole) {
+            const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
+            try {
+                await updateDoc(userDocRef, { role: newRole });
+                alert('User role updated successfully!');
+            } catch (error) {
+                console.error("Error updating user role:", error);
+                alert('Failed to update user role.');
             }
         }
 
@@ -309,40 +439,7 @@
                 alert('Failed to save permissions.');
             }
         }
-
-        function renderUsersTable(users) {
-            const tableBody = document.getElementById('userRolesTableBody');
-            tableBody.innerHTML = '';
-            users.forEach(user => {
-                const row = tableBody.insertRow();
-                let roleOptions = Object.keys(allRoles).map(role => `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`).join('');
-                
-                row.innerHTML = `
-                    <td>${user.name}</td>
-                    <td>${user.email}</td>
-                    <td>
-                        <select class="role-select border rounded p-1" data-uid="${user.uid}">
-                            ${roleOptions}
-                        </select>
-                    </td>
-                `;
-            });
-
-            document.querySelectorAll('.role-select').forEach(select => {
-                select.addEventListener('change', async (e) => {
-                    const uid = e.target.dataset.uid;
-                    const newRole = e.target.value;
-                    try {
-                        await updateDoc(doc(db, USERS_PROFILE_COLLECTION_PATH, uid), { role: newRole });
-                        alert('User role updated!');
-                    } catch (error) {
-                        console.error("Error updating user role:", error);
-                        alert('Failed to update role.');
-                    }
-                });
-            });
-        }
-
+        
         async function createNewProfile() {
             const newProfileName = document.getElementById('newProfileName').value.trim();
             if (!newProfileName) {
@@ -406,6 +503,12 @@
         document.getElementById('saveProfilePermissionsBtn').addEventListener('click', saveProfilePermissions);
         document.getElementById('createProfileBtn').addEventListener('click', createNewProfile);
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        document.getElementById('saveUserChangesBtn').addEventListener('click', saveUserChanges);
+        document.getElementById('cancelEditBtn').addEventListener('click', () => {
+            document.getElementById('editUserModal').classList.add('hidden');
+        });
+        document.getElementById('resetPasswordBtn').addEventListener('click', resetPassword);
+
     </script>
 </body>
 </html>
