@@ -8,15 +8,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Base styles */
         body {
             font-family: 'Garamond', serif;
-            margin: 0;
-            padding: 0;
             background-color: #f3f4f6;
-            display: flex;
-            align-items: flex-start;
-            min-height: 100vh;
+            color: #1f2937;
+            margin: 0;
+        }
+        .main-content {
+            margin-left: 125px;
+            margin-top: 48px;
+            width: calc(100% - 125px);
+            padding: 1.5rem;
         }
         .top-header {
             position: fixed;
@@ -24,7 +26,7 @@
             left: 0;
             width: 100%;
             height: 48px;
-            background-color: #000080;
+            background-color: #000080; /* Navy Blue */
             color: white;
             display: flex;
             align-items: center;
@@ -35,13 +37,13 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             padding: 0 1rem;
         }
-        .top-header .logo {
+        .top-header img {
             height: 40px;
             width: auto;
         }
         .main-nav {
             width: 125px;
-            background-color: #000080;
+            background-color: #000080; /* Navy Blue */
             color: white;
             padding: 1rem 0;
             height: calc(100vh - 48px);
@@ -54,34 +56,24 @@
             flex-direction: column;
             justify-content: space-between;
         }
-        .sidebar ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            flex-grow: 1;
-        }
+        .sidebar ul { list-style: none; margin: 0; padding: 0; flex-grow: 1; }
         .sidebar ul li a {
             font-family: 'Garamond', serif;
             color: white;
             text-decoration: none;
             font-weight: 500;
             padding: 0.75rem 0.5rem;
-            display: block;
-            border-radius: 0;
-            transition: background-color 0.3s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0.25rem;
             font-size: 0.75rem;
             text-align: center;
+            transition: background-color: 0.3s ease;
         }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #000050;
-        }
-        .sidebar ul li.nav-tab {
-            display: none; /* Hide all tabs by default, JavaScript will show them */
+            background-color: #000050; /* Darker Navy */
         }
         .logout-button {
             background-color: #f57c00;
@@ -91,563 +83,243 @@
             font-weight: 600;
             cursor: pointer;
             border: none;
-            transition: background-color 0.3s ease;
+            transition: background-color: 0.3s ease;
             margin: 1rem auto;
             width: calc(100% - 2rem);
             font-size: 0.75rem;
         }
-        .logout-button:hover {
-            background-color: #e65100;
-        }
-        .main-content {
-            margin-left: 125px;
-            margin-top: 48px;
-            width: calc(100% - 125px);
-            padding: 1.5rem;
-            min-height: calc(100vh - 48px);
-            box-sizing: border-box;
-            background-color: #f3f4f6;
-        }
+        .logout-button:hover { background-color: #e65100; }
         .users-container {
             background-color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
             border-radius: 0.5rem;
-            overflow: hidden;
-            max-width: 1200px;
-            margin: 0 auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .login-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(243, 244, 246, 0.95);
-            z-index: 1000;
+        .hidden { display: none !important; }
+        .admin-section {
+            margin-bottom: 2rem;
         }
-        .error-message, .success-message {
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            text-align: center;
+        .admin-section h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #000080;
         }
-        .error-message { color: #dc2626; }
-        .success-message { color: #10b981; }
         .user-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1rem;
         }
         .user-table th, .user-table td {
             border: 1px solid #e5e7eb;
             padding: 0.75rem;
             text-align: left;
-            font-size: 0.875rem;
+            vertical-align: top;
         }
         .user-table th {
             background-color: #eff6ff;
-            font-weight: 600;
-            color: #1f2937;
         }
-        .user-table tbody tr:nth-child(even) { background-color: #f9fafb; }
-        .user-table tbody tr:hover { background-color: #f3f4f6; }
-        .user-table .action-btn {
-            padding: 0.3rem 0.6rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-            margin-right: 0.25rem;
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 0.5rem;
         }
-        .user-table .delete-btn {
-            background-color: #EF4444;
-            color: white;
-        }
-        .user-table .delete-btn:hover {
-            background-color: #DC2626;
-        }
-        .user-table .deactivate-btn {
-            background-color: #9ca3af;
-            color: white;
-        }
-        .user-table .deactivate-btn:hover {
-            background-color: #6b7280;
-        }
-        .user-table .activate-btn {
-            background-color: #10b981;
-            color: white;
-        }
-        .user-table .activate-btn:hover {
-            background-color: #059669;
-        }
-        .hidden {
-            display: none !important;
-        }
-        .message-box-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+        .permission-item {
             display: flex;
-            justify-content: center;
             align-items: center;
-            z-index: 1000;
+            gap: 0.5rem;
         }
-        .message-box {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #1a73e8;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .permission-item select {
+            font-size: 0.75rem;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
         }
     </style>
 </head>
 <body>
-    <div id="messageBoxOverlay" class="message-box-overlay hidden">
-        <div class="message-box">
-            <div id="messageBoxSpinner" class="spinner hidden mx-auto mb-4"></div>
-            <h3 id="messageBoxTitle" class="text-xl font-semibold mb-4 text-center"></h3>
-            <p id="messageBoxContent" class="text-gray-700 mb-4 text-center"></p>
-            <div class="flex justify-center space-x-2">
-                <button id="messageBoxCloseBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Close</button>
-            </div>
-        </div>
-    </div>
-    
     <header class="top-header">
         <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
-        <img id="header-logo" src="https://placehold.co/40x40/e5e7eb/6b7280?text=Logo" alt="Company Logo" class="logo">
+        <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
     </header>
 
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
             <ul id="sidebar-menu">
-                <li class="nav-tab" data-role="all"><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li class="nav-tab" data-role="admin"><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
-                <li class="nav-tab" data-role="all"><a href="myEvaluations.html"><i class="fas fa-user-check"></i> My Evaluations</a></li>
-                <li class="nav-tab" data-role="admin"><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                <li class="nav-tab" data-role="admin"><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li class="nav-tab" data-role="all"><a href="images.html"><i class="fas fa-image"></i> Images</a></li>
-                <li class="nav-tab" data-role="admin"><a href="users.html" class="active"><i class="fas fa-users"></i> Users</a></li>
-                <li class="nav-tab" data-role="admin"><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="myEvaluations.html"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="Dashboard.html"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="images.html"><i class="fas fa-image"></i> Images</a></li>
+                <li><a href="users.html" class="active"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
     </nav>
 
-    <!-- Main Content Area - Initially Hidden to allow for auth checks -->
-    <div class="main-content" id="mainContent">
-        <div id="loadingMessage" class="text-center py-12 text-lg text-gray-500">
-            <div class="spinner mx-auto mb-4"></div>
-            Verifying your access...
-        </div>
-        <div id="permissionDeniedMessage" class="hidden text-center py-12 text-lg text-red-500">
-            <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
-            <p>Access denied. This page is for administrators only.</p>
+    <div class="main-content">
+        <div id="loadingMessage" class="text-center py-12 text-lg text-gray-600">
+            Verifying admin access...
         </div>
 
-        <div class="users-container hidden" id="adminContent">
-            <div class="icealion-blue p-4 text-xl font-semibold text-center">
-                User Management
-            </div>
-            <div class="p-6">
-                <p class="text-gray-700 mb-4">
-                    This section allows administrators to manage user accounts and their roles within the system.
-                </p>
+        <div id="adminContent" class="hidden">
+            <div class="users-container">
+                <h1 class="text-3xl font-bold mb-6 text-gray-800">User Management</h1>
                 
-                <div id="admin-tools">
-                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">Add New User</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                            <label for="new-user-name" class="block text-sm font-medium text-gray-700">Name</label>
-                            <input type="text" id="new-user-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="John Doe">
-                        </div>
-                        <div>
-                            <label for="new-user-email" class="block text-sm font-medium text-gray-700">Email</label>
-                            <input type="email" id="new-user-email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="user@example.com">
-                        </div>
-                        <div>
-                            <label for="new-user-password" class="block text-sm font-medium text-gray-700">Initial Password</label>
-                            <input type="password" id="new-user-password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border" placeholder="••••••••">
-                        </div>
-                        <div>
-                            <label for="new-user-role" class="block text-sm font-medium text-gray-700">Role</label>
-                            <select id="new-user-role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border">
-                                <option value="">Select Role</option>
-                                <option value="agent">Agent</option>
-                                <option value="supervisor">Supervisor</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
+                <div class="admin-section">
+                    <h2>Manage Users & Permissions</h2>
+                    <div class="overflow-x-auto">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Tab Permissions</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                <!-- User rows will be inserted here -->
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="flex justify-end mt-4">
-                        <button id="addUserBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
-                            <i class="fas fa-user-plus mr-2"></i>Add User
-                        </button>
-                    </div>
-                    <div id="userMessage" class="error-message mt-4 hidden"></div>
                 </div>
 
-                <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Manage Existing Users</h3>
-                <div class="overflow-x-auto">
-                    <table class="user-table min-w-full">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Name</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Email</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Role</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Status</th>
-                                <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600" id="actions-header">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody">
-                            <tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
+        </div>
+
+        <div id="accessDeniedMessage" class="hidden text-center py-12">
+            <h1 class="text-3xl font-bold text-red-600">Access Denied</h1>
+            <p class="text-lg text-gray-700 mt-4">You do not have permission to view this page.</p>
         </div>
     </div>
-    
+
     <script type="module">
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signOut, signInAnonymously, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, deleteDoc, setDoc, updateDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        
-        // --- Firebase Configuration ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
         const firebaseConfig = {
-          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-          authDomain: "icea-lion-qa.firebaseapp.com",
-          projectId: "icea-lion-qa",
-          storageBucket: "icea-lion-qa.firebasestorage.app",
-          messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b667faf811",
-          measurementId: "G-1RJJTT3QET"
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
         };
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
-        let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
-            appInstance = getApp();
-        }
-        const auth = getAuth(appInstance);
-        const db = getFirestore(appInstance);
-        
-        // --- UI Elements ---
-        const mainContent = document.getElementById('mainContent');
-        const usersContainer = document.getElementById('adminContent');
-        const loadingMessage = document.getElementById('loadingMessage');
-        const permissionDeniedMessage = document.getElementById('permissionDeniedMessage');
-        const mainNav = document.getElementById('mainNav');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const userTableBody = document.getElementById('userTableBody');
-        const newNameInput = document.getElementById('new-user-name');
-        const newEmailInput = document.getElementById('new-user-email');
-        const newPasswordInput = document.getElementById('new-user-password');
-        const newUserRoleSelect = document.getElementById('new-user-role');
-        const addUserBtn = document.getElementById('addUserBtn');
-        const userMessage = document.getElementById('userMessage');
-        const adminToolsSection = document.getElementById('admin-tools');
-        const actionsHeader = document.getElementById('actions-header');
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        let currentUserRole = null;
-        let unsubscribeUsers = null;
-        
-        // Helper to display a custom message box
-        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
-            const messageBoxTitle = document.getElementById('messageBoxTitle');
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            
-            messageBoxTitle.textContent = title;
-            messageBoxContent.textContent = message;
-            messageBoxOverlay.classList.remove('hidden');
-            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
-            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
-            if (isError) {
-                messageBoxTitle.style.color = '#dc2626';
-            } else {
-                messageBoxTitle.style.color = '#1a73e8';
-            }
+        const TABS = [
+            { id: 'evaluationForm', label: 'Evaluation Form' },
+            { id: 'myEvaluations', label: 'My Evaluations' },
+            { id: 'database', label: 'Database' },
+            { id: 'dashboard', label: 'Dashboard' },
+            { id: 'autofails', label: 'Autofails' },
+            { id: 'images', label: 'Images' },
+            { id: 'users', label: 'Users' },
+            { id: 'admin', label: 'Admin' }
+        ];
 
-            messageBoxCloseBtn.onclick = null;
-            if (showCloseButton) {
-                messageBoxCloseBtn.onclick = () => {
-                    messageBoxOverlay.classList.add('hidden');
-                    if (onClose) onClose();
-                };
+        async function checkAdminRole(user) {
+            if (!user) return false;
+            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+            try {
+                const docSnap = await getDoc(userProfileDocRef);
+                return docSnap.exists() && docSnap.data().role === 'Admin';
+            } catch (error) {
+                console.error("Error checking admin role:", error);
+                return false;
             }
         }
-        function hideMessageBox() {
-            document.getElementById('messageBoxOverlay').classList.add('hidden');
-        }
 
-        async function fetchAndRenderUsers() {
-            userTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">Loading users...</td></tr>';
-            
-            if (currentUserRole !== 'admin') {
-                return; // Do not fetch or render for non-admins. The permission denied message is already handled.
-            }
-            
-            if (unsubscribeUsers) unsubscribeUsers();
-
-            const usersCollectionRef = collection(db, `artifacts/${appId}/users`);
-            unsubscribeUsers = onSnapshot(usersCollectionRef, (snapshot) => {
-                const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-                
-                userTableBody.innerHTML = '';
-                if (users.length === 0) {
-                    userTableBody.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No users found.</td></tr>';
-                    return;
-                }
-                users.forEach(user => {
-                    const row = userTableBody.insertRow();
-                    row.className = 'border-b border-gray-200';
-                    const statusText = user.isActive === false ? 'Deactivated' : 'Active';
-                    const statusClass = user.isActive === false ? 'text-red-500' : 'text-green-500';
-                    
-                    const actionCell = document.createElement('td');
-                    actionCell.className = 'py-2 px-4';
-                    
-                    if (currentUserRole === 'admin') {
-                        const actionButton = user.isActive === false
-                            ? `<button class="action-btn activate-btn" onclick="window.toggleUserStatus('${user.uid}', true)">Activate</button>`
-                            : `<button class="action-btn deactivate-btn" onclick="window.toggleUserStatus('${user.uid}', false)">Deactivate</button>`;
-                        actionCell.innerHTML = `
-                            ${actionButton}
-                            <button class="action-btn delete-btn" onclick="window.deleteUser('${user.uid}', '${user.email}')">Delete</button>
-                        `;
-                    }
-                    
-                    row.innerHTML = `
-                        <td class="py-2 px-4">${user.name || 'N/A'}</td>
-                        <td class="py-2 px-4">${user.email || 'N/A'}</td>
-                        <td class="py-2 px-4">${user.role || 'N/A'}</td>
-                        <td class="py-2 px-4"><span class="${statusClass}">${statusText}</span></td>
-                    `;
-                    row.appendChild(actionCell);
-
-                    if (currentUserRole === 'admin') {
-                        actionCell.style.display = 'table-cell';
-                    } else {
-                        actionCell.style.display = 'none';
-                    }
-                });
-            }, (error) => {
-                console.error("Error fetching users:", error);
-                userTableBody.innerHTML = `<tr><td colspan="5" class="py-4 px-4 text-center text-red-500">Failed to load users: ${error.message}</td></tr>`;
-                showMessageBox("Error", `Failed to load users: ${error.message}`, true, false, true);
-            });
-        }
-        
-        window.deleteUser = async function(uid, email) {
-            if (currentUserRole !== 'admin') {
-                showMessageBox("Permission Denied", "Only admins can delete users.", true, false, true);
-                return;
-            }
-
-            const confirmed = await new Promise(resolve => {
-                const modal = document.createElement('div');
-                modal.className = 'message-box-overlay';
-                modal.innerHTML = `
-                    <div class="message-box">
-                        <h3 class="text-xl font-semibold mb-4 text-center">Confirm Deletion</h3>
-                        <p class="text-gray-700 mb-4 text-center">Are you sure you want to delete user <b>${email}</b>?</p>
-                        <div class="flex justify-center space-x-2">
-                            <button id="confirmDeleteBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Delete</button>
-                            <button id="cancelDeleteBtn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md shadow-md">Cancel</button>
+        function renderUsersTable(users) {
+            const tableBody = document.getElementById('userTableBody');
+            tableBody.innerHTML = '';
+            users.forEach(user => {
+                const row = tableBody.insertRow();
+                let permissionsHtml = '<div class="permissions-grid">';
+                TABS.forEach(tab => {
+                    const currentPermission = user.permissions?.[tab.id] || 'none';
+                    permissionsHtml += `
+                        <div class="permission-item">
+                            <input type="checkbox" id="${user.uid}-${tab.id}-enabled" ${currentPermission !== 'none' ? 'checked' : ''}>
+                            <label for="${user.uid}-${tab.id}-enabled" class="text-sm">${tab.label}</label>
+                            <select id="${user.uid}-${tab.id}-level" class="text-xs p-1 border rounded">
+                                <option value="view" ${currentPermission === 'view' ? 'selected' : ''}>View</option>
+                                <option value="read-write" ${currentPermission === 'read-write' ? 'selected' : ''}>Read & Write</option>
+                            </select>
                         </div>
-                    </div>
+                    `;
+                });
+                permissionsHtml += '</div>';
+
+                row.innerHTML = `
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${user.role}</td>
+                    <td>${permissionsHtml}</td>
+                    <td><button class="bg-blue-500 text-white px-2 py-1 rounded text-sm" onclick="window.savePermissions('${user.uid}')">Save</button></td>
                 `;
-                document.body.appendChild(modal);
-                document.getElementById('confirmDeleteBtn').onclick = () => { modal.remove(); resolve(true); };
-                document.getElementById('cancelDeleteBtn').onclick = () => { modal.remove(); resolve(false); };
-            });
-
-            if (!confirmed) return;
-            
-            showMessageBox("Deleting User", `Deleting user ${email}...`, false, true, false);
-            try {
-                // IMPORTANT: This only deletes the Firestore profile. Auth user needs a Cloud Function to be deleted.
-                const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
-                await deleteDoc(userDocRef);
-                
-                hideMessageBox();
-                showMessageBox("Success", `User '${email}' deleted successfully! (Note: Auth account still exists)`, false, false, true);
-            } catch (error) {
-                hideMessageBox();
-                console.error("Error deleting user:", error);
-                showMessageBox("Error", `Failed to delete user: ${error.message}`, true, false, true);
-            }
-        };
-
-        window.toggleUserStatus = async function(uid, isActive) {
-            if (currentUserRole !== 'admin') {
-                showMessageBox("Permission Denied", "Only admins can change user status.", true, false, true);
-                return;
-            }
-            
-            const action = isActive ? 'Activating' : 'Deactivating';
-            const message = isActive ? `Activating user with UID: ${uid}` : `Deactivating user with UID: ${uid}`;
-            showMessageBox(action, message, false, true, false);
-            
-            try {
-                const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
-                await updateDoc(userDocRef, {
-                    isActive: isActive
-                });
-                hideMessageBox();
-                showMessageBox("Success", `User status updated successfully!`, false, false, true);
-            } catch (error) {
-                hideMessageBox();
-                console.error("Error toggling user status:", error);
-                showMessageBox("Error", `Failed to update user status: ${error.message}`, true, false, true);
-            }
-        };
-        
-        async function createNewUser() {
-            if (currentUserRole !== 'admin') {
-                showMessageBox("Permission Denied", "Only admins can add new users.", true, false, true);
-                return;
-            }
-
-            userMessage.textContent = '';
-            userMessage.classList.add('hidden');
-            
-            const name = newNameInput.value.trim();
-            const email = newEmailInput.value.trim();
-            const password = newPasswordInput.value.trim();
-            const role = newUserRoleSelect.value;
-            
-            if (!name || !email || !password || !role) {
-                showMessageBox("Error", "Please fill in all fields (Name, Email, Password, Role).", true, false, true);
-                return;
-            }
-            
-            showMessageBox("Adding User", "Creating user...", false, true, false);
-            
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const uid = userCredential.user.uid;
-                
-                await updateProfile(userCredential.user, {
-                    displayName: name
-                });
-
-                const userDocRef = doc(db, `artifacts/${appId}/users`, uid);
-                await setDoc(userDocRef, {
-                    name: name,
-                    email: email,
-                    role: role,
-                    isActive: true,
-                    createdAt: new Date()
-                });
-                
-                hideMessageBox();
-                showMessageBox("Success", `User '${email}' created with role '${role}'.`, false, false, true);
-                newNameInput.value = '';
-                newEmailInput.value = '';
-                newPasswordInput.value = '';
-                newUserRoleSelect.value = '';
-            } catch (error) {
-                hideMessageBox();
-                console.error("Error creating user:", error);
-                let errorMessage = 'Failed to create user. Please try again.';
-                if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'An account with this email already exists.';
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = 'Password is too weak. Must be at least 6 characters.';
-                }
-                showMessageBox("Error", errorMessage, true, false, true);
-            }
-        }
-        
-        const renderNavigationForRole = (role) => {
-            const allNavTabs = document.querySelectorAll('.nav-tab');
-            allNavTabs.forEach(tab => {
-                const requiredRole = tab.dataset.role;
-                if (requiredRole === 'all' || requiredRole === role) {
-                    tab.style.display = 'block';
-                } else {
-                    tab.style.display = 'none';
-                }
             });
         }
-        
-        const initializePage = (user) => {
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
-            
-            const userProfileDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
-            getDoc(userProfileDocRef).then(docSnap => {
-                currentUserRole = docSnap.exists() ? docSnap.data().role : 'guest';
-                
-                if (currentUserRole === 'admin') {
-                    document.getElementById('mainContent').classList.remove('hidden');
-                    document.getElementById('adminContent').classList.remove('hidden');
-                    document.getElementById('loadingMessage').classList.add('hidden');
-                    document.getElementById('permissionDeniedMessage').classList.add('hidden');
-                    document.getElementById('mainNav').style.display = 'block';
-                    fetchAndRenderUsers();
-                } else {
-                    document.getElementById('mainContent').classList.remove('hidden');
-                    document.getElementById('loadingMessage').classList.add('hidden');
-                    document.getElementById('permissionDeniedMessage').classList.remove('hidden');
-                    document.getElementById('adminContent').classList.add('hidden');
-                }
-                renderNavigationForRole(currentUserRole);
 
-            }).catch(error => {
-                console.error("Error fetching user role:", error);
-                window.location.href = 'index.html';
+        window.savePermissions = async (uid) => {
+            const permissions = {};
+            TABS.forEach(tab => {
+                const isEnabled = document.getElementById(`${uid}-${tab.id}-enabled`).checked;
+                if (isEnabled) {
+                    permissions[tab.id] = document.getElementById(`${uid}-${tab.id}-level`).value;
+                } else {
+                    permissions[tab.id] = 'none'; // 'none' for not visible
+                }
             });
+
+            try {
+                const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
+                await updateDoc(userDocRef, { permissions });
+                alert('Permissions updated successfully!');
+            } catch (error) {
+                console.error("Error updating permissions:", error);
+                alert('Failed to update permissions.');
+            }
         };
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check auth state on page load
-            const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-                authUnsubscribe();
-                if (user) {
-                    initializePage(user);
-                } else {
-                    // No user logged in, handle redirect
-                    window.location.href = 'index.html';
-                }
-            });
-
-            logoutBtn.addEventListener('click', async () => {
-                if (unsubscribeUsers) unsubscribeUsers();
-                await signOut(auth);
-                window.location.href = 'index.html';
-            });
+        function showAdminContent() {
+            document.getElementById('loadingMessage').classList.add('hidden');
+            document.getElementById('adminContent').classList.remove('hidden');
             
-            addUserBtn.addEventListener('click', createNewUser);
+            onSnapshot(collection(db, USERS_PROFILE_COLLECTION_PATH), (snapshot) => {
+                const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+                renderUsersTable(users);
+            });
+        }
+
+        function showAccessDenied() {
+            document.getElementById('loadingMessage').classList.add('hidden');
+            document.getElementById('accessDeniedMessage').classList.remove('hidden');
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const isAdmin = await checkAdminRole(user);
+                if (isAdmin) {
+                    showAdminContent();
+                } else {
+                    showAccessDenied();
+                }
+            } else {
+                window.location.href = 'index.html';
+            }
         });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
     </script>
 </body>
 </html>
