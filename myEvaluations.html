@@ -157,12 +157,33 @@
         .score-high { color: #16a34a; font-weight: bold; }
         .score-medium { color: #f59e0b; font-weight: bold; }
         .score-low { color: #dc2626; font-weight: bold; }
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <header class="top-header">
         <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
-        <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
+        <div class="flex items-center gap-4">
+            <div id="notificationBell" class="relative cursor-pointer">
+                <i class="fas fa-bell text-xl"></i>
+                <span id="notificationBadge" class="notification-badge hidden">0</span>
+            </div>
+            <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
+        </div>
     </header>
 
     <nav class="main-nav" id="mainNav">
@@ -350,6 +371,7 @@
         let allRolesQuestions = {};
         let allMyReviewedEvals = [], allMyCerScores = [], allMyNpsAudits = [];
         let performanceChart = null;
+        let unsubscribeNotifications = null;
 
         async function fetchData(user) {
             const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
@@ -390,6 +412,7 @@
                 applyFilters();
             });
 
+            setupNotificationListener();
             document.getElementById('loadingMessage').classList.add('hidden');
             document.getElementById('myEvaluationsContent').classList.remove('hidden');
         }
@@ -596,6 +619,24 @@
             }
         }
 
+        function setupNotificationListener() {
+            if(unsubscribeNotifications) unsubscribeNotifications();
+            const q = query(collection(db, EVALUATION_RECORDS_PATH), where("CER Name", "==", loggedInUserName));
+            unsubscribeNotifications = onSnapshot(q, (snapshot) => {
+                updateNotificationBell(snapshot.size);
+            });
+        }
+
+        function updateNotificationBell(count) {
+            const badge = document.getElementById('notificationBadge');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 fetchData(user);
@@ -612,6 +653,9 @@
             applyFilters();
         });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        document.getElementById('notificationBell').addEventListener('click', () => {
+            updateNotificationBell(0);
+        });
     </script>
 </body>
 </html>
