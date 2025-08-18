@@ -89,7 +89,7 @@
             font-size: 0.75rem;
         }
         .logout-button:hover { background-color: #e65100; }
-        .users-container {
+        .admin-container {
             background-color: white;
             padding: 1.5rem;
             border-radius: 0.5rem;
@@ -141,6 +141,28 @@
         <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
     </header>
 
+    <div id="editUserModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Edit User</h2>
+            <input type="hidden" id="edit-user-uid">
+            <div class="mb-4">
+                <label for="edit-user-name" class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" id="edit-user-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+            <div class="mb-4">
+                <label for="edit-user-email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="edit-user-email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+            <div class="flex justify-between items-center mt-6">
+                <button id="resetPasswordBtn" class="bg-yellow-500 text-white px-4 py-2 rounded">Reset Password</button>
+                <div>
+                    <button id="cancelEditBtn" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                    <button id="saveUserChangesBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
             <ul id="sidebar-menu">
@@ -163,7 +185,7 @@
         </div>
 
         <div id="adminContent" class="hidden">
-            <div class="users-container">
+            <div class="admin-container">
                 <h1 class="text-3xl font-bold mb-6 text-gray-800">User Management</h1>
                 
                 <div class="admin-section">
@@ -175,6 +197,7 @@
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Role</th>
+                                    <th>Status</th>
                                     <th>Tab Permissions</th>
                                     <th>Actions</th>
                                 </tr>
@@ -197,7 +220,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -249,9 +272,9 @@
                     const currentPermission = user.permissions?.[tab.id] || 'none';
                     permissionsHtml += `
                         <div class="permission-item">
-                            <input type="checkbox" id="${user.uid}-${tab.id}-enabled" ${currentPermission !== 'none' ? 'checked' : ''}>
-                            <label for="${user.uid}-${tab.id}-enabled" class="text-sm">${tab.label}</label>
+                            <label for="${user.uid}-${tab.id}-level" class="text-sm">${tab.label}</label>
                             <select id="${user.uid}-${tab.id}-level" class="text-xs p-1 border rounded">
+                                <option value="none" ${currentPermission === 'none' ? 'selected' : ''}>Not Visible</option>
                                 <option value="view" ${currentPermission === 'view' ? 'selected' : ''}>View</option>
                                 <option value="read-write" ${currentPermission === 'read-write' ? 'selected' : ''}>Read & Write</option>
                             </select>
@@ -264,21 +287,72 @@
                     <td>${user.name}</td>
                     <td>${user.email}</td>
                     <td>${user.role}</td>
+                    <td>
+                        <select class="status-select border rounded p-1" data-uid="${user.uid}">
+                            <option value="active" ${!user.disabled ? 'selected' : ''}>Active</option>
+                            <option value="deactivated" ${user.disabled ? 'selected' : ''}>Deactivated</option>
+                        </select>
+                    </td>
                     <td>${permissionsHtml}</td>
-                    <td><button class="bg-blue-500 text-white px-2 py-1 rounded text-sm" onclick="window.savePermissions('${user.uid}')">Save</button></td>
+                    <td>
+                        <button class="bg-blue-500 text-white px-2 py-1 rounded text-sm edit-btn" data-uid="${user.uid}">Edit</button>
+                        <button class="bg-green-500 text-white px-2 py-1 rounded text-sm save-permissions-btn" data-uid="${user.uid}">Save</button>
+                    </td>
                 `;
             });
+
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const user = users.find(u => u.uid === e.target.dataset.uid);
+                    openEditModal(user);
+                });
+            });
+            document.querySelectorAll('.save-permissions-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => savePermissions(e.target.dataset.uid));
+            });
+        }
+
+        function openEditModal(user) {
+            document.getElementById('edit-user-uid').value = user.uid;
+            document.getElementById('edit-user-name').value = user.name;
+            document.getElementById('edit-user-email').value = user.email;
+            document.getElementById('editUserModal').classList.remove('hidden');
+            document.getElementById('editUserModal').classList.add('flex');
+        }
+
+        async function saveUserChanges() {
+            const uid = document.getElementById('edit-user-uid').value;
+            const name = document.getElementById('edit-user-name').value;
+            const email = document.getElementById('edit-user-email').value;
+            
+            // NOTE: Updating email and disabling users requires a backend (Cloud Function)
+            // This implementation will update Firestore only.
+            const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
+            try {
+                await updateDoc(userDocRef, { name, email });
+                alert('User details updated in Firestore!');
+                document.getElementById('editUserModal').classList.add('hidden');
+            } catch (error) {
+                console.error("Error updating user:", error);
+                alert('Failed to update user details.');
+            }
+        }
+
+        async function resetPassword() {
+            const email = document.getElementById('edit-user-email').value;
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert(`Password reset email sent to ${email}`);
+            } catch (error) {
+                console.error("Error sending password reset email:", error);
+                alert('Failed to send password reset email.');
+            }
         }
 
         window.savePermissions = async (uid) => {
             const permissions = {};
             TABS.forEach(tab => {
-                const isEnabled = document.getElementById(`${uid}-${tab.id}-enabled`).checked;
-                if (isEnabled) {
-                    permissions[tab.id] = document.getElementById(`${uid}-${tab.id}-level`).value;
-                } else {
-                    permissions[tab.id] = 'none'; // 'none' for not visible
-                }
+                permissions[tab.id] = document.getElementById(`${uid}-${tab.id}-level`).value;
             });
 
             try {
@@ -320,6 +394,12 @@
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        document.getElementById('saveUserChangesBtn').addEventListener('click', saveUserChanges);
+        document.getElementById('cancelEditBtn').addEventListener('click', () => {
+            document.getElementById('editUserModal').classList.add('hidden');
+        });
+        document.getElementById('resetPasswordBtn').addEventListener('click', resetPassword);
+
     </script>
 </body>
 </html>
