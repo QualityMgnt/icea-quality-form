@@ -149,7 +149,7 @@
             left: 0;
             width: 100%;
             height: 48px;
-            background-color: #800080; /* Purple color */
+            background-color: #000080; /* Navy Blue */
             color: white;
             display: flex;
             align-items: center;
@@ -163,7 +163,7 @@
         /* Navigation styles */
         .main-nav {
             width: 125px; /* Fixed width for the sidebar */
-            background-color: #800080; /* Purple color */
+            background-color: #000080; /* Navy Blue */
             color: white;
             padding: 1rem 0;
             height: calc(100vh - 48px);
@@ -207,7 +207,7 @@
         /* Keep the existing active/hover state, but maybe change color for purple theme */
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #6a006a; /* A darker shade of purple for hover/active */
+            background-color: #000050; /* Darker Navy Blue */
         }
 
         .logout-button {
@@ -511,7 +511,7 @@
 
     <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="auditFormContent" style="display: none;">
         <div class="icealion-blue p-4 flex items-center justify-between">
-            <div class="text-xl font-semibold">Quality Assessment Form - ICEALION GROUP Contact Centre</div>
+            <div class="text-xl font-semibold">Quality Assessment Form - ICEA LION GROUP Contact Centre</div>
             <img src="https://placehold.co/120x40/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-10 rounded-md">
         </div>
 
@@ -1491,20 +1491,23 @@
         }
 
         async function saveFormDataOnly() {
-            // Gathers all form data and saves it to Firestore.
             const formData = collectFormData();
             if (formData) {
-                await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
-                    ...formData,
-                    submittedAt: new Date()
-                });
-                showMessageBox("Success", "Form data saved successfully!", false, false, true);
-                resetFormFieldsButKeepRole();
+                showMessageBox("Saving...", "Saving your evaluation data.", false, true, false);
+                try {
+                    await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
+                        ...formData,
+                        submittedAt: new Date()
+                    });
+                    showMessageBox("Success", "Form data saved successfully!", false, false, true);
+                    resetFormFieldsButKeepRole();
+                } catch(e) {
+                    showMessageBox("Error", `Failed to save data: ${e.message}`, true, false, true);
+                }
             }
         }
 
         async function generateAndDownloadPdf() {
-            // Generates and downloads a PDF of the current form state.
             showMessageBox("Generating PDF", "Please wait...", false, true, false);
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
@@ -1531,12 +1534,11 @@
         }
 
         function collectFormData() {
-            // Helper function to gather all data from the form fields.
-            // Returns a data object or null if validation fails.
             const requiredFields = ['contact-id', 'client-name', 'cer-name', 'cer-role', 'call-date-time', 'reviewer-name', 'review-date'];
             for (const id of requiredFields) {
-                if (!document.getElementById(id).value) {
-                    showMessageBox("Validation Error", "Please fill all required fields.", true);
+                const el = document.getElementById(id);
+                if (!el || !el.value) {
+                    showMessageBox("Validation Error", `Please fill the "${el.labels[0].textContent}" field.`, true);
                     return null;
                 }
             }
@@ -1549,7 +1551,6 @@
                 }
             });
 
-            // Add scores
             formData['Overall Score'] = document.getElementById('overall-score-display').textContent;
             formData['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
             formData['Total Pts.'] = globalTotalPoints;
@@ -1559,14 +1560,11 @@
         }
 
         function resetFormFieldsButKeepRole() {
-            // Resets form fields after submission
             document.getElementById('contact-id').value = '';
             document.getElementById('client-name').value = '';
             document.getElementById('cer-name').value = '';
             document.getElementById('cer-email').value = '';
-            // keep cer-role
             document.getElementById('call-date-time').value = '';
-            // keep reviewer-name
             document.getElementById('autofail-type').value = '';
             document.getElementById('autofail-description').value = '';
             document.getElementById('duration').value = '';
@@ -1589,6 +1587,12 @@
             const cerNameSelect = document.getElementById('cer-name');
             const saveDataBtn = document.getElementById('saveDataBtn');
             const generateReportBtn = document.getElementById('generateReportBtn');
+            const reviewDateInput = document.getElementById('review-date');
+
+            // Set today's date by default
+            if (reviewDateInput) {
+                reviewDateInput.value = new Date().toISOString().split('T')[0];
+            }
 
             if(loginButton) {
                 loginButton.addEventListener('click', async () => {
