@@ -99,6 +99,9 @@
         .hidden { display: none !important; }
         .admin-section {
             margin-bottom: 2rem;
+            border: 1px solid #e5e7eb;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
         }
         .admin-section h2 {
             font-size: 1.5rem;
@@ -119,6 +122,24 @@
             padding: 0.5rem;
             border: 1px solid #ccc;
             border-radius: 0.25rem;
+        }
+        .item-list {
+            list-style-type: none;
+            padding: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+        }
+        .item-list li {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-list li:last-child {
+            border-bottom: none;
         }
     </style>
 </head>
@@ -146,7 +167,6 @@
 
     <div class="main-content">
         <div id="loadingMessage" class="text-center py-12 text-lg text-gray-600">
-            <div class="spinner mx-auto mb-4"></div>
             Verifying admin access...
         </div>
 
@@ -157,13 +177,74 @@
                 <!-- Dropdown Management Section -->
                 <div class="admin-section">
                     <h2>Manage Dropdowns</h2>
-                    <!-- Dropdown selection and management form will go here -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-semibold mb-2">CER Roles</h3>
+                            <ul id="cerRolesList" class="item-list mb-2"></ul>
+                            <div class="flex gap-2">
+                                <input type="text" id="newCerRole" placeholder="New Role Name" class="flex-grow">
+                                <button id="addCerRoleBtn" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold mb-2">Autofail Types</h3>
+                            <ul id="autofailTypesList" class="item-list mb-2"></ul>
+                            <div class="flex gap-2">
+                                <input type="text" id="newAutofailType" placeholder="New Autofail Type" class="flex-grow">
+                                <button id="addAutofailTypeBtn" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Question Management Section -->
                 <div class="admin-section">
                     <h2>Manage Questions</h2>
-                    <!-- Form for adding/removing questions will go here -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="form-group">
+                            <label for="questionCerRole">CER Role</label>
+                            <select id="questionCerRole"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="questionSection">Section</label>
+                            <select id="questionSection">
+                                <option value="CUSTOMER EXPERIENCE">Customer Experience</option>
+                                <option value="PROBLEM SOLVING SKILLS">Problem Solving Skills</option>
+                                <option value="COMPLIANCE AND BUSINESS CRITICAL ACCURACY">Compliance & Accuracy</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="questionsListContainer">
+                        <!-- Questions will be rendered here -->
+                    </div>
+
+                    <div class="mt-4 p-4 border-t">
+                        <h3 class="font-semibold mb-2">Add New Question</h3>
+                        <div class="form-group">
+                            <label for="newQuestionDesc">Description</label>
+                            <textarea id="newQuestionDesc" rows="2"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="form-group">
+                                <label for="newQuestionWeight">Weight</label>
+                                <input type="number" id="newQuestionWeight" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="newQuestionRating">Default Rating</label>
+                                <select id="newQuestionRating">
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                    <option value="N/A">N/A</option>
+                                </select>
+                            </div>
+                            <div class="form-group flex items-center mt-6">
+                                <input type="checkbox" id="newQuestionAutofail" class="h-4 w-4">
+                                <label for="newQuestionAutofail" class="ml-2">Autofail?</label>
+                            </div>
+                        </div>
+                        <button id="addQuestionBtn" class="bg-green-600 text-white px-4 py-2 rounded">Add Question</button>
+                    </div>
                 </div>
 
             </div>
@@ -178,7 +259,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -195,6 +276,11 @@
         const db = getFirestore(app);
 
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+        const DROPDOWN_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
+        const QUESTIONS_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
+
+        let allRolesQuestions = {};
+        let dropdownOptions = {};
 
         async function checkAdminRole(user) {
             if (!user) return false;
@@ -208,11 +294,107 @@
             }
         }
 
+        function renderDropdowns() {
+            const cerRolesList = document.getElementById('cerRolesList');
+            const autofailTypesList = document.getElementById('autofailTypesList');
+            const questionCerRole = document.getElementById('questionCerRole');
+            
+            cerRolesList.innerHTML = '';
+            autofailTypesList.innerHTML = '';
+            questionCerRole.innerHTML = '';
+            
+            (dropdownOptions.cerRoles || []).forEach(role => {
+                cerRolesList.innerHTML += `<li>${role} <button class="text-red-500" data-value="${role}" onclick="window.removeDropdownValue('cerRoles', this.dataset.value)">Remove</button></li>`;
+                questionCerRole.innerHTML += `<option value="${role}">${role}</option>`;
+            });
+            (dropdownOptions.autofailTypes || []).forEach(type => {
+                autofailTypesList.innerHTML += `<li>${type} <button class="text-red-500" data-value="${type}" onclick="window.removeDropdownValue('autofailTypes', this.dataset.value)">Remove</button></li>`;
+            });
+            renderQuestions();
+        }
+
+        window.removeDropdownValue = async (field, value) => {
+            await updateDoc(DROPDOWN_DOC_REF, { [field]: arrayRemove(value) });
+        };
+
+        async function addDropdownValue(field, inputId) {
+            const input = document.getElementById(inputId);
+            const value = input.value.trim();
+            if (value) {
+                await updateDoc(DROPDOWN_DOC_REF, { [field]: arrayUnion(value) });
+                input.value = '';
+            }
+        }
+
+        function renderQuestions() {
+            const role = document.getElementById('questionCerRole').value;
+            const section = document.getElementById('questionSection').value;
+            const container = document.getElementById('questionsListContainer');
+            container.innerHTML = '';
+            
+            const questions = allRolesQuestions[role]?.[section] || [];
+            if (questions.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">No questions for this selection.</p>';
+                return;
+            }
+
+            const list = document.createElement('ul');
+            list.className = 'item-list';
+            questions.forEach((q, index) => {
+                list.innerHTML += `
+                    <li>
+                        <span>${q.desc} (W: ${q.weightage}) ${q.autofail ? '<span class="text-red-500 font-bold">Autofail</span>' : ''}</span>
+                        <button class="text-red-500" onclick="window.removeQuestion(${index})">Remove</button>
+                    </li>
+                `;
+            });
+            container.appendChild(list);
+        }
+
+        window.removeQuestion = async (index) => {
+            const role = document.getElementById('questionCerRole').value;
+            const section = document.getElementById('questionSection').value;
+            const questions = allRolesQuestions[role]?.[section] || [];
+            questions.splice(index, 1);
+            await updateDoc(QUESTIONS_DOC_REF, { [`${role}.${section}`]: questions });
+        };
+
+        async function addQuestion() {
+            const role = document.getElementById('questionCerRole').value;
+            const section = document.getElementById('questionSection').value;
+            const desc = document.getElementById('newQuestionDesc').value.trim();
+            const weightage = parseInt(document.getElementById('newQuestionWeight').value);
+            const defaultRating = document.getElementById('newQuestionRating').value;
+            const autofail = document.getElementById('newQuestionAutofail').checked;
+
+            if (!desc || isNaN(weightage)) {
+                alert('Please fill in all fields.');
+                return;
+            }
+            
+            const newQuestion = { desc, weightage, defaultRating, autofail };
+            const currentQuestions = allRolesQuestions[role]?.[section] || [];
+            currentQuestions.push(newQuestion);
+
+            await updateDoc(QUESTIONS_DOC_REF, { [`${role}.${section}`]: currentQuestions });
+            
+            document.getElementById('newQuestionDesc').value = '';
+            document.getElementById('newQuestionWeight').value = '';
+            document.getElementById('newQuestionAutofail').checked = false;
+        }
+
         function showAdminContent() {
             document.getElementById('loadingMessage').classList.add('hidden');
             document.getElementById('adminContent').classList.remove('hidden');
-            // Here you would call functions to populate the admin panel with data
-            // For example: renderDropdownManagement(), renderQuestionManagement(), etc.
+            
+            onSnapshot(DROPDOWN_DOC_REF, (doc) => {
+                dropdownOptions = doc.data() || {};
+                renderDropdowns();
+            });
+            onSnapshot(QUESTIONS_DOC_REF, (doc) => {
+                allRolesQuestions = doc.data() || {};
+                renderQuestions();
+            });
         }
 
         function showAccessDenied() {
@@ -229,10 +411,15 @@
                     showAccessDenied();
                 }
             } else {
-                window.location.href = 'index.html'; // Redirect if not logged in
+                window.location.href = 'index.html';
             }
         });
 
+        document.getElementById('addCerRoleBtn').addEventListener('click', () => addDropdownValue('cerRoles', 'newCerRole'));
+        document.getElementById('addAutofailTypeBtn').addEventListener('click', () => addDropdownValue('autofailTypes', 'newAutofailType'));
+        document.getElementById('questionCerRole').addEventListener('change', renderQuestions);
+        document.getElementById('questionSection').addEventListener('change', renderQuestions);
+        document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
     </script>
 </body>
