@@ -150,13 +150,17 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .leaderboard-table {
+        .leaderboard-table, .monthly-table {
             width: 100%;
             border-collapse: collapse;
         }
-        .leaderboard-table td {
+        .leaderboard-table td, .monthly-table td, .monthly-table th {
             padding: 0.5rem;
             border-bottom: 1px solid #e5e7eb;
+        }
+        .monthly-table th {
+            background-color: #eff6ff;
+            font-weight: bold;
         }
         .hidden { display: none !important; }
     </style>
@@ -268,11 +272,22 @@
                 </div>
             </div>
             
-            <!-- NEW: Average Score by Agent Chart -->
+            <!-- Average Score by Agent Chart -->
             <div class="dashboard-card mt-6">
                 <h2 class="text-xl font-semibold mb-4">Average Score by Agent</h2>
                 <div class="chart-container">
                     <canvas id="averageScoreByAgentChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- NEW: Monthly Average Scores by CER Role -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">Monthly Average Scores by CER Role</h2>
+                <div class="overflow-x-auto">
+                    <table id="monthlyScoresByRoleTable" class="monthly-table">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -348,6 +363,7 @@
             document.getElementById('topAgent').textContent = agentAverages.length > 0 ? agentAverages[0].name : '-';
             renderLeaderboards(agentAverages);
             updateCharts(data, agentAverages);
+            renderMonthlyScoresTable(data);
         }
         
         function renderLeaderboards(agentAverages) {
@@ -379,7 +395,6 @@
             const trendScores = trendLabels.map(label => (trendData[label].total / trendData[label].count).toFixed(1));
             renderChart('performanceTrendChart', 'line', trendLabels, trendScores, 'Average Score Over Time');
 
-            // New chart data
             const agentLabels = agentAverages.map(a => a.name);
             const agentData = agentAverages.map(a => a.avg.toFixed(1));
             const backgroundColors = agentData.map(score => {
@@ -424,6 +439,53 @@
                     scales: { y: { beginAtZero: true, max: 100 } }
                 },
                 plugins: [ChartDataLabels]
+            });
+        }
+        
+        function renderMonthlyScoresTable(data) {
+            const table = document.getElementById('monthlyScoresByRoleTable');
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (data.length === 0) return;
+
+            const scoresByRoleMonth = {};
+            const months = new Set();
+            const roles = new Set();
+
+            data.forEach(rec => {
+                if (rec.submittedAt?.toDate && rec['CER Role']) {
+                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                    const role = rec['CER Role'];
+                    months.add(month);
+                    roles.add(role);
+
+                    if (!scoresByRoleMonth[role]) scoresByRoleMonth[role] = {};
+                    if (!scoresByRoleMonth[role][month]) scoresByRoleMonth[role][month] = { total: 0, count: 0 };
+                    
+                    scoresByRoleMonth[role][month].total += parseFloat(rec['Overall Score']) || 0;
+                    scoresByRoleMonth[role][month].count++;
+                }
+            });
+
+            const sortedMonths = Array.from(months).sort((a, b) => new Date(a) - new Date(b));
+            
+            let headerHtml = '<tr><th>CER Role</th>';
+            sortedMonths.forEach(month => headerHtml += `<th>${month}</th>`);
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+
+            Array.from(roles).sort().forEach(role => {
+                let rowHtml = `<tr><td>${role}</td>`;
+                sortedMonths.forEach(month => {
+                    const data = scoresByRoleMonth[role]?.[month];
+                    const avg = data ? (data.total / data.count).toFixed(1) + '%' : '-';
+                    rowHtml += `<td>${avg}</td>`;
+                });
+                rowHtml += '</tr>';
+                tbody.innerHTML += rowHtml;
             });
         }
 
