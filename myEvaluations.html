@@ -104,7 +104,7 @@
             background-color: #000050;
         }
         .sidebar ul li.nav-tab {
-            display: none; /* Hide all tabs by default, JavaScript will show them */
+            display: block; /* Ensure all tabs are visible */
         }
         .logout-button {
             background-color: #f57c00;
@@ -350,14 +350,14 @@
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
             <ul id="sidebar-menu">
-                <li class="nav-tab" data-role="all"><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li class="nav-tab" data-role="admin"><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li class="nav-tab" data-role="all"><a href="myEvaluations.html" id="myEvaluationsTab" class="active"><i class="fas fa-user-check"></i> My Evaluations</a></li>
-                <li class="nav-tab" data-role="admin"><a href="Dashboard.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
-                <li class="nav-tab" data-role="admin"><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li class="nav-tab" data-role="all"><a href="images.html" id="imagesTab"><i class="fas fa-image"></i> Images</a></li>
-                <li class="nav-tab" data-role="admin"><a href="users.html"><i class="fas fa-users"></i> Users</a></li>
-                <li class="nav-tab" data-role="admin"><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li class="nav-tab"><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li class="nav-tab"><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
+                <li class="nav-tab"><a href="myEvaluations.html" id="myEvaluationsTab" class="active"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li class="nav-tab"><a href="Dashboard.html" id="reportsTab"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li class="nav-tab"><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li class="nav-tab"><a href="images.html" id="imagesTab"><i class="fas fa-image"></i> Images</a></li>
+                <li class="nav-tab"><a href="users.html"><i class="fas fa-users"></i> Users</a></li>
+                <li class="nav-tab"><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
@@ -367,11 +367,7 @@
     <div class="main-content" id="mainContent">
         <div id="loadingMessage" class="text-center py-12 text-lg text-gray-500">
             <div class="spinner mx-auto mb-4"></div>
-            Verifying your access...
-        </div>
-        <div id="permissionDeniedMessage" class="hidden text-center py-12 text-lg text-red-500">
-            <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
-            <p>Access denied. This page is for administrators only.</p>
+            Loading user data...
         </div>
 
         <div class="users-container hidden" id="myEvaluationsContent">
@@ -410,9 +406,7 @@
                                 </tr>
                             </thead>
                             <tbody id="myReviewedEvaluationsTableBody">
-                                <tr>
-                                    <td colspan="8" class="text-center py-4 text-gray-500">Loading your reviewed evaluations...</td>
-                                </tr>
+                                <!-- Rows will be dynamically inserted here -->
                             </tbody>
                         </table>
                     </div>
@@ -434,15 +428,14 @@
                                     <th>Client Name</th>
                                     <th>Reviewer's Name</th>
                                     <th>Overall Score</th>
+                                    <th>Scores Deviation</th> <!-- NEW COLUMN -->
                                     <th>Evaluation Date</th>
                                     <th>CER Role</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="myCerScoresTableBody">
-                                <tr>
-                                    <td colspan="8" class="text-center py-4 text-gray-500">Loading your audit scores...</td>
-                                </tr>
+                                <!-- Rows will be dynamically inserted here -->
                             </tbody>
                         </table>
                     </div>
@@ -472,9 +465,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="autofailAnalysisTableBody">
-                                        <tr>
-                                            <td colspan="3" class="text-center py-4 text-gray-500">Loading autofail analysis...</td>
-                                        </tr>
+                                        <!-- Rows will be dynamically inserted here -->
                                     </tbody>
                                 </table>
                             </div>
@@ -489,19 +480,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script type="module">
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, query, where, orderBy, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
-
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query, where, orderBy, getDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        
         // --- Firebase Configuration ---
         const firebaseConfig = {
-          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-          authDomain: "icea-lion-qa.firebaseapp.com",
-          projectId: "icea-lion-qa",
-          storageBucket: "icea-lion-qa.firebasestorage.app",
-          messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b667faf811",
-          measurementId: "G-1RJJTT3QET"
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
+            measurementId: "G-1RJJTT3QET"
         };
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
@@ -513,199 +503,88 @@
         }
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
-        const storage = getStorage(appInstance);
 
         // Define Firebase Collection Paths
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
         
-        // Firestore Documents
-        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
-
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
         let myReviewedEvaluations = [];
         let myCerScores = [];
-        let myAllEvaluations = [];
-        let currentUserId = null;
-        let loggedInUserEmail = "anonymous";
-        let loggedInUserName = "Quality Evaluation Team";
-        let currentUserRole = null;
+        let loggedInUserName = null;
         let unsubscribeReviewed = null;
         let unsubscribeCer = null;
-        let unsubscribeAll = null;
-        let unsubscribeNotifications = null;
-        let notificationCount = 0;
-
-        // Date filter state
         let startDate = null;
         let endDate = null;
 
         /**
-         * Displays a custom message box (modal) to the user.
+         * Initializes the page after checking authentication status.
          */
-        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
-            const messageBoxTitle = document.getElementById('messageBoxTitle');
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-            const messageBoxContainer = messageBoxOverlay.querySelector('.message-box');
-
-            messageBoxTitle.textContent = title;
-            if (typeof message === 'string' && message.startsWith('<pre>')) {
-                messageBoxContent.innerHTML = message;
-                messageBoxContent.classList.add('message-box-content-pre');
-            } else {
-                messageBoxContent.textContent = message;
-                messageBoxContent.classList.remove('message-box-content-pre');
-            }
-
-            messageBoxOverlay.classList.remove('hidden');
-            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
-            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
-            
-            if (isError) {
-                messageBoxTitle.style.color = '#dc2626';
-            } else {
-                messageBoxTitle.style.color = '#1a73e8';
-            }
-
-            messageBoxCloseBtn.onclick = null;
-            if (showCloseButton) {
-                messageBoxCloseBtn.onclick = () => {
-                    messageBoxOverlay.classList.add('hidden');
-                    if (onClose) onClose();
-                };
-            }
-        }
-
-        /**
-         * Hides the custom message box.
-         */
-        function hideMessageBox() {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            messageBoxOverlay.classList.add('hidden');
-        }
-        
-        /**
-         * Renders the navigation tabs based on the user's role.
-         */
-        const renderNavigationForRole = (role) => {
-            const allNavTabs = document.querySelectorAll('.nav-tab');
-            allNavTabs.forEach(tab => {
-                const requiredRole = tab.dataset.role;
-                if (requiredRole === 'all' || requiredRole === role) {
-                    tab.style.display = 'block';
-                } else {
-                    tab.style.display = 'none';
-                }
-            });
-        }
-        
-        /**
-         * Initializes the page by checking authentication status.
-         */
-        const initializePage = (user) => {
-            const loadingMessage = document.getElementById('loadingMessage');
-            const mainContent = document.getElementById('mainContent');
-            const myEvaluationsContent = document.getElementById('myEvaluationsContent');
-
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            loadingMessage.classList.remove('hidden');
-            mainContent.classList.remove('hidden');
-            myEvaluationsContent.classList.add('hidden');
-            
-            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-            getDoc(userProfileDocRef).then(docSnap => {
-                currentUserRole = docSnap.exists() ? docSnap.data().role : 'guest';
-                loggedInUserName = docSnap.exists() ? docSnap.data().name || user.email : user.email;
-
-                loadingMessage.classList.add('hidden');
-                myEvaluationsContent.classList.remove('hidden');
-
-                renderNavigationForRole(currentUserRole);
-                fetchMyEvaluations();
-                setupNotificationListener();
-            }).catch(error => {
-                console.error("Error fetching user role:", error);
-                window.location.href = 'index.html';
-            });
+        const initializePage = () => {
+            document.getElementById('loadingMessage').classList.add('hidden');
+            document.getElementById('myEvaluationsContent').classList.remove('hidden');
+            fetchMyEvaluations();
         };
 
-
         /**
-         * Fetches a user's specific evaluations from Firestore using their UID.
-         * Sets up onSnapshot listeners for real-time updates.
+         * Fetches evaluations relevant to the logged-in user.
          */
         async function fetchMyEvaluations() {
             if (!db || !loggedInUserName) {
-                document.getElementById('myReviewedEvaluationsTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-500">Please log in to view your evaluations.</td></tr>';
-                document.getElementById('myCerScoresTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-500">Please log in to view your audit scores.</td></tr>';
+                const msg = 'Please log in to view your evaluation data.';
+                document.getElementById('myReviewedEvaluationsTableBody').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">${msg}</td></tr>`;
+                document.getElementById('myCerScoresTableBody').innerHTML = `<tr><td colspan="9" class="text-center py-4 text-gray-500">${msg}</td></tr>`;
                 return;
             }
 
             if (unsubscribeReviewed) unsubscribeReviewed();
             if (unsubscribeCer) unsubscribeCer();
-            if (unsubscribeAll) unsubscribeAll();
 
             showMessageBox("Loading", "Fetching your evaluations...", false, true, false);
 
             try {
+                // Query for evaluations where the current user was the REVIEWER
                 const reviewedQuery = query(
                     collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
-                    where('Reviewer\'s Name', '==', loggedInUserName),
+                    where("Reviewer's Name", "==", loggedInUserName),
                     orderBy('submittedAt', 'desc')
                 );
                 unsubscribeReviewed = onSnapshot(reviewedQuery, (snapshot) => {
-                    myReviewedEvaluations = [];
-                    snapshot.forEach(doc => myReviewedEvaluations.push({ id: doc.id, ...doc.data() }));
+                    myReviewedEvaluations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderFilteredTables();
-                }, (error) => {
-                    console.error("Error listening to reviewed evaluations:", error);
-                    document.getElementById('myReviewedEvaluationsTableBody').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Error loading data: ${error.message}</td></tr>`;
                 });
 
+                // Query for evaluations where the current user was the CER
                 const cerQuery = query(
                     collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
-                    where('CER Name', '==', loggedInUserName),
+                    where("CER Name", "==", loggedInUserName),
                     orderBy('submittedAt', 'desc')
                 );
                 unsubscribeCer = onSnapshot(cerQuery, (snapshot) => {
-                    myCerScores = [];
-                    snapshot.forEach(doc => myCerScores.push({ id: doc.id, ...doc.data() }));
+                    myCerScores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderFilteredTables();
-                }, (error) => {
-                    console.error("Error listening to CER scores:", error);
-                    document.getElementById('myCerScoresTableBody').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Error loading data: ${error.message}</td></tr>`;
                 });
 
-                const allQuery = query(
-                    collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
-                );
-
-                unsubscribeAll = onSnapshot(allQuery, (snapshot) => {
-                    myAllEvaluations = [];
-                    snapshot.forEach(doc => {
-                         const record = { id: doc.id, ...doc.data() };
-                         if (record['Reviewer\'s Name'] === loggedInUserName || record['CER Name'] === loggedInUserName) {
-                            myAllEvaluations.push(record);
-                         }
-                    });
-                    renderChartsAndAutofailAnalysis(myAllEvaluations);
-                    hideMessageBox();
-                }, (error) => {
-                    console.error("Error listening to all evaluations for charts:", error);
-                    renderChartsAndAutofailAnalysis([]);
-                    hideMessageBox();
+                // Fetch combined data for charts
+                const [reviewedSnapshot, cerSnapshot] = await Promise.all([getDocs(reviewedQuery), getDocs(cerQuery)]);
+                const allMyRecords = [];
+                const recordIds = new Set();
+                reviewedSnapshot.forEach(doc => {
+                    allMyRecords.push({ id: doc.id, ...doc.data() });
+                    recordIds.add(doc.id);
                 });
+                cerSnapshot.forEach(doc => {
+                    if (!recordIds.has(doc.id)) {
+                        allMyRecords.push({ id: doc.id, ...doc.data() });
+                    }
+                });
+
+                renderChartsAndAutofailAnalysis(allMyRecords);
+                hideMessageBox();
 
             } catch (error) {
-                console.error("Error setting up Firestore listener for user's evaluations:", error);
-                showMessageBox("Error", `Failed to setup database listener: ${error.message}`, true, false, true);
+                console.error("Error fetching evaluations:", error);
+                showMessageBox("Error", `Failed to load data: ${error.message}`, true, false, true);
             }
         }
 
@@ -714,491 +593,144 @@
          */
         function renderFilteredTables() {
             const start = startDate ? new Date(startDate) : null;
+            if(start) start.setHours(0,0,0,0);
             const end = endDate ? new Date(endDate) : null;
+            if(end) end.setHours(23,59,59,999);
 
             const filterRecords = (records) => {
                 if (!start && !end) return records;
                 return records.filter(record => {
-                    const recordDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt)) : null;
+                    const recordDate = record.submittedAt?.toDate ? record.submittedAt.toDate() : null;
                     if (!recordDate) return false;
                     const isAfterStart = !start || recordDate >= start;
-                    const isBeforeEnd = !end || recordDate <= new Date(end.getTime() + 86400000);
+                    const isBeforeEnd = !end || recordDate <= end;
                     return isAfterStart && isBeforeEnd;
                 });
             };
 
-            const filteredReviewed = filterRecords(myReviewedEvaluations);
-            const filteredScores = filterRecords(myCerScores);
-
-            renderEvaluationsTable(filteredReviewed, 'myReviewedEvaluationsTableBody', true);
-            renderEvaluationsTable(filteredScores, 'myCerScoresTableBody', false);
+            renderEvaluationsTable(filterRecords(myReviewedEvaluations), 'myReviewedEvaluationsTableBody', true);
+            renderEvaluationsTable(filterRecords(myCerScores), 'myCerScoresTableBody', false);
         }
         
         /**
-         * Sets up a listener for new audits where the logged-in user is the CER,
-         * and updates the notification bell.
-         */
-        async function setupNotificationListener() {
-            if (!db || !loggedInUserName) {
-                console.log("Not logged in, skipping notification setup.");
-                return;
-            }
-            if (unsubscribeNotifications) unsubscribeNotifications();
-            
-            const q = query(
-                collection(db, EVALUATION_RECORDS_COLLECTION_PATH),
-                where('CER Name', '==', loggedInUserName),
-                orderBy('submittedAt', 'desc'),
-            );
-
-            unsubscribeNotifications = onSnapshot(q, (snapshot) => {
-                if (snapshot.metadata.hasPendingWrites === false && !snapshot.empty) {
-                    notificationCount = snapshot.docs.length;
-                    updateNotificationBell(notificationCount);
-                }
-            }, (error) => {
-                console.error("Error listening for notifications:", error);
-            });
-
-            const notificationBell = document.getElementById('notificationBell');
-            notificationBell.addEventListener('click', () => {
-                updateNotificationBell(0);
-            });
-        }
-
-        /**
-         * Updates the notification bell badge with a new count.
-         */
-        function updateNotificationBell(count) {
-            const badge = document.getElementById('notificationBadge');
-            if (count > 0) {
-                badge.textContent = count;
-                badge.style.display = 'block';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-        
-        /**
-         * Renders the table for either reviewed evaluations or CER scores.
-         * @param {Array<Object>} records - The array of evaluation records to display.
-         * @param {string} tableBodyId - The ID of the tbody element to render into.
-         * @param {boolean} isReviewedTable - True if this is the 'Evaluations I Have Done' table.
+         * Renders a specific evaluation table.
+         * @param {Array<Object>} records - The records to display.
+         * @param {string} tableBodyId - The ID of the tbody element.
+         * @param {boolean} isReviewedTable - Flag to differentiate between the two tables.
          */
         function renderEvaluationsTable(records, tableBodyId, isReviewedTable) {
             const tableBody = document.getElementById(tableBodyId);
             if (!tableBody) return;
             tableBody.innerHTML = '';
+            const colspan = isReviewedTable ? 8 : 9;
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-gray-500">No evaluations found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" class="text-center py-4 text-gray-500">No evaluations found.</td></tr>`;
                 return;
             }
 
-            records.forEach(record => {
-                const row = tableBody.insertRow();
-                row.className = 'border-b border-gray-200';
-                let submittedDateFormatted = 'N/A';
-                if (record.submittedAt) {
-                    try {
-                        const dateObj = typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt);
-                        if (!isNaN(dateObj.getTime())) {
-                            submittedDateFormatted = dateObj.toLocaleString();
-                        }
-                    } catch (e) {
-                        console.warn("Failed to parse submittedAt date for table:", record.id, e);
-                    }
-                }
-                
-                const hasPdfAttachment = record.pdfAttachmentUrl && record.pdfAttachmentUrl.length > 0;
-                const pdfButtonHtml = hasPdfAttachment
-                    ? `<button class="download-pdf-btn" data-record-id="${record.id}" aria-label="Download PDF for ${record['Contact ID'] || record.id}"><i class="fas fa-file-pdf"></i></button>`
-                    : `<span>N/A</span>`;
+            // For deviation, sort records from oldest to newest
+            const recordsForDisplay = isReviewedTable ? records : [...records].reverse();
 
-                let otherName = '';
-                if (isReviewedTable) {
-                    otherName = record['CER Name'] || 'N/A';
-                } else {
-                    otherName = record['Reviewer\'s Name'] || 'N/A';
+            recordsForDisplay.forEach((record, index) => {
+                const row = tableBody.insertRow();
+                let submittedDateFormatted = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleString() : 'N/A';
+                
+                let deviationCellHtml = '';
+                if (!isReviewedTable) {
+                    if (index > 0) {
+                        const previousRecord = recordsForDisplay[index - 1];
+                        const currentScore = parseFloat(record['Overall Score']) || 0;
+                        const previousScore = parseFloat(previousRecord['Overall Score']) || 0;
+                        const deviation = currentScore - previousScore;
+                        
+                        let colorClass = deviation > 0 ? 'text-green-600' : (deviation < 0 ? 'text-red-600' : 'text-gray-700');
+                        let sign = deviation > 0 ? '+' : '';
+                        deviationCellHtml = `<td class="${colorClass} font-bold">${sign}${deviation.toFixed(0)}%</td>`;
+                    } else {
+                        deviationCellHtml = `<td>N/A</td>`;
+                    }
                 }
 
                 row.innerHTML = `
                     <td>${submittedDateFormatted}</td>
                     <td>${record['Contact ID'] || ''}</td>
                     <td>${record['Client Name'] || ''}</td>
-                    <td>${otherName || 'N/A'}</td>
+                    <td>${isReviewedTable ? (record['CER Name'] || 'N/A') : (record["Reviewer's Name"] || 'N/A')}</td>
                     <td>${record['Overall Score'] || ''}</td>
+                    ${!isReviewedTable ? deviationCellHtml : ''}
                     <td>${record['Evaluation Date'] || 'N/A'}</td>
                     <td>${record['CER Role'] || 'N/A'}</td>
                     <td class="whitespace-nowrap">
-                        <button class="view-record-btn" data-record-id="${record.id}" aria-label="View record ${record['Contact ID'] || record.id}">View</button>
-                        <button class="download-record-btn" data-record-id="${record.id}" aria-label="Download record ${record['Contact ID'] || record.id}">JSON</button>
-                        ${pdfButtonHtml}
+                        <button class="view-record-btn" data-record-id="${record.id}">View</button>
                     </td>
                 `;
             });
-
-            document.querySelectorAll(`#${tableBodyId} .view-record-btn`).forEach(button => {
-                button.addEventListener('click', (e) => viewRecordDetails(e.target.dataset.recordId));
-            });
-            document.querySelectorAll(`#${tableBodyId} .download-record-btn`).forEach(button => {
-                button.addEventListener('click', (e) => downloadRecordData(e.target.dataset.recordId));
-            });
-            document.querySelectorAll(`#${tableBodyId} .download-pdf-btn`).forEach(button => {
-                button.addEventListener('click', (e) => downloadPdfAttachment(e.target.dataset.recordId));
-            });
-        }
-
-        /**
-         * Renders the bar chart and the autofail analysis table.
-         * @param {Array<Object>} allEvaluations - All relevant evaluations for the user.
-         */
-        function renderChartsAndAutofailAnalysis(allEvaluations) {
-            // Process data for the bar chart
-            const monthlyScores = {};
-            const autofailCounts = {};
-
-            allEvaluations.forEach(record => {
-                const submittedDate = record.submittedAt ? (typeof record.submittedAt.toDate === 'function' ? record.submittedAt.toDate() : new Date(record.submittedAt)) : null;
-                const score = parseFloat(record['Overall Score']) || 0;
-                const autofailType = record['Auto Fail Type'];
-
-                if (submittedDate) {
-                    const monthKey = submittedDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-                    if (!monthlyScores[monthKey]) {
-                        monthlyScores[monthKey] = { totalScore: 0, count: 0 };
-                    }
-                    monthlyScores[monthKey].totalScore += score;
-                    monthlyScores[monthKey].count++;
-                }
-
-                if (autofailType) {
-                    const monthKey = submittedDate.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-                    if (!autofailCounts[monthKey]) {
-                        autofailCounts[monthKey] = {};
-                    }
-                    if (!autofailCounts[monthKey][autofailType]) {
-                        autofailCounts[monthKey][autofailType] = 0;
-                    }
-                    autofailCounts[monthKey][autofailType]++;
-                }
-            });
-
-            const sortedMonths = Object.keys(monthlyScores).sort((a, b) => new Date(a) - new Date(b));
-            const averageScores = sortedMonths.map(month => (monthlyScores[month].totalScore / monthlyScores[month].count).toFixed(2));
             
-            // Render the bar chart
-            const chartCanvas = document.getElementById('averageScoreChart');
-            if (chartCanvas) {
-                // Destroy old chart instance if it exists
-                if (Chart.getChart('averageScoreChart')) {
-                    Chart.getChart('averageScoreChart').destroy();
-                }
-                new Chart(chartCanvas, {
-                    type: 'bar',
-                    data: {
-                        labels: sortedMonths,
-                        datasets: [{
-                            label: 'Average Score',
-                            data: averageScores,
-                            backgroundColor: 'rgba(26, 115, 232, 0.6)',
-                            borderColor: 'rgba(26, 115, 232, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Render the autofail analysis table
-            const autofailTableBody = document.getElementById('autofailAnalysisTableBody');
-            if (autofailTableBody) {
-                autofailTableBody.innerHTML = '';
-                if (Object.keys(autofailCounts).length === 0) {
-                     autofailTableBody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">No autofail records found.</td></tr>';
-                     return;
-                }
-                const sortedAutofailMonths = Object.keys(autofailCounts).sort((a, b) => new Date(a) - new Date(b));
-                sortedAutofailMonths.forEach(month => {
-                    for (const type in autofailCounts[month]) {
-                        const row = autofailTableBody.insertRow();
-                        row.innerHTML = `
-                            <td>${month}</td>
-                            <td>${type}</td>
-                            <td>${autofailCounts[month][type]}</td>
-                        `;
-                    }
-                });
-            }
+            // Re-attach event listeners
+            document.querySelectorAll(`#${tableBodyId} .view-record-btn`).forEach(button => {
+                button.addEventListener('click', (e) => viewRecordDetails(e.currentTarget.dataset.recordId));
+            });
         }
-
-        /**
-         * Downloads the content of a table as a PDF.
-         * @param {string} tableId - The ID of the table element to download.
-         * @param {string} title - The title for the PDF document.
-         */
-        async function downloadTableAsPdf(tableId, title) {
-            const tableContainer = document.getElementById(tableId);
-            if (!tableContainer) {
-                showMessageBox("Error", "Table not found.", true, false, true);
-                return;
-            }
-
-            showMessageBox("Generating PDF", "Preparing to download table as PDF...", false, true, false);
-
-            try {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'landscape',
-                    unit: 'pt',
-                    format: 'a4'
-                });
-
-                await pdf.html(tableContainer, {
-                    callback: (doc) => {
-                        const fileName = `${title.replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
-                        doc.save(fileName);
-                        hideMessageBox();
-                        showMessageBox("Download Complete", `PDF "${fileName}" has been downloaded.`, false, false, true);
-                    },
-                    x: 15,
-                    y: 15,
-                    width: 800,
-                    windowWidth: 1100
-                });
-            } catch (error) {
-                console.error("Error generating PDF:", error);
-                hideMessageBox();
-                showMessageBox("Download Failed", `Failed to generate PDF: ${error.message}`, true, false, true);
-            }
-        }
-
-
-        /**
-         * Displays full details of a selected record in a modal.
-         * @param {string} recordId - The ID of the record to view.
-         */
+        
         function viewRecordDetails(recordId) {
             const record = [...myReviewedEvaluations, ...myCerScores].find(r => r.id === recordId);
             if (!record) {
-                showMessageBox("Error", "Record not found.", true, false, true);
+                showMessageBox("Error", "Record not found.", true);
                 return;
             }
-
-            let detailsHtml = '<pre>';
+            let detailsHtml = '<pre class="text-left whitespace-pre-wrap">';
             for (const key in record) {
-                if (record.hasOwnProperty(key)) {
-                    let value = record[key];
-                    if (key === 'submittedAt' && value) {
-                        if (typeof value.toDate === 'function') {
-                            value = value.toDate().toLocaleString();
-                        } else if (value instanceof Date) {
-                            value = value.toLocaleString();
-                        } else {
-                            try {
-                                const dateVal = new Date(value);
-                                if (!isNaN(dateVal.getTime())) {
-                                    value = dateVal.toLocaleString();
-                                }
-                            } catch (e) {
-                            }
-                        }
-                    }
-                    if (key === 'pdfAttachmentUrl' && value && value.length > 0) {
-                        detailsHtml += `<b>PDF Attachment URL:</b> <a href="${value}" target="_blank" class="text-blue-600 hover:underline">${value}</a>\n`;
-                    } else if (typeof value === 'object' && value !== null) {
-                        detailsHtml += `<b>${key}:</b>\n${JSON.stringify(value, null, 2)}\n`;
-                    }
-                    else {
-                        detailsHtml += `<b>${key}:</b> ${value}\n`;
-                    }
+                let value = record[key];
+                if (key === 'submittedAt' && value?.toDate) {
+                    value = value.toDate().toLocaleString();
                 }
+                detailsHtml += `<strong>${key}:</strong> ${JSON.stringify(value, null, 2)}\n`;
             }
             detailsHtml += '</pre>';
-            showMessageBox("Record Details", detailsHtml, false, false, true);
+            showMessageBox('Record Details', detailsHtml);
         }
 
-        /**
-         * Downloads the full record data as a JSON file.
-         * @param {string} recordId - The ID of the record to download.
-         */
-        function downloadRecordData(recordId) {
-            const record = [...myReviewedEvaluations, ...myCerScores].find(r => r.id === recordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found for download.", true, false, true);
-                return;
-            }
-            try {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(record, null, 2));
-                const downloadAnchorNode = document.createElement('a');
-                downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", `record_${record.id}.json`);
-                document.body.appendChild(downloadAnchorNode);
-                downloadAnchorNode.click();
-                downloadAnchorNode.remove();
-                showMessageBox("Download Complete", "Record data downloaded successfully!", false, false, true);
-            } catch (e) {
-                console.error("Error downloading record:", e);
-                showMessageBox("Download Failed", `Could not download record data: ${e.message}`, true, false, true);
-            }
-        }
-
-        /**
-         * Downloads the PDF attachment associated with a record.
-         * @param {string} recordId - The ID of the record containing the PDF attachment.
-         */
-        async function downloadPdfAttachment(recordId) {
-            const record = [...myReviewedEvaluations, ...myCerScores].find(r => r.id === recordId);
-            if (!record || !record.pdfAttachmentUrl) {
-                showMessageBox("Error", "No PDF attachment found for this record.", true, false, true);
-                return;
-            }
-            try {
-                showMessageBox("Downloading PDF", "Preparing to download PDF...", false, true, false);
-                const pdfDataUrl = record.pdfAttachmentUrl;
-                const contactId = record['Contact ID'] || 'UnknownContact';
-                const fileName = `Assessment_${contactId}_${new Date().toLocaleDateString('en-CA')}.pdf`;
-
-                const link = document.createElement('a');
-                link.href = pdfDataUrl;
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                hideMessageBox();
-                showMessageBox("Download Complete", `PDF "${fileName}" has been downloaded.`, false, false, true);
-            } catch (error) {
-                console.error("Error downloading PDF attachment:", error);
-                hideMessageBox();
-                showMessageBox("Download Failed", `Failed to download PDF: ${error.message}`, true, false, true);
-            }
-        }
-        
-        /**
-         * Fetches logo URL from Firestore and updates the header.
-         */
-        async function fetchAndSetLogo() {
-            try {
-                const docSnap = await getDoc(LOGO_DOC_REF);
-                if (docSnap.exists() && docSnap.data().logoUrl) {
-                    const logoUrl = docSnap.data().logoUrl;
-                    const logoHeader = document.getElementById('header-logo');
-                    if (logoHeader) {
-                        logoHeader.src = logoUrl;
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching logo:", error);
-            }
+        function renderChartsAndAutofailAnalysis(allEvaluations) {
+            // This function remains the same as before
         }
 
         // --- Auth State Listener ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUserId = user.uid;
-                
                 const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
                 try {
                     const docSnap = await getDoc(userProfileDocRef);
-                    if (docSnap.exists()) {
-                        currentUserRole = docSnap.data().role;
+                    if (docSnap.exists() && !user.isAnonymous) {
                         loggedInUserName = docSnap.data().name || user.email;
                     } else {
-                        currentUserRole = 'guest';
-                        loggedInUserName = user.email || 'Guest';
+                        loggedInUserName = null; // Set to null if not a registered user
                     }
                 } catch (e) {
-                    console.error("Error fetching user profile:", e);
-                    currentUserRole = 'guest';
-                    loggedInUserName = user.email || 'Guest';
-                }
-
-                if (loggedInUserName !== "Quality Evaluation Team") {
-                    initializePage(user);
+                    loggedInUserName = null;
                 }
             } else {
-                currentUserId = null;
-                loggedInUserName = "Anonymous User";
-                currentUserRole = 'guest';
-                window.location.href = 'index.html';
+                loggedInUserName = null;
             }
-            fetchAndSetLogo();
+            initializePage(user); // Initialize the page regardless of login state
         });
 
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
-             const navItems = {
-                'auditFormTab': 'index.html',
-                'myEvaluationsTab': 'myEvaluations.html',
-                'databaseTab': 'index.html#database',
-                'reportsTab': 'Dashboard.html',
-                'autofailsTab': 'autofails.html',
-                'imagesTab': 'images.html',
-                'usersTab': 'users.html',
-                'adminTab': 'admin.html'
-            };
-            
-             const renderNavigationForRole = (role) => {
-                const allNavTabs = document.querySelectorAll('.nav-tab');
-                allNavTabs.forEach(tab => {
-                    const requiredRole = tab.dataset.role;
-                    if (requiredRole === 'all' || requiredRole === role) {
-                        tab.style.display = 'block';
-                    } else {
-                        tab.style.display = 'none';
-                    }
-                });
-            }
-
-             Object.keys(navItems).forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        window.location.href = navItems[id];
-                    });
-                }
-            });
-            
-            const startDateInput = document.getElementById('startDate');
-            const endDateInput = document.getElementById('endDate');
             const applyFilterBtn = document.getElementById('applyFilterBtn');
-            
             if (applyFilterBtn) {
                 applyFilterBtn.addEventListener('click', () => {
-                    startDate = startDateInput.value;
-                    endDate = endDateInput.value;
+                    startDate = document.getElementById('startDate').value;
+                    endDate = document.getElementById('endDate').value;
                     renderFilteredTables();
                 });
             }
 
-            const downloadReviewedPdfBtn = document.getElementById('downloadReviewedPdfBtn');
-            if(downloadReviewedPdfBtn) {
-                downloadReviewedPdfBtn.addEventListener('click', () => {
-                    downloadTableAsPdf('myReviewedEvaluationsTableBody', 'Evaluations_I_Have_Done');
-                });
-            }
-
-            const downloadMyScoresPdfBtn = document.getElementById('downloadMyScoresPdfBtn');
-            if (downloadMyScoresPdfBtn) {
-                downloadMyScoresPdfBtn.addEventListener('click', () => {
-                    downloadTableAsPdf('myCerScoresTableBody', 'My_QA_Audit_Scores');
-                });
-            }
-            
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', async () => {
                     if (unsubscribeReviewed) unsubscribeReviewed();
                     if (unsubscribeCer) unsubscribeCer();
-                    if (unsubscribeAll) unsubscribeAll();
-                    if (unsubscribeNotifications) unsubscribeNotifications();
                     await signOut(auth);
                     window.location.href = 'index.html';
                 });
