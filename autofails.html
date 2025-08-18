@@ -326,6 +326,13 @@
                 </div>
             </div>
 
+            <div class="dashboard-card bg-white mb-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Autofails by Agent</h2>
+                <div class="chart-container">
+                    <canvas id="autofailByAgentChart"></canvas>
+                </div>
+            </div>
+
             <div class="dashboard-card bg-white">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-gray-800">Autofail Records Details</h2>
@@ -543,6 +550,13 @@
                 autofailByType[type] = (autofailByType[type] || 0) + 1;
             });
             renderChart('autofailByTypeChart', 'pie', Object.keys(autofailByType), Object.values(autofailByType), 'Autofails by Type');
+            
+            const autofailByAgent = {};
+            data.forEach(rec => {
+                const agent = rec['CER Name'] || 'Unknown';
+                autofailByAgent[agent] = (autofailByAgent[agent] || 0) + 1;
+            });
+            renderChart('autofailByAgentChart', 'bar', Object.keys(autofailByAgent), Object.values(autofailByAgent), 'Autofails by Agent');
         }
 
         function renderChart(canvasId, type, labels, data, label) {
