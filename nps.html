@@ -277,7 +277,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, query, where, updateDoc, deleteDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, query, where, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -294,17 +294,29 @@
         const db = getFirestore(app);
 
         const NPS_RECORDS_PATH = `artifacts/${appId}/public/data/nps_records`;
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
 
         let allNpsData = [];
+        let agentUsers = [];
 
         // ... (rest of your functions: showMessageBox, etc.)
 
-        async function fetchAndSyncNpsRecords() {
-            // ... (your existing sync logic)
+        async function fetchAgentUsers() {
+            const q = query(collection(db, USERS_PROFILE_COLLECTION_PATH), where("role", "==", "Agent"));
+            const querySnapshot = await getDocs(q);
+            agentUsers = querySnapshot.docs.map(doc => doc.data().name);
+            populateAgentFilter();
         }
-
-        function applyFiltersAndRender() {
-            // ... (your existing filter logic)
+        
+        function populateAgentFilter() {
+            const agentFilter = document.getElementById('filterAgent');
+            agentFilter.innerHTML = '<option value="">All Agents</option>';
+            agentUsers.forEach(agent => {
+                const option = document.createElement('option');
+                option.value = agent;
+                option.textContent = agent;
+                agentFilter.appendChild(option);
+            });
         }
 
         function renderTable(records) {
@@ -316,15 +328,48 @@
             }
             records.forEach(record => {
                 const row = tableBody.insertRow();
-                // ... (your existing row rendering logic)
+                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleString() : 'N/A';
+                
+                let agentHtml = `<select class="agent-select border rounded p-1" data-id="${record.id}"><option value="">Unassigned</option>`;
+                agentUsers.forEach(agent => {
+                    agentHtml += `<option value="${agent}" ${record['Agent Handled'] === agent ? 'selected' : ''}>${agent}</option>`;
+                });
+                agentHtml += `</select>`;
+
+                row.innerHTML = `
+                    <td>${submittedAt}</td>
+                    <td>${record['Contact ID'] || 'N/A'}</td>
+                    <td>${record['Positive Feedback'] || 'N/A'}</td>
+                    <td>${record['Area of Improvement'] || 'N/A'}</td>
+                    <td>${record['NPS Rating'] || 'N/A'}</td>
+                    <td>${agentHtml}</td>
+                    <td class="${record.Status === 'Completed' ? 'status-completed' : record.Status === 'Pending' ? 'status-pending' : 'status-overdue'}">${record.Status || 'Pending'}</td>
+                    <td><button class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Review</button></td>
+                `;
+            });
+
+            document.querySelectorAll('.agent-select').forEach(select => {
+                select.addEventListener('change', async (e) => {
+                    const recordId = e.target.dataset.id;
+                    const newAgent = e.target.value;
+                    try {
+                        await updateDoc(doc(db, NPS_RECORDS_PATH, recordId), { 'Agent Handled': newAgent });
+                    } catch (error) {
+                        console.error("Error updating agent:", error);
+                    }
+                });
             });
         }
+
+        // ... (rest of your functions: applyFiltersAndRender, fetchAndSyncNpsRecords, etc.)
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('loadingMessage').classList.add('hidden');
                 document.getElementById('npsContent').classList.remove('hidden');
-                fetchAndSyncNpsRecords(); // Initial sync on load
+                fetchAgentUsers().then(() => {
+                    fetchAndSyncNpsRecords();
+                });
             } else {
                 window.location.href = 'index.html';
             }
@@ -335,6 +380,7 @@
         document.getElementById('filterAgent').addEventListener('change', applyFiltersAndRender);
         document.getElementById('filterStatus').addEventListener('change', applyFiltersAndRender);
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
     </script>
 </body>
 </html>
