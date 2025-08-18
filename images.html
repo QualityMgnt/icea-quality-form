@@ -179,6 +179,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -188,9 +190,14 @@
             messagingSenderId: "820082472004",
             appId: "1:820082472004:web:8caddf941e1b5b667faf811",
         };
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
 
         function showMessageBox(title, message, isError = false) {
             const overlay = document.getElementById('messageBoxOverlay');
@@ -201,16 +208,21 @@
             document.getElementById('messageBoxCloseBtn').onclick = () => overlay.classList.add('hidden');
         }
 
-        function fetchAndSetLogo() {
-            const logoUrl = localStorage.getItem('companyLogoUrl');
-            if (logoUrl) {
-                document.getElementById('header-logo').src = logoUrl;
-                document.getElementById('currentLogo').src = logoUrl;
-                document.getElementById('previewContainer').classList.remove('hidden');
+        async function fetchAndSetLogo() {
+            try {
+                const docSnap = await getDoc(LOGO_DOC_REF);
+                if (docSnap.exists() && docSnap.data().logoUrl) {
+                    const logoUrl = docSnap.data().logoUrl;
+                    document.getElementById('header-logo').src = logoUrl;
+                    document.getElementById('currentLogo').src = logoUrl;
+                    document.getElementById('previewContainer').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Error fetching logo:", error);
             }
         }
 
-        function uploadLogo() {
+        async function uploadLogo() {
             const fileInput = document.getElementById('logoUploadInput');
             const file = fileInput.files[0];
             if (!file) {
@@ -218,21 +230,35 @@
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const logoUrl = e.target.result;
-                localStorage.setItem('companyLogoUrl', logoUrl);
+            const uploadStatus = document.getElementById('uploadStatus');
+            uploadStatus.textContent = "Uploading...";
+            uploadStatus.classList.remove('hidden');
+
+            try {
+                const storageRef = ref(storage, 'logos/company_logo.png'); // Standardized name
+                const snapshot = await uploadBytes(storageRef, file);
+                const logoUrl = await getDownloadURL(snapshot.ref);
+
+                await setDoc(LOGO_DOC_REF, { logoUrl: logoUrl });
+                
+                uploadStatus.textContent = "Upload successful!";
                 fetchAndSetLogo();
-                showMessageBox("Success", "Logo updated locally!");
-            };
-            reader.readAsDataURL(file);
+                showMessageBox("Success", "Logo uploaded successfully!");
+
+            } catch (error) {
+                console.error("Error uploading logo:", error);
+                uploadStatus.textContent = `Upload failed: ${error.message}`;
+                showMessageBox("Upload Failed", `Error: ${error.message}`, true);
+            } finally {
+                fileInput.value = '';
+            }
         }
 
         onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = 'index.html';
-            } else {
+            if (user) {
                 fetchAndSetLogo();
+            } else {
+                window.location.href = 'index.html';
             }
         });
 
