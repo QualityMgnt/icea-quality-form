@@ -162,7 +162,6 @@
         <div id="npsContent" class="hidden">
             <h1 class="text-3xl font-bold mb-6 text-gray-800">NPS Feedback</h1>
             
-            <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div class="dashboard-card summary-card">
                     <div class="icon bg-blue-500"><i class="fas fa-list-ol"></i></div>
@@ -238,37 +237,23 @@
         let allNpsData = [];
 
         async function fetchAndSyncNpsRecords() {
-            const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQCPENshkMrKwLf39IbhCUUsm1OFYxgZ4zeXa0IWfSnMUxlEyuUH0pDjl-XFBsdatVXyAS5Fpu5EUbv/pub?output=csv';
+            // This URL is now correctly pointing to your deployed Apps Script
+            const scriptUrl = 'https://script.google.com/macros/s/AKfycbwYeLVy14AiJoEeqNMbw0bgtcJ2UrjnYloKQo6SYcJh98LtYVHBTotT3-yvqNwdDplZ/exec'; 
             
+            console.log("Syncing with Google Sheet...");
             try {
-                const response = await fetch(csvUrl);
-                const csvText = await response.text();
-                const parsedData = parseCsv(csvText);
-                await syncDataToFirestore(parsedData);
+                const response = await fetch(scriptUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const jsonData = await response.json(); // Data is now JSON, not CSV
+                await syncDataToFirestore(jsonData);
+                console.log("Sync successful!");
+                alert("Data synced successfully!");
             } catch (error) {
                 console.error("Error fetching or syncing Google Sheet data:", error);
+                alert("Error syncing data. Check the console for details.");
             }
-        }
-
-        function parseCsv(csv) {
-            const lines = csv.trim().split('\n');
-            if (lines.length <= 1) return [];
-            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-            const data = [];
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i];
-                if (!line.trim()) continue; // Skip empty lines
-                const values = line.match(/(?:[^,"]+|"[^"]*")+/g);
-                if (values && values.length === headers.length) {
-                    const row = {};
-                    headers.forEach((header, index) => {
-                        const value = values[index] ? values[index].trim().replace(/^"|"$/g, '').replace(/""/g, '"') : '';
-                        row[header] = value;
-                    });
-                    data.push(row);
-                }
-            }
-            return data;
         }
 
         async function syncDataToFirestore(sheetData) {
@@ -281,6 +266,7 @@
             });
 
             sheetData.forEach(row => {
+                // The keys (e.g., 'Customer Contact ID') must exactly match the column headers in your Google Sheet
                 const contactId = row['Customer Contact ID'];
                 if (!contactId) return;
 
@@ -291,6 +277,7 @@
                     'NPS Rating': row['NPS Rating'] || '',
                     'Agent Handled': row['Agent Handled'] || 'Unassigned',
                     'Status': row['Status'] || 'Pending',
+                    // The 'Timestamp' key must match your sheet's header for the date
                     'submittedAt': new Date(row['Timestamp'])
                 };
 
@@ -305,12 +292,20 @@
             const tableBody = document.getElementById('npsRecordsTableBody');
             tableBody.innerHTML = '';
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4">No records found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4">No records found. Click 'Sync' to fetch data.</td></tr>`;
                 return;
             }
+            // Sort records by newest date first
+            records.sort((a, b) => b.submittedAt.toMillis() - a.submittedAt.toMillis());
+            
             records.forEach(record => {
                 const row = tableBody.insertRow();
-                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleString() : 'N/A';
+                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' }) : 'N/A';
+                const status = record.Status || 'Pending';
+                let statusClass = 'status-pending';
+                if (status === 'Completed') statusClass = 'status-completed';
+                if (status === 'Overdue') statusClass = 'status-overdue';
+
                 row.innerHTML = `
                     <td>${submittedAt}</td>
                     <td>${record['Customer Contact ID'] || 'N/A'}</td>
@@ -318,7 +313,7 @@
                     <td>${record['Area of Improvement'] || 'N/A'}</td>
                     <td>${record['NPS Rating'] || 'N/A'}</td>
                     <td>${record['Agent Handled'] || 'N/A'}</td>
-                    <td class="${record.Status === 'Completed' ? 'status-completed' : record.Status === 'Pending' ? 'status-pending' : 'status-overdue'}">${record.Status || 'Pending'}</td>
+                    <td class="${statusClass}">${status}</td>
                 `;
             });
         }
@@ -331,7 +326,7 @@
             const npsScore = data.length > 0 ? (((promoters - detractors) / data.length) * 100).toFixed(0) : 0;
             document.getElementById('overallNpsScore').textContent = npsScore;
 
-            const pendingReviews = data.filter(r => r.Status === 'Pending').length;
+            const pendingReviews = data.filter(r => (r.Status || 'Pending') === 'Pending').length;
             document.getElementById('pendingReviews').textContent = pendingReviews;
         }
 
