@@ -235,9 +235,30 @@
         const NPS_RECORDS_PATH = `artifacts/${appId}/public/data/nps_records`;
 
         let allNpsData = [];
+        
+        // *** NEW HELPER FUNCTION TO FIX DATE ERROR ***
+        function parseCustomDate(dateString) {
+            // Handles date strings like "8/15/2025 10:30:15"
+            if (!dateString || typeof dateString !== 'string') {
+                return new Date(); // Return a valid date as a fallback
+            }
+
+            const parts = dateString.split(' ');
+            if (parts.length < 2) return new Date(dateString); // Fallback to default parser
+
+            const dateParts = parts[0].split('/'); // [M, D, YYYY]
+            const timeParts = parts[1].split(':'); // [h, m, s]
+
+            if (dateParts.length !== 3 || timeParts.length !== 3) {
+                return new Date(dateString); // Fallback
+            }
+
+            // new Date(year, monthIndex, day, hours, minutes, seconds)
+            // Note: month is 0-indexed in JavaScript (Jan=0, Feb=1, etc.)
+            return new Date(dateParts[2], dateParts[0] - 1, dateParts[1], timeParts[0], timeParts[1], timeParts[2]);
+        }
 
         async function fetchAndSyncNpsRecords() {
-            // This URL is now correctly pointing to your deployed Apps Script
             const scriptUrl = 'https://script.google.com/macros/s/AKfycbwYeLVy14AiJoEeqNMbw0bgtcJ2UrjnYloKQo6SYcJh98LtYVHBTotT3-yvqNwdDplZ/exec'; 
             
             console.log("Syncing with Google Sheet...");
@@ -246,7 +267,7 @@
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const jsonData = await response.json(); // Data is now JSON, not CSV
+                const jsonData = await response.json();
                 await syncDataToFirestore(jsonData);
                 console.log("Sync successful!");
                 alert("Data synced successfully!");
@@ -266,7 +287,6 @@
             });
 
             sheetData.forEach(row => {
-                // The keys (e.g., 'Customer Contact ID') must exactly match the column headers in your Google Sheet
                 const contactId = row['Customer Contact ID'];
                 if (!contactId) return;
 
@@ -277,8 +297,8 @@
                     'NPS Rating': row['NPS Rating'] || '',
                     'Agent Handled': row['Agent Handled'] || 'Unassigned',
                     'Status': row['Status'] || 'Pending',
-                    // The 'Timestamp' key must match your sheet's header for the date
-                    'submittedAt': new Date(row['Timestamp'])
+                    // *** THIS LINE IS NOW CORRECTED TO USE THE HELPER FUNCTION ***
+                    'submittedAt': parseCustomDate(row['Timestamp'])
                 };
 
                 const docId = existingRecordsMap.get(contactId);
@@ -295,7 +315,6 @@
                 tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4">No records found. Click 'Sync' to fetch data.</td></tr>`;
                 return;
             }
-            // Sort records by newest date first
             records.sort((a, b) => b.submittedAt.toMillis() - a.submittedAt.toMillis());
             
             records.forEach(record => {
