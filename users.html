@@ -46,9 +46,9 @@
             background-color: #000080; /* Navy Blue */
             color: white;
             padding: 1rem 0;
-            height: calc(100vh - 48px);
+            height: 100vh;
             position: fixed;
-            top: 48px;
+            top: 0;
             left: 0;
             z-index: 100;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
@@ -98,6 +98,9 @@
         .hidden { display: none !important; }
         .admin-section {
             margin-bottom: 2rem;
+            border: 1px solid #e5e7eb;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
         }
         .admin-section h2 {
             font-size: 1.5rem;
@@ -189,7 +192,27 @@
                 <h1 class="text-3xl font-bold mb-6 text-gray-800">User Management</h1>
                 
                 <div class="admin-section">
-                    <h2>Manage Users & Permissions</h2>
+                    <h2>Manage Profiles & Permissions</h2>
+                    <div class="flex items-end gap-4 mb-4">
+                        <div class="flex-grow">
+                            <label for="profileRoleSelect" class="block font-medium">Select Profile to Edit</label>
+                            <select id="profileRoleSelect" class="w-full p-2 border rounded"></select>
+                        </div>
+                        <div class="flex-grow">
+                            <label for="newProfileName" class="block font-medium">Or Create New Profile</label>
+                            <input type="text" id="newProfileName" placeholder="New profile name" class="w-full p-2 border rounded">
+                        </div>
+                        <button id="createProfileBtn" class="bg-green-500 text-white px-4 py-2 rounded">Create</button>
+                    </div>
+                    <div id="profilePermissionsContainer" class="hidden">
+                        <h3 class="text-lg font-semibold mb-2">Set Permissions for <span id="editingProfileName" class="font-bold"></span></h3>
+                        <div id="permissionsGrid" class="permissions-grid"></div>
+                        <button id="saveProfilePermissionsBtn" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">Save Permissions for this Profile</button>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h2>Assign Roles to Users</h2>
                     <div class="overflow-x-auto">
                         <table class="user-table">
                             <thead>
@@ -198,13 +221,10 @@
                                     <th>Email</th>
                                     <th>Role</th>
                                     <th>Status</th>
-                                    <th>Tab Permissions</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="userTableBody">
-                                <!-- User rows will be inserted here -->
-                            </tbody>
+                            <tbody id="userRolesTableBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -221,7 +241,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -266,32 +286,18 @@
         }
 
         function renderUsersTable(users) {
-            const tableBody = document.getElementById('userTableBody');
+            const tableBody = document.getElementById('userRolesTableBody');
             tableBody.innerHTML = '';
             users.forEach(user => {
                 const row = tableBody.insertRow();
-                let permissionsHtml = '<div class="permissions-grid">';
-                TABS.forEach(tab => {
-                    const currentPermission = user.permissions?.[tab.id] || 'none';
-                    permissionsHtml += `
-                        <div class="permission-item">
-                            <label for="${user.uid}-${tab.id}-level" class="text-sm">${tab.label}</label>
-                            <select id="${user.uid}-${tab.id}-level" class="text-xs p-1 border rounded">
-                                <option value="none" ${currentPermission === 'none' ? 'selected' : ''}>Not Visible</option>
-                                <option value="view" ${currentPermission === 'view' ? 'selected' : ''}>View</option>
-                                <option value="read-write" ${currentPermission === 'read-write' ? 'selected' : ''}>Read & Write</option>
-                            </select>
-                        </div>
-                    `;
-                });
-                permissionsHtml += '</div>';
-
+                let roleOptions = Object.keys(allRoles).map(role => `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`).join('');
+                
                 row.innerHTML = `
                     <td>${user.name}</td>
                     <td>${user.email}</td>
                     <td>
                         <select class="role-select border rounded p-1" data-uid="${user.uid}">
-                            ${Object.keys(allRoles).map(role => `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`).join('')}
+                            ${roleOptions}
                         </select>
                     </td>
                     <td>
@@ -300,10 +306,8 @@
                             <option value="deactivated" ${user.disabled ? 'selected' : ''}>Deactivated</option>
                         </select>
                     </td>
-                    <td>${permissionsHtml}</td>
                     <td>
                         <button class="bg-blue-500 text-white px-2 py-1 rounded text-sm edit-btn" data-uid="${user.uid}">Edit</button>
-                        <button class="bg-green-500 text-white px-2 py-1 rounded text-sm save-permissions-btn" data-uid="${user.uid}">Save</button>
                     </td>
                 `;
             });
@@ -314,16 +318,6 @@
                     openEditModal(user);
                 });
             });
-            document.querySelectorAll('.save-permissions-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => savePermissions(e.target.dataset.uid));
-            });
-             document.querySelectorAll('.status-select').forEach(select => {
-                select.addEventListener('change', (e) => {
-                    const uid = e.target.dataset.uid;
-                    const isDisabled = e.target.value === 'deactivated';
-                    updateUserStatus(uid, isDisabled);
-                });
-            });
             document.querySelectorAll('.role-select').forEach(select => {
                 select.addEventListener('change', (e) => {
                     const uid = e.target.dataset.uid;
@@ -331,8 +325,15 @@
                     updateUserRole(uid, newRole);
                 });
             });
+            document.querySelectorAll('.status-select').forEach(select => {
+                select.addEventListener('change', (e) => {
+                    const uid = e.target.dataset.uid;
+                    const isDisabled = e.target.value === 'deactivated';
+                    updateUserStatus(uid, isDisabled);
+                });
+            });
         }
-
+        
         function openEditModal(user) {
             document.getElementById('edit-user-uid').value = user.uid;
             document.getElementById('edit-user-name').value = user.name;
@@ -346,7 +347,6 @@
             const name = document.getElementById('edit-user-name').value;
             const email = document.getElementById('edit-user-email').value;
             
-            // NOTE: Updating email requires a backend (Cloud Function)
             const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
             try {
                 await updateDoc(userDocRef, { name, email });
@@ -370,7 +370,6 @@
         }
 
         async function updateUserStatus(uid, isDisabled) {
-            // NOTE: This only updates Firestore. Disabling the user in Firebase Auth requires a Cloud Function.
             const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
             try {
                 await updateDoc(userDocRef, { disabled: isDisabled });
@@ -392,21 +391,75 @@
             }
         }
 
-        window.savePermissions = async (uid) => {
+        function renderProfilePermissions(roleName) {
+            const container = document.getElementById('permissionsGrid');
+            const profileNameSpan = document.getElementById('editingProfileName');
+            const permissionsContainer = document.getElementById('profilePermissionsContainer');
+            
+            if(!roleName) {
+                permissionsContainer.classList.add('hidden');
+                return;
+            }
+
+            profileNameSpan.textContent = roleName;
+            container.innerHTML = '';
+            const rolePermissions = allRoles[roleName]?.permissions || {};
+
+            TABS.forEach(tab => {
+                const currentPermission = rolePermissions[tab.id] || 'none';
+                container.innerHTML += `
+                    <div class="permission-item">
+                        <label for="${roleName}-${tab.id}-level" class="text-sm">${tab.label}</label>
+                        <select id="${roleName}-${tab.id}-level" class="text-xs p-1 border rounded">
+                            <option value="none" ${currentPermission === 'none' ? 'selected' : ''}>Not Visible</option>
+                            <option value="view" ${currentPermission === 'view' ? 'selected' : ''}>View</option>
+                            <option value="read-write" ${currentPermission === 'read-write' ? 'selected' : ''}>Read & Write</option>
+                        </select>
+                    </div>
+                `;
+            });
+            permissionsContainer.classList.remove('hidden');
+        }
+
+        async function saveProfilePermissions() {
+            const roleName = document.getElementById('profileRoleSelect').value;
+            if (!roleName) return;
+
             const permissions = {};
             TABS.forEach(tab => {
-                permissions[tab.id] = document.getElementById(`${uid}-${tab.id}-level`).value;
+                permissions[tab.id] = document.getElementById(`${roleName}-${tab.id}-level`).value;
             });
 
             try {
-                const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
-                await updateDoc(userDocRef, { permissions });
-                alert('Permissions updated successfully!');
+                const roleDocRef = doc(db, ROLES_COLLECTION_PATH, roleName);
+                await setDoc(roleDocRef, { permissions }, { merge: true });
+                alert(`Permissions for '${roleName}' profile saved successfully!`);
             } catch (error) {
-                console.error("Error updating permissions:", error);
-                alert('Failed to update permissions.');
+                console.error("Error saving profile permissions:", error);
+                alert('Failed to save permissions.');
             }
-        };
+        }
+        
+        async function createNewProfile() {
+            const newProfileName = document.getElementById('newProfileName').value.trim();
+            if (!newProfileName) {
+                alert('Please enter a name for the new profile.');
+                return;
+            }
+            if (allRoles[newProfileName]) {
+                alert('A profile with this name already exists.');
+                return;
+            }
+            try {
+                const newProfileRef = doc(db, ROLES_COLLECTION_PATH, newProfileName);
+                await setDoc(newProfileRef, { permissions: {} }); // Create with empty permissions
+                document.getElementById('newProfileName').value = '';
+                alert(`Profile '${newProfileName}' created successfully.`);
+            } catch (error) {
+                console.error("Error creating new profile:", error);
+                alert('Failed to create profile.');
+            }
+        }
 
         function showAdminContent() {
             document.getElementById('loadingMessage').classList.add('hidden');
