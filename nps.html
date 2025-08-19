@@ -236,27 +236,7 @@
 
         let allNpsData = [];
         
-        // *** NEW HELPER FUNCTION TO FIX DATE ERROR ***
-        function parseCustomDate(dateString) {
-            // Handles date strings like "8/15/2025 10:30:15"
-            if (!dateString || typeof dateString !== 'string') {
-                return new Date(); // Return a valid date as a fallback
-            }
-
-            const parts = dateString.split(' ');
-            if (parts.length < 2) return new Date(dateString); // Fallback to default parser
-
-            const dateParts = parts[0].split('/'); // [M, D, YYYY]
-            const timeParts = parts[1].split(':'); // [h, m, s]
-
-            if (dateParts.length !== 3 || timeParts.length !== 3) {
-                return new Date(dateString); // Fallback
-            }
-
-            // new Date(year, monthIndex, day, hours, minutes, seconds)
-            // Note: month is 0-indexed in JavaScript (Jan=0, Feb=1, etc.)
-            return new Date(dateParts[2], dateParts[0] - 1, dateParts[1], timeParts[0], timeParts[1], timeParts[2]);
-        }
+        // The date parsing function is no longer needed and has been removed.
 
         async function fetchAndSyncNpsRecords() {
             const scriptUrl = 'https://script.google.com/macros/s/AKfycbwYeLVy14AiJoEeqNMbw0bgtcJ2UrjnYloKQo6SYcJh98LtYVHBTotT3-yvqNwdDplZ/exec'; 
@@ -297,8 +277,8 @@
                     'NPS Rating': row['NPS Rating'] || '',
                     'Agent Handled': row['Agent Handled'] || 'Unassigned',
                     'Status': row['Status'] || 'Pending',
-                    // *** THIS LINE IS NOW CORRECTED TO USE THE HELPER FUNCTION ***
-                    'submittedAt': parseCustomDate(row['Timestamp'])
+                    // *** MODIFIED: Storing the timestamp as a simple string to avoid errors ***
+                    'timestampString': row['Timestamp'] || 'N/A'
                 };
 
                 const docId = existingRecordsMap.get(contactId);
@@ -315,11 +295,12 @@
                 tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4">No records found. Click 'Sync' to fetch data.</td></tr>`;
                 return;
             }
-            records.sort((a, b) => b.submittedAt.toMillis() - a.submittedAt.toMillis());
+            // Sorting is removed as we no longer have a reliable date object.
             
             records.forEach(record => {
                 const row = tableBody.insertRow();
-                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' }) : 'N/A';
+                // *** MODIFIED: Display the timestamp string directly ***
+                const submittedAt = record.timestampString || 'N/A';
                 const status = record.Status || 'Pending';
                 let statusClass = 'status-pending';
                 if (status === 'Completed') statusClass = 'status-completed';
