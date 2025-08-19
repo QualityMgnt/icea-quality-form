@@ -162,6 +162,7 @@
         <div id="npsContent" class="hidden">
             <h1 class="text-3xl font-bold mb-6 text-gray-800">NPS Feedback</h1>
             
+            <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div class="dashboard-card summary-card">
                     <div class="icon bg-blue-500"><i class="fas fa-list-ol"></i></div>
@@ -216,7 +217,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, writeBatch, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -244,7 +245,6 @@
                 const csvText = await response.text();
                 const parsedData = parseCsv(csvText);
                 await syncDataToFirestore(parsedData);
-                fetchDataFromFirestore();
             } catch (error) {
                 console.error("Error fetching or syncing Google Sheet data:", error);
             }
@@ -257,12 +257,13 @@
             const data = [];
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i];
-                if (!line) continue; // Skip empty lines
+                if (!line.trim()) continue; // Skip empty lines
                 const values = line.match(/(?:[^,"]+|"[^"]*")+/g);
                 if (values && values.length === headers.length) {
                     const row = {};
                     headers.forEach((header, index) => {
-                        row[header] = values[index].trim().replace(/^"|"$/g, '').replace(/""/g, '"');
+                        const value = values[index] ? values[index].trim().replace(/^"|"$/g, '').replace(/""/g, '"') : '';
+                        row[header] = value;
                     });
                     data.push(row);
                 }
@@ -298,13 +299,6 @@
                 batch.set(docRef, recordData, { merge: true });
             });
             await batch.commit();
-        }
-
-        async function fetchDataFromFirestore() {
-            const querySnapshot = await getDocs(collection(db, NPS_RECORDS_PATH));
-            allNpsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderTable(allNpsData);
-            updateSummaryCards(allNpsData);
         }
 
         function renderTable(records) {
@@ -346,7 +340,13 @@
                 if (user) {
                     document.getElementById('loadingMessage').classList.add('hidden');
                     document.getElementById('npsContent').classList.remove('hidden');
-                    fetchDataFromFirestore();
+                    
+                    onSnapshot(collection(db, NPS_RECORDS_PATH), (snapshot) => {
+                        allNpsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        renderTable(allNpsData);
+                        updateSummaryCards(allNpsData);
+                    });
+
                 } else {
                     window.location.href = './index.html';
                 }
