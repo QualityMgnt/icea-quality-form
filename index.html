@@ -2,234 +2,445 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="A quality assessment and monitoring form for the ICEA LION GROUP contact centre.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Assessment Form - ICEA LION GROUP</title>
+    
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
-        /* --- Enhanced Visual Styles --- */
-
-        :root {
-            --brand-navy: #0d1b3e;
-            --brand-navy-dark: #071024;
-            --brand-orange: #f57c00;
-            --brand-orange-dark: #e65100;
-            --brand-blue: #1a73e8;
-            --bg-main: #f0f2f5;
-            --bg-card: #ffffff;
-            --text-primary: #1f2937;
-            --text-secondary: #6b7280;
-            --border-color: #e5e7eb;
-            --success: #10b981;
-            --danger: #ef4444;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        }
-
+        /* --- Base & Body Styles --- */
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Garamond', serif;
+            display: flex;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            margin: 0;
+            padding: 0;
+            visibility: hidden; /* Used for a fade-in effect on page load */
+            opacity: 0; 
+            transition: visibility 0s, opacity 0.3s ease;
         }
 
-        /* --- Layout: Header & Sidebar --- */
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* --- Branding & Theming --- */
+        .icealion-blue {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .icealion-orange-text {
+            color: #f57c00;
+        }
+
+        /* --- UI Components --- */
+        .error-message {
+            color: #dc2626; /* red-700 */
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.5rem; /* mt-2 */
+            text-align: center;
+        }
+
+        .section-header-bg {
+            background-color: #1a73e8;
+            color: white;
+        }
+
+        .icon-bg-orange { background-color: #f57c00; }
+        .icon-bg-blue { background-color: #2196f3; }
+        .icon-bg-green { background-color: #4caf50; }
+        .icon-bg-yellow { background-color: #ffc107; }
+
+        .form-row-light { background-color: #f9fafb; /* gray-50 */ }
+        .form-row-dark { background-color: #edf2f7; /* gray-200 */ }
+
+        /* --- Form Element Styles --- */
+        .question-description {
+            font-size: 12px;
+            font-weight: 600; /* font-semibold */
+        }
+
+        .weightage-display {
+            font-size: 12px;
+            font-weight: 600; /* font-semibold */
+        }
+
+        .form-grid-input {
+            padding: 2px;
+            font-size: 0.875rem;
+            width: 2.3cm;
+            height: 0.9cm;
+            min-height: 0.9cm;
+            box-sizing: border-box;
+            overflow: hidden;
+            border-color: #1a73e8; /* ICEALION blue for border */
+        }
+
+        .points-input {
+            font-size: 0.875rem;
+            padding: 2px;
+            width: 2.3cm;
+            height: 0.9cm;
+            min-height: 0.9cm;
+            box-sizing: border-box;
+            text-align: center;
+            overflow: hidden;
+            border-color: #1a73e8; /* ICEALION blue for border */
+        }
+
+        .rating-select {
+            font-size: 0.875rem;
+            padding: 2px;
+            width: 2.3cm;
+            height: 0.9cm;
+            min-height: 0.9cm;
+            box-sizing: border-box;
+            text-align-last: center;
+            overflow: hidden;
+            border-color: #1a73e8; /* ICEALION blue for border */
+        }
+
+        .remarks-textarea {
+            resize: vertical;
+            min-height: 48px;
+            line-height: 1.3;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            box-sizing: border-box;
+            border-color: #1a73e8; /* ICEALION blue for border */
+        }
+
+        .top-field-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151; /* gray-700 */
+        }
+
+        #overall-score-display,
+        #business-compliance-accuracy {
+            font-size: 1.6rem;
+        }
+
+        #databaseTableContainer th, #databaseTableContainer td {
+            border: 1px solid #e5e7eb; /* gray-300 */
+            padding: 0.7rem;
+            font-size: 0.8rem;
+        }
+
+        /* --- Layout & Navigation Styles --- */
         .top-header {
-            background-color: var(--bg-card);
-            color: var(--brand-navy);
-            box-shadow: var(--shadow-md);
-            border-bottom: 1px solid var(--border-color);
-            height: 64px;
-            padding: 0 1.5rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            background-color: #000080; /* Navy Blue */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 1.125rem;
+            font-weight: 600;
             z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0 1rem;
+        }
+        .top-header img {
+            height: 1.5cm; 
+            width: 2.5cm; 
+            object-fit: contain;
+        }
+        .main-nav {
+            width: 125px; /* Fixed width for the sidebar */
+            background-color: #000080; /* Navy Blue */
+            color: white;
+            padding: 1rem 0;
+            height: calc(100vh - 48px);
+            position: fixed;
+            top: 48px;
+            left: 0;
+            z-index: 100;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        .main-nav {
-            background: var(--brand-navy);
-            width: 110px;
-            box-shadow: var(--shadow-lg);
-            padding-top: 1rem;
-            transition: width 0.3s ease;
+        .main-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+        
+        .main-nav ul li.nav-tab {
+            display: none; /* Hide all tabs by default, JavaScript will show them */
         }
 
         .sidebar ul li a {
-            color: #aeb9d8;
+            color: white;
+            text-decoration: none;
             font-weight: 500;
-            padding: 0.8rem 0.5rem;
-            transition: all 0.3s ease;
-            border-left: 3px solid transparent;
+            padding: 0.75rem 0.5rem;
+            display: block;
+            border-radius: 0;
+            transition: background-color 0.3s ease; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            text-align: center;
         }
 
-        .sidebar ul li a:hover {
-            background-color: var(--brand-navy-dark);
-            color: white;
-            border-left-color: var(--brand-orange);
-        }
-
+        .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: var(--brand-navy-dark);
-            color: white;
-            font-weight: 600;
-            border-left-color: var(--brand-orange);
+            background-color: #000050; /* Darker Navy Blue */
         }
 
         .logout-button {
-            background-color: var(--brand-orange);
-            transition: background-color 0.3s ease;
-        }
-        .logout-button:hover {
-            background-color: var(--brand-orange-dark);
-        }
-
-        /* --- Main Content & Cards --- */
-        .content-container {
-            margin-left: 110px;
-            margin-top: 64px;
-            width: calc(100% - 110px);
-            padding: 2rem;
-        }
-        
-        .content-card {
-            background-color: var(--bg-card);
-            border-radius: 0.75rem;
-            box-shadow: var(--shadow-md);
-            overflow: hidden;
-        }
-
-        .card-header {
-            background: linear-gradient(135deg, var(--brand-navy), var(--brand-blue));
+            background-color: #f57c00; /* icealion-orange */
             color: white;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        /* --- Login Page --- */
-        .login-container {
-            background-image: url('https://images.unsplash.com/photo-1556740738-b6a63e27c4df?q=80&w=2070&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
-        }
-        .login-box {
-            background-color: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            box-shadow: var(--shadow-lg);
-            max-width: 400px;
-        }
-        
-        /* --- Form Elements --- */
-        .form-section-header {
-            background-color: #f8f9fa;
-            color: var(--brand-navy);
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .form-input, .form-select, .form-textarea {
-             border: 1px solid var(--border-color);
-             border-radius: 0.375rem;
-             transition: all 0.2s ease;
-             padding: 0.5rem 0.75rem;
-             font-size: 0.875rem;
-        }
-
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            outline: none;
-            border-color: var(--brand-blue);
-            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
-        }
-
-        .question-row {
-            border-bottom: 1px solid var(--border-color);
-            transition: background-color 0.2s ease;
-        }
-        .question-row:last-child {
-            border-bottom: none;
-        }
-        .question-row:hover {
-            background-color: #f8f9fa;
-        }
-
-        /* --- Buttons --- */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.6rem 1.25rem;
+            padding: 0.5rem 0.75rem;
             border-radius: 0.375rem;
             font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow-sm);
-            border: none;
             cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
         }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-        .btn-primary {
-            background-color: var(--brand-blue);
-            color: white;
-        }
-        .btn-success {
-            background-color: var(--success);
-            color: white;
-        }
-        .btn-danger {
-            background-color: var(--danger);
-            color: white;
-        }
-        .btn-warning {
-            background-color: var(--brand-orange);
-            color: white;
+        .logout-button:hover {
+            background-color: #e65100;
         }
 
-        /* --- Tables --- */
-        .styled-table {
-            width: 100%;
-            border-collapse: collapse;
+        #auditFormContent.container,
+        #databaseContent.container,
+        #shareResponseContent.container {
+            margin-left: calc(125px + 1.5rem); 
+            margin-top: calc(48px + 1.5rem); 
+            width: calc(100% - 125px - 3rem); 
+            min-height: calc(100vh - 48px - 3rem); 
+            max-width: none; 
+            border-radius: 0.5rem; 
+            margin-bottom: 1.5rem; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
         }
-        .styled-table thead th {
-            background-color: #f8f9fa;
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 2px solid var(--border-color);
-        }
-        .styled-table tbody td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.875rem;
-        }
-        .styled-table tbody tr:hover {
-            background-color: #f9fafb;
+
+        #auditFormContent.container.mx-auto,
+        #databaseContent.container.mx-auto,
+        #shareResponseContent.container.mx-auto {
+            margin-right: 1.5rem; 
         }
         
-        /* --- Utilities --- */
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f3f4f6;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
+        .login-container.visible {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* --- Modal & Spinner Styles --- */
+        .message-box-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; 
+        }
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .message-box h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a73e8; /* icealion-blue */
+        }
+        .message-box p {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .message-box button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+        .message-box button:hover {
+            background-color: #0d47a1;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1a73e8; /* icealion-blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- Database & Webhook Styles --- */
+        #databaseTableContainer table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        #databaseTableContainer th, #databaseTableContainer td {
+            border: 1px solid #e5e7eb; /* gray-300 */
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        #databaseTableContainer th {
+            background-color: #eff6ff; /* blue-50 */
+            font-weight: 600;
+            color: #1f2937; /* gray-800 */
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        #databaseTableContainer tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        #databaseTableContainer tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+        #databaseTableContainer td.actions {
+            white-space: nowrap;
+        }
+        #databaseTableContainer .delete-record-btn,
+        .view-record-btn, .email-record-btn, .download-record-btn, .download-pdf-btn { 
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s ease;
+            margin-right: 0.25rem;
+        }
+        #databaseTableContainer .delete-record-btn {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+        }
+        #databaseTableContainer .delete-record-btn:hover {
+            background-color: #dc2626; /* red-700 */
+        }
+        .view-record-btn {
+            background-color: #2196f3;
+            color: white;
+        }
+        .view-record-btn:hover {
+            background-color: #1976d2;
+        }
+        .email-record-btn {
+            background-color: #f57c00;
+            color: white;
+        }
+        .email-record-btn:hover {
+            background-color: #e65100;
+        }
+        .download-record-btn {
+            background-color: #4caf50;
+            color: white;
+        }
+        .download-record-btn:hover {
+            background-color: #388e3c;
+        }
+        .download-pdf-btn { 
+            background-color: #800080; /* Purple */
+            color: white;
+        }
+        .download-pdf-btn:hover {
+            background-color: #6a006a; /* Darker Purple */
+        }
+
+        #webhookList div {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f0f9ff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+        #webhookList div span {
+            font-size: 0.875rem;
+            color: #1e40af;
+        }
+
+        /* --- Utility Styles --- */
+        .message-box-content-pre {
+            text-align: left;
+            white-space: pre-wrap;
+            font-family: 'Inter', monospace; 
+            background-color: #f8f8f8;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            font-size: 0.875rem;
+        }
         .hidden {
-            display: none !important;
+            display: none !important; 
+            /* !important is used to override Tailwind's responsive display classes (e.g., md:flex) that might otherwise show the element. */
         }
 
     </style>
 </head>
 <body>
-    <div class="top-header">
+    <header class="top-header">
         <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
-        <img id="header-logo" src="https://placehold.co/95x57/000080/FFFFFF?text=Logo" alt="Company Logo">
-    </div>
+        <img id="header-logo" src="https://placehold.co/95x57/000080/FFFFFF?text=Logo" alt="Company Logo" aria-label="ICEA LION Group company logo">
+    </header>
 
-    <div id="messageBoxOverlay" class="message-box-overlay hidden">
+    <div id="messageBoxOverlay" class="message-box-overlay hidden" role="alert" aria-live="assertive">
         <div class="message-box">
             <div id="messageBoxSpinner" class="spinner hidden" aria-label="Loading..."></div>
             <h3 id="messageBoxTitle"></h3>
@@ -238,349 +449,357 @@
         </div>
     </div>
 
-    <div class="login-container" id="loginPage">
-        <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-xs">
-            <div class="icealion-blue p-6 rounded-t-lg text-center">
-                <!-- CHANGED: Title updated -->
-                <h1 class="text-2xl font-semibold">Quality Management System</h1>
+    <main>
+        <div class="login-container" id="loginPage">
+            <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden max-w-xs">
+                <div class="icealion-blue p-6 rounded-t-lg text-center">
+                    <h1 class="text-2xl font-semibold">Quality Management System</h1>
+                </div>
+
+                <form id="loginForm" class="p-8 space-y-6">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" id="username" name="username"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                                required placeholder="Enter your username" autocomplete="username">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="password" name="password"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
+                                required placeholder="Enter your password" autocomplete="current-password">
+                    </div>
+                    <button type="button" id="loginButton"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                        Login
+                    </button>
+                    <div class="text-center text-sm mt-3">
+                        <a href="#" id="forgotPasswordLink" class="text-blue-600 hover:underline">Forgot Password?</a>
+                    </div>
+                    <div class="text-center text-sm text-gray-600">
+                        Don't have an account? 
+                        <a href="signup.html" class="font-medium text-blue-600 hover:underline">Sign Up</a>
+                    </div>
+                    <div id="loginMessage" class="error-message hidden" aria-live="polite"></div>
+                </form>
+            </div>
+        </div>
+
+        <nav class="main-nav" id="mainNav" style="display: none;">
+            <div class="sidebar">
+                <ul>
+                    <li class="nav-tab" role="menu"><a href="home.html" id="homeTab" aria-label="Home" role="menuitem"><i class="fas fa-home"></i> Home</a></li>
+                    <li class="nav-tab" role="menu"><a href="Dashboard.html" id="reportsTab" aria-label="Dashboard" role="menuitem"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                    <li class="nav-tab" role="menu"><a href="#" id="auditFormTab" class="active" aria-label="Evaluation Form" role="menuitem"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                    <li class="nav-tab" role="menu"><a href="#" id="shareResponseTab" aria-label="Share Response" role="menuitem"><i class="fas fa-share-square"></i> Share</a></li>
+                    <li class="nav-tab" role="menu"><a href="myEvaluations.html" id="myEvaluationsTab" aria-label="My Evaluations" role="menuitem"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                    <li class="nav-tab" role="menu"><a href="nps.html" id="npsTab" aria-label="NPS" role="menuitem"><i class="fas fa-comment-alt"></i> NPS</a></li>
+                    <li class="nav-tab" role="menu"><a href="autofails.html" id="autofailsTab" aria-label="Autofails" role="menuitem"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                    <li class="nav-tab" role="menu"><a href="#" id="databaseTab" aria-label="Database" role="menuitem"><i class="fas fa-database"></i> Database</a></li>
+                    <li class="nav-tab" role="menu"><a href="images.html" id="imagesTab" aria-label="Images" role="menuitem"><i class="fas fa-image"></i> Images</a></li>
+                    <li class="nav-tab" role="menu"><a href="users.html" id="usersTab" aria-label="Users" role="menuitem"><i class="fas fa-users"></i> Users</a></li>
+                    <li class="nav-tab" role="menu"><a href="admin.html" id="adminTab" aria-label="Admin" role="menuitem"><i class="fas fa-user-cog"></i> Admin</a></li>
+                </ul>
+                <button id="logoutBtn" class="logout-button" aria-label="Logout">Logout</button>
+            </div>
+        </nav>
+
+        <section class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="auditFormContent" style="display: none;" aria-labelledby="auditFormHeader">
+            <div class="icealion-blue p-4 flex items-center justify-between">
+                <div id="auditFormHeader" class="text-xl font-semibold">Quality Assessment Form - ICEA LION GROUP Contact Centre</div>
+                <img id="audit-form-logo" src="https://placehold.co/95x57/1a73e8/FFFFFF?text=Logo" alt="ICEALION Logo" style="height: 1.5cm; width: 2.5cm; object-fit: contain;">
             </div>
 
-            <form id="loginForm" class="p-8 space-y-6">
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" id="username" name="username"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                            required placeholder="Enter your username">
+                    <label for="contact-id" class="block top-field-label">Contact ID</label>
+                    <input type="text" id="contact-id" name="Contact ID" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
                 </div>
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" name="password"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-2 border"
-                            required placeholder="Enter your password">
+                    <label for="client-name" class="block top-field-label">Client Name</label>
+                    <input type="text" id="client-name" name="Client Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" placeholder="e.g., John Doe" required>
                 </div>
-                <button type="button" id="loginButton"
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
-                    Login
-                </button>
-                <div class="text-center text-sm mt-3">
-                    <a href="#" id="forgotPasswordLink" class="text-blue-600 hover:underline">Forgot Password?</a>
+                <div>
+                    <label for="cer-name" class="block top-field-label">CER Name</label>
+                    <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                        <option value="">Select CER</option>
+                    </select>
                 </div>
-                <!-- ADDED: Sign Up link -->
-                <div class="text-center text-sm text-gray-600">
-                    Don't have an account? 
-                    <a href="signup.html" class="font-medium text-blue-600 hover:underline">Sign Up</a>
+                <div>
+                    <label for="cer-email" class="block top-field-label">CER Email</label>
+                    <input type="email" id="cer-email" name="CER Email" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" placeholder="e.g., cer.name@icealion.com" readonly required>
                 </div>
-                <div id="loginMessage" class="error-message hidden"></div>
+                <div>
+                    <label for="cer-role" class="block top-field-label">CER Role</label>
+                    <select id="cer-role" name="CER Role" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                        <option value="">Select Role</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="call-date-time" class="block top-field-label">Call Date and Time</label>
+                    <input type="datetime-local" id="call-date-time" name="Call Date and Time" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                </div>
+                <div>
+                    <label for="reviewer-name" class="block top-field-label">Reviewer's Name</label>
+                    <input type="text" id="reviewer-name" name="Reviewer's Name" class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 form-grid-input border border-blue-600" readonly>
+                </div>
+                <div>
+                    <label for="autofail-type" class="block top-field-label">Auto Fail Type</label>
+                    <select id="autofail-type" name="Auto Fail Type" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600">
+                        <option value="">Select Autofail Type</option>
+                    </select>
+                </div>
+                <div id="autofailDescriptionContainer" class="hidden">
+                    <label for="autofail-description" class="block top-field-label">Autofail Description</label>
+                    <textarea id="autofail-description" name="Autofail Description" rows="2" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input remarks-textarea border border-blue-600" placeholder="Provide details about the autofail" oninput="autoExpandTextarea(this)"></textarea>
+                </div>
+                <div>
+                    <label for="review-date" class="block top-field-label">Evaluation Date</label>
+                    <input type="date" id="review-date" name="Evaluation Date" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                </div>
+                <div>
+                    <label for="duration" class="block top-field-label">Call Duration</label>
+                    <input type="text" id="duration" name="Call Duration" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" placeholder="e.g., 30 mins">
+                </div>
+
+                <div id="customFieldsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 col-span-full">
+                </div>
+            </div>
+
+            <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
+                <div class="text-sm font-medium text-gray-600">Scores:</div>
+                <div class="flex justify-around w-full gap-2">
+                    <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
+                        <div class="text-xs font-medium text-gray-600 mb-1">Overall Score</div>
+                        <div class="text-xl font-bold text-blue-600" id="overall-score-display">0%</div>
+                    </div>
+                    <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
+                        <div class="text-xs font-medium text-gray-600 mb-1">Business & Compliance Accuracy</div>
+                        <div class="text-xl font-bold text-blue-600" id="business-compliance-accuracy">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <form id="assessment-form">
+                <div class="mt-4">
+                    <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
+                        <i class="fas fa-user tile-icon"></i> CUSTOMER EXPERIENCE
+                    </div>
+                    <div class="p-4">
+                        <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <div class="col-span-6 question-description">Description</div>
+                            <div class="col-span-2 text-center">Rating</div>
+                            <div class="col-span-1 text-center">Weight</div>
+                            <div class="col-span-1 text-center">Pnts</div>
+                            <div class="col-span-2">Remarks</div>
+                        </div>
+                        <div id="cxQuestionsContainer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
+                        <i class="fas fa-lightbulb tile-icon"></i> PROBLEM SOLVING SKILLS
+                    </div>
+                    <div class="p-4">
+                        <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <div class="col-span-6 question-description">Description</div>
+                            <div class="col-span-2 text-center">Rating</div>
+                            <div class="col-span-1 text-center">Weight</div>
+                            <div class="col-span-1 text-center">Pnts</div>
+                            <div class="col-span-2">Remarks</div>
+                        </div>
+                        <div id="psQuestionsContainer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
+                        <i class="fas fa-check-circle tile-icon"></i> COMPLIANCE AND BUSINESS CRITICAL ACCURACY
+                    </div>
+                    <div class="p-4">
+                        <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <div class="col-span-6 question-description">Description</div>
+                            <div class="col-span-2 text-center">Rating</div>
+                            <div class="col-span-1 text-center">Weight</div>
+                            <div class="col-span-1 text-center">Pnts</div>
+                            <div class="col-span-2">Remarks</div>
+                        </div>
+                        <div id="caQuestionsContainer">
+                        </div>
+                    </div>
+                </div>
             </form>
-        </div>
-    </div>
-
-    <nav class="main-nav" id="mainNav" style="display: none;">
-        <div class="sidebar">
-            <ul>
-                <!-- MODIFIED: Added Home link and reordered -->
-                <li class="nav-tab"><a href="home.html" id="homeTab" aria-label="Home"><i class="fas fa-home"></i> Home</a></li>
-                <li class="nav-tab"><a href="Dashboard.html" id="reportsTab" aria-label="Dashboard"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
-                <li class="nav-tab"><a href="#" id="auditFormTab" class="active" aria-label="Evaluation Form"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li class="nav-tab"><a href="myEvaluations.html" id="myEvaluationsTab" aria-label="My Evaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
-                <li class="nav-tab"><a href="nps.html" id="npsTab" aria-label="NPS"><i class="fas fa-comment-alt"></i> NPS</a></li>
-                <li class="nav-tab"><a href="autofails.html" id="autofailsTab" aria-label="Autofails"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li class="nav-tab"><a href="#" id="databaseTab" aria-label="Database"><i class="fas fa-database"></i> Database</a></li>
-                <li class="nav-tab"><a href="images.html" id="imagesTab" aria-label="Images"><i class="fas fa-image"></i> Images</a></li>
-                <li class="nav-tab"><a href="users.html" id="usersTab" aria-label="Users"><i class="fas fa-users"></i> Users</a></li>
-                <li class="nav-tab"><a href="admin.html" id="adminTab" aria-label="Admin"><i class="fas fa-user-cog"></i> Admin</a></li>
-            </ul>
-            <button id="logoutBtn" class="logout-button" aria-label="Logout">Logout</button>
-        </div>
-    </nav>
-
-    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="auditFormContent" style="display: none;">
-        <div class="icealion-blue p-4 flex items-center justify-between">
-            <div class="text-xl font-semibold">Quality Assessment Form - ICEA LION GROUP Contact Centre</div>
-            <img id="audit-form-logo" src="https://placehold.co/95x57/1a73e8/FFFFFF?text=Logo" alt="ICEALION Logo" style="height: 1.5cm; width: 2.5cm; object-fit: contain;">
-        </div>
-
-        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-                <label for="contact-id" class="block top-field-label">Contact ID</label>
-                <input type="text" id="contact-id" name="Contact ID" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
-            </div>
-            <div>
-                <label for="client-name" class="block top-field-label">Client Name</label>
-                <input type="text" id="client-name" name="Client Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" placeholder="e.g., John Doe" required>
-            </div>
-            <div>
-                <label for="cer-name" class="block top-field-label">CER Name</label>
-                <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
-                    <option value="">Select CER</option>
-                </select>
-            </div>
-            <div>
-                <label for="cer-email" class="block top-field-label">CER Email</label>
-                <input type="email" id="cer-email" name="CER Email" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" placeholder="e.g., cer.name@icealion.com" readonly required>
-            </div>
-            <div>
-                <label for="cer-role" class="block top-field-label">CER Role</label>
-                <select id="cer-role" name="CER Role" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
-                    <option value="">Select Role</option>
-                </select>
-            </div>
-            <div>
-                <label for="call-date-time" class="block top-field-label">Call Date and Time</label>
-                <input type="datetime-local" id="call-date-time" name="Call Date and Time" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
-            </div>
-            <div>
-                <!-- MODIFIED: Reviewer's Name changed to a readonly text input -->
-                <label for="reviewer-name" class="block top-field-label">Reviewer's Name</label>
-                <input type="text" id="reviewer-name" name="Reviewer's Name" class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 form-grid-input border border-blue-600" readonly>
-            </div>
-            <div>
-                <label for="autofail-type" class="block top-field-label">Auto Fail Type</label>
-                <select id="autofail-type" name="Auto Fail Type" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600">
-                    <option value="">Select Autofail Type</option>
-                </select>
-            </div>
-            <div id="autofailDescriptionContainer" class="hidden">
-                <label for="autofail-description" class="block top-field-label">Autofail Description</label>
-                <textarea id="autofail-description" name="Autofail Description" rows="2" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input remarks-textarea border border-blue-600" placeholder="Provide details about the autofail" oninput="autoExpandTextarea(this)"></textarea>
-            </div>
-            <div>
-                <label for="review-date" class="block top-field-label">Evaluation Date</label>
-                <input type="date" id="review-date" name="Evaluation Date" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
-            </div>
-            <div>
-                <label for="duration" class="block top-field-label">Call Duration</label>
-                <input type="text" id="duration" name="Call Duration" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" placeholder="e.g., 30 mins">
-            </div>
-
-            <div id="customFieldsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 col-span-full">
-            </div>
-        </div>
-
-        <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
-            <div class="text-sm font-medium text-gray-600">Scores:</div>
-            <div class="flex justify-around w-full gap-2">
-                <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
-                    <div class="text-xs font-medium text-gray-600 mb-1">Overall Score</div>
-                    <div class="text-xl font-bold text-blue-600" id="overall-score-display">0%</div>
-                </div>
-                <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
-                    <div class="text-xs font-medium text-gray-600 mb-1">Business & Compliance Accuracy</div>
-                    <div class="text-xl font-bold text-blue-600" id="business-compliance-accuracy">0%</div>
-                </div>
-            </div>
-        </div>
-
-        <form id="assessment-form">
-            <div class="mt-4">
-                <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
-                    <i class="fas fa-user tile-icon"></i> CUSTOMER EXPERIENCE
-                </div>
-                <div class="p-4">
-                    <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <div class="col-span-6 question-description">Description</div>
-                        <div class="col-span-2 text-center">Rating</div>
-                        <div class="col-span-1 text-center">Weight</div>
-                        <div class="col-span-1 text-center">Pnts</div>
-                        <div class="col-span-2">Remarks</div>
-                    </div>
-                    <div id="cxQuestionsContainer">
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
-                    <i class="fas fa-lightbulb tile-icon"></i> PROBLEM SOLVING SKILLS
-                </div>
-                <div class="p-4">
-                    <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <div class="col-span-6 question-description">Description</div>
-                        <div class="col-span-2 text-center">Rating</div>
-                        <div class="col-span-1 text-center">Weight</div>
-                        <div class="col-span-1 text-center">Pnts</div>
-                        <div class="col-span-2">Remarks</div>
-                    </div>
-                    <div id="psQuestionsContainer">
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
-                    <i class="fas fa-check-circle tile-icon"></i> COMPLIANCE AND BUSINESS CRITICAL ACCURACY
-                </div>
-                <div class="p-4">
-                    <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <div class="col-span-6 question-description">Description</div>
-                        <div class="col-span-2 text-center">Rating</div>
-                        <div class="col-span-1 text-center">Weight</div>
-                        <div class="col-span-1 text-center">Pnts</div>
-                        <div class="col-span-2">Remarks</div>
-                    </div>
-                    <div id="caQuestionsContainer">
-                    </div>
-                </div>
-            </div>
-        </form>
-            
-        <div class="p-6 flex flex-col items-end">
-            <table class="score-summary-table w-full md:w-1/2 lg:w-1/3 text-right text-sm border-collapse border border-blue-500">
-                <tbody>
-                    <tr class="border-b border-blue-500">
-                        <td class="text-left font-medium p-2 border border-blue-500">Total Pts.</td>
-                        <td class="text-right text-gray-500 p-2 border border-blue-500" id="total-pts-percentage">0</td>
-                    </tr>
-                    <tr class="border-b border-blue-500">
-                        <td class="text-left font-medium p-2 border border-blue-500">Available Pts.</td>
-                        <td class="text-right text-gray-500 p-2 border border-blue-500">100%</td>
-                    </tr>
-                    <tr>
-                        <td class="text-left font-bold icealion-orange-text p-2 border border-blue-500">Overall Score</td>
-                        <td class="text-right font-bold icealion-orange-text p-2 border border-blue-500" id="overall-final-percentage-display">0%</td>
-                    </tr>
-                </tbody>
-            </table>
-            <div class="flex items-center justify-between w-full mt-4">
-                <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
-                <!-- MODIFIED: Buttons updated -->
-                <div class="flex space-x-4">
-                    <button type="button" id="generateReportBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Generate Report">
-                        Generate Report
-                    </button>
-                    <button type="button" id="saveDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Save Data">
-                        Save Data
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="p-6">
-            <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
-                <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
-            </div>
-            <div id="lastEvaluationsContainer" class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-200 rounded-md">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Name</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Overall Score</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Role</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Contact ID</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
+                
+            <div class="p-6 flex flex-col items-end">
+                <table class="score-summary-table w-full md:w-1/2 lg:w-1/3 text-right text-sm border-collapse border border-blue-500">
+                    <tbody>
+                        <tr class="border-b border-blue-500">
+                            <td class="text-left font-medium p-2 border border-blue-500">Total Pts.</td>
+                            <td class="text-right text-gray-500 p-2 border border-blue-500" id="total-pts-percentage">0</td>
                         </tr>
-                    </thead>
-                    <tbody id="lastEvaluationsTableBody">
+                        <tr class="border-b border-blue-500">
+                            <td class="text-left font-medium p-2 border border-blue-500">Available Pts.</td>
+                            <td class="text-right text-gray-500 p-2 border border-blue-500">100%</td>
+                        </tr>
                         <tr>
-                            <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
+                            <td class="text-left font-bold icealion-orange-text p-2 border border-blue-500">Overall Score</td>
+                            <td class="text-right font-bold icealion-orange-text p-2 border border-blue-500" id="overall-final-percentage-display">0%</td>
                         </tr>
                     </tbody>
                 </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="databaseContent" style="display: none;">
-        <div class="icealion-blue p-4 text-xl font-semibold text-center">
-            Database Records
-        </div>
-        <div class="p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-semibold text-gray-800">Submitted Records</h2>
-                <div>
-                    <button id="deleteSelectedRecordsBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled aria-label="Delete Selected Records">
-                        <i class="fas fa-trash-alt mr-2"></i>Delete Selected
-                    </button>
-                </div>
-            </div>
-
-            <div id="databaseTableContainer" class="overflow-x-auto max-h-[60vh]">
-                <table class="min-w-full">
-                    <thead>
-                        <tr>
-                            <th class="w-12"><input type="checkbox" id="selectAllRecordsCheckbox" aria-label="Select All Records"></th>
-                            <th class="w-24">Timestamp</th>
-                            <th>Contact ID</th>
-                            <th>Client Name</th>
-                            <th>CER Name</th>
-                            <th>Overall Score</th>
-                            <th>Attachment</th>
-                            <th class="w-24">Actions</th>
-                            <th>View</th>
-                            <th>Email</th>
-                            <th>Download</th>
-                        </tr>
-                    </thead>
-                    <tbody id="recordsTableBody">
-                        <tr>
-                            <td colspan="11" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="mt-8 pt-6 border-t border-gray-200">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Webhook Management</h2>
-                <p class="text-sm text-gray-600 mb-4">
-                    Add webhook URLs below. When new records are created, data will be sent to these webhooks.
-                    <b>Note:</b> Sending data to external webhooks will depend on their server's CORS policy.
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                    <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)"
-                            class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:focus:ring-opacity-50 form-grid-input border border-blue-600">
-                    <button id="addWebhookBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Add Webhook">
-                        <i class="fas fa-plus mr-2"></i>Add Webhook
-                    </button>
-                </div>
-                <div id="webhookList" class="border border-gray-300 p-4 rounded-md bg-gray-50 min-h-[100px]">
-                    <p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>
+                <div class="flex items-center justify-between w-full mt-4">
+                    <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
+                    <div class="flex space-x-4">
+                        <button type="button" id="shareBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Share">
+                            Share
+                        </button>
+                        <button type="button" id="shareViaEmailBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Share via Email">
+                            Share via Email
+                        </button>
+                        <button type="button" id="generateReportBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Generate Report">
+                            Generate Report
+                        </button>
+                        <button type="button" id="saveDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Save Data">
+                            Save Data
+                        </button>
                     </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="shareResponseContent" style="display: none;">
-        <div class="icealion-blue p-4 text-xl font-semibold text-center">
-            Share Evaluation Response
-        </div>
-        <div class="p-6">
-            <div class="mb-4">
-                <label for="select-record-search" class="block top-field-label">Search Record</label>
-                <input type="text" id="select-record-search" placeholder="Type to filter records by Client Name, Contact ID, CER Name, or Score..."
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600">
-                <label for="select-record-to-share" class="block top-field-label mt-2">Select Evaluation Record</label>
-                <select id="select-record-to-share" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
-                    <option value="">-- Select a Record --</option>
-                </select>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label for="share-email-to" class="block top-field-label">To (CER Email)</label>
-                    <input type="email" id="share-email-to" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm form-grid-input bg-gray-100 border border-blue-600" readonly aria-label="Recipient Email">
-                </div>
-                <div>
-                    <label for="share-email-from" class="block top-field-label">From (Your Name)</label>
-                    <input type="text" id="share-email-from" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm form-grid-input bg-gray-100 border border-blue-600" readonly aria-label="Sender Name">
                 </div>
             </div>
 
-            <div class="mb-4">
-                <label for="share-email-subject" class="block top-field-label">Subject</label>
-                <input type="text" id="share-email-subject" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600">
+            <div class="p-6">
+                <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
+                    <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
+                </div>
+                <div id="lastEvaluationsContainer" class="overflow-x-auto">
+                    <table class="min-w-full bg-white border border-gray-200 rounded-md">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th scope="col" class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Name</th>
+                                <th scope="col" class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Overall Score</th>
+                                <th scope="col" class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Role</th>
+                                <th scope="col" class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Contact ID</th>
+                                <th scope="col" class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lastEvaluationsTableBody">
+                            <tr>
+                                <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+        </section>
 
-            <div class="mb-6">
-                <label for="share-email-body" class="block top-field-label">Email Body</label>
-                <textarea id="share-email-body" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 remarks-textarea border border-blue-600" oninput="autoExpandTextarea(this)" aria-label="Email Body"></textarea>
+        <section class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="databaseContent" style="display: none;" aria-labelledby="databaseHeader">
+            <div class="icealion-blue p-4 text-xl font-semibold text-center">
+                <span id="databaseHeader">Database Records</span>
             </div>
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-800">Submitted Records</h2>
+                    <div>
+                        <button id="deleteSelectedRecordsBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled aria-label="Delete Selected Records">
+                            <i class="fas fa-trash-alt mr-2"></i>Delete Selected
+                        </button>
+                    </div>
+                </div>
 
-            <button id="sendShareEmailBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Send Share Email">
-                Send Email
-            </button>
-            <div id="shareEmailMessage" class="error-message hidden"></div>
-        </div>
-    </div>
+                <div id="databaseTableContainer" class="overflow-x-auto max-h-[60vh]">
+                    <table class="min-w-full">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="w-12"><input type="checkbox" id="selectAllRecordsCheckbox" aria-label="Select All Records"></th>
+                                <th scope="col" class="w-24">Timestamp</th>
+                                <th scope="col">Contact ID</th>
+                                <th scope="col">Client Name</th>
+                                <th scope="col">CER Name</th>
+                                <th scope="col">Overall Score</th>
+                                <th scope="col">Attachment</th>
+                                <th scope="col" class="w-24">Actions</th>
+                                <th scope="col">View</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Download</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsTableBody">
+                            <tr>
+                                <td colspan="11" class="text-center py-4 text-gray-500">No records found. Submit a form to see data here.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-gray-200">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Webhook Management</h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Add webhook URLs below. When new records are created, data will be sent to these webhooks.
+                        <b>Note:</b> Sending data to external webhooks will depend on their server's CORS policy.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                        <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL (e.g., https://example.com/webhook)"
+                                class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:focus:ring-opacity-50 form-grid-input border border-blue-600">
+                        <button id="addWebhookBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Add Webhook">
+                            <i class="fas fa-plus mr-2"></i>Add Webhook
+                        </button>
+                    </div>
+                    <div id="webhookList" class="border border-gray-300 p-4 rounded-md bg-gray-50 min-h-[100px]">
+                        <p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>
+                        </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 mb-8" id="shareResponseContent" style="display: none;" aria-labelledby="shareResponseHeader">
+            <div class="icealion-blue p-4 text-xl font-semibold text-center">
+                <span id="shareResponseHeader">Share Evaluation Response</span>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label for="select-record-search" class="block top-field-label">Search Record</label>
+                    <input type="text" id="select-record-search" placeholder="Type to filter records by Client Name, Contact ID, CER Name, or Score..."
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600">
+                    <label for="select-record-to-share" class="block top-field-label mt-2">Select Evaluation Record</label>
+                    <select id="select-record-to-share" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                        <option value="">-- Select a Record --</option>
+                    </select>
+                </div>
+
+                <div id="attachment-info" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800 text-sm hidden">
+                    <i class="fas fa-paperclip mr-2"></i><span id="attachment-filename"></span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="share-email-to" class="block top-field-label">To (CER Email)</label>
+                        <input type="email" id="share-email-to" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm form-grid-input bg-gray-100 border border-blue-600" readonly aria-label="Recipient Email">
+                    </div>
+                    <div>
+                        <label for="share-email-from" class="block top-field-label">From (Your Name)</label>
+                        <input type="text" id="share-email-from" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm form-grid-input bg-gray-100 border border-blue-600" readonly aria-label="Sender Name">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="share-email-subject" class="block top-field-label">Subject</label>
+                    <input type="text" id="share-email-subject" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600">
+                </div>
+
+                <div class="mb-6">
+                    <label for="share-email-body" class="block top-field-label">Email Body</label>
+                    <textarea id="share-email-body" rows="10" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 remarks-textarea border border-blue-600" oninput="autoExpandTextarea(this)" aria-label="Email Body"></textarea>
+                </div>
+
+                <button id="sendShareEmailBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out" aria-label="Send Share Email">
+                    Send Email
+                </button>
+                <div id="shareEmailMessage" class="error-message hidden"></div>
+            </div>
+        </section>
+    </main>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -592,17 +811,21 @@
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
         // --- Firebase Configuration ---
+        // CRITICAL SECURITY WARNING
+        // Storing API keys and configuration directly in client-side code is highly insecure.
+        // For production applications, you MUST use a secure method like environment variables.
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
             authDomain: "icea-lion-qa.firebaseapp.com",
             projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
+            storageBucket: "icea-lion-qa.appspot.com", 
             messagingSenderId: "820082472004",
             appId: "1:820082472004:web:8caddf941e1b5b667faf811",
             measurementId: "G-1RJJTT3QET"
         };
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
+        // This ensures that Firebase is only initialized once.
         let appInstance;
         if (!getApps().length) {
             appInstance = initializeApp(firebaseConfig);
@@ -612,10 +835,8 @@
         const auth = getAuth(appInstance);
         const db = getFirestore(appInstance);
         const storage = getStorage(appInstance);
-        
-        // --- START OF FULLY RESTORED JAVASCRIPT LOGIC ---
-        
-        // Define Firebase Collection Paths
+
+        // --- Firebase Collection & Document Paths ---
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
@@ -625,9 +846,10 @@
         const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
+        // Data Stores
         let allRecords = [];
         let allWebhooks = [];
-        let dropdownOptions = {    
+        let dropdownOptions = { 
             'cerNames': [],
             'cerRoles': [],
             'reviewerNames': [],
@@ -637,38 +859,45 @@
         let customFormFields = [];
         let cerNameEmailsMap = {};
         let filterableRecords = [];
+        
+        // Firestore Unsubscribe Functions
         let unsubscribeRecords = null;
         let unsubscribeWebhooks = null;
         let unsubscribeDropdowns = null;
         let unsubscribeQuestions = null;
         let unsubscribeCustomFields = null;
+
+        // User & Auth State
         let currentUserRole = null;
         let currentUserId = null;
         let isAuthReady = false;
         let loggedInUserName = "Quality Evaluation Team";
         let loggedInUserEmail = "anonymous";
+
+        // Form Calculation & Sharing State
         let globalTotalPoints = 0;
         let globalMaxPossiblePoints = 0;
         let globalBusinessComplianceAccuracyValue = 0;
         let latestSavedRecordId = null;
+        let attachedPdfBlob = null; 
+        let attachedPdfFilename = ''; 
 
         /**
-         * Renders navigation tabs based on user role.
+         * Renders navigation tabs.
          */
-        function renderNavigationForRole(role) {
+        function renderNavigationForRole() {
             const allNavTabs = document.querySelectorAll('.nav-tab');
             allNavTabs.forEach(tab => {
-                tab.style.display = 'block'; // Show all tabs to all users.
+                tab.style.display = 'block'; 
             });
         }
         
         /**
-        * Automatically expands a textarea vertically as the user types.
-        * @param {HTMLTextAreaElement} element - The textarea element to auto-expand.
-        */
+         * Automatically expands a textarea vertically as the user types.
+         */
         window.autoExpandTextarea = function(element) {
-            element.style.height = 'auto';
-            element.style.height = (element.scrollHeight) + 'px';
+            element.style.height = 'auto'; 
+            element.style.height = (element.scrollHeight) + 'px'; 
         };
 
         // --- Firebase Auth State Listener (Centralized) ---
@@ -691,7 +920,6 @@
                     console.log("User role:", currentUserRole);
                     console.log("Logged in user name:", loggedInUserName);
                     
-                    // Auto-populate reviewer name field
                     const reviewerNameInput = document.getElementById('reviewer-name');
                     if (reviewerNameInput) {
                         reviewerNameInput.value = loggedInUserName;
@@ -709,8 +937,8 @@
                 fetchQuestionsData();
                 fetchCustomFieldsData();
                 fetchRecordsAndWebhooks();
-                fetchAgentUsersForDropdown(); // Fetch agents for CER dropdown
-                fetchAndSetLogo(); // Fetch and set logo for all pages
+                fetchAgentUsersForDropdown();
+                fetchAndSetLogo();
             } else {
                 console.log("Firebase Auth State Changed: No user logged in.");
                 currentUserId = null;
@@ -723,12 +951,8 @@
             isAuthReady = true;
         });
 
-        // --- All Core Functions (Restored) ---
+        // --- Core Application Functions ---
         
-        // ... (The entire set of functions from the original prompt is restored here)
-        
-        // The following is a complete restoration of all necessary functions.
-
         function calculateScore() {
             const cerRoleSelect = document.getElementById('cer-role');
             const overallScoreDisplay = document.getElementById('overall-score-display');
@@ -1137,15 +1361,18 @@
         }
 
         function sendRecordEmail(recordId) {
-            // Implementation for sending email
+            console.log(`Email functionality for record ${recordId} is not yet implemented.`);
+            showMessageBox("Not Implemented", "Email functionality is not yet available.", false, false, true);
         }
 
         function downloadRecordData(recordId) {
-            // Implementation for downloading JSON
+             console.log(`Download functionality for record ${recordId} is not yet implemented.`);
+            showMessageBox("Not Implemented", "JSON download functionality is not yet available.", false, false, true);
         }
 
         async function downloadPdfAttachment(recordId) {
-            // Implementation for downloading PDF from storage
+             console.log(`PDF download functionality for record ${recordId} is not yet implemented.`);
+            showMessageBox("Not Implemented", "PDF download functionality is not yet available.", false, false, true);
         }
         
         async function fetchDropdownOptionsData() {
@@ -1279,20 +1506,17 @@
             populateAllDropdownsInForm();
         }
 
-        async function saveFormDataOnly() {
-            const formData = collectFormData();
-            if (formData) {
-                showMessageBox("Saving...", "Saving your evaluation data.", false, true, false);
-                try {
-                    await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
-                        ...formData,
-                        submittedAt: new Date()
-                    });
-                    showMessageBox("Success", "Form data saved successfully!", false, false, true);
-                    resetFormFieldsButKeepRole();
-                } catch(e) {
-                    showMessageBox("Error", `Failed to save data: ${e.message}`, true, false, true);
-                }
+        async function saveFormDataOnly(formData) {
+            if (!formData) return null;
+            try {
+                const docRef = await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
+                    ...formData,
+                    submittedAt: new Date()
+                });
+                return docRef.id;
+            } catch (e) {
+                showMessageBox("Error", `Failed to save data: ${e.message}`, true, false, true);
+                return null;
             }
         }
 
@@ -1300,26 +1524,35 @@
             showMessageBox("Generating PDF", "Please wait...", false, true, false);
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-            const canvas = await html2canvas(document.getElementById('auditFormContent'), { scale: 2 });
-            const imgData = canvas.toDataURL('image/jpeg', 1.0);
-            const imgWidth = 210;
-            const pageHeight = 297;
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
+            try {
+                const canvas = await html2canvas(document.getElementById('auditFormContent'), { scale: 2 });
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
 
-            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
                 pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                const cerName = document.getElementById('cer-name').value || 'UnknownCER';
+                const evalDate = document.getElementById('review-date').value || new Date().toISOString().split('T')[0];
+                const filename = `Evaluation Form - ${cerName} - ${evalDate}.pdf`;
+                pdf.save(filename);
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                showMessageBox("PDF Error", "Could not generate the PDF. Please try again.", true, false, true);
+            } finally {
+                hideMessageBox();
             }
-            
-            pdf.save(`Evaluation_Report_${Date.now()}.pdf`);
-            hideMessageBox();
         }
 
         function collectFormData() {
@@ -1327,7 +1560,9 @@
             for (const id of requiredFields) {
                 const el = document.getElementById(id);
                 if (!el || !el.value) {
-                    showMessageBox("Validation Error", `Please fill the "${el.labels[0].textContent}" field.`, true);
+                    const labelText = el.labels[0] ? el.labels[0].textContent : id;
+                    showMessageBox("Validation Error", `Please fill the "${labelText}" field.`, true);
+                    el.focus();
                     return null;
                 }
             }
@@ -1364,6 +1599,74 @@
             document.querySelectorAll('#assessment-form textarea').forEach(el => el.value = '');
             renderQuestionsForRole(document.getElementById('cer-role').value);
         }
+
+        // --- NEW SHARE & PDF FUNCTIONS ---
+
+        /**
+         * Generates a PDF of the form content as a Blob object.
+         * @returns {Promise<{pdfBlob: Blob, filename: string}|null>} An object containing the PDF blob and filename, or null on error.
+         */
+        async function generatePdfAsBlob() {
+            showMessageBox("Generating PDF", "Please wait...", false, true, false);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            try {
+                const canvas = await html2canvas(document.getElementById('auditFormContent'), { scale: 2 });
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                const cerName = document.getElementById('cer-name').value || 'UnknownCER';
+                const evalDate = document.getElementById('review-date').value || new Date().toISOString().split('T')[0];
+                const filename = `Evaluation Form - ${cerName} - ${evalDate}.pdf`;
+                const pdfBlob = pdf.output('blob');
+                return { pdfBlob, filename };
+            } catch (error) {
+                console.error("Error generating PDF blob:", error);
+                showMessageBox("PDF Error", "Could not generate the PDF for sharing.", true, false, true);
+                return null;
+            } finally {
+                hideMessageBox();
+            }
+        }
+
+        /**
+         * Uploads a PDF blob to Firebase Storage and returns the download URL.
+         * @param {string} recordId - The ID of the Firestore record to associate the PDF with.
+         * @param {Blob} pdfBlob - The PDF file blob.
+         * @param {string} filename - The desired filename for the uploaded file.
+         * @returns {Promise<string|null>} The public download URL or null on error.
+         */
+        async function uploadPdfToStorage(recordId, pdfBlob, filename) {
+            if (!recordId || !pdfBlob || !filename) return null;
+            const storageRef = ref(storage, `evaluations/${recordId}/${filename}`);
+            try {
+                const snapshot = await uploadBytes(storageRef, pdfBlob);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+                const recordDocRef = doc(db, EVALUATION_RECORDS_COLLECTION_PATH, recordId);
+                await updateDoc(recordDocRef, {
+                    pdfAttachmentUrl: downloadURL
+                });
+                return downloadURL;
+            } catch (error) {
+                console.error("Error uploading PDF:", error);
+                showMessageBox("Upload Error", `Failed to upload PDF: ${error.message}`, true, false, true);
+                return null;
+            }
+        }
         
         // --- Event Listeners Setup ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -1377,8 +1680,11 @@
             const saveDataBtn = document.getElementById('saveDataBtn');
             const generateReportBtn = document.getElementById('generateReportBtn');
             const reviewDateInput = document.getElementById('review-date');
+            
+            const shareBtn = document.getElementById('shareBtn');
+            const shareViaEmailBtn = document.getElementById('shareViaEmailBtn');
+            const sendShareEmailBtn = document.getElementById('sendShareEmailBtn');
 
-            // Set today's date by default
             if (reviewDateInput) {
                 reviewDateInput.value = new Date().toISOString().split('T')[0];
             }
@@ -1392,7 +1698,7 @@
                     try {
                         await signInWithEmailAndPassword(auth, email, pass);
                         sessionStorage.setItem('loggedIn', 'true');
-                        window.location.href = './home.html'; // Redirect to home on successful login
+                        window.location.href = './home.html';
                     } catch (e) {
                         loginMessage.textContent = e.message;
                     }
@@ -1403,6 +1709,7 @@
                 logoutBtn.addEventListener('click', async () => {
                     await signOut(auth);
                     sessionStorage.removeItem('loggedIn');
+                    window.location.reload();
                 });
             }
             
@@ -1417,8 +1724,117 @@
                 fetchLastThreeEvaluations(selectedName);
             });
             
-            saveDataBtn?.addEventListener('click', saveFormDataOnly);
+            saveDataBtn?.addEventListener('click', async () => {
+                const formData = collectFormData();
+                if (formData) {
+                    showMessageBox("Saving...", "Saving your evaluation data.", false, true, false);
+                    const newRecordId = await saveFormDataOnly(formData);
+                    if (newRecordId) {
+                        showMessageBox("Success", "Form data saved successfully!", false, false, true);
+                        resetFormFieldsButKeepRole();
+                    }
+                }
+            });
             generateReportBtn?.addEventListener('click', generateAndDownloadPdf);
+
+            shareBtn?.addEventListener('click', async () => {
+                const formData = collectFormData();
+                if (!formData) return;
+
+                const pdfResult = await generatePdfAsBlob();
+                if (!pdfResult) return;
+
+                attachedPdfBlob = pdfResult.pdfBlob;
+                attachedPdfFilename = pdfResult.filename;
+
+                document.getElementById('share-email-to').value = formData['CER Email'];
+                document.getElementById('share-email-from').value = loggedInUserName;
+                document.getElementById('share-email-subject').value = `Evaluation Result for ${formData['CER Name']}`;
+                document.getElementById('share-email-body').value = `Hi ${formData['CER Name']},\n\nPlease find the evaluation results attached.\n\nOverall Score: ${formData['Overall Score']}\n\nRegards,\n${loggedInUserName}`;
+                
+                document.getElementById('attachment-info').classList.remove('hidden');
+                document.getElementById('attachment-filename').textContent = attachedPdfFilename;
+
+                showTab('shareResponse');
+            });
+
+            shareViaEmailBtn?.addEventListener('click', async () => {
+                const formData = collectFormData();
+                if (!formData) return;
+
+                showMessageBox("Preparing Email...", "Saving data and generating PDF...", false, true, false);
+
+                const newRecordId = await saveFormDataOnly(formData);
+                if (!newRecordId) {
+                    hideMessageBox();
+                    return; 
+                }
+
+                const pdfResult = await generatePdfAsBlob();
+                if (!pdfResult) {
+                    hideMessageBox();
+                    return; 
+                }
+
+                showMessageBox("Preparing Email...", "Uploading PDF for sharing...", false, true, false);
+                const downloadURL = await uploadPdfToStorage(newRecordId, pdfResult.pdfBlob, pdfResult.filename);
+
+                if (!downloadURL) {
+                    hideMessageBox();
+                    return; 
+                }
+
+                const to = encodeURIComponent(formData['CER Email']);
+                const subject = encodeURIComponent(`Evaluation Result for ${formData['CER Name']}`);
+                const body = encodeURIComponent(
+                    `Hi ${formData['CER Name']},\n\nPlease find your evaluation results available for download at the link below.\n\n` +
+                    `Overall Score: ${formData['Overall Score']}\n\n` +
+                    `Download Link: ${downloadURL}\n\n` +
+                    `Regards,\n${loggedInUserName}`
+                );
+
+                window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+                hideMessageBox();
+                resetFormFieldsButKeepRole();
+            });
+
+            sendShareEmailBtn?.addEventListener('click', async () => {
+                const to = document.getElementById('share-email-to').value;
+                const subject = document.getElementById('share-email-subject').value;
+                const body = document.getElementById('share-email-body').value;
+
+                if (!to) {
+                    showMessageBox("Error", "Recipient email is missing.", true);
+                    return;
+                }
+
+                let finalBody = body;
+                
+                if (attachedPdfBlob) {
+                    showMessageBox("Preparing Email...", "Saving data and uploading PDF...", false, true, false);
+                    const formData = collectFormData(); 
+                    if (!formData) {
+                        hideMessageBox();
+                        return;
+                    }
+
+                    const newRecordId = await saveFormDataOnly(formData);
+                    if (!newRecordId) { hideMessageBox(); return; }
+
+                    const downloadURL = await uploadPdfToStorage(newRecordId, attachedPdfBlob, attachedPdfFilename);
+                    if (!downloadURL) { hideMessageBox(); return; }
+
+                    finalBody += `\n\n--- \nAttachment: Download the evaluation report here: ${downloadURL}`;
+                }
+
+                const mailtoLink = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(finalBody)}`;
+                window.location.href = mailtoLink;
+
+                attachedPdfBlob = null;
+                attachedPdfFilename = '';
+                document.getElementById('attachment-info').classList.add('hidden');
+                hideMessageBox();
+            });
 
         });
 
