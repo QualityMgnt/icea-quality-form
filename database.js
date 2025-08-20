@@ -291,29 +291,26 @@
             const databaseContent = document.getElementById('databaseContent');
 
             if (auditFormTab && databaseTab && auditFormContent && databaseContent) {
-                // Function to switch to the Audit Form tab
                 auditFormTab.addEventListener('click', (e) => {
-                    e.preventDefault(); // Prevent any default button behavior
+                    e.preventDefault();
                     auditFormContent.classList.remove('hidden');
                     databaseContent.classList.add('hidden');
                     auditFormTab.classList.add('active');
                     databaseTab.classList.remove('active');
                 });
-
-                // Function to switch to the Database tab
                 databaseTab.addEventListener('click', (e) => {
-                    e.preventDefault(); // Prevent any default button behavior
+                    e.preventDefault();
                     databaseContent.classList.remove('hidden');
                     auditFormContent.classList.add('hidden');
                     databaseTab.classList.add('active');
                     auditFormTab.classList.remove('active');
                 });
-            } else {
-                console.error("Tab switching elements not found!");
             }
 
             // --- Database Table & Delete Logic ---
-            // 1. DUMMY DATA: Replace this with your actual data fetching (e.g., from Firebase)
+
+            // IMPORTANT: This dummy data is for testing. Your script that loads data from
+            // a database (like Firebase) should replace this variable with the real data.
             let recordsData = [
                 { id: 'rec1', submittedAt: '2025-08-20 16:30', contactId: 'C-123', clientName: 'John Doe', cerName: 'Agent Smith', score: '95%' },
                 { id: 'rec2', submittedAt: '2025-08-20 16:35', contactId: 'C-124', clientName: 'Jane Roe', cerName: 'Agent Brown', score: '88%' },
@@ -324,14 +321,19 @@
             const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
             const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
 
-            // 2. RENDER FUNCTION: Renders or re-renders the table with data
             function renderTable(data) {
-                recordsTableBody.innerHTML = ''; // Clear existing rows
-                if (data.length === 0) {
+                recordsTableBody.innerHTML = '';
+                if (!data || data.length === 0) {
                     recordsTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No records found.</td></tr>`;
                     return;
                 }
                 data.forEach(record => {
+                    // CRITICAL: Ensure each record has a unique 'id' property. If your database uses a different name
+                    // like 'docId' or '_id', you must change it here and in the 'data-id' attribute below.
+                    if (!record.id) {
+                        console.error("Data integrity error: A record is missing its 'id' property!", record);
+                        return; // Skip rendering this invalid record
+                    }
                     const row = document.createElement('tr');
                     row.className = 'border-b border-gray-200 hover:bg-gray-100';
                     row.innerHTML = `
@@ -351,10 +353,9 @@
                 });
             }
 
-            // 3. UPDATE BUTTON STATE: Enables or disables the "Delete Selected" button
             function updateDeleteButtonState() {
-                const checkedCheckboxes = recordsTableBody.querySelectorAll('.record-checkbox:checked');
-                if (checkedCheckboxes.length > 0) {
+                const checkedCount = recordsTableBody.querySelectorAll('.record-checkbox:checked').length;
+                if (checkedCount > 0) {
                     deleteSelectedRecordsBtn.disabled = false;
                     deleteSelectedRecordsBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
                 } else {
@@ -363,8 +364,6 @@
                 }
             }
 
-            // 4. EVENT LISTENERS
-            // Listen for clicks on any checkbox in the table body
             recordsTableBody.addEventListener('click', (e) => {
                 if (e.target.classList.contains('record-checkbox')) {
                     updateDeleteButtonState();
@@ -372,30 +371,32 @@
                 if (e.target.tagName === 'BUTTON' && e.target.dataset.id) {
                     const recordIdToDelete = e.target.dataset.id;
                     if (confirm('Are you sure you want to delete this single record?')) {
+                        // This is where you would call your database to delete the record.
+                        // For this example, we filter the local array.
                         recordsData = recordsData.filter(record => record.id !== recordIdToDelete);
-                        renderTable(recordsData);
+                        renderTable(recordsData); // Re-render the table with updated data
                         updateDeleteButtonState();
                     }
                 }
             });
 
-            // Listener for the "Select All" checkbox
             selectAllRecordsCheckbox.addEventListener('change', (e) => {
                 const allCheckboxes = recordsTableBody.querySelectorAll('.record-checkbox');
-                allCheckboxes.forEach(checkbox => {
-                    checkbox.checked = e.target.checked;
-                });
+                allCheckboxes.forEach(checkbox => checkbox.checked = e.target.checked);
                 updateDeleteButtonState();
             });
 
-            // Listener for the main "Delete Selected" button
             deleteSelectedRecordsBtn.addEventListener('click', () => {
                 if (confirm('Are you sure you want to delete the selected records?')) {
                     const checkedIds = [...recordsTableBody.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.id);
+                    
+                    // This is where you would call your database to delete multiple records.
+                    // For this example, we filter the local array.
                     recordsData = recordsData.filter(record => !checkedIds.includes(record.id));
-                    renderTable(recordsData);
-                    updateDeleteButtonState();
-                    selectAllRecordsCheckbox.checked = false;
+                    
+                    renderTable(recordsData); // Re-render the table
+                    updateDeleteButtonState(); // Disable the button again
+                    selectAllRecordsCheckbox.checked = false; // Uncheck the "Select All" box
                 }
             });
 
@@ -414,29 +415,14 @@
                     loginSection.classList.add('hidden');
                     appContent.classList.remove('hidden');
                  });
-
                  logoutBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     appContent.classList.add('hidden');
                     loginSection.classList.remove('hidden');
                  });
             }
-
-            // --- Dummy handler for other reviewer name ---
-             const reviewerNameSelect = document.getElementById('reviewer-name');
-             const otherReviewerInput = document.getElementById('other-reviewer-name');
-
-             if(reviewerNameSelect && otherReviewerInput) {
-                reviewerNameSelect.addEventListener('change', () => {
-                    if (reviewerNameSelect.value === 'Other') {
-                        otherReviewerInput.classList.remove('hidden');
-                    } else {
-                        otherReviewerInput.classList.add('hidden');
-                    }
-                });
-             }
         });
     </script>
-</body>
 
+</body>
 </html>
