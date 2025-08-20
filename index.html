@@ -1085,6 +1085,7 @@
             const saveDataBtn = document.getElementById('saveDataBtn');
             const generateReportBtn = document.getElementById('generateReportBtn');
             const addWebhookBtn = document.getElementById('addWebhookBtn');
+            const autofailTypeSelect = document.getElementById('autofail-type');
             
             loginButton.addEventListener('click', async () => {
                 const email = document.getElementById('username').value;
@@ -1106,6 +1107,11 @@
                 const selectedName = e.target.value;
                 document.getElementById('cer-email').value = cerNameEmailsMap[selectedName] || '';
                 fetchLastThreeEvaluations(selectedName);
+            });
+            
+            autofailTypeSelect?.addEventListener('change', () => {
+                document.getElementById('autofailDescriptionContainer').classList.toggle('hidden', !autofailTypeSelect.value);
+                calculateScore();
             });
             
             saveDataBtn?.addEventListener('click', saveFormDataOnly);
@@ -1139,6 +1145,35 @@
                 document.getElementById('databaseContent').classList.remove('hidden');
             }
         }
+        
+        /*
+        
+        RECOMMENDED FIREBASE SECURITY RULES TO FIX PERMISSION ERRORS:
+        
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            
+            // --- User Profiles Rule ---
+            match /artifacts/{appId}/users/{userId} {
+              allow list: if request.auth != null;
+              allow get: if request.auth != null && request.auth.uid == userId;
+              allow create: if request.auth != null;
+              allow update: if request.auth != null && (
+                (request.auth.uid == userId && request.resource.data.role == resource.data.role) ||
+                get(/databases/$(database)/documents/artifacts/$(appId)/users/$(request.auth.uid)).data.role == 'Admin'
+              );
+              allow delete: if get(/databases/$(database)/documents/artifacts/$(appId)/users/$(request.auth.uid)).data.role == 'Admin';
+            }
+            
+            // --- Public Data Rules ---
+            match /artifacts/{appId}/public/data/{document=**} {
+              allow read, write: if request.auth != null;
+            }
+          }
+        }
+
+        */
         
     </script>
 </body>
