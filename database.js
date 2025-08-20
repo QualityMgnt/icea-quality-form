@@ -274,7 +274,6 @@
     </div>
 
     <script type="module" src="firebase-init.js"></script>
-
     <script type="module" src="main.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -295,11 +294,8 @@
                 // Function to switch to the Audit Form tab
                 auditFormTab.addEventListener('click', (e) => {
                     e.preventDefault(); // Prevent any default button behavior
-                    // Show audit form content and hide database content
                     auditFormContent.classList.remove('hidden');
                     databaseContent.classList.add('hidden');
-
-                    // Update active state for buttons
                     auditFormTab.classList.add('active');
                     databaseTab.classList.remove('active');
                 });
@@ -307,11 +303,8 @@
                 // Function to switch to the Database tab
                 databaseTab.addEventListener('click', (e) => {
                     e.preventDefault(); // Prevent any default button behavior
-                    // Show database content and hide audit form content
                     databaseContent.classList.remove('hidden');
                     auditFormContent.classList.add('hidden');
-
-                    // Update active state for buttons
                     databaseTab.classList.add('active');
                     auditFormTab.classList.remove('active');
                 });
@@ -319,9 +312,97 @@
                 console.error("Tab switching elements not found!");
             }
 
+            // --- Database Table & Delete Logic ---
+            // 1. DUMMY DATA: Replace this with your actual data fetching (e.g., from Firebase)
+            let recordsData = [
+                { id: 'rec1', submittedAt: '2025-08-20 16:30', contactId: 'C-123', clientName: 'John Doe', cerName: 'Agent Smith', score: '95%' },
+                { id: 'rec2', submittedAt: '2025-08-20 16:35', contactId: 'C-124', clientName: 'Jane Roe', cerName: 'Agent Brown', score: '88%' },
+                { id: 'rec3', submittedAt: '2025-08-20 16:40', contactId: 'C-125', clientName: 'Peter Pan', cerName: 'Agent Smith', score: '99%' }
+            ];
+
+            const recordsTableBody = document.getElementById('recordsTableBody');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
+
+            // 2. RENDER FUNCTION: Renders or re-renders the table with data
+            function renderTable(data) {
+                recordsTableBody.innerHTML = ''; // Clear existing rows
+                if (data.length === 0) {
+                    recordsTableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No records found.</td></tr>`;
+                    return;
+                }
+                data.forEach(record => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-200 hover:bg-gray-100';
+                    row.innerHTML = `
+                        <td class="py-3 px-6 text-left whitespace-nowrap">
+                            <input type="checkbox" class="record-checkbox form-checkbox h-4 w-4 text-blue-600 rounded" data-id="${record.id}">
+                        </td>
+                        <td class="py-3 px-6 text-left">${record.submittedAt}</td>
+                        <td class="py-3 px-6 text-left">${record.contactId}</td>
+                        <td class="py-3 px-6 text-left">${record.clientName}</td>
+                        <td class="py-3 px-6 text-left">${record.cerName}</td>
+                        <td class="py-3 px-6 text-left font-medium">${record.score}</td>
+                        <td class="py-3 px-6 text-left">
+                            <button class="text-red-500 hover:text-red-700 font-semibold" data-id="${record.id}">Delete</button>
+                        </td>
+                    `;
+                    recordsTableBody.appendChild(row);
+                });
+            }
+
+            // 3. UPDATE BUTTON STATE: Enables or disables the "Delete Selected" button
+            function updateDeleteButtonState() {
+                const checkedCheckboxes = recordsTableBody.querySelectorAll('.record-checkbox:checked');
+                if (checkedCheckboxes.length > 0) {
+                    deleteSelectedRecordsBtn.disabled = false;
+                    deleteSelectedRecordsBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
+                } else {
+                    deleteSelectedRecordsBtn.disabled = true;
+                    deleteSelectedRecordsBtn.classList.add('disabled:opacity-50', 'disabled:cursor-not-allowed');
+                }
+            }
+
+            // 4. EVENT LISTENERS
+            // Listen for clicks on any checkbox in the table body
+            recordsTableBody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('record-checkbox')) {
+                    updateDeleteButtonState();
+                }
+                if (e.target.tagName === 'BUTTON' && e.target.dataset.id) {
+                    const recordIdToDelete = e.target.dataset.id;
+                    if (confirm('Are you sure you want to delete this single record?')) {
+                        recordsData = recordsData.filter(record => record.id !== recordIdToDelete);
+                        renderTable(recordsData);
+                        updateDeleteButtonState();
+                    }
+                }
+            });
+
+            // Listener for the "Select All" checkbox
+            selectAllRecordsCheckbox.addEventListener('change', (e) => {
+                const allCheckboxes = recordsTableBody.querySelectorAll('.record-checkbox');
+                allCheckboxes.forEach(checkbox => {
+                    checkbox.checked = e.target.checked;
+                });
+                updateDeleteButtonState();
+            });
+
+            // Listener for the main "Delete Selected" button
+            deleteSelectedRecordsBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete the selected records?')) {
+                    const checkedIds = [...recordsTableBody.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.id);
+                    recordsData = recordsData.filter(record => !checkedIds.includes(record.id));
+                    renderTable(recordsData);
+                    updateDeleteButtonState();
+                    selectAllRecordsCheckbox.checked = false;
+                }
+            });
+
+            // Initial render of the table when the page loads
+            renderTable(recordsData);
+
             // --- Dummy Login/Logout Logic for demonstration ---
-            // This is just to make the UI elements functional for testing.
-            // You should replace this with your actual login logic in main.js.
             const loginForm = document.getElementById('loginForm');
             const loginSection = document.getElementById('loginSection');
             const appContent = document.getElementById('appContent');
@@ -330,22 +411,18 @@
             if (loginForm && loginSection && appContent && logoutBtn) {
                  loginForm.addEventListener('submit', (e) => {
                     e.preventDefault();
-                    console.log('Login attempt');
                     loginSection.classList.add('hidden');
                     appContent.classList.remove('hidden');
                  });
 
                  logoutBtn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    console.log('Logout');
                     appContent.classList.add('hidden');
                     loginSection.classList.remove('hidden');
                  });
             }
 
-
             // --- Dummy handler for other reviewer name ---
-            // You might already have this logic in your main.js.
              const reviewerNameSelect = document.getElementById('reviewer-name');
              const otherReviewerInput = document.getElementById('other-reviewer-name');
 
@@ -358,7 +435,6 @@
                     }
                 });
              }
-
         });
     </script>
 </body>
