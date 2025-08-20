@@ -704,17 +704,20 @@
                 const weightage = parseFloat(weightageDisplay.dataset.weightage);
                 let pointsForThisQuestion = 0;
 
-                if (rating === 'Yes' || rating === 'N/A') {
+                if (rating === 'Yes') {
                     pointsForThisQuestion = weightage;
                 } else if (rating === 'No') {
                     pointsForThisQuestion = 0;
                     if (isAutofailQuestion) {
                         autofailQuestionTriggered = true;
                     }
+                } else if (rating === 'N/A') {
+                    pointsForThisQuestion = 0; // N/A contributes 0 points
                 } else {
                     pointsForThisQuestion = 0;
                 }
-
+                
+                pointsElement.value = pointsForThisQuestion;
                 currentTotalPoints += pointsForThisQuestion;
 
                 if (rating !== '' && rating !== 'N/A') { // N/A should not count towards max points
@@ -737,7 +740,7 @@
 
             let calculatedOverallPercentageBeforeAutofail = 0;
             if (currentMaxPossiblePoints > 0) {
-                calculatedOverallPercentageBeforeAutofail = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
+                calculatedOverallPercentageBeforeAutofail = ((currentTotalPoints / currentMaxPossiblePoints) * 100);
             }
 
             let finalOverallPercentage = calculatedOverallPercentageBeforeAutofail;
@@ -745,17 +748,17 @@
                 finalOverallPercentage = 0;
             }
             
-            overallScoreDisplay.textContent = `${finalOverallPercentage}%`;
+            overallScoreDisplay.textContent = `${Math.round(finalOverallPercentage)}%`;
 
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
-                businessCompliancePct = ((complianceCurrentPoints / complianceMaxPoints) * 100).toFixed(0);
+                businessCompliancePct = ((complianceCurrentPoints / complianceMaxPoints) * 100);
             }
-            businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
+            businessComplianceAccuracyDisplay.textContent = `${Math.round(businessCompliancePct)}%`;
 
             globalTotalPoints = currentTotalPoints;
             globalMaxPossiblePoints = currentMaxPossiblePoints;
-            globalBusinessComplianceAccuracyValue = businessCompliancePct;
+            globalBusinessComplianceAccuracyValue = Math.round(businessCompliancePct);
         }
 
         function renderQuestionsForRole(role) {
@@ -859,7 +862,6 @@
             });
         }
         
-        // --- ALL OTHER FUNCTIONS RESTORED ---
         async function fetchDropdownOptionsData() {
             if (!db) return;
             onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
@@ -877,6 +879,8 @@
                 const cerRoleSelect = document.getElementById('cer-role');
                 if (cerRoleSelect && cerRoleSelect.value) {
                     renderQuestionsForRole(cerRoleSelect.value);
+                } else {
+                    renderQuestionsForRole('Default'); // Render default if no role is selected
                 }
             });
         }
@@ -885,7 +889,25 @@
             if (!db) return;
             onSnapshot(CUSTOM_FIELDS_CONFIG_DOC_REF, (docSnap) => {
                 customFormFields = (docSnap.exists() && docSnap.data().fields) ? docSnap.data().fields.sort((a,b) => a.order - b.order) : [];
-                // renderCustomFormFields(); // Assuming you have this function
+                renderCustomFormFields();
+            });
+        }
+        
+        function renderCustomFormFields() {
+            const container = document.getElementById('customFieldsContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            customFormFields.forEach(field => {
+                const div = document.createElement('div');
+                let fieldHtml = `<label for="${field.id}" class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label>`;
+                if(field.type === 'text') {
+                    fieldHtml += `<input type="text" id="${field.id}" name="${field.label}" class="form-input w-full">`;
+                } else if (field.type === 'select') {
+                    let optionsHtml = (field.options || []).map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                    fieldHtml += `<select id="${field.id}" name="${field.label}" class="form-select w-full"><option value="">-- Select --</option>${optionsHtml}</select>`;
+                }
+                div.innerHTML = fieldHtml;
+                container.appendChild(div);
             });
         }
 
@@ -951,17 +973,89 @@
                 });
             });
         }
+        
+        function collectFormData() {
+            const requiredFields = ['contact-id', 'client-name', 'cer-name', 'cer-role', 'call-date-time', 'reviewer-name', 'review-date'];
+            for (const id of requiredFields) {
+                const el = document.getElementById(id);
+                if (!el || !el.value) {
+                    showMessageBox("Validation Error", `Please fill the "${el.previousElementSibling.textContent}" field.`, true);
+                    return null;
+                }
+            }
+            
+            const formData = {};
+            const inputs = document.querySelectorAll('#auditFormContent input, #auditFormContent select, #auditFormContent textarea, #assessment-form select, #assessment-form textarea');
+            inputs.forEach(input => {
+                if (input.name && input.value) {
+                    formData[input.name] = input.value;
+                }
+            });
+
+            formData['Overall Score'] = document.getElementById('overall-score-display').textContent;
+            formData['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
+            formData['Total Pts.'] = globalTotalPoints;
+            formData['Max Possible Pts.'] = globalMaxPossiblePoints;
+
+            return formData;
+        }
 
         async function saveFormDataOnly() {
-            // Your form data collection and saving logic
+            const formData = collectFormData();
+            if (formData) {
+                showMessageBox("Saving...", "Saving your evaluation data.", false, true, false);
+                try {
+                    await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
+                        ...formData,
+                        submittedAt: new Date()
+                    });
+                    showMessageBox("Success", "Form data saved successfully!", false, false, true);
+                    // resetFormFieldsButKeepRole(); // Optional: reset form after saving
+                } catch(e) {
+                    showMessageBox("Error", `Failed to save data: ${e.message}`, true, false, true);
+                }
+            }
         }
 
         async function generateAndDownloadPdf() {
-            // Your PDF generation logic
+            showMessageBox("Generating PDF", "Please wait...", false, true, false);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const formContent = document.getElementById('auditFormContent');
+            
+            html2canvas(formContent, { scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                pdf.save(`Evaluation_Report_${Date.now()}.pdf`);
+                hideMessageBox();
+            });
         }
         
         async function fetchAndSetLogo() {
-            // Your logo fetching logic
+            try {
+                const docSnap = await getDoc(LOGO_DOC_REF);
+                if (docSnap.exists() && docSnap.data().url) {
+                    const logoUrl = docSnap.data().url;
+                    document.getElementById('header-logo').src = logoUrl;
+                }
+            } catch (error) {
+                console.error("Error fetching logo:", error);
+            }
         }
 
         window.viewRecordDetails = (id) => {
@@ -982,6 +1076,8 @@
 
         // --- Event Listeners and Initializers ---
         document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('messageBoxCloseBtn').addEventListener('click', hideMessageBox);
+            
             const loginButton = document.getElementById('loginButton');
             const logoutBtn = document.getElementById('logoutBtn');
             const cerRoleSelect = document.getElementById('cer-role');
