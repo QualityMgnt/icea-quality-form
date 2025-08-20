@@ -221,12 +221,69 @@
         </main>
     </div>
 
-    <script type="module" src="firebase-init.js"></script>
-
-    <script type="module" src="main.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Mock Login/Logout for Demonstration ---
+            const loginForm = document.getElementById('loginForm');
+            const loginSection = document.getElementById('loginSection');
+            const appContent = document.getElementById('appContent');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const usernameInput = document.getElementById('username'); // Get username input for display
+
+            // This is a simple mock login. Replace with your actual authentication.
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault(); // Prevent form from reloading the page
+                loginSection.classList.add('hidden');
+                appContent.classList.remove('hidden');
+                // You might want to display the logged-in user's name somewhere
+                console.log(`User '${usernameInput.value}' logged in.`);
+            });
+
+            logoutBtn.addEventListener('click', () => {
+                appContent.classList.add('hidden');
+                loginSection.classList.remove('hidden');
+                // Also reset the form if needed
+                loginForm.reset();
+            });
+
+            // --- Tab Switching Logic (The Fix) ---
+            const auditFormTab = document.getElementById('auditFormTab');
+            const databaseTab = document.getElementById('databaseTab');
+            const auditFormContent = document.getElementById('auditFormContent');
+            const databaseContent = document.getElementById('databaseContent');
+
+            auditFormTab.addEventListener('click', () => {
+                // Show the audit form content and hide the database
+                auditFormContent.classList.remove('hidden');
+                databaseContent.classList.add('hidden');
+
+                // Update the active button style
+                auditFormTab.classList.add('active');
+                databaseTab.classList.remove('active');
+            });
+
+            databaseTab.addEventListener('click', () => {
+                // Hide the audit form and show the database content
+                auditFormContent.classList.add('hidden');
+                databaseContent.classList.remove('hidden');
+
+                // Update the active button style
+                databaseTab.classList.add('active');
+                auditFormTab.classList.remove('active');
+            });
+
+            // Add other event listeners and functions from your main.js here
+            // For example:
+            // - Form submission logic for the assessment form
+            // - Populating the questions container
+            // - Handling file uploads, etc.
+
+        });
+    </script>
     </body>
 </html>
