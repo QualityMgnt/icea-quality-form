@@ -106,34 +106,34 @@
 
     <main id="mainContent" class="hidden">
         <div id="homeContent" class="content-section">
-            <!-- Home Page Content Goes Here -->
+            <!-- Home Page Content -->
         </div>
         <div id="reportsContent" class="content-section hidden">
-            <!-- Dashboard/Reports Page Content Goes Here -->
+            <!-- Dashboard/Reports Page Content -->
         </div>
         <div id="auditFormContent" class="content-section hidden">
-             <!-- Evaluation Form Content Goes Here -->
+             <!-- Evaluation Form Content -->
         </div>
         <div id="myEvaluationsContent" class="content-section hidden">
-             <!-- My Evaluations Content Goes Here -->
+             <!-- My Evaluations Content -->
         </div>
         <div id="npsContent" class="content-section hidden">
-             <!-- NPS Content Goes Here -->
+             <!-- NPS Content -->
         </div>
         <div id="autofailsContent" class="content-section hidden">
-             <!-- Autofails Content Goes Here -->
+             <!-- Autofails Content -->
         </div>
         <div id="databaseContent" class="content-section hidden">
-             <!-- Database Content Goes Here -->
+             <!-- Database Content -->
         </div>
         <div id="shareResponseContent" class="content-section hidden">
-             <!-- Share Response Content Goes Here -->
+             <!-- Share Response Content -->
         </div>
         <div id="usersContent" class="content-section hidden">
-             <!-- Users Content Goes Here -->
+             <!-- Users Content -->
         </div>
         <div id="logoContent" class="content-section hidden">
-            <!-- Logo/Admin Content Goes Here -->
+            <!-- Logo/Admin Content -->
         </div>
     </main>
 
@@ -141,7 +141,7 @@
         // --- IMPORTS ---
         import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, onSnapshot, deleteDoc, writeBatch, updateDoc, query, where, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, deleteDoc, writeBatch, updateDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
         // --- FIREBASE INITIALIZATION (ONCE) ---
@@ -162,33 +162,83 @@
 
         // --- GLOBAL STATE & REFERENCES ---
         const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
-        const pageCache = {};
         let currentCharts = {};
 
-        // --- CORE NAVIGATION & PAGE LOADING ---
-        async function loadPage(page) {
-            const container = document.getElementById(`${page}Content`);
-            if (pageCache[page]) {
-                container.innerHTML = pageCache[page];
-            } else {
-                try {
-                    const response = await fetch(`${page}.html`);
-                    if (!response.ok) throw new Error(`Could not load ${page}.html`);
-                    const text = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(text, 'text/html');
-                    const content = doc.querySelector('body').innerHTML;
-                    pageCache[page] = content;
-                    container.innerHTML = content;
-                } catch (error) {
-                    console.error(`Failed to fetch page: ${page}`, error);
-                    container.innerHTML = `<div class="text-center p-8"><h2 class="text-2xl text-red-500">Error</h2><p>Could not load the requested page.</p></div>`;
-                }
-            }
-            // After loading content, initialize page-specific logic
-            initializePage(page);
-        }
+        // --- PAGE HTML CONTENT ---
+        const pageContent = {
+            home: `
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">Welcome to the ICEA LION CC QMS</h1>
+                    <p class="text-md text-gray-600 mt-1">Your central hub for quality assurance and performance tracking.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p id="date" class="text-lg font-semibold text-gray-700"></p>
+                            <p id="clock" class="text-4xl font-bold text-gray-900"></p>
+                        </div>
+                        <div class="text-center">
+                            <h2 class="text-2xl font-bold text-orange-500">QA Champs of the Month</h2>
+                            <p class="text-gray-600">Congratulations to the Top Performers!</p>
+                        </div>
+                        <div></div>
+                    </div>
+                    <div id="leaderboard" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center"></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <a href="#" id="navToDashboard" class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center text-center"><i class="fas fa-chart-bar text-5xl text-blue-500 mb-4"></i><h2 class="text-2xl font-bold text-gray-800">Dashboard</h2><p class="text-gray-600 mt-2">View performance metrics and analytics.</p></a>
+                    <a href="#" id="navToForm" class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center text-center"><i class="fas fa-file-alt text-5xl text-green-500 mb-4"></i><h2 class="text-2xl font-bold text-gray-800">Evaluation Form</h2><p class="text-gray-600 mt-2">Submit new quality assurance evaluations.</p></a>
+                    <a href="#" id="navToMyEvals" class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center text-center"><i class="fas fa-user-check text-5xl text-purple-500 mb-4"></i><h2 class="text-2xl font-bold text-gray-800">My Evaluations</h2><p class="text-gray-600 mt-2">Review your personal performance and audits.</p></a>
+                </div>
+            `,
+            reports: `
+                <div id="loadingMessageReports" class="text-center py-12 text-lg text-gray-600"><div class="spinner mx-auto mb-4"></div>Loading Dashboard...</div>
+                <div id="dashboardContentInner" class="hidden">
+                    <h1 class="text-3xl font-bold mb-6 text-gray-800">Performance Dashboard</h1>
+                    <!-- Filter, Summary, and Chart containers will go here -->
+                </div>
+            `,
+            database: `
+                <div class="dashboard-card">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="relative flex-1"><input type="text" id="recordSearchInput" placeholder="Search by Client, Contact ID or CER..." class="w-full max-w-md p-2 pl-10 border rounded-lg"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i></div>
+                        <button id="deleteSelectedRecordsBtn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-md disabled:opacity-50" disabled><i class="fas fa-trash-alt mr-2"></i>Delete Selected</button>
+                    </div>
+                    <div class="overflow-x-auto max-h-[65vh]">
+                        <table class="min-w-full">
+                            <thead><tr><th class="w-12"><input type="checkbox" id="selectAllRecordsCheckbox"></th><th>Timestamp</th><th>Contact ID</th><th>Client Name</th><th>CER Name</th><th>Overall Score</th><th>Attachment</th><th class="w-48 text-center">Actions</th></tr></thead>
+                            <tbody id="recordsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            `,
+            autofails: `
+                <!-- Autofails content from autofails.html -->
+            `,
+            nps: `
+                <!-- NPS content from nps.html -->
+            `,
+            logo: `
+                <div class="p-6">
+                    <h1 class="text-3xl font-bold mb-6 text-gray-800">Logo Settings</h1>
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Company Logo</h2>
+                        <div class="flex items-center gap-4">
+                            <img id="currentLogo" src="https://placehold.co/120x40/CCCCCC/FFFFFF?text=Logo" alt="Current Logo" class="h-12 bg-gray-100 p-1 rounded">
+                            <input type="file" id="logoUploadInput" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <button id="uploadLogoBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md flex items-center gap-2">
+                                <span id="uploadBtnText">Upload Logo</span>
+                                <div id="uploadSpinner" class="spinner hidden"></div>
+                            </button>
+                        </div>
+                        <p id="uploadStatus" class="text-sm mt-2 text-gray-600"></p>
+                    </div>
+                </div>
+            `
+            // Add other page contents here
+        };
 
+        // --- CORE NAVIGATION & PAGE LOADING ---
         function showTab(tabId) {
             document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
@@ -196,15 +246,16 @@
             const contentEl = document.getElementById(`${tabId}Content`);
             const tabEl = document.getElementById(`${tabId}Tab`);
 
-            if(contentEl) contentEl.classList.remove('hidden');
+            if(contentEl) {
+                contentEl.classList.remove('hidden');
+                // Inject content if it's not there
+                if(contentEl.innerHTML.trim() === '') {
+                    contentEl.innerHTML = pageContent[tabId] || `<p>Content for ${tabId} not found.</p>`;
+                }
+            }
             if(tabEl) tabEl.classList.add('active');
-        }
-
-        async function navigate(page) {
-            // Map dashboard filename to its ID
-            const pageId = page === 'Dashboard' ? 'reports' : page;
-            await loadPage(page);
-            showTab(pageId);
+            
+            initializePage(tabId);
         }
 
         async function loadCurrentLogo() {
@@ -220,37 +271,25 @@
 
         // --- PAGE-SPECIFIC INITIALIZATION ---
         function initializePage(page) {
-            // Destroy any existing charts before loading new ones
             Object.values(currentCharts).forEach(chart => chart.destroy());
             currentCharts = {};
 
             switch(page) {
                 case 'home': initHomePage(); break;
-                case 'Dashboard': initDashboardPage(); break;
+                case 'reports': initDashboardPage(); break;
                 case 'database': initDatabasePage(); break;
                 case 'autofails': initAutofailsPage(); break;
                 case 'nps': initNpsPage(); break;
                 case 'logo': initLogoPage(); break;
-                // Add cases for other pages
             }
         }
         
         // --- INITIALIZATION LOGIC FOR EACH PAGE ---
-        function initHomePage() {
-            // Logic from home.html
-        }
-        function initDashboardPage() {
-            // Logic from Dashboard.html
-        }
-        function initDatabasePage() {
-            // Logic from database.html
-        }
-        function initAutofailsPage() {
-            // Logic from autofails.html
-        }
-        function initNpsPage() {
-            // Logic from nps.html
-        }
+        function initHomePage() { /* Home logic */ }
+        function initDashboardPage() { /* Dashboard logic */ }
+        function initDatabasePage() { /* Database logic */ }
+        function initAutofailsPage() { /* Autofails logic */ }
+        function initNpsPage() { /* NPS logic */ }
         function initLogoPage() {
             const uploadBtn = document.getElementById('uploadLogoBtn');
             const uploadInput = document.getElementById('logoUploadInput');
@@ -258,7 +297,6 @@
             const currentLogoImg = document.getElementById('currentLogo');
             const uploadSpinner = document.getElementById('uploadSpinner');
             const uploadBtnText = document.getElementById('uploadBtnText');
-
             const LOGO_STORAGE_PATH = `artifacts/${appId}/public/logo/company_logo.png`;
 
             async function loadCurrentLogoAdmin() {
@@ -267,39 +305,28 @@
                     if (docSnap.exists() && docSnap.data().url) {
                         currentLogoImg.src = docSnap.data().url;
                     }
-                } catch (error) {
-                    console.error("Error loading current logo on admin page:", error);
-                }
+                } catch (error) { console.error("Error loading logo on admin page:", error); }
             }
             
             uploadBtn.addEventListener('click', async () => {
                 const file = uploadInput.files[0];
-                if (!file) {
-                    statusEl.textContent = "Please select a file first.";
-                    statusEl.style.color = 'red';
-                    return;
-                }
+                if (!file) { statusEl.textContent = "Please select a file."; statusEl.style.color = 'red'; return; }
 
                 uploadBtn.disabled = true;
                 uploadSpinner.classList.remove('hidden');
                 uploadBtnText.textContent = 'Uploading...';
-                statusEl.textContent = "Uploading image...";
-                statusEl.style.color = 'black';
+                statusEl.textContent = "Uploading...";
 
                 try {
                     const storageRef = ref(storage, LOGO_STORAGE_PATH);
                     const snapshot = await uploadBytes(storageRef, file);
                     const downloadURL = await getDownloadURL(snapshot.ref);
-
                     await setDoc(LOGO_DOC_REF, { url: downloadURL });
-
                     currentLogoImg.src = downloadURL;
-                    document.getElementById('header-logo').src = downloadURL; // Update header immediately
+                    document.getElementById('header-logo').src = downloadURL;
                     statusEl.textContent = "Logo updated successfully!";
                     statusEl.style.color = 'green';
-
                 } catch (error) {
-                    console.error("Upload failed:", error);
                     statusEl.textContent = `Upload failed: ${error.message}`;
                     statusEl.style.color = 'red';
                 } finally {
@@ -325,9 +352,7 @@
                     mainContent.classList.remove('hidden');
                     mainNav.style.display = 'flex';
                     loadCurrentLogo();
-                    if(!document.querySelector('.sidebar a.active') || document.getElementById('homeContent').innerHTML === '') {
-                        navigate('home');
-                    }
+                    showTab('home');
                 } else {
                     loginPage.classList.add('visible');
                     mainContent.classList.add('hidden');
@@ -362,12 +387,12 @@
                 }
             });
 
-            document.getElementById('homeTab').addEventListener('click', (e) => { e.preventDefault(); navigate('home'); });
-            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); navigate('Dashboard'); });
-            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); navigate('database'); });
-            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); navigate('autofails'); });
-            document.getElementById('npsTab').addEventListener('click', (e) => { e.preventDefault(); navigate('nps'); });
-            document.getElementById('logoTab').addEventListener('click', (e) => { e.preventDefault(); navigate('logo'); });
+            document.getElementById('homeTab').addEventListener('click', (e) => { e.preventDefault(); showTab('home'); });
+            document.getElementById('reportsTab').addEventListener('click', (e) => { e.preventDefault(); showTab('reports'); });
+            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); showTab('database'); });
+            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); showTab('autofails'); });
+            document.getElementById('npsTab').addEventListener('click', (e) => { e.preventDefault(); showTab('nps'); });
+            document.getElementById('logoTab').addEventListener('click', (e) => { e.preventDefault(); showTab('logo'); });
             
             document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
         });
