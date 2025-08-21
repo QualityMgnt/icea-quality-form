@@ -7,92 +7,76 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Chart.js CDN for graphing -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
 
     <style>
-        /* Base styles - consistent with index.html, users.html, admin.html */
         body {
             font-family: 'Inter', sans-serif;
-            display: flex;
-            align-items: flex-start;
-            min-height: 100vh;
             background-color: #f3f4f6;
+            color: #1f2937;
             margin: 0;
-            padding: 0;
         }
-
-        /* ICEALION Branding Colors */
-        .icealion-blue {
-            background-color: #1a73e8;
+        .main-content {
+            margin-left: 125px;
+            margin-top: 48px;
+            width: calc(100% - 125px);
+            padding: 1.5rem;
+        }
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            background-color: #000080; /* Navy Blue */
             color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 1.125rem;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0 1rem;
         }
-        .icealion-orange-text {
-            color: #f57c00;
-        }
-
-        /* Navigation styles (consistent sidebar) */
-        .main-nav {
+        .top-header img {
+            height: 40px;
             width: auto;
-            background-color: transparent;
-            color: inherit;
-            padding: 0;
-            display: block;
-            box-shadow: none;
+        }
+        .main-nav {
+            width: 125px;
+            background-color: #000080; /* Navy Blue */
+            color: white;
+            padding-top: 48px;
             height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
             z-index: 100;
-        }
-
-        .sidebar {
-            width: 125px; /* Half width */
-            background-color: #1a73e8;
-            color: white;
-            padding: 1rem 0;
-            height: 100%;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            box-sizing: border-box;
         }
-
-        .sidebar ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            flex-grow: 1;
-        }
-        .sidebar ul li {
-            margin-right: 0;
-            margin-bottom: 0.5rem;
-        }
+        .sidebar ul { list-style: none; margin: 0; padding: 0; flex-grow: 1; }
         .sidebar ul li a {
             color: white;
             text-decoration: none;
             font-weight: 500;
-            padding: 0.75rem 0.5rem; /* Adjusted padding */
-            display: block;
-            border-radius: 0;
-            transition: background-color 0.3s ease;
+            padding: 0.75rem 0.5rem;
             display: flex;
-            flex-direction: column; /* Stack icon and text */
+            flex-direction: column;
             align-items: center;
             gap: 0.25rem;
-            font-size: 0.75rem; /* Smaller font */
+            font-size: 0.75rem;
             text-align: center;
+            transition: background-color 0.3s ease;
         }
-        .sidebar ul li a .fas {
-            margin-bottom: 0.25rem;
-            font-size: 1.2rem;
-        }
-
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #0d47a1;
+            background-color: #000050; /* Darker Navy */
         }
-
         .logout-button {
             background-color: #f57c00;
             color: white;
@@ -106,92 +90,23 @@
             width: calc(100% - 2rem);
             font-size: 0.75rem;
         }
-        .logout-button:hover {
-            background-color: #e65100;
-        }
-
-        /* Main content area for reports.html */
-        .main-content {
-            margin-left: 125px; /* Matches sidebar width */
-            width: calc(100% - 125px); /* Fills remaining space */
+        .logout-button:hover { background-color: #e65100; }
+        .dashboard-card {
+            background-color: white;
+            border-radius: 0.5rem;
             padding: 1.5rem;
-            min-height: 100vh;
-            box-sizing: border-box; /* Include padding in width */
-            display: block; /* Ensure it's visible by default without login check */
-        }
-        .reports-container {
-            background-color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0.5rem;
-            overflow: hidden;
-            margin-bottom: 2rem;
-            max-width: 900px; /* Limit width of reports content */
-            margin: 0 auto; /* Center it */
-        }
-
-        /* Message Box styles (copied from index.html for consistency) */
-        .message-box-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .message-box {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .message-box h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #1a73e8;
-        }
-        .message-box p {
-            margin-bottom: 1.5rem;
-            color: #333;
-        }
-        .message-box button {
-            background-color: #1a73e8;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            cursor: pointer;
-            border: none;
-            transition: background-color 0.3s ease;
-        }
-        .message-box button:hover {
-            background-color: #0d47a1;
+            color: #1f2937;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
             border-left-color: #1a73e8;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 36px;
+            height: 36px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 1rem auto;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .hidden {
-            display: none !important;
-        }
-
-        /* Table Matrix specific styles */
+        @keyframes spin { to { transform: rotate(360deg); } }
         .audits-matrix-table {
             width: 100%;
             border-collapse: collapse;
@@ -211,921 +126,211 @@
         .audits-matrix-table tbody tr:nth-child(even) {
             background-color: #f9fafb;
         }
-        .audits-matrix-table tbody tr:hover {
-            background-color: #f3f4f6;
-        }
         .audits-matrix-table .total-row {
             font-weight: bold;
             background-color: #e0f2f7; /* Light blue */
         }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <!-- Message Box Overlay (for loading, errors, confirmations) -->
-    <div id="messageBoxOverlay" class="message-box-overlay hidden">
-        <div class="message-box">
-            <div id="messageBoxSpinner" class="spinner hidden"></div>
-            <h3 id="messageBoxTitle"></h3>
-            <p id="messageBoxContent"></p>
-            <button id="messageBoxCloseBtn" class="hidden">OK</button>
-        </div>
-    </div>
+    <header class="top-header">
+        <span class="text-xl font-semibold">ICEA LION QUALITY DASHBOARD</span>
+        <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
+    </header>
 
-    <!-- Main Navigation / Sidebar -->
     <nav class="main-nav" id="mainNav">
         <div class="sidebar">
             <ul>
-                <!-- Ensure these paths are correct relative to reports.html -->
-                <li><a href="index.html" id="auditFormTab"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li><a href="index.html#database" id="databaseTab"><i class="fas fa-database"></i> Database</a></li>
-                <li><a href="reports.html" id="reportsTab" class="active"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                <li><a href="autofails.html" id="autofailsTab"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li><a href="index.html#shareResponse" id="shareResponseTab"><i class="fas fa-share-square"></i> Share Response</a></li>
-                <li><a href="users.html" id="usersTab"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="admin.html" id="adminTab"><i class="fas fa-user-cog"></i> Admin</a></li>
+                <li><a href="home.html"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="Dashboard.html"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li><a href="index.html#auditForm"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="index.html#myEvaluations"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li><a href="nps.html"><i class="fas fa-comments"></i> NPS</a></li>
+                <li><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="database.html"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="index.html#images"><i class="fas fa-image"></i> Images</a></li>
+                <li><a href="index.html#users"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="index.html#admin"><i class="fas fa-user-cog"></i> Admin</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button">Logout</button>
         </div>
     </nav>
 
-    <!-- Main Content Area for Reports -->
     <div class="main-content" id="reportsContent">
-        <div class="reports-container">
-            <div class="icealion-blue p-4 text-xl font-semibold text-center">
-                Reports Overview
-            </div>
-            <div class="p-6">
-                <p class="text-gray-700 mb-4">
-                    This section will display various reports and analytics based on the submitted quality assessment data.
-                </p>
-                <p class="text-blue-600 font-bold mb-4">
-                    NOTE: Report generation would typically involve fetching aggregated data from Firestore and using a charting library (e.g., Chart.js, D3.js) to visualize the data.
-                </p>
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Reports Overview</h1>
 
-                <h3 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Reports Display Area</h3>
-                <div id="reportDisplayArea" class="border border-gray-300 p-4 rounded-md bg-gray-50 min-h-[200px] flex items-center justify-center text-gray-500 text-center">
-                    <p>Click "Generate Report" to see data.</p>
+        <div class="dashboard-card mb-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-3">Report Options</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                    <label for="reportType" class="block text-sm font-medium text-gray-700">Report Type:</label>
+                    <select id="reportType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                        <option value="">Select a report</option>
+                        <option value="overallScoreByMonth">Overall Score By Month</option>
+                        <option value="cerRoleOverallScoreByMonth">Overall Score by CER Role (Monthly)</option>
+                        <option value="cerRoleOverallScore">Overall Score for Each CER Role</option>
+                        <option value="evaluationsByCERName">Count of Evaluations by CER Name</option>
+                        <option value="autofailTrends">Autofail Trends</option>
+                        <option value="auditsByCERMonthMatrix">Audits by CER Name & Month (Matrix)</option>
+                    </select>
                 </div>
-
-                <div class="mt-8">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-3">Report Options:</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="reportType" class="block text-sm font-medium text-gray-700">Report Type:</label>
-                            <select id="reportType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                                <option value="">Select a report</option>
-                                <option value="overallScoreByMonth">Overall Score By Month</option>
-                                <option value="cerRoleOverallScoreByMonth">Overall Score by CER Role (Monthly)</option>
-                                <option value="cerRoleOverallScore">Overall Score for Each CER Role</option>
-                                <option value="evaluationsByCERName">Count of Evaluations by CER Name</option>
-                                <option value="autofailTrends">Autofail Trends</option>
-                                <option value="auditsByCERMonthMatrix">Audits by CER Name & Month (Matrix)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="dateRange" class="block text-sm font-medium text-gray-700">Date Range:</label>
-                            <input type="month" id="dateRange" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                        </div>
-                    </div>
-                    <button id="generateReportBtn" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
-                        Generate Report
-                    </button>
+                <div>
+                    <label for="dateRange" class="block text-sm font-medium text-gray-700">Date Range:</label>
+                    <input type="month" id="dateRange" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
                 </div>
-
+                <button id="generateReportBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md h-fit">
+                    Generate Report
+                </button>
             </div>
+        </div>
+
+        <div id="reportDisplayArea" class="dashboard-card min-h-[400px] flex items-center justify-center text-gray-500 text-center">
+            <p>Select your report options and click "Generate Report" to see data.</p>
         </div>
     </div>
 
-    <!-- Firebase SDK (Basic setup for logout functionality and consistency) -->
     <script type="module">
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signOut, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-
-        // --- Your Web App's Firebase Configuration ---
         const firebaseConfig = {
-          apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-          authDomain: "icea-lion-qa.firebaseapp.com",
-          projectId: "icea-lion-qa",
-          storageBucket: "icea-lion-qa.firebasestorage.app",
-          messagingSenderId: "820082472004",
-          appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
-          measurementId: "G-1RJJTT3QET"
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.appspot.com",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
         };
 
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // Initialize Firebase App and Services ONCE
-        let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
-            appInstance = getApp();
-        }
-        const auth = getAuth(appInstance);
-        const db = getFirestore(appInstance); // Initialize Firestore
-
-        window.auth = auth;
-        window.currentUserId = null;
-        window.isAuthReady = false;
-
-        // Firestore Collection Path (consistent with index.html)
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        let chartInstance = null;
 
-        // Variables to hold Chart.js instances
-        let cerPerformanceChart = null;
-        let autofailTrendsChart = null;
-        let overallScoreByMonthChart = null;
-        let cerRoleOverallScoreByMonthChart = null;
-        let cerRoleOverallScoreChart = null;
-        let evaluationsByCERNameChart = null;
-
-
-        // Message Box functions (copied from index.html for consistency)
-        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            const messageBoxSpinner = document.getElementById('messageBoxSpinner');
-            const messageBoxTitle = document.getElementById('messageBoxTitle');
-            const messageBoxContent = document.getElementById('messageBoxContent');
-            const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-
-            messageBoxTitle.textContent = title;
-            if (typeof message === 'string' && message.startsWith('<pre>')) {
-                messageBoxContent.innerHTML = message;
-                messageBoxContent.classList.add('message-box-content-pre');
-            } else {
-                messageBoxContent.textContent = message;
-                messageBoxContent.classList.remove('message-box-content-pre');
-            }
-
-            messageBoxOverlay.classList.remove('hidden');
-            messageBoxSpinner.classList.toggle('hidden', !showSpinner);
-            messageBoxCloseBtn.classList.toggle('hidden', !showCloseButton);
-
-            if (isError) {
-                messageBoxTitle.style.color = '#dc2626';
-            } else {
-                messageBoxTitle.style.color = '#1a73e8';
-            }
-
-            messageBoxCloseBtn.onclick = null; 
-            if (showCloseButton) {
-                messageBoxCloseBtn.onclick = () => {
-                    messageBoxOverlay.classList.add('hidden');
-                    if (onClose) onClose();
-                };
-            }
-        }
-
-        function hideMessageBox() {
-            const messageBoxOverlay = document.getElementById('messageBoxOverlay');
-            messageBoxOverlay.classList.add('hidden');
-        }
-
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                window.currentUserId = user.uid;
-                console.log("Firebase Auth State Changed (reports.html): User logged in:", user.uid);
-            } else {
-                console.log("Firebase Auth State Changed (reports.html): No user logged in. Attempting sign-in.");
-                if (initialAuthToken) {
-                    try {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                        window.currentUserId = auth.currentUser.uid;
-                        console.log("Signed in with custom token (reports.html):", window.currentUserId);
-                    } catch (error) {
-                        console.error("Error signing in with custom token (reports.html):", error);
-                        try {
-                            await signInAnonymously(auth);
-                            window.currentUserId = auth.currentUser.uid;
-                            console.log("Signed in anonymously (reports.html):", window.currentUserId);
-                        } catch (anonError) {
-                            console.error("Error signing in anonymously (reports.html):", anonError);
-                        }
-                    }
-                } else {
-                    try {
-                        await signInAnonymously(auth);
-                        window.currentUserId = auth.currentUser.uid;
-                        console.log("Signed in anonymously (reports.html):", window.currentUserId);
-                    } catch (anonError) {
-                        console.error("Error signing in anonymously (reports.html):", anonError);
-                    }
-                }
-                if (!window.currentUserId) {
-                    console.error("No user ID available after authentication attempts (reports.html). Using random UUID as fallback.");
-                    window.currentUserId = crypto.randomUUID();
-                }
-            }
-            window.isAuthReady = true;
-            document.dispatchEvent(new CustomEvent('firebaseAuthReadyReportsPage')); // Custom event for this page
-        });
-
-        // Helper function to safely convert Firestore Timestamp or other types to Date object
         function safeToDate(timestamp) {
             if (!timestamp) return null;
-            if (typeof timestamp.toDate === 'function') {
-                return timestamp.toDate();
-            } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
-                const date = new Date(timestamp);
-                return isNaN(date.getTime()) ? null : date;
-            }
-            return null;
+            if (typeof timestamp.toDate === 'function') return timestamp.toDate();
+            const date = new Date(timestamp);
+            return isNaN(date.getTime()) ? null : date;
         }
 
-        // Function to generate and display reports
         async function generateReport() {
             const reportDisplayArea = document.getElementById('reportDisplayArea');
             const reportType = document.getElementById('reportType').value;
-            const dateRange = document.getElementById('dateRange').value; //YYYY-MM format
+            const dateRange = document.getElementById('dateRange').value;
 
-            if (!window.isAuthReady || !window.currentUserId) {
-                showMessageBox("Authentication Required", "Please wait for authentication to complete before generating reports.", false, true, false);
-                return;
-            }
-            if (!db) {
-                showMessageBox("Database Not Ready", "Firestore is not initialized.", true, false, true);
+            if (!reportType) {
+                alert("Please select a report type.");
                 return;
             }
 
-            showMessageBox("Generating Report", "Fetching data and preparing report...", false, true, false);
-
-            // Destroy previous chart instances if they exist
-            if (cerPerformanceChart) { cerPerformanceChart.destroy(); cerPerformanceChart = null; }
-            if (autofailTrendsChart) { autofailTrendsChart.destroy(); autofailTrendsChart = null; }
-            if (overallScoreByMonthChart) { overallScoreByMonthChart.destroy(); overallScoreByMonthChart = null; }
-            if (cerRoleOverallScoreByMonthChart) { cerRoleOverallScoreByMonthChart.destroy(); cerRoleOverallScoreByMonthChart = null; }
-            if (cerRoleOverallScoreChart) { cerRoleOverallScoreChart.destroy(); cerRoleOverallScoreChart = null; }
-            if (evaluationsByCERNameChart) { evaluationsByCERNameChart.destroy(); evaluationsByCERNameChart = null; }
-
-            reportDisplayArea.innerHTML = '<p class="text-gray-500">Loading report data...</p>';
-
+            reportDisplayArea.innerHTML = `<div class="spinner mx-auto"></div><p class="mt-2">Generating report...</p>`;
+            if (chartInstance) chartInstance.destroy();
 
             try {
-                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
-                const querySnapshot = await getDocs(recordsColRef);
-                const allRecords = [];
-                querySnapshot.forEach(doc => {
-                    allRecords.push({ id: doc.id, ...doc.data() });
-                });
+                const querySnapshot = await getDocs(collection(db, EVALUATION_RECORDS_COLLECTION_PATH));
+                const allRecords = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                 if (allRecords.length === 0) {
-                    reportDisplayArea.innerHTML = '<p class="text-gray-500">No evaluation records found to generate a report.</p>';
-                    hideMessageBox();
+                    reportDisplayArea.innerHTML = '<p>No evaluation records found.</p>';
                     return;
                 }
 
                 let filteredRecords = allRecords.filter(record => {
                     const recordDate = safeToDate(record.submittedAt);
-                    if (!recordDate) return false; // Exclude record if date could not be parsed
-
-                    // Apply date range filter if selected
+                    if (!recordDate) return false;
                     if (dateRange) {
                         const recordMonth = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
                         return recordMonth === dateRange;
                     }
-                    return true; // If no dateRange, include all records with valid dates
+                    return true;
                 });
 
-                let reportHtml = '';
                 if (filteredRecords.length === 0) {
-                    reportHtml = `<p class="text-gray-500">No records found for the selected criteria (Report Type: ${reportType || 'All'}, Date Range: ${dateRange || 'All'}).</p>`;
-                } else {
-                    switch (reportType) {
-                        case 'overallScoreByMonth':
-                            const monthlyScores = {};
-                            filteredRecords.forEach(record => {
-                                const recordDate = safeToDate(record.submittedAt);
-                                if (recordDate) {
-                                    const monthKey = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
-                                    const scoreStr = record['Overall Score'];
-                                    if (scoreStr && scoreStr.endsWith('%')) {
-                                        const score = parseFloat(scoreStr.replace('%', ''));
-                                        if (!isNaN(score)) {
-                                            if (!monthlyScores[monthKey]) {
-                                                monthlyScores[monthKey] = { total: 0, count: 0 };
-                                            }
-                                            monthlyScores[monthKey].total += score;
-                                            monthlyScores[monthKey].count++;
-                                        }
-                                    }
-                                }
-                            });
-
-                            const monthLabels = Object.keys(monthlyScores).sort();
-                            const monthData = monthLabels.map(month => (monthlyScores[month].total / monthlyScores[month].count).toFixed(2));
-
-                            reportHtml = `
-                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Overall Score By Month for ${dateRange || 'All Time'}</h4>
-                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
-                                    <canvas id="overallScoreByMonthChart"></canvas>
-                                </div>
-                            `;
-                            reportDisplayArea.innerHTML = reportHtml;
-
-                            if (monthLabels.length > 0) {
-                                setTimeout(() => { // Defer chart initialization
-                                    const canvasElement = document.getElementById('overallScoreByMonthChart');
-                                    console.log("Canvas element for Overall Score By Month:", canvasElement);
-                                    if (canvasElement) {
-                                        const ctx = canvasElement.getContext('2d');
-                                        console.log("Overall Score By Month Chart ctx:", ctx);
-                                        if (ctx) {
-                                            overallScoreByMonthChart = new Chart(ctx, {
-                                                type: 'bar', // Changed to vertical bar chart
-                                                data: {
-                                                    labels: monthLabels,
-                                                    datasets: [{
-                                                        label: 'Average Overall Score (%)',
-                                                        data: monthData,
-                                                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                                                        borderColor: 'rgba(75, 192, 192, 1)',
-                                                        borderWidth: 1
-                                                    }]
-                                                },
-                                                options: {
-                                                    responsive: true,
-                                                    maintainAspectRatio: false,
-                                                    plugins: {
-                                                        title: {
-                                                            display: true,
-                                                            text: 'Overall Score Trends by Month'
-                                                        },
-                                                        legend: {
-                                                            display: true
-                                                        }
-                                                    },
-                                                    scales: {
-                                                        y: {
-                                                            beginAtZero: true,
-                                                            title: {
-                                                                display: true,
-                                                                text: 'Average Score (%)'
-                                                            },
-                                                            max: 100
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            console.error("Could not get 2D context for overallScoreByMonthChart.");
-                                            reportDisplayArea.innerHTML = `<p class="text-red-500">Failed to get canvas context for Overall Score By Month Chart.</p>`;
-                                        }
-                                    } else {
-                                        console.error("Canvas element 'overallScoreByMonthChart' not found.");
-                                        reportDisplayArea.innerHTML = `<p class="text-red-500">Canvas element for Overall Score By Month Chart not found after rendering HTML.</p>`;
-                                    }
-                                }, 0); // End setTimeout
-                            } else {
-                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No data for Overall Score By Month for the selected period.</p>`;
-                            }
-                            break;
-
-                        case 'cerRoleOverallScoreByMonth':
-                            const cerRoleMonthlyScores = {}; // { 'CER Role': { 'YYYY-MM': { total: 0, count: 0 } } }
-                            const allMonths = new Set();
-                            const allRoles = new Set();
-
-                            filteredRecords.forEach(record => {
-                                const recordDate = safeToDate(record.submittedAt);
-                                const cerRole = record['CER Role'];
-                                const scoreStr = record['Overall Score'];
-
-                                if (recordDate && cerRole && scoreStr && scoreStr.endsWith('%')) {
-                                    const monthKey = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
-                                    const score = parseFloat(scoreStr.replace('%', ''));
-
-                                    if (!isNaN(score)) {
-                                        if (!cerRoleMonthlyScores[cerRole]) {
-                                            cerRoleMonthlyScores[cerRole] = {};
-                                        }
-                                        if (!cerRoleMonthlyScores[cerRole][monthKey]) {
-                                            cerRoleMonthlyScores[cerRole][monthKey] = { total: 0, count: 0 };
-                                        }
-                                        cerRoleMonthlyScores[cerRole][monthKey].total += score;
-                                        cerRoleMonthlyScores[cerRole][monthKey].count++;
-                                        
-                                        allMonths.add(monthKey);
-                                        allRoles.add(cerRole);
-                                    }
-                                }
-                            });
-
-                            const sortedMonths = Array.from(allMonths).sort();
-                            const sortedRoles = Array.from(allRoles).sort();
-                            const datasets = sortedRoles.map(role => {
-                                return {
-                                    label: role,
-                                    data: sortedMonths.map(month => {
-                                        const data = cerRoleMonthlyScores[role]?.[month];
-                                        return data ? (data.total / data.count).toFixed(2) : null;
-                                    }),
-                                    backgroundColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`, // Random color
-                                    borderColor: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`,
-                                    borderWidth: 1
-                                };
-                            });
-
-                            reportHtml = `
-                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Overall Score by CER Role (Monthly) for ${dateRange || 'All Time'}</h4>
-                                <div style="width: 100%; height: 450px; display: flex; justify-content: center; align-items: center;">
-                                    <canvas id="cerRoleOverallScoreByMonthChart"></canvas>
-                                </div>
-                            `;
-                            reportDisplayArea.innerHTML = reportHtml;
-
-                            if (sortedMonths.length > 0 && sortedRoles.length > 0) {
-                                setTimeout(() => { // Defer chart initialization
-                                    const canvasElement = document.getElementById('cerRoleOverallScoreByMonthChart');
-                                    console.log("Canvas element for CER Role Overall Score By Month:", canvasElement);
-                                    if (canvasElement) {
-                                        const ctx = canvasElement.getContext('2d');
-                                        console.log("CER Role Overall Score By Month Chart ctx:", ctx);
-                                        if (ctx) {
-                                            cerRoleOverallScoreByMonthChart = new Chart(ctx, {
-                                                type: 'bar',
-                                                data: {
-                                                    labels: sortedMonths,
-                                                    datasets: datasets
-                                                },
-                                                options: {
-                                                    responsive: true,
-                                                    maintainAspectRatio: false,
-                                                    plugins: {
-                                                        title: {
-                                                            display: true,
-                                                            text: 'Average Overall Score by CER Role and Month'
-                                                        },
-                                                        legend: {
-                                                            display: true,
-                                                            position: 'top'
-                                                        }
-                                                    },
-                                                    scales: {
-                                                        y: {
-                                                            beginAtZero: true,
-                                                            title: {
-                                                                display: true,
-                                                                text: 'Average Score (%)'
-                                                            },
-                                                            max: 100
-                                                        },
-                                                        x: {
-                                                            title: {
-                                                                display: true,
-                                                                text: 'Month'
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            console.error("Could not get 2D context for cerRoleOverallScoreByMonthChart.");
-                                            reportDisplayArea.innerHTML = `<p class="text-red-500">Failed to get canvas context for CER Role Overall Score By Month Chart.</p>`;
-                                        }
-                                    } else {
-                                        console.error("Canvas element 'cerRoleOverallScoreByMonthChart' not found.");
-                                        reportDisplayArea.innerHTML = `<p class="text-red-500">Canvas element for CER Role Overall Score By Month Chart not found after rendering HTML.</p>`;
-                                    }
-                                }, 0); // End setTimeout
-                            } else {
-                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No data for Overall Score by CER Role (Monthly) for the selected period.</p>`;
-                            }
-                            break;
-
-                        case 'cerRoleOverallScore':
-                            const cerRoleScores = {};
-                            filteredRecords.forEach(record => {
-                                const cerRole = record['CER Role'];
-                                const scoreStr = record['Overall Score'];
-                                if (cerRole && scoreStr && scoreStr.endsWith('%')) {
-                                    const score = parseFloat(scoreStr.replace('%', ''));
-                                    if (!isNaN(score)) {
-                                        if (!cerRoleScores[cerRole]) {
-                                            cerRoleScores[cerRole] = { total: 0, count: 0 };
-                                        }
-                                        cerRoleScores[cerRole].total += score;
-                                        cerRoleScores[cerRole].count++;
-                                    }
-                                }
-                            });
-
-                            const cerRoleLabels = Object.keys(cerRoleScores).sort();
-                            const cerRoleData = cerRoleLabels.map(role => (cerRoleScores[role].total / cerRoleScores[role].count).toFixed(2));
-
-                            reportHtml = `
-                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Overall Score for Each CER Role for ${dateRange || 'All Time'}</h4>
-                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
-                                    <canvas id="cerRoleOverallScoreChart"></canvas>
-                                </div>
-                            `;
-                            reportDisplayArea.innerHTML = reportHtml;
-
-                            if (cerRoleLabels.length > 0) {
-                                setTimeout(() => { // Defer chart initialization
-                                    const canvasElement = document.getElementById('cerRoleOverallScoreChart');
-                                    console.log("Canvas element for CER Role Overall Score:", canvasElement);
-                                    if (canvasElement) {
-                                        const ctx = canvasElement.getContext('2d');
-                                        console.log("CER Role Overall Score Chart ctx:", ctx);
-                                        if (ctx) {
-                                            cerRoleOverallScoreChart = new Chart(ctx, {
-                                                type: 'bar',
-                                                data: {
-                                                    labels: cerRoleLabels,
-                                                    datasets: [{
-                                                        label: 'Average Overall Score (%)',
-                                                        data: cerRoleData,
-                                                        backgroundColor: [
-                                                            'rgba(26, 115, 232, 0.6)',
-                                                            'rgba(245, 124, 0, 0.6)',
-                                                            'rgba(75, 192, 192, 0.6)',
-                                                            'rgba(153, 102, 255, 0.6)',
-                                                            'rgba(255, 159, 64, 0.6)',
-                                                            'rgba(192, 75, 192, 0.6)'
-                                                        ],
-                                                        borderColor: [
-                                                            'rgba(26, 115, 232, 1)',
-                                                            'rgba(245, 124, 0, 1)',
-                                                            'rgba(75, 192, 192, 1)',
-                                                            'rgba(153, 102, 255, 1)',
-                                                            'rgba(255, 159, 64, 1)',
-                                                            'rgba(192, 75, 192, 1)'
-                                                        ],
-                                                        borderWidth: 1
-                                                    }]
-                                                },
-                                                options: {
-                                                    indexAxis: 'y', // Horizontal bar chart
-                                                    responsive: true,
-                                                    maintainAspectRatio: false,
-                                                    plugins: {
-                                                        title: {
-                                                            display: true,
-                                                            text: 'Average Overall Score by CER Role'
-                                                        },
-                                                        legend: {
-                                                            display: false
-                                                        }
-                                                    },
-                                                    scales: {
-                                                        x: {
-                                                            beginAtZero: true,
-                                                            title: {
-                                                                display: true,
-                                                                text: 'Average Score (%)'
-                                                            },
-                                                            max: 100
-                                                        },
-                                                        y: {
-                                                            title: {
-                                                                display: true,
-                                                                text: 'CER Role'
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            console.error("Could not get 2D context for cerRoleOverallScoreChart.");
-                                            reportDisplayArea.innerHTML = `<p class="text-red-500">Failed to get canvas context for CER Role Overall Score Chart.</p>`;
-                                        }
-                                    } else {
-                                        console.error("Canvas element 'cerRoleOverallScoreChart' not found.");
-                                        reportDisplayArea.innerHTML = `<p class="text-red-500">Canvas element for CER Role Overall Score Chart not found after rendering HTML.</p>`;
-                                    }
-                                }, 0); // End setTimeout
-                            } else {
-                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No data for Overall Score for Each CER Role for the selected period.</p>`;
-                            }
-                            break;
-
-                        case 'evaluationsByCERName':
-                            const cerEvaluationCounts = {};
-                            filteredRecords.forEach(record => {
-                                const cerName = record['CER Name'];
-                                if (cerName) {
-                                    cerEvaluationCounts[cerName] = (cerEvaluationCounts[cerName] || 0) + 1;
-                                }
-                            });
-
-                            const cerNameLabels = Object.keys(cerEvaluationCounts).sort();
-                            const cerNameData = cerNameLabels.map(name => cerEvaluationCounts[name]);
-
-                            reportHtml = `
-                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Count of Evaluations by CER Name for ${dateRange || 'All Time'}</h4>
-                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
-                                    <canvas id="evaluationsByCERNameChart"></canvas>
-                                </div>
-                            `;
-                            reportDisplayArea.innerHTML = reportHtml;
-
-                            if (cerNameLabels.length > 0) {
-                                setTimeout(() => { // Defer chart initialization
-                                    const canvasElement = document.getElementById('evaluationsByCERNameChart');
-                                    console.log("Canvas element for Evaluations By CER Name:", canvasElement);
-                                    if (canvasElement) {
-                                        const ctx = canvasElement.getContext('2d');
-                                        console.log("Evaluations By CER Name Chart ctx:", ctx);
-                                        if (ctx) {
-                                            evaluationsByCERNameChart = new Chart(ctx, {
-                                                type: 'bar',
-                                                data: {
-                                                    labels: cerNameLabels,
-                                                    datasets: [{
-                                                        label: 'Number of Evaluations',
-                                                        data: cerNameData,
-                                                        backgroundColor: 'rgba(54, 162, 235, 0.6)', /* Blue */
-                                                        borderColor: 'rgba(54, 162, 235, 1)',
-                                                        borderWidth: 1
-                                                    }]
-                                                },
-                                                options: {
-                                                    indexAxis: 'y', // Horizontal bar chart
-                                                    responsive: true,
-                                                    maintainAspectRatio: false,
-                                                    plugins: {
-                                                        title: {
-                                                            display: true,
-                                                            text: 'Number of Evaluations by CER Name'
-                                                        },
-                                                        legend: {
-                                                            display: false
-                                                        }
-                                                    },
-                                                    scales: {
-                                                        x: {
-                                                            beginAtZero: true,
-                                                            title: {
-                                                                display: true,
-                                                                text: 'Count'
-                                                            },
-                                                            ticks: {
-                                                                stepSize: 1
-                                                            }
-                                                        },
-                                                        y: {
-                                                            title: {
-                                                                display: true,
-                                                                text: 'CER Name'
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            console.error("Could not get 2D context for evaluationsByCERNameChart.");
-                                            reportDisplayArea.innerHTML = `<p class="text-red-500">Failed to get canvas context for Evaluations By CER Name Chart.</p>`;
-                                        }
-                                    } else {
-                                        console.error("Canvas element 'evaluationsByCERNameChart' not found.");
-                                        reportDisplayArea.innerHTML = `<p class="text-red-500">Canvas element for Evaluations By CER Name Chart not found after rendering HTML.</p>`;
-                                    }
-                                }, 0); // End setTimeout
-                            } else {
-                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No evaluation data for CER Name for the selected period.</p>`;
-                            }
-                            break;
-                            
-                        case 'autofailTrends':
-                            // Count autofail types
-                            const autofailCounts = {};
-                            filteredRecords.forEach(record => {
-                                const autofailType = record['Auto Fail Type'];
-                                if (autofailType) {
-                                    autofailCounts[autofailType] = (autofailCounts[autofailType] || 0) + 1;
-                                }
-                            });
-
-                            const autofailLabels = Object.keys(autofailCounts);
-                            const autofailData = Object.values(autofailCounts);
-
-                            reportHtml = `
-                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Autofail Trends for ${dateRange || 'All Time'}</h4>
-                                <div style="width: 100%; height: 400px; display: flex; justify-content: center; align-items: center;">
-                                    <canvas id="autofailTrendsChart"></canvas>
-                                </div>
-                            `;
-                            reportDisplayArea.innerHTML = reportHtml; // Render canvas first
-
-                            if (autofailLabels.length > 0) {
-                                setTimeout(() => { // Defer chart initialization
-                                    const canvasElement = document.getElementById('autofailTrendsChart');
-                                    console.log("Canvas element for Autofail Trends:", canvasElement);
-                                    if (canvasElement) {
-                                        const ctxAutofail = canvasElement.getContext('2d');
-                                        console.log("Autofail Trends Chart ctx:", ctxAutofail);
-                                        if (ctxAutofail) {
-                                            autofailTrendsChart = new Chart(ctxAutofail, {
-                                                type: 'bar',
-                                                data: {
-                                                    labels: autofailLabels,
-                                                    datasets: [{
-                                                        label: 'Number of Occurrences',
-                                                        data: autofailData,
-                                                        backgroundColor: 'rgba(255, 99, 132, 0.6)', /* Reddish for autofails */
-                                                        borderColor: 'rgba(255, 99, 132, 1)',
-                                                        borderWidth: 1
-                                                    }]
-                                                },
-                                                options: {
-                                                    indexAxis: 'y', // Horizontal bar chart
-                                                    responsive: true,
-                                                    maintainAspectRatio: false,
-                                                    plugins: {
-                                                        title: {
-                                                            display: true,
-                                                            text: 'Autofail Occurrences'
-                                                        },
-                                                        legend: {
-                                                            display: false
-                                                        }
-                                                    },
-                                                    scales: {
-                                                        x: {
-                                                            beginAtZero: true,
-                                                            title: {
-                                                                display: true,
-                                                                text: 'Occurrences'
-                                                            },
-                                                            ticks: {
-                                                                stepSize: 1, // Ensure whole numbers for counts
-                                                            }
-                                                        },
-                                                        y: {
-                                                            title: {
-                                                                display: true,
-                                                                text: 'Autofail Type'
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            console.error("Could not get 2D context for autofailTrendsChart.");
-                                            reportDisplayArea.innerHTML = `<p class="text-red-500">Failed to get canvas context for Autofail Trends Chart.</p>`;
-                                        }
-                                    } else {
-                                        console.error("Canvas element 'autofailTrendsChart' not found.");
-                                        reportDisplayArea.innerHTML = `<p class="text-red-500">Canvas element for Autofail Trends Chart not found after rendering HTML.</p>`;
-                                    }
-                                }, 0); // End setTimeout
-                            } else {
-                                reportDisplayArea.innerHTML = `<p class="text-gray-500">No autofail incidents recorded for the selected period.</p>`;
-                            }
-                            break;
-
-                        case 'auditsByCERMonthMatrix':
-                            const auditMatrix = {}; // { 'CER Name': { 'YYYY-MM': count } }
-                            const allUniqueMonths = new Set();
-                            const allUniqueCERs = new Set();
-
-                            filteredRecords.forEach(record => {
-                                const recordDate = safeToDate(record.submittedAt);
-                                const cerName = record['CER Name'];
-
-                                if (recordDate && cerName) {
-                                    const monthKey = recordDate.getFullYear() + '-' + String(recordDate.getMonth() + 1).padStart(2, '0');
-                                    
-                                    if (!auditMatrix[cerName]) {
-                                        auditMatrix[cerName] = {};
-                                    }
-                                    auditMatrix[cerName][monthKey] = (auditMatrix[cerName][monthKey] || 0) + 1;
-                                    
-                                    allUniqueMonths.add(monthKey);
-                                    allUniqueCERs.add(cerName);
-                                }
-                            });
-
-                            const sortedUniqueMonths = Array.from(allUniqueMonths).sort();
-                            const sortedUniqueCERs = Array.from(allUniqueCERs).sort();
-
-                            reportHtml = `
-                                <h4 class="text-lg font-semibold text-gray-700 mb-2">Number of Audits by CER Name and Month for ${dateRange || 'All Time'}</h4>
-                                <div class="overflow-x-auto">
-                                    <table class="audits-matrix-table">
-                                        <thead>
-                                            <tr>
-                                                <th>CER Name</th>
-                                                ${sortedUniqueMonths.map(month => `<th>${month}</th>`).join('')}
-                                                <th>Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${sortedUniqueCERs.map(cer => {
-                                                let rowTotal = 0;
-                                                const monthlyCounts = sortedUniqueMonths.map(month => {
-                                                    const count = auditMatrix[cer][month] || 0;
-                                                    rowTotal += count;
-                                                    return `<td>${count}</td>`;
-                                                }).join('');
-                                                return `
-                                                    <tr>
-                                                        <td style="text-align: left; font-weight: bold;">${cer}</td>
-                                                        ${monthlyCounts}
-                                                        <td>${rowTotal}</td>
-                                                    </tr>
-                                                `;
-                                            }).join('')}
-                                            <tr class="total-row">
-                                                <td style="text-align: left;">Total</td>
-                                                ${sortedUniqueMonths.map(month => {
-                                                    let columnTotal = 0;
-                                                    sortedUniqueCERs.forEach(cer => {
-                                                        columnTotal += (auditMatrix[cer]?.[month] || 0);
-                                                    });
-                                                    return `<td>${columnTotal}</td>`;
-                                                }).join('')}
-                                                <td>
-                                                    ${filteredRecords.length}
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            `;
-                            reportDisplayArea.innerHTML = reportHtml;
-                            break;
-
-                        default:
-                            reportHtml = `<p class="text-gray-500">Please select a report type to generate a specific report.</p>`;
-                            reportDisplayArea.innerHTML = reportHtml;
-                            break;
-                    }
+                    reportDisplayArea.innerHTML = `<p>No records found for the selected criteria.</p>`;
+                    return;
                 }
                 
-                hideMessageBox();
+                // Render based on report type
+                renderReport(reportType, filteredRecords, dateRange);
 
             } catch (error) {
                 console.error("Error generating report:", error);
                 reportDisplayArea.innerHTML = `<p class="text-red-500">Error generating report: ${error.message}</p>`;
-                hideMessageBox();
-                showMessageBox("Report Generation Failed", `Could not generate report: ${error.message}`, true, false, true);
             }
         }
+        
+        function renderReport(type, data, dateRange) {
+             const reportDisplayArea = document.getElementById('reportDisplayArea');
+             reportDisplayArea.innerHTML = `<canvas id="reportChart"></canvas>`;
+             const ctx = document.getElementById('reportChart').getContext('2d');
+             let chartConfig = {};
 
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const mainNav = document.getElementById('mainNav');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const reportsContent = document.getElementById('reportsContent');
-            const generateReportBtn = document.getElementById('generateReportBtn'); // Get the button
-
-            // --- Function to check login state and display content ---
-            const checkLoginAndDisplayContent = () => {
-                const isLoggedIn = sessionStorage.getItem('loggedIn');
-                if (isLoggedIn === 'true') {
-                    mainNav.style.display = 'block'; // Show sidebar
-                    reportsContent.style.display = 'block'; // Show reports content
-                    // Highlight the current tab
-                    document.querySelectorAll('.sidebar ul li a').forEach(link => {
-                        link.classList.remove('active');
-                        if (link.href.includes('reports.html')) {
-                            link.classList.add('active');
+             switch(type) {
+                case 'overallScoreByMonth':
+                    const monthlyScores = {};
+                    data.forEach(r => {
+                        const date = safeToDate(r.submittedAt);
+                        if(date) {
+                            const month = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+                            if(!monthlyScores[month]) monthlyScores[month] = { total: 0, count: 0 };
+                            monthlyScores[month].total += parseFloat(r['Overall Score']) || 0;
+                            monthlyScores[month].count++;
                         }
                     });
-                } else {
-                    // If not logged in via sessionStorage, redirect to index.html
-                    window.location.href = 'index.html';
+                    const monthLabels = Object.keys(monthlyScores).sort((a,b) => new Date(a) - new Date(b));
+                    const monthData = monthLabels.map(m => (monthlyScores[m].total / monthlyScores[m].count));
+                    chartConfig = getChartConfig('bar', monthLabels, [{ label: 'Average Score', data: monthData, backgroundColor: '#36A2EB' }], 'Monthly Average Score');
+                    break;
+                
+                case 'autofailTrends':
+                    const autofailCounts = data.reduce((acc, r) => {
+                        const type = r['Auto Fail Type'];
+                        if(type) acc[type] = (acc[type] || 0) + 1;
+                        return acc;
+                    }, {});
+                    chartConfig = getChartConfig('pie', Object.keys(autofailCounts), [{ data: Object.values(autofailCounts) }], 'Autofail Reasons');
+                    break;
+                
+                // Add other cases here...
+                default:
+                    reportDisplayArea.innerHTML = `<p>Report type "${type}" is not yet implemented.</p>`;
+                    return;
+             }
+
+             chartInstance = new Chart(ctx, chartConfig);
+        }
+
+        function getChartConfig(type, labels, datasets, title) {
+            return {
+                type: type,
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: title, font: { size: 18 } },
+                        legend: { display: type !== 'pie' }
+                    },
+                    scales: (type === 'bar' || type === 'line') ? {
+                        y: { beginAtZero: true, max: 100 },
+                        x: {}
+                    } : {}
                 }
             };
+        }
 
-            // Call initializer on Firebase Auth Ready
-            document.addEventListener('firebaseAuthReadyReportsPage', checkLoginAndDisplayContent);
-
-            // Fallback for fast loads where auth might be ready before DOMContentLoaded
-            if (document.readyState === 'complete' && window.isAuthReady !== null) {
-                checkLoginAndDisplayContent();
-            }
-
-            // --- Logout Functionality ---
-            logoutBtn.addEventListener('click', async () => {
-                try {
-                    await signOut(auth); // Sign out from Firebase Auth
-                    sessionStorage.removeItem('loggedIn'); // Clear custom login state
-                    window.location.href = 'index.html'; // Redirect to main login page
-                } catch (error) {
-                    console.error("Error signing out:", error);
-                    // No specific error message display for reports page for now, just redirect
-                }
+        document.addEventListener('DOMContentLoaded', function() {
+            onAuthStateChanged(auth, user => {
+                if (!user) window.location.href = 'index.html';
             });
-
-            // --- Navigation Link Event Listeners (for other pages) ---
-            // These ensure the sidebar links work correctly on reports.html
-            document.getElementById('auditFormTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html'; });
-            document.getElementById('databaseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#database'; });
-            document.getElementById('autofailsTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'autofails.html'; });
-            document.getElementById('shareResponseTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'index.html#shareResponse'; });
-            document.getElementById('usersTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'users.html'; });
-            document.getElementById('adminTab').addEventListener('click', (e) => { e.preventDefault(); window.location.href = 'admin.html'; });
-
-            // --- Generate Report Button Listener ---
-            if (generateReportBtn) {
-                generateReportBtn.addEventListener('click', generateReport);
-            }
+            document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+            document.getElementById('generateReportBtn').addEventListener('click', generateReport);
         });
     </script>
 </body>
