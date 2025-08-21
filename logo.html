@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo - QA Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .dashboard-card { background-color: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .spinner { border: 4px solid rgba(0,0,0,0.1); border-left-color: #1a73e8; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="p-6">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Logo Settings</h1>
+
+        <div class="dashboard-card">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Company Logo</h2>
+            <div class="flex items-center gap-4">
+                <img id="currentLogo" src="https://placehold.co/120x40/CCCCCC/FFFFFF?text=Logo" alt="Current Logo" class="h-12 bg-gray-100 p-1 rounded">
+                <input type="file" id="logoUploadInput" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <button id="uploadLogoBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md flex items-center gap-2">
+                    <span id="uploadBtnText">Upload Logo</span>
+                    <div id="uploadSpinner" class="spinner hidden"></div>
+                </button>
+            </div>
+            <p id="uploadStatus" class="text-sm mt-2 text-gray-600"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.appspot.com",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b6dfaf811",
+        };
+
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
+        const LOGO_STORAGE_PATH = `artifacts/${appId}/public/logo/company_logo.png`;
+
+        const uploadBtn = document.getElementById('uploadLogoBtn');
+        const uploadInput = document.getElementById('logoUploadInput');
+        const statusEl = document.getElementById('uploadStatus');
+        const currentLogoImg = document.getElementById('currentLogo');
+        const uploadSpinner = document.getElementById('uploadSpinner');
+        const uploadBtnText = document.getElementById('uploadBtnText');
+
+        async function loadCurrentLogo() {
+            try {
+                const docSnap = await getDoc(LOGO_DOC_REF);
+                if (docSnap.exists() && docSnap.data().url) {
+                    currentLogoImg.src = docSnap.data().url;
+                }
+            } catch (error) {
+                console.error("Error loading current logo:", error);
+            }
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            const file = uploadInput.files[0];
+            if (!file) {
+                statusEl.textContent = "Please select a file first.";
+                statusEl.style.color = 'red';
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadSpinner.classList.remove('hidden');
+            uploadBtnText.textContent = 'Uploading...';
+            statusEl.textContent = "Uploading image...";
+            statusEl.style.color = 'black';
+
+            try {
+                const storageRef = ref(storage, LOGO_STORAGE_PATH);
+                const snapshot = await uploadBytes(storageRef, file);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+
+                await setDoc(LOGO_DOC_REF, { url: downloadURL });
+
+                currentLogoImg.src = downloadURL;
+                statusEl.textContent = "Logo updated successfully!";
+                statusEl.style.color = 'green';
+
+            } catch (error) {
+                console.error("Upload failed:", error);
+                statusEl.textContent = `Upload failed: ${error.message}`;
+                statusEl.style.color = 'red';
+            } finally {
+                uploadBtn.disabled = false;
+                uploadSpinner.classList.add('hidden');
+                uploadBtnText.textContent = 'Upload Logo';
+            }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loadCurrentLogo();
+            }
+        });
+    </script>
+</body>
+</html>
