@@ -377,7 +377,10 @@
 <body class="antialiased">
     <header class="top-header">
         <span class="text-xl font-semibold text-gray-700">Quality Assessment</span>
-        <img id="header-logo" src="https://www.icealion.com/wp-content/uploads/2023/10/ICEA-LION-Colour-H-1024x264.png" alt="ICEA LION Group Logo">
+        <img id="header-logo" 
+             src="https://www.icealion.com/wp-content/uploads/2023/10/ICEA-LION-Colour-H-1024x264.png" 
+             onerror="this.onerror=null;this.src='https://placehold.co/200x50/0033A0/FFFFFF?text=ICEA+LION';"
+             alt="ICEA LION Group Logo">
     </header>
 
     <div id="messageBoxOverlay" class="message-box-overlay hidden" role="alert" aria-live="assertive">
@@ -544,7 +547,7 @@
                             </tr>
                             <tr class="border-b">
                                 <td class="text-left font-medium p-3 text-gray-600">Max Possible Points</td>
-                                <td class="text-right text-gray-800 p-3 font-semibold text-lg" id="max-possible-points-display">100</td>
+                                <td class="text-right text-gray-800 p-3 font-semibold text-lg" id="max-possible-points-display">0</td>
                             </tr>
                             <tr>
                                 <td class="text-left font-bold text-xl p-3 text-gray-800">Final Score</td>
@@ -600,7 +603,7 @@
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY", // Replace with your actual config
+            apiKey: "YOUR_API_KEY", // This will be replaced by the environment
             authDomain: "icea-lion-qa.firebaseapp.com",
             projectId: "icea-lion-qa",
             storageBucket: "icea-lion-qa.appspot.com", 
@@ -614,14 +617,14 @@
         let auth;
         let db;
         let storage;
-
-        // --- Firebase Collection & Document Paths ---
-        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
-        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
-        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
-        const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations');
-        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
+        
+        // --- Firebase Collection & Document Paths (Declared) ---
+        let EVALUATION_RECORDS_COLLECTION_PATH;
+        let USERS_PROFILE_COLLECTION_PATH;
+        let DROPDOWN_DATA_DOC_REF;
+        let QUESTIONS_CONFIG_DOC_REF;
+        let CUSTOM_FIELDS_CONFIG_DOC_REF;
+        let LOGO_DOC_REF;
 
         // --- GLOBAL DATA STORES & STATE VARIABLES ---
         let dropdownOptions = { 
@@ -1005,10 +1008,6 @@
             populateAllDropdownsInForm();
         }
         
-        async function fetchAndSetLogo() {
-            // Logo is now hardcoded in HTML for better initial load experience
-        }
-
         async function saveFormDataOnly(formData) {
             if (!formData) return null;
             try {
@@ -1185,37 +1184,44 @@
                 db = getFirestore(app);
                 storage = getStorage(app);
                 setLogLevel('debug');
+                
+                // Initialize doc references AFTER db is created
+                EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+                USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+                DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
+                QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
+                CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations');
+                LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
 
-                const user = auth.currentUser;
-                if (user) {
-                    currentUserId = user.uid;
-                    const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-                    const userDocSnap = await getDoc(userProfileDocRef);
-                    if (userDocSnap.exists()) {
-                        loggedInUserName = userDocSnap.data().name || user.email || "Quality Evaluation Team";
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+                        const userDocSnap = await getDoc(userProfileDocRef);
+                        if (userDocSnap.exists()) {
+                            loggedInUserName = userDocSnap.data().name || user.email || "Quality Evaluation Team";
+                        } else {
+                            loggedInUserName = user.email || "New User";
+                        }
+                        document.getElementById('reviewer-name').value = loggedInUserName;
+
+                        renderNavigationForRole();
+                        initializeAppDisplay();
+                        fetchDropdownOptionsData();
+                        fetchQuestionsData();
+                        fetchCustomFieldsData();
+                        fetchAgentUsersForDropdown();
                     } else {
-                        loggedInUserName = user.email || "New User";
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
                     }
-                    document.getElementById('reviewer-name').value = loggedInUserName;
-
-                    renderNavigationForRole();
-                    initializeAppDisplay();
-                    fetchDropdownOptionsData();
-                    fetchQuestionsData();
-                    fetchCustomFieldsData();
-                    fetchAgentUsersForDropdown();
-                    fetchAndSetLogo();
-                } else {
-                     window.location.href = './index.html';
-                }
+                });
             } catch (error) {
-                console.error("Firebase Initialization or Auth Error:", error);
+                console.error("Firebase Initialization Error:", error);
                 showMessageBox("Initialization Error", "Could not initialize the application. Please refresh the page.", true);
             }
         }
