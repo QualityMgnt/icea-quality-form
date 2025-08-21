@@ -252,13 +252,13 @@
         }
 
         #auditFormContent.container {
-            margin-left: calc(125px + 2rem); 
-            margin-top: calc(60px + 2rem); 
-            width: calc(100% - 125px - 4rem); 
-            max-width: 1400px;
-            min-height: calc(100vh - 60px - 4rem); 
+            margin-top: calc(60px + 2cm);
+            margin-left: calc(125px + 2cm);
+            margin-right: 2cm;
+            margin-bottom: 2cm;
+            width: calc(100% - 125px - 4cm);
+            min-height: calc(100vh - 60px - 4cm);
             border-radius: 0.75rem; 
-            margin-bottom: 2rem; 
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); 
             background-color: #ffffff;
         }
@@ -409,7 +409,7 @@
             </div>
         </nav>
 
-        <section class="container mx-auto" id="auditFormContent" style="display: none;" aria-labelledby="auditFormHeader">
+        <section class="container" id="auditFormContent" style="display: none;" aria-labelledby="auditFormHeader">
             <div class="icealion-gradient-header p-5 flex items-center justify-between rounded-t-lg text-white">
                 <h1 id="auditFormHeader" class="text-2xl font-bold">Quality Assessment Form</h1>
             </div>
@@ -459,7 +459,7 @@
                         </select>
                     </div>
                      <div id="autofailDescriptionContainer" class="hidden lg:col-span-2">
-                        <label for="autofail-description" class="block top-field-label">Autofail Description</label>
+                        <label for="autofail-description" class="block top-field-label">Reason for Autofail</label>
                         <textarea id="autofail-description" name="Autofail Description" rows="1" class="mt-1 remarks-textarea" placeholder="Provide details about the autofail" oninput="autoExpandTextarea(this)"></textarea>
                     </div>
                     <div class="lg:col-span-full">
@@ -544,7 +544,7 @@
                             </tr>
                             <tr class="border-b">
                                 <td class="text-left font-medium p-3 text-gray-600">Max Possible Points</td>
-                                <td class="text-right text-gray-800 p-3 font-semibold text-lg">100</td>
+                                <td class="text-right text-gray-800 p-3 font-semibold text-lg" id="max-possible-points-display">100</td>
                             </tr>
                             <tr>
                                 <td class="text-left font-bold text-xl p-3 text-gray-800">Final Score</td>
@@ -593,14 +593,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script type="module">
         // Firebase Imports
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, doc, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            apiKey: "YOUR_API_KEY", // Replace with your actual config
             authDomain: "icea-lion-qa.firebaseapp.com",
             projectId: "icea-lion-qa",
             storageBucket: "icea-lion-qa.appspot.com", 
@@ -608,18 +608,12 @@
             appId: "1:820082472004:web:8caddf941e1b5b667faf811",
             measurementId: "G-1RJJTT3QET"
         };
-        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
 
-        // This ensures that Firebase is only initialized once.
-        let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
-            appInstance = getApp();
-        }
-        const auth = getAuth(appInstance);
-        const db = getFirestore(appInstance);
-        const storage = getStorage(appInstance);
+        let app;
+        let auth;
+        let db;
+        let storage;
 
         // --- Firebase Collection & Document Paths ---
         const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
@@ -647,6 +641,7 @@
 
         // User & Auth State
         let loggedInUserName = "Quality Evaluation Team";
+        let currentUserId = null;
 
         // Form Calculation & Sharing State
         let globalTotalPoints = 0;
@@ -671,46 +666,13 @@
             element.style.height = (element.scrollHeight) + 'px'; 
         };
 
-        // --- Firebase Auth State Listener (Centralized) ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-                try {
-                    const userDocSnap = await getDoc(userProfileDocRef);
-                    if (userDocSnap.exists()) {
-                        loggedInUserName = userDocSnap.data().name || user.email || "Quality Evaluation Team";
-                    } else {
-                        loggedInUserName = user.email || "New User";
-                    }
-                    const reviewerNameInput = document.getElementById('reviewer-name');
-                    if (reviewerNameInput) {
-                        reviewerNameInput.value = loggedInUserName;
-                    }
-                } catch (error) {
-                    console.error("Error fetching user role:", error);
-                    loggedInUserName = user.email || "User";
-                }
-                
-                renderNavigationForRole();
-                initializeAppDisplay();
-                fetchDropdownOptionsData();
-                fetchQuestionsData();
-                fetchCustomFieldsData();
-                fetchAgentUsersForDropdown();
-                fetchAndSetLogo();
-            } else {
-                // If not logged in, redirect to index.html
-                window.location.href = './index.html';
-            }
-        });
-
         // --- Core Application Functions ---
         
         function calculateScore() {
-            const cerRoleSelect = document.getElementById('cer-role');
             const overallScoreDisplay = document.getElementById('overall-score-display');
             const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
             const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
+            const maxPossiblePointsDisplay = document.getElementById('max-possible-points-display');
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
             const autofailTypeSelect = document.getElementById('autofail-type');
 
@@ -731,88 +693,63 @@
                 const pointsElement = rowDiv.querySelector('.points-input');
                 const weightageDisplay = rowDiv.querySelector('.weightage-display');
                 const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
-                const questionText = selectElement.name.replace(' (Rating)', '');
                 
-                if (!pointsElement || !weightageDisplay) {
-                    console.warn(`Missing associated elements for select: ${selectElement.name}`);
-                    return;
-                }
+                if (!pointsElement || !weightageDisplay) return;
 
                 const rating = selectElement.value;
                 const weightage = parseFloat(weightageDisplay.dataset.weightage);
                 let pointsForThisQuestion = 0;
 
-                pointsElement.style.backgroundColor = '#e9ecef';
-                pointsElement.style.color = '#495057';
-
-                if (rating === 'Yes' || rating === 'N/A') {
+                if (rating === 'Yes') {
                     pointsForThisQuestion = weightage;
-                    pointsElement.readOnly = false;
-                    pointsElement.style.backgroundColor = '#d4edda'; // green-ish
-                    pointsElement.style.color = '#155724';
                 } else if (rating === 'No') {
                     pointsForThisQuestion = 0;
-                    pointsElement.readOnly = true;
-
                     if (isAutofailQuestion) {
-                        pointsElement.style.backgroundColor = '#f8d7da'; // red-ish
-                        pointsElement.style.color = '#721c24';
                         autofailQuestionTriggered = true;
-                    } else {
-                        pointsElement.style.backgroundColor = '#f8d7da';
-                        pointsElement.style.color = '#721c24';
                     }
-                } else {
-                    pointsForThisQuestion = 0;
-                    pointsElement.readOnly = true;
-                    pointsElement.style.backgroundColor = '#e9ecef';
                 }
 
                 pointsElement.value = pointsForThisQuestion;
-                currentTotalPoints += pointsForThisQuestion;
 
-                if (rating !== '' && rating !== 'N/A') {
+                if (rating === 'Yes' || rating === 'No') {
                     currentMaxPossiblePoints += weightage;
-                }
+                    currentTotalPoints += pointsForThisQuestion;
 
-                const currentRole = cerRoleSelect.value;
-                 if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE & BUSINESS ACCURACY']) {
-                    const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE & BUSINESS ACCURACY'].map(q => q.desc);
-                    if (complianceQuestions.includes(questionText)) {
-                        if (rating === 'Yes') {
-                            complianceCurrentPoints += weightage;
-                        }
-                        if (rating !== '' && rating !== 'N/A') {
-                             complianceMaxPoints += weightage;
-                        }
+                    const questionText = selectElement.name.replace(' (Rating)', '');
+                    const cerRole = document.getElementById('cer-role').value;
+                    const complianceSection = allRolesQuestions[cerRole]?.['COMPLIANCE & BUSINESS ACCURACY'];
+                    if (complianceSection && complianceSection.some(q => q.desc === questionText)) {
+                        complianceMaxPoints += weightage;
+                        complianceCurrentPoints += pointsForThisQuestion;
                     }
                 }
             });
 
-            let calculatedOverallPercentageBeforeAutofail = 0;
+            let finalOverallPercentage = 0;
             if (currentMaxPossiblePoints > 0) {
-                calculatedOverallPercentageBeforeAutofail = Math.round((currentTotalPoints / currentMaxPossiblePoints) * 100);
+                finalOverallPercentage = Math.round((currentTotalPoints / currentMaxPossiblePoints) * 100);
             }
 
-            let finalOverallPercentage = calculatedOverallPercentageBeforeAutofail;
             if (autofailQuestionTriggered || autofailTypeSelected) {
                 finalOverallPercentage = 0;
             }
             
-            overallScoreDisplay.textContent = `${finalOverallPercentage}%`;
-            overallFinalPercentageDisplay.textContent = `${finalOverallPercentage}%`;
-            totalPtsPercentageDisplay.textContent = `${currentTotalPoints}`; 
-
             let businessCompliancePct = 0;
             if (complianceMaxPoints > 0) {
                 businessCompliancePct = Math.round((complianceCurrentPoints / complianceMaxPoints) * 100);
             }
+
+            overallScoreDisplay.textContent = `${finalOverallPercentage}%`;
             businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
+            totalPtsPercentageDisplay.textContent = currentTotalPoints;
+            maxPossiblePointsDisplay.textContent = currentMaxPossiblePoints;
+            overallFinalPercentageDisplay.textContent = `${finalOverallPercentage}%`;
 
             globalTotalPoints = currentTotalPoints;
             globalMaxPossiblePoints = currentMaxPossiblePoints;
             globalBusinessComplianceAccuracyValue = businessCompliancePct;
         }
+
 
         function renderQuestionsForRole(role) {
             const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
@@ -1081,7 +1018,8 @@
                 });
                 return docRef.id;
             } catch (e) {
-                showMessageBox("Error", `Failed to save data: ${e.message}`, true, false, true);
+                console.error("Error saving data:", e);
+                showMessageBox("Error", `Failed to save data: ${e.message}. Check console for details.`, true, false, true);
                 return null;
             }
         }
@@ -1237,8 +1175,56 @@
             }
         }
         
+        async function initializeAppAndAuth() {
+            try {
+                const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify(firebaseConfig);
+                const config = JSON.parse(firebaseConfigString);
+                
+                app = initializeApp(config);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                storage = getStorage(app);
+                setLogLevel('debug');
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                const user = auth.currentUser;
+                if (user) {
+                    currentUserId = user.uid;
+                    const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+                    const userDocSnap = await getDoc(userProfileDocRef);
+                    if (userDocSnap.exists()) {
+                        loggedInUserName = userDocSnap.data().name || user.email || "Quality Evaluation Team";
+                    } else {
+                        loggedInUserName = user.email || "New User";
+                    }
+                    document.getElementById('reviewer-name').value = loggedInUserName;
+
+                    renderNavigationForRole();
+                    initializeAppDisplay();
+                    fetchDropdownOptionsData();
+                    fetchQuestionsData();
+                    fetchCustomFieldsData();
+                    fetchAgentUsersForDropdown();
+                    fetchAndSetLogo();
+                } else {
+                     window.location.href = './index.html';
+                }
+            } catch (error) {
+                console.error("Firebase Initialization or Auth Error:", error);
+                showMessageBox("Initialization Error", "Could not initialize the application. Please refresh the page.", true);
+            }
+        }
+
+
         // --- Event Listeners Setup ---
         document.addEventListener('DOMContentLoaded', () => {
+            initializeAppAndAuth();
+
             const logoutBtn = document.getElementById('logoutBtn');
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
@@ -1285,6 +1271,8 @@
                         showMessageBox("Success", "Form data saved successfully!", false, false, true, () => {
                             resetFormFieldsButKeepRole();
                         });
+                    } else {
+                        hideMessageBox(); // Hide "Saving..." box if saving failed
                     }
                 }
             });
