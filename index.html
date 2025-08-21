@@ -105,23 +105,46 @@
     </nav>
 
     <main id="mainContent" class="hidden">
-        <div id="homeContent" class="content-section"></div>
-        <div id="reportsContent" class="content-section hidden"></div>
-        <div id="auditFormContent" class="content-section hidden"></div>
-        <div id="myEvaluationsContent" class="content-section hidden"></div>
-        <div id="npsContent" class="content-section hidden"></div>
-        <div id="autofailsContent" class="content-section hidden"></div>
-        <div id="databaseContent" class="content-section hidden"></div>
-        <div id="shareResponseContent" class="content-section hidden"></div>
-        <div id="usersContent" class="content-section hidden"></div>
-        <div id="logoContent" class="content-section hidden"></div>
+        <div id="homeContent" class="content-section">
+            <!-- Home Page Content Goes Here -->
+        </div>
+        <div id="reportsContent" class="content-section hidden">
+            <!-- Dashboard/Reports Page Content Goes Here -->
+        </div>
+        <div id="auditFormContent" class="content-section hidden">
+             <!-- Evaluation Form Content Goes Here -->
+        </div>
+        <div id="myEvaluationsContent" class="content-section hidden">
+             <!-- My Evaluations Content Goes Here -->
+        </div>
+        <div id="npsContent" class="content-section hidden">
+             <!-- NPS Content Goes Here -->
+        </div>
+        <div id="autofailsContent" class="content-section hidden">
+             <!-- Autofails Content Goes Here -->
+        </div>
+        <div id="databaseContent" class="content-section hidden">
+             <!-- Database Content Goes Here -->
+        </div>
+        <div id="shareResponseContent" class="content-section hidden">
+             <!-- Share Response Content Goes Here -->
+        </div>
+        <div id="usersContent" class="content-section hidden">
+             <!-- Users Content Goes Here -->
+        </div>
+        <div id="logoContent" class="content-section hidden">
+            <!-- Logo/Admin Content Goes Here -->
+        </div>
     </main>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        // --- IMPORTS ---
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, deleteDoc, writeBatch, updateDoc, query, where, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
 
+        // --- FIREBASE INITIALIZATION (ONCE) ---
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
             authDomain: "icea-lion-qa.firebaseapp.com",
@@ -132,45 +155,38 @@
         };
         
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-        const app = initializeApp(firebaseConfig);
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
+        // --- GLOBAL STATE & REFERENCES ---
         const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
         const pageCache = {};
+        let currentCharts = {};
 
+        // --- CORE NAVIGATION & PAGE LOADING ---
         async function loadPage(page) {
             const container = document.getElementById(`${page}Content`);
             if (pageCache[page]) {
                 container.innerHTML = pageCache[page];
-                executeScripts(pageCache[page]);
-                return;
+            } else {
+                try {
+                    const response = await fetch(`${page}.html`);
+                    if (!response.ok) throw new Error(`Could not load ${page}.html`);
+                    const text = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(text, 'text/html');
+                    const content = doc.querySelector('body').innerHTML;
+                    pageCache[page] = content;
+                    container.innerHTML = content;
+                } catch (error) {
+                    console.error(`Failed to fetch page: ${page}`, error);
+                    container.innerHTML = `<div class="text-center p-8"><h2 class="text-2xl text-red-500">Error</h2><p>Could not load the requested page.</p></div>`;
+                }
             }
-            try {
-                const response = await fetch(`${page}.html`);
-                if (!response.ok) throw new Error(`Could not load ${page}.html`);
-                const text = await response.text();
-                
-                pageCache[page] = text;
-                container.innerHTML = text;
-                executeScripts(text);
-
-            } catch (error) {
-                console.error(`Failed to fetch page: ${page}`, error);
-                container.innerHTML = `<div class="text-center p-8"><h2 class="text-2xl text-red-500">Error</h2><p>Could not load the requested page.</p></div>`;
-            }
-        }
-
-        function executeScripts(htmlContent) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, 'text/html');
-            const scripts = doc.querySelectorAll('script[type="module"]');
-            scripts.forEach(script => {
-                const newScript = document.createElement('script');
-                newScript.type = 'module';
-                newScript.textContent = script.textContent;
-                document.body.appendChild(newScript).parentNode.removeChild(newScript);
-            });
+            // After loading content, initialize page-specific logic
+            initializePage(page);
         }
 
         function showTab(tabId) {
@@ -185,10 +201,12 @@
         }
 
         async function navigate(page) {
+            // Map dashboard filename to its ID
+            const pageId = page === 'Dashboard' ? 'reports' : page;
             await loadPage(page);
-            showTab(page);
+            showTab(pageId);
         }
-        
+
         async function loadCurrentLogo() {
             try {
                 const docSnap = await getDoc(LOGO_DOC_REF);
@@ -200,6 +218,101 @@
             }
         }
 
+        // --- PAGE-SPECIFIC INITIALIZATION ---
+        function initializePage(page) {
+            // Destroy any existing charts before loading new ones
+            Object.values(currentCharts).forEach(chart => chart.destroy());
+            currentCharts = {};
+
+            switch(page) {
+                case 'home': initHomePage(); break;
+                case 'Dashboard': initDashboardPage(); break;
+                case 'database': initDatabasePage(); break;
+                case 'autofails': initAutofailsPage(); break;
+                case 'nps': initNpsPage(); break;
+                case 'logo': initLogoPage(); break;
+                // Add cases for other pages
+            }
+        }
+        
+        // --- INITIALIZATION LOGIC FOR EACH PAGE ---
+        function initHomePage() {
+            // Logic from home.html
+        }
+        function initDashboardPage() {
+            // Logic from Dashboard.html
+        }
+        function initDatabasePage() {
+            // Logic from database.html
+        }
+        function initAutofailsPage() {
+            // Logic from autofails.html
+        }
+        function initNpsPage() {
+            // Logic from nps.html
+        }
+        function initLogoPage() {
+            const uploadBtn = document.getElementById('uploadLogoBtn');
+            const uploadInput = document.getElementById('logoUploadInput');
+            const statusEl = document.getElementById('uploadStatus');
+            const currentLogoImg = document.getElementById('currentLogo');
+            const uploadSpinner = document.getElementById('uploadSpinner');
+            const uploadBtnText = document.getElementById('uploadBtnText');
+
+            const LOGO_STORAGE_PATH = `artifacts/${appId}/public/logo/company_logo.png`;
+
+            async function loadCurrentLogoAdmin() {
+                try {
+                    const docSnap = await getDoc(LOGO_DOC_REF);
+                    if (docSnap.exists() && docSnap.data().url) {
+                        currentLogoImg.src = docSnap.data().url;
+                    }
+                } catch (error) {
+                    console.error("Error loading current logo on admin page:", error);
+                }
+            }
+            
+            uploadBtn.addEventListener('click', async () => {
+                const file = uploadInput.files[0];
+                if (!file) {
+                    statusEl.textContent = "Please select a file first.";
+                    statusEl.style.color = 'red';
+                    return;
+                }
+
+                uploadBtn.disabled = true;
+                uploadSpinner.classList.remove('hidden');
+                uploadBtnText.textContent = 'Uploading...';
+                statusEl.textContent = "Uploading image...";
+                statusEl.style.color = 'black';
+
+                try {
+                    const storageRef = ref(storage, LOGO_STORAGE_PATH);
+                    const snapshot = await uploadBytes(storageRef, file);
+                    const downloadURL = await getDownloadURL(snapshot.ref);
+
+                    await setDoc(LOGO_DOC_REF, { url: downloadURL });
+
+                    currentLogoImg.src = downloadURL;
+                    document.getElementById('header-logo').src = downloadURL; // Update header immediately
+                    statusEl.textContent = "Logo updated successfully!";
+                    statusEl.style.color = 'green';
+
+                } catch (error) {
+                    console.error("Upload failed:", error);
+                    statusEl.textContent = `Upload failed: ${error.message}`;
+                    statusEl.style.color = 'red';
+                } finally {
+                    uploadBtn.disabled = false;
+                    uploadSpinner.classList.add('hidden');
+                    uploadBtnText.textContent = 'Upload Logo';
+                }
+            });
+
+            loadCurrentLogoAdmin();
+        }
+
+        // --- DOMContentLoaded & AUTH LISTENER ---
         document.addEventListener('DOMContentLoaded', () => {
             const loginPage = document.getElementById('loginPage');
             const mainContent = document.getElementById('mainContent');
