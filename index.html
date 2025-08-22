@@ -33,7 +33,7 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background-image: url('https://images.unsplash.com/photo-1587560699334-cc426edb4ce8?q=80&w=2070&auto=format&fit=crop');
+            background-image: url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop'); /* Contact center background */
             background-size: cover;
             background-position: center;
             position: fixed;
@@ -151,17 +151,31 @@
             color: #374151;
         }
         
-        /* UPDATED: Textbox sizing */
+        /* UPDATED: Textbox sizing and wrapping */
         .form-grid-input, .points-input, .rating-select {
             border-color: #0056b3;
-            height: 1cm;
-            width: 3cm;
+            height: 1.5cm;
+            padding: 0.5rem;
+            word-wrap: break-word;
+            width: 100%; /* Make them flexible */
+        }
+        select.form-grid-input {
+             -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
         }
         .remarks-textarea {
             border-color: #0056b3;
-            min-height: 1cm; /* Use min-height for auto-expansion */
+            min-height: 1.5cm; /* Use min-height for auto-expansion */
             width: 100%; /* Remarks should be wider */
             resize: vertical;
+            padding: 0.5rem;
+            word-wrap: break-word;
         }
 
 
@@ -177,7 +191,7 @@
         <div class="login-card">
             <div class="p-8">
                 <div class="text-center mb-8">
-                    <img src="https://placehold.co/150x60/003366/FFFFFF?text=ICEA+LION" alt="Company Logo" class="mx-auto mb-4 rounded">
+                    <img id="login-logo" src="https://placehold.co/150x60/003366/FFFFFF?text=ICEA+LION" alt="Company Logo" class="mx-auto mb-4 rounded h-16 w-auto">
                     <h1 class="text-2xl font-bold text-gray-800">Quality Management System</h1>
                     <p class="text-gray-600">Please sign in to continue</p>
                 </div>
@@ -224,8 +238,9 @@
 
     <!-- MAIN APP INTERFACE -->
     <div id="mainApp" class="hidden">
-        <header class="top-header flex items-center justify-center">
+        <header class="top-header flex items-center justify-center relative">
             <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
+             <img id="header-logo" src="https://placehold.co/150x60/FFFFFF/003366?text=Logo" alt="Company Logo" class="absolute right-4 h-12 w-auto">
         </header>
 
         <nav class="main-nav" id="mainNav">
@@ -295,7 +310,7 @@
                             <option value="">Select Autofail Type</option>
                         </select>
                     </div>
-                    <div id="autofailDescriptionContainer" class="hidden">
+                    <div id="autofailDescriptionContainer" class="hidden col-span-1">
                         <label for="autofail-description" class="block top-field-label">Autofail Description</label>
                         <textarea id="autofail-description" name="Autofail Description" rows="1" class="mt-1 block w-full rounded-md shadow-sm remarks-textarea border" placeholder="Provide details about the autofail" oninput="autoExpandTextarea(this)"></textarea>
                     </div>
@@ -397,9 +412,10 @@
                         </tbody>
                     </table>
                     <div class="flex items-center justify-between w-full mt-4">
-                        <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
+                        <img id="footer-logo" src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
                         <div class="flex space-x-2">
                             <button type="button" id="saveDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Save Data</button>
+                            <button type="button" id="downloadPdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Download PDF</button>
                             <button type="button" id="shareBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Share</button>
                             <button type="button" id="shareViaEmailBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Share via Email</button>
                         </div>
@@ -630,6 +646,7 @@
         function showLoginPage() {
             loginPage.classList.remove('hidden');
             mainApp.classList.add('hidden');
+            fetchAndSetLogo(); // Fetch logo for login page
         }
 
         function showMainApp() {
@@ -711,6 +728,40 @@
             element.style.height = 'auto';
             element.style.height = (element.scrollHeight) + 'px';
         };
+        
+        async function generateAndDownloadPdf() {
+            const cerName = document.getElementById('cer-name').value;
+            const evalDate = document.getElementById('review-date').value;
+            if (!cerName || !evalDate) {
+                alert("Please select a CER Name and Evaluation Date before generating the PDF.");
+                return;
+            }
+            const filename = `Audit Feedback - ${cerName} - ${evalDate}.pdf`;
+            
+            alert("Generating PDF, please wait...");
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const canvas = await html2canvas(document.getElementById('auditFormContent'), { scale: 2 });
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const imgWidth = 210;
+            const pageHeight = 297;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+              position = heightLeft - imgHeight;
+              pdf.addPage();
+              pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+            }
+            
+            pdf.save(filename);
+        }
 
         async function generatePdfForSharing(callback) {
             const cerName = document.getElementById('cer-name').value;
@@ -772,6 +823,7 @@
             const cerRoleSelect = document.getElementById('cer-role');
             const cerNameSelect = document.getElementById('cer-name');
             const saveDataBtn = document.getElementById('saveDataBtn');
+            const downloadPdfBtn = document.getElementById('downloadPdfBtn');
             const shareBtn = document.getElementById('shareBtn');
             const shareViaEmailBtn = document.getElementById('shareViaEmailBtn');
             const autofailTypeSelect = document.getElementById('autofail-type');
@@ -801,6 +853,7 @@
             });
 
             saveDataBtn?.addEventListener('click', saveFormDataOnly);
+            downloadPdfBtn?.addEventListener('click', generateAndDownloadPdf);
             
             shareBtn?.addEventListener('click', () => {
                 generatePdfForSharing((blob, filename) => {
@@ -1015,7 +1068,7 @@
                             <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${sectionQuestionNumber}</span> ${q.desc}
                         </div>
                         <div class="col-span-2">
-                            <select name="${q.desc} (Rating)" class="w-full rounded-md shadow-sm p-1 text-center border rating-select border-blue-600" ${q.autofail ? 'data-autofail-question="true"' : ''} data-has-na="${q.hasNA}">
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md shadow-sm p-1 text-center border rating-select form-grid-input" ${q.autofail ? 'data-autofail-question="true"' : ''} data-has-na="${q.hasNA}">
                                 <option value="">Select Rating</option>
                                 <option value="Yes" ${yesSelected}>Yes</option>
                                 <option value="No" ${noSelected}>No</option>
@@ -1024,10 +1077,10 @@
                         </div>
                         <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
                         <div class="col-span-1 text-center">
-                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input border-blue-600" value="0" readonly placeholder="0">
+                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input form-grid-input" value="0" readonly placeholder="0">
                         </div>
                         <div class="col-span-2">
-                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md shadow-sm p-1 border remarks-textarea border-blue-600" oninput="autoExpandTextarea(this)"></textarea>
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md shadow-sm p-1 border remarks-textarea" oninput="autoExpandTextarea(this)"></textarea>
                         </div>
                     `;
                     container.appendChild(rowDiv);
@@ -1390,7 +1443,20 @@
         }
         
         async function fetchAndSetLogo() {
-            // Placeholder for logo fetching logic
+            try {
+                const docSnap = await getDoc(LOGO_DOC_REF);
+                if (docSnap.exists() && docSnap.data().url) {
+                    const logoUrl = docSnap.data().url;
+                    document.getElementById('login-logo').src = logoUrl;
+                    document.getElementById('header-logo').src = logoUrl;
+                    document.getElementById('audit-form-logo').src = logoUrl;
+                    document.getElementById('footer-logo').src = logoUrl;
+                } else {
+                    console.log("No logo URL found in Firestore, using placeholders.");
+                }
+            } catch (error) {
+                console.error("Error fetching logo:", error);
+            }
         }
 
     </script>
