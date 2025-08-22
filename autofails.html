@@ -134,6 +134,34 @@
         <div id="autofailContent" class="hidden">
             <h1 class="text-3xl font-bold mb-6 text-gray-800">Autofail Dashboard</h1>
             
+            <!-- Filter Section -->
+            <div class="bg-blue-900 p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="startDate" class="text-sm font-medium text-white">From</label>
+                    <input type="date" id="startDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="endDate" class="text-sm font-medium text-white">To</label>
+                    <input type="date" id="endDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="cerNameFilter" class="text-sm font-medium text-white">CER Name</label>
+                    <select id="cerNameFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">All Names</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cerRoleFilter" class="text-sm font-medium text-white">CER Role</label>
+                    <select id="cerRoleFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">All Roles</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button id="applyFilterBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Apply</button>
+                    <button id="resetFiltersBtn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Reset</button>
+                </div>
+            </div>
+
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div class="dashboard-card text-center">
@@ -162,7 +190,39 @@
                 </div>
             </div>
 
-            <div class="dashboard-card bg-white">
+            <!-- Autofails by CER Role Table -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">Monthly Autofails by CER Role</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left" id="monthlyAutofailsByRoleTable">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="p-4 text-sm font-semibold text-gray-600">CER Role</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Autofails by CER Name Table -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">Monthly Autofails by CER Name</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left" id="monthlyAutofailsByNameTable">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="p-4 text-sm font-semibold text-gray-600">CER Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="dashboard-card bg-white mt-6">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">Autofail Records Details</h2>
                 <div class="overflow-x-auto">
                     <table class="autofail-table">
@@ -185,7 +245,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -202,6 +262,8 @@
         const db = getFirestore(app);
 
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const DROPDOWN_OPTIONS_PATH = `artifacts/${appId}/public/data/dropdown_options/general_options`;
+        const USERS_PATH = `artifacts/${appId}/users`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
 
         let allAutofailData = [];
@@ -214,6 +276,61 @@
             }
         }
 
+        async function populateFilters() {
+            const cerNameFilter = document.getElementById('cerNameFilter');
+            const cerRoleFilter = document.getElementById('cerRoleFilter');
+
+            // Populate CER Names from users collection
+            const usersSnapshot = await getDocs(collection(db, USERS_PATH));
+            usersSnapshot.forEach(doc => {
+                const option = document.createElement('option');
+                option.value = doc.data().name;
+                option.textContent = doc.data().name;
+                cerNameFilter.appendChild(option);
+            });
+
+            // Populate CER Roles from dropdown options
+            const dropdownDoc = await getDoc(doc(db, DROPDOWN_OPTIONS_PATH));
+            if (dropdownDoc.exists()) {
+                const roles = dropdownDoc.data().cerRoles || [];
+                roles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = role;
+                    cerRoleFilter.appendChild(option);
+                });
+            }
+        }
+        
+        function applyFilters() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const cerName = document.getElementById('cerNameFilter').value;
+            const cerRole = document.getElementById('cerRoleFilter').value;
+
+            let filteredData = allAutofailData;
+
+            if (startDate) {
+                const start = new Date(startDate);
+                filteredData = filteredData.filter(r => r.submittedAt?.toDate() >= start);
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                filteredData = filteredData.filter(r => r.submittedAt?.toDate() <= end);
+            }
+            if (cerName) {
+                filteredData = filteredData.filter(r => r['CER Name'] === cerName);
+            }
+            if (cerRole) {
+                filteredData = filteredData.filter(r => r['CER Role'] === cerRole);
+            }
+            
+            updateDashboard(filteredData);
+            renderTable(filteredData);
+            renderMonthlyTables(filteredData);
+        }
+
         async function fetchDataAndRender() {
             const loadingMessage = document.getElementById('loadingMessage');
             const autofailContent = document.getElementById('autofailContent');
@@ -223,8 +340,8 @@
                 const querySnapshot = await getDocs(q);
                 allAutofailData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                renderTable(allAutofailData);
-                updateDashboard(allAutofailData);
+                await populateFilters();
+                applyFilters();
 
                 loadingMessage.classList.add('hidden');
                 autofailContent.classList.remove('hidden');
@@ -336,6 +453,60 @@
             });
         }
         
+        function renderMonthlyTables(data) {
+            renderMonthlyTable(data, 'monthlyAutofailsByRoleTable', 'CER Role');
+            renderMonthlyTable(data, 'monthlyAutofailsByNameTable', 'CER Name');
+        }
+
+        function renderMonthlyTable(data, tableId, groupBy) {
+            const table = document.getElementById(tableId);
+            const thead = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
+            thead.innerHTML = `<th class="p-4 text-sm font-semibold text-gray-600">${groupBy}</th>`;
+            tbody.innerHTML = '';
+
+            if (data.length === 0) return;
+
+            const counts = {};
+            const months = new Set();
+            const groups = new Set();
+
+            data.forEach(rec => {
+                if (rec.submittedAt?.toDate && rec[groupBy]) {
+                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                    const group = rec[groupBy];
+                    months.add(month);
+                    groups.add(group);
+
+                    if (!counts[group]) counts[group] = {};
+                    if (!counts[group][month]) counts[group][month] = 0;
+                    
+                    counts[group][month]++;
+                }
+            });
+
+            const sortedMonths = Array.from(months).sort((a, b) => new Date(a) - new Date(b));
+            
+            sortedMonths.forEach(month => {
+                const th = document.createElement('th');
+                th.className = "p-4 text-sm font-semibold text-gray-600 text-right";
+                th.textContent = month;
+                thead.appendChild(th);
+            });
+
+            Array.from(groups).sort().forEach((group, index) => {
+                const tr = document.createElement('tr');
+                tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                let rowHtml = `<td class="p-4 font-medium text-gray-800">${group}</td>`;
+                sortedMonths.forEach(month => {
+                    const count = counts[group]?.[month] || 0;
+                    rowHtml += `<td class="p-4 text-right font-semibold">${count}</td>`;
+                });
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+            });
+        }
+        
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 loadLogoFromLocalStorage();
@@ -345,6 +516,14 @@
             }
         });
 
+        document.getElementById('applyFilterBtn').addEventListener('click', applyFilters);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('cerNameFilter').value = '';
+            document.getElementById('cerRoleFilter').value = '';
+            applyFilters();
+        });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
     </script>
