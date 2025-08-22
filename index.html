@@ -179,6 +179,14 @@
             word-wrap: break-word;
         }
 
+        /* Searchable Dropdown Styles */
+        #cer-name-options .option {
+            padding: 0.5rem;
+            cursor: pointer;
+        }
+        #cer-name-options .option:hover {
+            background-color: #f0f2f5;
+        }
 
         /* Utility */
         .hidden {
@@ -254,7 +262,7 @@
                     <li class="nav-tab mb-2"><a href="myEvaluations.html" id="myEvaluationsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
                     <li class="nav-tab mb-2"><a href="nps.html" id="npsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-comment-alt w-6 mr-2"></i> NPS</a></li>
                     <li class="nav-tab mb-2"><a href="autofails.html" id="autofailsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
-                    <li class="nav-tab mb-2"><a href="#" id="databaseTab" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
+                    <li class="nav-tab mb-2"><a href="database.html" id="databaseTab" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
                     <li class="nav-tab mb-2"><a href="images.html" id="imagesTab" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
                     <li class="nav-tab mb-2"><a href="users.html" id="usersTab" class="flex items-center p-2 rounded-md"><i class="fas fa-users w-6 mr-2"></i> Users</a></li>
                     <li class="nav-tab mb-2"><a href="admin.html" id="adminTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-cog w-6 mr-2"></i> Admin</a></li>
@@ -294,10 +302,14 @@
                         <input type="text" id="client-name" name="Client Name" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" placeholder="e.g., John Doe" required>
                     </div>
                     <div>
-                        <label for="cer-name" class="block top-field-label">CER Name</label>
-                        <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" required>
-                            <option value="">Select CER</option>
-                        </select>
+                        <label for="cer-name-search" class="block top-field-label">CER Name</label>
+                        <div id="cer-name-searchable" class="relative">
+                            <input type="text" id="cer-name-search" placeholder="Search or select CER" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border">
+                            <div id="cer-name-options" class="hidden absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-y-auto">
+                                <!-- Options will be populated by JS -->
+                            </div>
+                        </div>
+                        <input type="hidden" id="cer-name" name="CER Name">
                     </div>
                     <div>
                         <label for="cer-email" class="block top-field-label">CER Email</label>
@@ -872,7 +884,8 @@
             const databaseTab = document.getElementById('databaseTab');
             const shareResponseTab = document.getElementById('shareResponseTab');
             const cerRoleSelect = document.getElementById('cer-role');
-            const cerNameSelect = document.getElementById('cer-name');
+            const cerNameSearchInput = document.getElementById('cer-name-search');
+            const cerNameOptions = document.getElementById('cer-name-options');
             const saveDataBtn = document.getElementById('saveDataBtn');
             const downloadPdfBtn = document.getElementById('downloadPdfBtn');
             const shareBtn = document.getElementById('shareBtn');
@@ -887,10 +900,38 @@
             shareResponseTab?.addEventListener('click', e => { e.preventDefault(); showTab('shareResponse'); });
 
             cerRoleSelect?.addEventListener('change', e => renderQuestionsForRole(e.target.value));
-            cerNameSelect?.addEventListener('change', e => {
-                const selectedName = e.target.value;
-                document.getElementById('cer-email').value = cerNameEmailsMap[selectedName] || '';
-                fetchLastThreeEvaluations(selectedName);
+            
+            // Searchable Dropdown Logic
+            cerNameSearchInput.addEventListener('focus', () => {
+                cerNameOptions.classList.remove('hidden');
+            });
+
+            cerNameSearchInput.addEventListener('blur', () => {
+                setTimeout(() => cerNameOptions.classList.add('hidden'), 200);
+            });
+
+            cerNameSearchInput.addEventListener('input', () => {
+                const filter = cerNameSearchInput.value.toLowerCase();
+                const options = cerNameOptions.getElementsByClassName('option');
+                for(let i = 0; i < options.length; i++) {
+                    const txtValue = options[i].textContent || options[i].innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        options[i].style.display = "";
+                    } else {
+                        options[i].style.display = "none";
+                    }
+                }
+            });
+
+            cerNameOptions.addEventListener('click', (e) => {
+                if(e.target.classList.contains('option')) {
+                    const selectedName = e.target.dataset.value;
+                    cerNameSearchInput.value = selectedName;
+                    document.getElementById('cer-name').value = selectedName;
+                    document.getElementById('cer-email').value = cerNameEmailsMap[selectedName] || '';
+                    fetchLastThreeEvaluations(selectedName);
+                    cerNameOptions.classList.add('hidden');
+                }
             });
             
             autofailTypeSelect?.addEventListener('change', e => {
@@ -1367,9 +1408,20 @@
         }
 
         function populateAllDropdownsInForm() {
-            const cerNameSelect = document.getElementById('cer-name');
             const cerRoleSelect = document.getElementById('cer-role');
             const autofailTypeSelect = document.getElementById('autofail-type');
+            
+            // Populate searchable dropdown for CER Name
+            const cerNameOptionsContainer = document.getElementById('cer-name-options');
+            cerNameOptionsContainer.innerHTML = '';
+            (dropdownOptions.cerNames || []).forEach(opt => {
+                const value = (typeof opt === 'object' && opt.name) ? opt.name : opt;
+                const optionDiv = document.createElement('div');
+                optionDiv.classList.add('option');
+                optionDiv.textContent = value;
+                optionDiv.dataset.value = value;
+                cerNameOptionsContainer.appendChild(optionDiv);
+            });
 
             const populate = (el, opts, type) => {
                 if (!el || !Array.isArray(opts)) return;
@@ -1382,7 +1434,6 @@
                 });
             };
             
-            populate(cerNameSelect, dropdownOptions.cerNames, 'CER');
             populate(cerRoleSelect, dropdownOptions.cerRoles, 'Role');
             populate(autofailTypeSelect, dropdownOptions.autofailTypes, 'Autofail');
         }
@@ -1499,6 +1550,7 @@
             document.getElementById('contact-id').value = '';
             document.getElementById('client-name').value = '';
             document.getElementById('cer-name').value = '';
+            document.getElementById('cer-name-search').value = '';
             document.getElementById('cer-email').value = '';
             document.getElementById('call-date').value = '';
             document.getElementById('autofail-type').value = '';
