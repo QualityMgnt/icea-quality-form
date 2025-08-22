@@ -70,51 +70,14 @@
             width: 100%;
         }
         
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #0056b3;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem auto;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
         .hidden { display: none !important; }
-
-        .message-box-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); display: flex;
-            justify-content: center; align-items: center; z-index: 2000;
-        }
-        .message-box {
-            background-color: white; padding: 2rem; border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center;
-            max-width: 400px; width: 90%;
-        }
-        .message-box h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #003366; }
-        .message-box p { margin-bottom: 1.5rem; color: #333; }
-        .message-box button {
-            background-color: #0056b3; color: white; padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem; font-weight: 500; cursor: pointer;
-            border: none; transition: background-color 0.3s ease;
-        }
-        .message-box button:hover { background-color: #003366; }
     </style>
 </head>
 <body>
     <header class="top-header flex items-center justify-center">
         <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
+        <img id="header-logo" src="https://placehold.co/150x60/003366/FFFFFF?text=Logo" alt="Company Logo" class="absolute right-4 h-12 w-auto">
     </header>
-
-    <div id="messageBoxOverlay" class="message-box-overlay hidden">
-        <div class="message-box">
-            <div id="messageBoxSpinner" class="spinner hidden"></div>
-            <h3 id="messageBoxTitle"></h3>
-            <p id="messageBoxContent"></p>
-            <button id="messageBoxCloseBtn" class="hidden">OK</button>
-        </div>
-    </div>
 
     <nav class="main-nav" id="mainNav">
         <div class="sidebar p-4 h-full relative">
@@ -132,12 +95,12 @@
     <main>
         <div class="container mx-auto bg-white p-8 rounded-lg shadow-lg">
             <h1 class="text-3xl font-bold text-gray-800 mb-2">Image Management</h1>
-            <p class="text-gray-600 mb-8">Upload a company logo. This logo will be displayed on the login page and in the header across the entire application.</p>
+            <p class="text-gray-600 mb-8">Upload a company logo. This logo will be saved in your browser and will appear in the header.</p>
             
             <div class="border-2 border-dashed border-gray-300 p-8 rounded-lg text-center">
                 <input type="file" id="logoUploadInput" class="hidden" accept="image/png, image/jpeg, image/gif">
                 <button id="uploadButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                    <i class="fas fa-upload mr-2"></i>Select and Upload Logo
+                    <i class="fas fa-upload mr-2"></i>Select Logo
                 </button>
                 <div id="previewContainer" class="mt-8 flex flex-col items-center">
                     <p class="font-semibold mb-2 text-gray-700">Current Logo:</p>
@@ -147,109 +110,70 @@
         </div>
     </main>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
+    <script>
+        // --- Logo Management using LocalStorage ---
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-            authDomain: "icea-lion-qa.firebaseapp.com",
-            projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
-            messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
-        };
-        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+        const LOGO_STORAGE_KEY = 'companyLogoUrl';
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
-
-        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
-
-        function showMessageBox(title, message, isError = false, showSpinner = false) {
-            const overlay = document.getElementById('messageBoxOverlay');
-            const titleEl = document.getElementById('messageBoxTitle');
-            const contentEl = document.getElementById('messageBoxContent');
-            const spinnerEl = document.getElementById('messageBoxSpinner');
-            const closeBtn = document.getElementById('messageBoxCloseBtn');
-
-            titleEl.textContent = title;
-            contentEl.textContent = message;
-            
-            spinnerEl.classList.toggle('hidden', !showSpinner);
-            closeBtn.classList.toggle('hidden', showSpinner);
-            
-            titleEl.style.color = isError ? '#dc2626' : '#003366';
-            
-            overlay.classList.remove('hidden');
-            closeBtn.onclick = () => overlay.classList.add('hidden');
-        }
-
-        async function fetchAndSetLogo() {
-            try {
-                const docSnap = await getDoc(LOGO_DOC_REF);
-                if (docSnap.exists() && docSnap.data().logoUrl) {
-                    const logoUrl = docSnap.data().logoUrl;
-                    // Apply to all potential logo elements on any page
-                    document.querySelectorAll('#header-logo, #currentLogo, #audit-form-logo, .login-card img').forEach(img => {
-                        if(img) img.src = logoUrl;
-                    });
-                }
-            } catch (error) {
-                console.error("Error fetching logo:", error);
+        function loadAndSetLogo() {
+            const savedLogoUrl = localStorage.getItem(LOGO_STORAGE_KEY);
+            if (savedLogoUrl) {
+                document.getElementById('header-logo').src = savedLogoUrl;
+                document.getElementById('currentLogo').src = savedLogoUrl;
             }
         }
 
-        async function uploadAndSetLogo() {
-            const fileInput = document.getElementById('logoUploadInput');
+        function handleLogoSelection(event) {
+            const fileInput = event.target;
             const file = fileInput.files[0];
+
             if (!file) {
-                showMessageBox("No File Selected", "Please select an image file to upload.", true);
                 return;
             }
 
-            showMessageBox("Uploading...", "Your new logo is being uploaded.", false, true);
+            const reader = new FileReader();
 
-            try {
-                // Use a consistent name for the logo to overwrite it each time
-                const storageRef = ref(storage, 'logos/company_logo.png'); 
-                const snapshot = await uploadBytes(storageRef, file);
-                const logoUrl = await getDownloadURL(snapshot.ref);
+            reader.onload = function(e) {
+                const logoDataUrl = e.target.result;
+                // Save the new logo to localStorage
+                localStorage.setItem(LOGO_STORAGE_KEY, logoDataUrl);
+                // Immediately update the logos on the page
+                loadAndSetLogo();
+                alert("Logo updated successfully!");
+            };
 
-                // Save the public URL to Firestore
-                await setDoc(LOGO_DOC_REF, { logoUrl: logoUrl });
-                
-                // Update the logo on the current page immediately
-                await fetchAndSetLogo();
-                
-                showMessageBox("Success!", "Logo uploaded and updated successfully across the application.");
+            reader.onerror = function() {
+                alert("Error reading file. Please try again.");
+            };
 
-            } catch (error) {
-                console.error("Error uploading logo:", error);
-                showMessageBox("Upload Failed", `An error occurred: ${error.message}`, true);
-            } finally {
-                fileInput.value = ''; // Reset file input
-            }
+            // Read the file as a Data URL (Base64 string)
+            reader.readAsDataURL(file);
         }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                fetchAndSetLogo();
-            } else {
-                // If user is not logged in, redirect to the main page
-                window.location.href = 'index.html';
-            }
-        });
+        // --- Event Listeners ---
 
-        document.getElementById('uploadButton').addEventListener('click', () => {
-            document.getElementById('logoUploadInput').click();
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load any saved logo as soon as the page is ready
+            loadAndSetLogo();
+
+            const uploadButton = document.getElementById('uploadButton');
+            const logoUploadInput = document.getElementById('logoUploadInput');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            uploadButton.addEventListener('click', () => {
+                logoUploadInput.click();
+            });
+
+            logoUploadInput.addEventListener('change', handleLogoSelection);
+
+            // Note: This logout button is for UI consistency. 
+            // It doesn't need full Firebase logic on this page.
+            logoutBtn.addEventListener('click', () => {
+                // You might want to clear the logo or just redirect
+                // For now, it just redirects to the main page.
+                window.location.href = './index.html';
+            });
         });
-        document.getElementById('logoUploadInput').addEventListener('change', uploadAndSetLogo);
-        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
     </script>
 </body>
 </html>
