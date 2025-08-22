@@ -239,15 +239,251 @@
         
         <main>
             <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden" id="auditFormContent">
-                <!-- Audit Form Content will be populated by JS -->
+                <div class="icealion-blue p-4 flex items-center justify-between">
+                    <div class="text-xl font-semibold">Quality Assessment Form - ICEA LION GROUP Contact Centre</div>
+                    <img id="audit-form-logo" src="https://placehold.co/95x57/1a73e8/FFFFFF?text=Logo" alt="ICEALION Logo" style="height: 1.5cm; width: 2.5cm; object-fit: contain;">
+                </div>
+
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="contact-id" class="block top-field-label">Contact ID</label>
+                        <input type="text" id="contact-id" name="Contact ID" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                    </div>
+                    <div>
+                        <label for="client-name" class="block top-field-label">Client Name</label>
+                        <input type="text" id="client-name" name="Client Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" placeholder="e.g., John Doe" required>
+                    </div>
+                    <div>
+                        <label for="cer-name" class="block top-field-label">CER Name</label>
+                        <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                            <option value="">Select CER</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="cer-email" class="block top-field-label">CER Email</label>
+                        <input type="email" id="cer-email" name="CER Email" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" placeholder="e.g., cer.name@icealion.com" readonly required>
+                    </div>
+                    <div>
+                        <label for="cer-role" class="block top-field-label">CER Role</label>
+                        <select id="cer-role" name="CER Role" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                            <option value="">Select Role</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="call-date-time" class="block top-field-label">Call Date and Time</label>
+                        <input type="datetime-local" id="call-date-time" name="Call Date and Time" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                    </div>
+                    <div>
+                        <label for="reviewer-name" class="block top-field-label">Reviewer's Name</label>
+                        <input type="text" id="reviewer-name" name="Reviewer's Name" class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 form-grid-input border border-blue-600" readonly>
+                    </div>
+                    <div>
+                        <label for="autofail-type" class="block top-field-label">Auto Fail Type</label>
+                        <select id="autofail-type" name="Auto Fail Type" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600">
+                            <option value="">Select Autofail Type</option>
+                        </select>
+                    </div>
+                    <div id="autofailDescriptionContainer" class="hidden">
+                        <label for="autofail-description" class="block top-field-label">Autofail Description</label>
+                        <textarea id="autofail-description" name="Autofail Description" rows="2" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input remarks-textarea border border-blue-600" placeholder="Provide details about the autofail" oninput="autoExpandTextarea(this)"></textarea>
+                    </div>
+                    <div>
+                        <label for="review-date" class="block top-field-label">Evaluation Date</label>
+                        <input type="date" id="review-date" name="Evaluation Date" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" required>
+                    </div>
+                    <div>
+                        <label for="duration" class="block top-field-label">Call Duration</label>
+                        <input type="text" id="duration" name="Call Duration" class="mt-1 block w-full rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 form-grid-input border border-blue-600" placeholder="e.g., 30 mins">
+                    </div>
+
+                    <div id="customFieldsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 col-span-full">
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
+                    <div class="text-sm font-medium text-gray-600">Scores:</div>
+                    <div class="flex justify-around w-full gap-2">
+                        <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
+                            <div class="text-xs font-medium text-gray-600 mb-1">Overall Score</div>
+                            <div class="text-xl font-bold text-blue-600" id="overall-score-display">0%</div>
+                        </div>
+                        <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
+                            <div class="text-xs font-medium text-gray-600 mb-1">Business & Compliance Accuracy</div>
+                            <div class="text-xl font-bold text-blue-600" id="business-compliance-accuracy">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="assessment-form">
+                    <div class="mt-4">
+                        <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
+                            <i class="fas fa-user tile-icon"></i> CUSTOMER EXPERIENCE
+                        </div>
+                        <div class="p-4">
+                            <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <div class="col-span-6">Description</div>
+                                <div class="col-span-2 text-center">Rating</div>
+                                <div class="col-span-1 text-center">Weight</div>
+                                <div class="col-span-1 text-center">Pnts</div>
+                                <div class="col-span-2">Remarks</div>
+                            </div>
+                            <div id="cxQuestionsContainer">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
+                            <i class="fas fa-lightbulb tile-icon"></i> PROBLEM SOLVING SKILLS
+                        </div>
+                        <div class="p-4">
+                            <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <div class="col-span-6">Description</div>
+                                <div class="col-span-2 text-center">Rating</div>
+                                <div class="col-span-1 text-center">Weight</div>
+                                <div class="col-span-1 text-center">Pnts</div>
+                                <div class="col-span-2">Remarks</div>
+                            </div>
+                            <div id="psQuestionsContainer">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
+                            <i class="fas fa-check-circle tile-icon"></i> COMPLIANCE AND BUSINESS CRITICAL ACCURACY
+                        </div>
+                        <div class="p-4">
+                            <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <div class="col-span-6">Description</div>
+                                <div class="col-span-2 text-center">Rating</div>
+                                <div class="col-span-1 text-center">Weight</div>
+                                <div class="col-span-1 text-center">Pnts</div>
+                                <div class="col-span-2">Remarks</div>
+                            </div>
+                            <div id="caQuestionsContainer">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                    
+                <div class="p-6 flex flex-col items-end">
+                    <table class="w-full md:w-1/2 lg:w-1/3 text-right text-sm border-collapse border border-blue-500">
+                        <tbody>
+                            <tr class="border-b border-blue-500">
+                                <td class="text-left font-medium p-2 border border-blue-500">Total Pts.</td>
+                                <td class="text-right text-gray-500 p-2 border border-blue-500" id="total-pts-percentage">0</td>
+                            </tr>
+                            <tr class="border-b border-blue-500">
+                                <td class="text-left font-medium p-2 border border-blue-500">Available Pts.</td>
+                                <td class="text-right text-gray-500 p-2 border border-blue-500">100%</td>
+                            </tr>
+                            <tr>
+                                <td class="text-left font-bold text-orange-500 p-2 border border-blue-500">Overall Score</td>
+                                <td class="text-right font-bold text-orange-500 p-2 border border-blue-500" id="overall-final-percentage-display">0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="flex items-center justify-between w-full mt-4">
+                        <img src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
+                        <div class="flex space-x-4">
+                            <button type="button" id="generateReportBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                                Generate Report
+                            </button>
+                            <button type="button" id="saveDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out">
+                                Save Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2 mb-4">
+                        <i class="fas fa-history tile-icon"></i> Last 3 Evaluations for Selected CER
+                    </div>
+                    <div id="lastEvaluationsContainer" class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200 rounded-md">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Name</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Overall Score</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">CER Role</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Contact ID</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-medium text-gray-600">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lastEvaluationsTableBody">
+                                <tr>
+                                    <td colspan="5" class="py-4 px-4 text-center text-gray-500">Select a CER Name to view their last evaluations.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
     
             <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 hidden" id="databaseContent">
-                <!-- Database Content will be populated by JS -->
+                <div class="icealion-blue p-4 text-xl font-semibold text-center">
+                    Database Records
+                </div>
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-800">Submitted Records</h2>
+                        <div>
+                            <button id="deleteSelectedRecordsBtn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                <i class="fas fa-trash-alt mr-2"></i>Delete Selected
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="databaseTableContainer" class="overflow-x-auto max-h-[60vh]">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr>
+                                    <th class="w-12"><input type="checkbox" id="selectAllRecordsCheckbox"></th>
+                                    <th class="w-24">Timestamp</th>
+                                    <th>Contact ID</th>
+                                    <th>Client Name</th>
+                                    <th>CER Name</th>
+                                    <th>Overall Score</th>
+                                    <th>Attachment</th>
+                                    <th class="w-24">Actions</th>
+                                    <th>View</th>
+                                    <th>Email</th>
+                                    <th>Download</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsTableBody">
+                                <tr>
+                                    <td colspan="11" class="text-center py-4 text-gray-500">No records found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-200">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Webhook Management</h2>
+                        <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                            <input type="url" id="newWebhookUrlInput" placeholder="Enter webhook URL"
+                                    class="flex-1 mt-1 block w-full rounded-md border-gray-300 shadow-sm form-grid-input border border-blue-600">
+                            <button id="addWebhookBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
+                                <i class="fas fa-plus mr-2"></i>Add Webhook
+                            </button>
+                        </div>
+                        <div id="webhookList" class="border border-gray-300 p-4 rounded-md bg-gray-50 min-h-[100px]">
+                            <p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
     
             <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 hidden" id="shareResponseContent">
-                <!-- Share Response Content will be populated by JS -->
+                <div class="icealion-blue p-4 text-xl font-semibold text-center">
+                    Share Evaluation Response
+                </div>
+                <div class="p-6">
+                    <!-- Share response content here -->
+                </div>
             </div>
         </main>
     </div>
@@ -374,20 +610,6 @@
         function showMainApp() {
             loginPage.classList.add('hidden');
             mainApp.classList.remove('hidden');
-            populateContentHolders();
-        }
-        
-        function populateContentHolders() {
-            if (auditFormContent.innerHTML.trim() === '') {
-                auditFormContent.innerHTML = `
-                    <div class="icealion-blue p-4 flex items-center justify-between">
-                        <div class="text-xl font-semibold">Quality Assessment Form - ICEA LION GROUP Contact Centre</div>
-                        <img id="audit-form-logo" src="https://placehold.co/95x57/1a73e8/FFFFFF?text=Logo" alt="ICEALION Logo" style="height: 1.5cm; width: 2.5cm; object-fit: contain;">
-                    </div>
-                    <!-- Rest of the audit form HTML structure -->
-                `;
-            }
-            // Similarly populate other content holders if needed
         }
 
         function initializeAppData() {
@@ -399,7 +621,7 @@
             fetchAgentUsersForDropdown();
             fetchAndSetLogo();
             
-            // Set default reviewer name
+            // Set default reviewer name after the form content is guaranteed to be in the DOM
             const reviewerNameInput = document.getElementById('reviewer-name');
             if (reviewerNameInput) {
                 reviewerNameInput.value = loggedInUserName;
@@ -471,6 +693,8 @@
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
             const autofailTypeSelect = document.getElementById('autofail-type');
 
+            if (!cerRoleSelect || !overallScoreDisplay) return; // Guard against elements not existing
+
             let currentTotalPoints = 0;
             let currentMaxPossiblePoints = 0;
             let autofailQuestionTriggered = false;
@@ -482,7 +706,7 @@
             const allRatingSelects = document.querySelectorAll('.rating-select');
 
             allRatingSelects.forEach(selectElement => {
-                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
+                const rowDiv = selectElement.closest('.grid');
                 if (!rowDiv) return;
 
                 const pointsElement = rowDiv.querySelector('.points-input');
@@ -491,7 +715,6 @@
                 const questionText = selectElement.name.replace(' (Rating)', '');
                 
                 if (!pointsElement || !weightageDisplay) {
-                    console.warn(`Missing associated elements for select: ${selectElement.name}`);
                     return;
                 }
 
@@ -582,8 +805,6 @@
                 'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
             };
 
-            console.log("Rendering questions for role:", role);
-
             for (const key in questionContainers) {
                 if (questionContainers[key]) {
                     questionContainers[key].innerHTML = '';
@@ -593,7 +814,6 @@
             const roleQuestions = allRolesQuestions[role] || allRolesQuestions['Default'] || {};
 
             if (Object.keys(roleQuestions).length === 0) {
-                console.warn(`No questions defined for role: ${role} or 'Default'. Displaying empty sections.`);
                 for (const key in questionContainers) {
                     if (questionContainers[key]) {
                         questionContainers[key].innerHTML = `<div class="text-center text-gray-500 py-4">No questions configured for this section.</div>`;
@@ -607,10 +827,7 @@
                 const questions = roleQuestions[sectionTitle];
                 const container = questionContainers[sectionTitle];
 
-                if (!container) {
-                    console.error(`Container not found for section: ${sectionTitle}`);
-                    continue;
-                }
+                if (!container) continue;
 
                 let sectionQuestionNumber = 1;
 
@@ -652,9 +869,7 @@
                     container.appendChild(rowDiv);
 
                     const newSelect = rowDiv.querySelector('.rating-select');
-                    if (newSelect) {
-                        newSelect.addEventListener('change', calculateScore);
-                    }
+                    newSelect.addEventListener('change', calculateScore);
                     sectionQuestionNumber++;
                 });
             }
@@ -665,14 +880,12 @@
         }
         
         function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-            // This function needs a corresponding HTML structure for the message box.
-            // For now, it will use alerts.
             alert(`${title}\n\n${message}`);
             if(onClose) onClose();
         }
 
         function hideMessageBox() {
-            // Logic to hide a custom message box
+            // Hides custom message box
         }
 
         async function fetchRecordsAndWebhooks() {
@@ -1047,23 +1260,52 @@
             element.style.height = (element.scrollHeight) + 'px';
         };
 
-        // --- EVENT LISTENERS ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initial check in case auth state is already known
-            if (sessionStorage.getItem('loggedIn') === 'true' && auth.currentUser) {
-                showMainApp();
-                initializeAppData();
-            } else {
-                showLoginPage();
-            }
-
+        // --- DYNAMIC EVENT LISTENERS ---
+        function addDynamicEventListeners() {
             const auditFormTab = document.getElementById('auditFormTab');
             const databaseTab = document.getElementById('databaseTab');
-            
+            const cerRoleSelect = document.getElementById('cer-role');
+            const cerNameSelect = document.getElementById('cer-name');
+            const saveDataBtn = document.getElementById('saveDataBtn');
+            const generateReportBtn = document.getElementById('generateReportBtn');
+            const reviewDateInput = document.getElementById('review-date');
+            const addWebhookBtn = document.getElementById('addWebhookBtn');
+            const deleteSelectedRecordsBtn = document.getElementById('deleteSelectedRecordsBtn');
+            const selectAllRecordsCheckbox = document.getElementById('selectAllRecordsCheckbox');
+
             auditFormTab?.addEventListener('click', e => { e.preventDefault(); showTab('auditForm'); });
             databaseTab?.addEventListener('click', e => { e.preventDefault(); showTab('database'); });
 
-            // Event listeners for form elements will be added dynamically when the form is rendered
+            cerRoleSelect?.addEventListener('change', e => renderQuestionsForRole(e.target.value));
+            cerNameSelect?.addEventListener('change', e => {
+                const selectedName = e.target.value;
+                document.getElementById('cer-email').value = cerNameEmailsMap[selectedName] || '';
+                fetchLastThreeEvaluations(selectedName);
+            });
+            
+            saveDataBtn?.addEventListener('click', saveFormDataOnly);
+            generateReportBtn?.addEventListener('click', generateAndDownloadPdf);
+            addWebhookBtn?.addEventListener('click', addWebhook);
+            
+            deleteSelectedRecordsBtn?.addEventListener('click', () => {
+                const selectedIds = [...document.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.recordId);
+                deleteSelectedRecords(selectedIds);
+            });
+
+            selectAllRecordsCheckbox?.addEventListener('change', (e) => {
+                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                    checkbox.checked = e.target.checked;
+                });
+                updateDeleteButtonState();
+            });
+
+            if (reviewDateInput) {
+                reviewDateInput.value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            addDynamicEventListeners();
         });
 
     </script>
