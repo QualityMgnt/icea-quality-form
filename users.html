@@ -5,214 +5,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         body {
-            font-family: 'Garamond', serif;
-            background-color: #f3f4f6;
-            color: #1f2937;
-            margin: 0;
-        }
-        .main-content {
-            margin-left: 125px;
-            margin-top: 48px;
-            width: calc(100% - 125px);
-            padding: 1.5rem;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f2f5;
         }
         .top-header {
+            background-color: #003366;
+            color: white;
+            padding: 1rem;
+            text-align: center;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 48px;
-            background-color: #000080; /* Navy Blue */
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 1.125rem;
-            font-weight: 600;
             z-index: 1000;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            padding: 0 1rem;
-        }
-        .top-header img {
-            height: 40px;
-            width: auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 64px;
         }
         .main-nav {
-            width: 125px;
-            background-color: #000080; /* Navy Blue */
+            background-color: #002347;
             color: white;
-            padding: 1rem 0;
-            height: 100vh;
             position: fixed;
-            top: 0;
+            top: 64px;
             left: 0;
-            z-index: 100;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            height: calc(100% - 64px);
+            width: 256px;
+            z-index: 999;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
-        .sidebar ul { list-style: none; margin: 0; padding: 0; flex-grow: 1; }
         .sidebar ul li a {
-            font-family: 'Garamond', serif;
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 0.75rem 0.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.25rem;
-            font-size: 0.75rem;
-            text-align: center;
-            transition: background-color: 0.3s ease;
+            transition: background-color 0.2s ease;
         }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #000050; /* Darker Navy */
+            background-color: #004a8d;
         }
         .logout-button {
-            background-color: #f57c00;
+            background-color: #ff6f61;
             color: white;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: background-color: 0.3s ease;
-            margin: 1rem auto;
-            width: calc(100% - 2rem);
-            font-size: 0.75rem;
+            transition: background-color 0.2s ease;
         }
-        .logout-button:hover { background-color: #e65100; }
-        .admin-container {
-            background-color: white;
+        .logout-button:hover {
+            background-color: #e65a50;
+        }
+        main {
+            padding-top: 80px;
+            padding-left: 272px;
+            padding-right: 16px;
+            padding-bottom: 16px;
+        }
+        .dashboard-card {
+            background: white;
+            border-radius: 0.75rem;
             padding: 1.5rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .hidden { display: none !important; }
-        .admin-section {
-            margin-bottom: 2rem;
-            border: 1px solid #e5e7eb;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-        }
-        .admin-section h2 {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-            color: #000080;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .user-table {
             width: 100%;
             border-collapse: collapse;
         }
-        .user-table th, .user-table td {
-            border: 1px solid #e5e7eb;
-            padding: 0.75rem;
+        .user-table thead th {
+            background-color: #f9fafb;
+            padding: 0.75rem 1rem;
             text-align: left;
-            vertical-align: top;
+            font-weight: 600;
+            color: #4b5563;
+            border-bottom: 2px solid #e5e7eb;
         }
-        .user-table th {
-            background-color: #eff6ff;
+        .user-table tbody td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
         }
-        .permissions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 0.5rem;
+        .user-table tbody tr:last-child td {
+            border-bottom: none;
         }
-        .permission-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        .user-table tbody tr:hover {
+            background-color: #f9fafb;
         }
-        .permission-item select {
-            font-size: 0.75rem;
-            padding: 0.25rem;
-            border-radius: 0.25rem;
+        .hidden { display: none !important; }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #0056b3;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body>
-    <header class="top-header">
-        <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
-        <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
+<body class="bg-gray-100">
+    <header class="top-header flex items-center justify-center relative">
+        <span class="text-xl font-semibold">ICEA LION QUALITY DASHBOARD</span>
+        <img id="header-logo" src="https://placehold.co/150x60/FFFFFF/003366?text=Logo" alt="Company Logo" class="absolute right-4 h-12 w-auto">
     </header>
 
-    <div id="editUserModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4">Edit User</h2>
-            <input type="hidden" id="edit-user-uid">
-            <div class="mb-4">
-                <label for="edit-user-name" class="block text-sm font-medium text-gray-700">Name</label>
-                <input type="text" id="edit-user-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-            </div>
-            <div class="mb-4">
-                <label for="edit-user-email" class="block text-sm font-medium text-gray-700">Email</label>
-                <input type="email" id="edit-user-email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-            </div>
-            <div class="flex justify-between items-center mt-6">
-                <button id="resetPasswordBtn" class="bg-yellow-500 text-white px-4 py-2 rounded">Reset Password</button>
-                <div>
-                    <button id="cancelEditBtn" class="bg-gray-500 text-white px-4 py-2 rounded mr-2">Cancel</button>
-                    <button id="saveUserChangesBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <nav class="main-nav" id="mainNav">
-        <div class="sidebar">
-            <ul id="sidebar-menu">
-                <li><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
-                <li><a href="myEvaluations.html"><i class="fas fa-user-check"></i> My Evaluations</a></li>
-                <li><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
-                <li><a href="Dashboard.html"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
-                <li><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
-                <li><a href="images.html"><i class="fas fa-image"></i> Images</a></li>
-                <li><a href="users.html" class="active"><i class="fas fa-users"></i> Users</a></li>
-                <li><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
+        <div class="sidebar p-4 h-full flex flex-col">
+            <ul class="flex-grow">
+                <li class="nav-tab mb-2"><a href="home.html" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
+                <li class="nav-tab mb-2"><a href="Dashboard.html" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
+                <li class="nav-tab mb-2"><a href="index.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
+                <li class="nav-tab mb-2"><a href="myEvaluations.html" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
+                <li class="nav-tab mb-2"><a href="autofails.html" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
+                <li class="nav-tab mb-2"><a href="reports.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-contract w-6 mr-2"></i> Reports</a></li>
+                <li class="nav-tab mb-2"><a href="database.html" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
+                <li class="nav-tab mb-2"><a href="images.html" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
+                <li class="nav-tab mb-2"><a href="users.html" class="active flex items-center p-2 rounded-md"><i class="fas fa-users w-6 mr-2"></i> Users</a></li>
             </ul>
-            <button id="logoutBtn" class="logout-button">Logout</button>
+            <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md mt-auto">Logout</button>
         </div>
     </nav>
 
-    <div class="main-content">
-        <div id="loadingMessage" class="text-center py-12 text-lg text-gray-600">
-            Verifying admin access...
+    <main id="mainContent">
+        <div id="loadingMessage" class="flex flex-col items-center justify-center h-[calc(100vh-100px)]">
+            <div class="spinner"></div>
+            <p class="mt-4 text-lg text-gray-600">Loading User Data...</p>
         </div>
 
-        <div id="adminContent" class="hidden">
-            <div class="admin-container">
-                <h1 class="text-3xl font-bold mb-6 text-gray-800">User Management</h1>
-                
-                <div class="admin-section">
-                    <h2>Manage Profiles & Permissions</h2>
-                    <div class="flex items-end gap-4 mb-4">
-                        <div class="flex-grow">
-                            <label for="profileRoleSelect" class="block font-medium">Select Profile to Edit</label>
-                            <select id="profileRoleSelect" class="w-full p-2 border rounded"></select>
-                        </div>
-                        <div class="flex-grow">
-                            <label for="newProfileName" class="block font-medium">Or Create New Profile</label>
-                            <input type="text" id="newProfileName" placeholder="New profile name" class="w-full p-2 border rounded">
-                        </div>
-                        <button id="createProfileBtn" class="bg-green-500 text-white px-4 py-2 rounded">Create</button>
-                    </div>
-                    <div id="profilePermissionsContainer" class="hidden">
-                        <h3 class="text-lg font-semibold mb-2">Set Permissions for <span id="editingProfileName" class="font-bold"></span></h3>
-                        <div id="permissionsGrid" class="permissions-grid"></div>
-                        <button id="saveProfilePermissionsBtn" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">Save Permissions for this Profile</button>
-                    </div>
+        <div id="userContent" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">User Management</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="dashboard-card text-center">
+                    <h2 class="text-lg font-semibold text-gray-500">Total Users</h2>
+                    <p id="totalUsers" class="text-4xl font-bold mt-2">0</p>
                 </div>
+                <div class="dashboard-card text-center">
+                    <h2 class="text-lg font-semibold text-gray-500">Total Admins</h2>
+                    <p id="totalAdmins" class="text-4xl font-bold mt-2">0</p>
+                </div>
+                <div class="dashboard-card text-center">
+                    <h2 class="text-lg font-semibold text-gray-500">Total Agents</h2>
+                    <p id="totalAgents" class="text-4xl font-bold mt-2">0</p>
+                </div>
+            </div>
 
-                <div class="admin-section">
-                    <h2>Assign Roles to Users</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 dashboard-card">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">All Users</h2>
                     <div class="overflow-x-auto">
                         <table class="user-table">
                             <thead>
@@ -221,33 +159,32 @@
                                     <th>Email</th>
                                     <th>Role</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="userRolesTableBody"></tbody>
                         </table>
                     </div>
                 </div>
-
+                <div class="dashboard-card">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">User Roles Distribution</h2>
+                    <div class="h-80">
+                        <canvas id="userRoleChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div id="accessDeniedMessage" class="hidden text-center py-12">
-            <h1 class="text-3xl font-bold text-red-600">Access Denied</h1>
-            <p class="text-lg text-gray-700 mt-4">You do not have permission to view this page.</p>
-        </div>
-    </div>
+    </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, onSnapshot, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
             authDomain: "icea-lion-qa.firebaseapp.com",
             projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
+            storageBucket: "icea-lion-qa.appspot.com",
             messagingSenderId: "820082472004",
             appId: "1:820082472004:web:8caddf941e1b5b667faf811",
         };
@@ -258,30 +195,13 @@
         const db = getFirestore(app);
 
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
-        const ROLES_COLLECTION_PATH = `artifacts/${appId}/public/data/roles`;
+        const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
+        let userRoleChart = null;
 
-        const TABS = [
-            { id: 'evaluationForm', label: 'Evaluation Form' },
-            { id: 'myEvaluations', label: 'My Evaluations' },
-            { id: 'database', label: 'Database' },
-            { id: 'dashboard', label: 'Dashboard' },
-            { id: 'autofails', label: 'Autofails' },
-            { id: 'images', label: 'Images' },
-            { id: 'users', label: 'Users' },
-            { id: 'admin', label: 'Admin' }
-        ];
-
-        let allRoles = {};
-
-        async function checkAdminRole(user) {
-            if (!user) return false;
-            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-            try {
-                const docSnap = await getDoc(userProfileDocRef);
-                return docSnap.exists() && docSnap.data().role === 'Admin';
-            } catch (error) {
-                console.error("Error checking admin role:", error);
-                return false;
+        function loadLogoFromLocalStorage() {
+            const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
+            if (savedLogo) {
+                document.getElementById('header-logo').src = savedLogo;
             }
         }
 
@@ -290,224 +210,72 @@
             tableBody.innerHTML = '';
             users.forEach(user => {
                 const row = tableBody.insertRow();
-                let roleOptions = Object.keys(allRoles).map(role => `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role}</option>`).join('');
+                const statusClass = user.disabled ? 'text-red-500' : 'text-green-500';
+                const statusText = user.disabled ? 'Deactivated' : 'Active';
                 
                 row.innerHTML = `
                     <td>${user.name}</td>
                     <td>${user.email}</td>
-                    <td>
-                        <select class="role-select border rounded p-1" data-uid="${user.uid}">
-                            ${roleOptions}
-                        </select>
-                    </td>
-                    <td>
-                        <select class="status-select border rounded p-1" data-uid="${user.uid}">
-                            <option value="active" ${!user.disabled ? 'selected' : ''}>Active</option>
-                            <option value="deactivated" ${user.disabled ? 'selected' : ''}>Deactivated</option>
-                        </select>
-                    </td>
-                    <td>
-                        <button class="bg-blue-500 text-white px-2 py-1 rounded text-sm edit-btn" data-uid="${user.uid}">Edit</button>
-                    </td>
+                    <td>${user.role}</td>
+                    <td><span class="font-semibold ${statusClass}">${statusText}</span></td>
                 `;
             });
-
-            document.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const user = users.find(u => u.uid === e.target.dataset.uid);
-                    openEditModal(user);
-                });
-            });
-            document.querySelectorAll('.role-select').forEach(select => {
-                select.addEventListener('change', (e) => {
-                    const uid = e.target.dataset.uid;
-                    const newRole = e.target.value;
-                    updateUserRole(uid, newRole);
-                });
-            });
-            document.querySelectorAll('.status-select').forEach(select => {
-                select.addEventListener('change', (e) => {
-                    const uid = e.target.dataset.uid;
-                    const isDisabled = e.target.value === 'deactivated';
-                    updateUserStatus(uid, isDisabled);
-                });
-            });
-        }
-        
-        function openEditModal(user) {
-            document.getElementById('edit-user-uid').value = user.uid;
-            document.getElementById('edit-user-name').value = user.name;
-            document.getElementById('edit-user-email').value = user.email;
-            document.getElementById('editUserModal').classList.remove('hidden');
-            document.getElementById('editUserModal').classList.add('flex');
         }
 
-        async function saveUserChanges() {
-            const uid = document.getElementById('edit-user-uid').value;
-            const name = document.getElementById('edit-user-name').value;
-            const email = document.getElementById('edit-user-email').value;
-            
-            const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
-            try {
-                await updateDoc(userDocRef, { name, email });
-                alert('User details updated in Firestore!');
-                document.getElementById('editUserModal').classList.add('hidden');
-            } catch (error) {
-                console.error("Error updating user:", error);
-                alert('Failed to update user details.');
+        function updateDashboard(users) {
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('totalAdmins').textContent = users.filter(u => u.role === 'Admin').length;
+            document.getElementById('totalAgents').textContent = users.filter(u => u.role === 'Agent').length;
+
+            const roleCounts = users.reduce((acc, user) => {
+                acc[user.role] = (acc[user.role] || 0) + 1;
+                return acc;
+            }, {});
+
+            renderRoleChart(Object.keys(roleCounts), Object.values(roleCounts));
+        }
+
+        function renderRoleChart(labels, data) {
+            const ctx = document.getElementById('userRoleChart').getContext('2d');
+            if (userRoleChart) {
+                userRoleChart.destroy();
             }
-        }
-
-        async function resetPassword() {
-            const email = document.getElementById('edit-user-email').value;
-            try {
-                await sendPasswordResetEmail(auth, email);
-                alert(`Password reset email sent to ${email}`);
-            } catch (error) {
-                console.error("Error sending password reset email:", error);
-                alert('Failed to send password reset email.');
-            }
-        }
-
-        async function updateUserStatus(uid, isDisabled) {
-            const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
-            try {
-                await updateDoc(userDocRef, { disabled: isDisabled });
-                alert(`User status updated to ${isDisabled ? 'Deactivated' : 'Active'}.`);
-            } catch (error) {
-                console.error("Error updating user status:", error);
-                alert('Failed to update user status.');
-            }
-        }
-
-        async function updateUserRole(uid, newRole) {
-            const userDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, uid);
-            try {
-                await updateDoc(userDocRef, { role: newRole });
-                alert('User role updated successfully!');
-            } catch (error) {
-                console.error("Error updating user role:", error);
-                alert('Failed to update user role.');
-            }
-        }
-
-        function renderProfilePermissions(roleName) {
-            const container = document.getElementById('permissionsGrid');
-            const profileNameSpan = document.getElementById('editingProfileName');
-            const permissionsContainer = document.getElementById('profilePermissionsContainer');
-            
-            if(!roleName) {
-                permissionsContainer.classList.add('hidden');
-                return;
-            }
-
-            profileNameSpan.textContent = roleName;
-            container.innerHTML = '';
-            const rolePermissions = allRoles[roleName]?.permissions || {};
-
-            TABS.forEach(tab => {
-                const currentPermission = rolePermissions[tab.id] || 'none';
-                container.innerHTML += `
-                    <div class="permission-item">
-                        <label for="${roleName}-${tab.id}-level" class="text-sm">${tab.label}</label>
-                        <select id="${roleName}-${tab.id}-level" class="text-xs p-1 border rounded">
-                            <option value="none" ${currentPermission === 'none' ? 'selected' : ''}>Not Visible</option>
-                            <option value="view" ${currentPermission === 'view' ? 'selected' : ''}>View</option>
-                            <option value="read-write" ${currentPermission === 'read-write' ? 'selected' : ''}>Read & Write</option>
-                        </select>
-                    </div>
-                `;
-            });
-            permissionsContainer.classList.remove('hidden');
-        }
-
-        async function saveProfilePermissions() {
-            const roleName = document.getElementById('profileRoleSelect').value;
-            if (!roleName) return;
-
-            const permissions = {};
-            TABS.forEach(tab => {
-                permissions[tab.id] = document.getElementById(`${roleName}-${tab.id}-level`).value;
-            });
-
-            try {
-                const roleDocRef = doc(db, ROLES_COLLECTION_PATH, roleName);
-                await setDoc(roleDocRef, { permissions }, { merge: true });
-                alert(`Permissions for '${roleName}' profile saved successfully!`);
-            } catch (error) {
-                console.error("Error saving profile permissions:", error);
-                alert('Failed to save permissions.');
-            }
-        }
-        
-        async function createNewProfile() {
-            const newProfileName = document.getElementById('newProfileName').value.trim();
-            if (!newProfileName) {
-                alert('Please enter a name for the new profile.');
-                return;
-            }
-            if (allRoles[newProfileName]) {
-                alert('A profile with this name already exists.');
-                return;
-            }
-            try {
-                const newProfileRef = doc(db, ROLES_COLLECTION_PATH, newProfileName);
-                await setDoc(newProfileRef, { permissions: {} }); // Create with empty permissions
-                document.getElementById('newProfileName').value = '';
-                alert(`Profile '${newProfileName}' created successfully.`);
-            } catch (error) {
-                console.error("Error creating new profile:", error);
-                alert('Failed to create profile.');
-            }
-        }
-
-        function showAdminContent() {
-            document.getElementById('loadingMessage').classList.add('hidden');
-            document.getElementById('adminContent').classList.remove('hidden');
-            
-            onSnapshot(collection(db, ROLES_COLLECTION_PATH), (snapshot) => {
-                allRoles = {};
-                const profileSelect = document.getElementById('profileRoleSelect');
-                profileSelect.innerHTML = '<option value="">Select a profile</option>';
-                snapshot.docs.forEach(doc => {
-                    allRoles[doc.id] = doc.data();
-                    profileSelect.innerHTML += `<option value="${doc.id}">${doc.id}</option>`;
-                });
-            });
-
-            onSnapshot(collection(db, USERS_PROFILE_COLLECTION_PATH), (snapshot) => {
-                const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-                renderUsersTable(users);
-            });
-        }
-
-        function showAccessDenied() {
-            document.getElementById('loadingMessage').classList.add('hidden');
-            document.getElementById('accessDeniedMessage').classList.remove('hidden');
-        }
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const isAdmin = await checkAdminRole(user);
-                if (isAdmin) {
-                    showAdminContent();
-                } else {
-                    showAccessDenied();
+            userRoleChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'],
+                        borderColor: 'white'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
                 }
+            });
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loadLogoFromLocalStorage();
+                onSnapshot(collection(db, USERS_PROFILE_COLLECTION_PATH), (snapshot) => {
+                    const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+                    renderUsersTable(users);
+                    updateDashboard(users);
+                    document.getElementById('loadingMessage').classList.add('hidden');
+                    document.getElementById('userContent').classList.remove('hidden');
+                });
             } else {
                 window.location.href = 'index.html';
             }
         });
 
-        document.getElementById('profileRoleSelect').addEventListener('change', (e) => renderProfilePermissions(e.target.value));
-        document.getElementById('saveProfilePermissionsBtn').addEventListener('click', saveProfilePermissions);
-        document.getElementById('createProfileBtn').addEventListener('click', createNewProfile);
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-        document.getElementById('saveUserChangesBtn').addEventListener('click', saveUserChanges);
-        document.getElementById('cancelEditBtn').addEventListener('click', () => {
-            document.getElementById('editUserModal').classList.add('hidden');
-        });
-        document.getElementById('resetPasswordBtn').addEventListener('click', resetPassword);
 
     </script>
 </body>
