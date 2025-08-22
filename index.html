@@ -129,6 +129,7 @@
             padding-right: 16px;
             padding-bottom: 16px;
             width: 100%;
+            font-size: 15px; /* Set base font size for the form area */
         }
         
         /* Original App Styles (adapted for new layout) */
@@ -544,7 +545,7 @@
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
             authDomain: "icea-lion-qa.firebaseapp.com",
             projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
+            storageBucket: "icea-lion-qa.appspot.com", // Corrected storage bucket
             messagingSenderId: "820082472004",
             appId: "1:820082472004:web:8caddf941e1b5b667faf811",
             measurementId: "G-1RJJTT3QET"
@@ -561,14 +562,8 @@
         const db = getFirestore(appInstance);
         const storage = getStorage(appInstance);
         
-        // --- Firebase Collection Paths ---
-        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
-        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
-        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
-        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
-        const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations');
-        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
+        // --- Local Storage Key for Logo ---
+        const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
 
         // --- DOM Elements ---
         const loginPage = document.getElementById('loginPage');
@@ -609,6 +604,26 @@
         let latestSavedRecordId = null;
         let sharedPdfData = { blob: null, filename: null };
 
+        // --- Logo Management ---
+        function setAppLogo(logoUrl) {
+            const logoElements = [
+                document.getElementById('login-logo'),
+                document.getElementById('header-logo'),
+                document.getElementById('audit-form-logo'),
+                document.getElementById('footer-logo')
+            ];
+            logoElements.forEach(el => {
+                if (el) el.src = logoUrl;
+            });
+        }
+
+        function loadLogoFromLocalStorage() {
+            const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
+            if (savedLogo) {
+                setAppLogo(savedLogo);
+            }
+        }
+
         // --- AUTHENTICATION & APP INITIALIZATION ---
 
         onAuthStateChanged(auth, async (user) => {
@@ -616,7 +631,7 @@
                 currentUserId = user.uid;
                 loggedInUserEmail = user.email || "anonymous";
                 
-                const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+                const userProfileDocRef = doc(db, `artifacts/${appId}/users`, user.uid);
                 try {
                     const userDocSnap = await getDoc(userProfileDocRef);
                     if (userDocSnap.exists()) {
@@ -646,7 +661,7 @@
         function showLoginPage() {
             loginPage.classList.remove('hidden');
             mainApp.classList.add('hidden');
-            fetchAndSetLogo(); // Fetch logo for login page
+            loadLogoFromLocalStorage();
         }
 
         function showMainApp() {
@@ -655,17 +670,22 @@
         }
 
         function initializeAppData() {
+            loadLogoFromLocalStorage();
             renderNavigationForRole(currentUserRole);
             fetchDropdownOptionsData();
             fetchQuestionsData();
             fetchCustomFieldsData();
             fetchRecordsAndWebhooks();
             fetchAgentUsersForDropdown();
-            fetchAndSetLogo();
             
             const reviewerNameInput = document.getElementById('reviewer-name');
             if (reviewerNameInput) {
                 reviewerNameInput.value = loggedInUserName;
+            }
+            // Set evaluation date to today
+            const reviewDateInput = document.getElementById('review-date');
+            if(reviewDateInput) {
+                reviewDateInput.value = new Date().toISOString().split('T')[0];
             }
         }
 
@@ -722,7 +742,7 @@
             }
         }
 
-        // --- ALL ORIGINAL APPLICATION FUNCTIONS (with modifications) ---
+        // --- PDF & SHARING FUNCTIONS ---
 
         window.autoExpandTextarea = function(element) {
             element.style.height = 'auto';
@@ -810,7 +830,8 @@
                 hideMessageBox();
                 return downloadURL;
             } catch (error) {
-                showMessageBox("Upload Failed", `Error: ${error.message}`, true);
+                console.error("PDF Upload Error:", error);
+                showMessageBox("Upload Failed", `Error: ${error.message}. Please check Firebase Storage rules.`, true);
                 return null;
             }
         }
@@ -898,9 +919,10 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             addDynamicEventListeners();
+            loadLogoFromLocalStorage();
         });
         
-        // --- PASTE ALL OTHER ORIGINAL JS FUNCTIONS HERE ---
+        // --- DATA CALCULATION & RENDERING ---
         
         function calculateScore() {
             const cerRoleSelect = document.getElementById('cer-role');
@@ -910,7 +932,7 @@
             const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
             const autofailTypeSelect = document.getElementById('autofail-type');
 
-            if (!cerRoleSelect || !overallScoreDisplay) return; // Guard against elements not existing
+            if (!cerRoleSelect || !overallScoreDisplay) return;
 
             let currentTotalPoints = 0;
             let currentMaxPossiblePoints = 0;
@@ -931,10 +953,8 @@
                 const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
                 const questionText = selectElement.name.replace(' (Rating)', '');
                 
-                if (!pointsElement || !weightageDisplay) {
-                    return;
-                }
-
+                if (!pointsElement || !weightageDisplay) return;
+                
                 const rating = selectElement.value;
                 const weightage = parseFloat(weightageDisplay.dataset.weightage);
                 let pointsForThisQuestion = 0;
@@ -1110,12 +1130,12 @@
             if (unsubscribeRecords) unsubscribeRecords();
             if (unsubscribeWebhooks) unsubscribeWebhooks();
             try {
-                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
+                const recordsColRef = collection(db, `artifacts/${appId}/public/data/evaluation_records`);
                 unsubscribeRecords = onSnapshot(recordsColRef, (snapshot) => {
                     allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderRecordsTable(allRecords);
                 });
-                const webhooksColRef = collection(db, WEBHOOKS_COLLECTION_PATH);
+                const webhooksColRef = collection(db, `artifacts/${appId}/public/data/webhooks`);
                 unsubscribeWebhooks = onSnapshot(webhooksColRef, (snapshot) => {
                     allWebhooks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     renderWebhookList(allWebhooks);
@@ -1188,7 +1208,7 @@
             }
             showMessageBox("Deleting", "Deleting records...", false, true, false);
             try {
-                const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(db, EVALUATION_RECORDS_COLLECTION_PATH, id)));
+                const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(db, `artifacts/${appId}/public/data/evaluation_records`, id)));
                 await Promise.all(deletePromises);
                 showMessageBox("Success", "Selected records deleted.");
             } catch (e) {
@@ -1212,7 +1232,7 @@
             document.querySelectorAll('.delete-webhook-btn').forEach(b => b.addEventListener('click', async e => {
                 const id = e.currentTarget.dataset.webhookId;
                 if(confirm('Delete this webhook?')) {
-                    await deleteDoc(doc(db, WEBHOOKS_COLLECTION_PATH, id));
+                    await deleteDoc(doc(db, `artifacts/${appId}/public/data/webhooks`, id));
                 }
             }));
         }
@@ -1221,7 +1241,7 @@
             const input = document.getElementById('newWebhookUrlInput');
             const url = input.value.trim();
             if (url && url.startsWith('https://')) {
-                await addDoc(collection(db, WEBHOOKS_COLLECTION_PATH), { url });
+                await addDoc(collection(db, `artifacts/${appId}/public/data/webhooks`), { url });
                 input.value = '';
             } else {
                 alert('Please enter a valid HTTPS URL.');
@@ -1272,8 +1292,9 @@
         
         async function fetchDropdownOptionsData() {
             if (!db) return;
+            const docRef = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
             if (unsubscribeDropdowns) unsubscribeDropdowns();
-            unsubscribeDropdowns = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
+            unsubscribeDropdowns = onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
                     dropdownOptions = docSnap.data();
                 }
@@ -1282,9 +1303,10 @@
         }
         
         async function fetchQuestionsData() {
-             if (!db) return;
+            if (!db) return;
+            const docRef = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
             if (unsubscribeQuestions) unsubscribeQuestions();
-            unsubscribeQuestions = onSnapshot(QUESTIONS_CONFIG_DOC_REF, (docSnap) => {
+            unsubscribeQuestions = onSnapshot(docRef, (docSnap) => {
                 allRolesQuestions = docSnap.exists() ? docSnap.data() : {};
                 const cerRoleSelect = document.getElementById('cer-role');
                 if (cerRoleSelect && cerRoleSelect.value) {
@@ -1295,8 +1317,9 @@
 
         async function fetchCustomFieldsData() {
             if (!db) return;
+            const docRef = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations');
             if (unsubscribeCustomFields) unsubscribeCustomFields();
-            unsubscribeCustomFields = onSnapshot(CUSTOM_FIELDS_CONFIG_DOC_REF, (docSnap) => {
+            unsubscribeCustomFields = onSnapshot(docRef, (docSnap) => {
                 customFormFields = (docSnap.exists() && docSnap.data().fields) ? docSnap.data().fields.sort((a,b) => a.order - b.order) : [];
                 renderCustomFormFields();
             });
@@ -1344,7 +1367,7 @@
             const tableBody = document.getElementById('lastEvaluationsTableBody');
             if(!tableBody) return;
             tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Loading...</td></tr>';
-            const q = query(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), where('CER Name', '==', cerName), orderBy('submittedAt', 'desc'), limit(3));
+            const q = query(collection(db, `artifacts/${appId}/public/data/evaluation_records`), where('CER Name', '==', cerName), orderBy('submittedAt', 'desc'), limit(3));
             onSnapshot(q, (snapshot) => {
                 tableBody.innerHTML = '';
                 if(snapshot.empty) {
@@ -1366,7 +1389,7 @@
         }
         
         async function fetchAgentUsersForDropdown() {
-            const q = query(collection(db, USERS_PROFILE_COLLECTION_PATH), where("role", "==", "Agent"));
+            const q = query(collection(db, `artifacts/${appId}/users`), where("role", "==", "Agent"));
             const querySnapshot = await getDocs(q);
             const agentUsers = [];
             querySnapshot.forEach((doc) => {
@@ -1387,7 +1410,7 @@
             if (formData) {
                 showMessageBox("Saving...", "Saving your evaluation data.", false, true, false);
                 try {
-                    await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
+                    await addDoc(collection(db, `artifacts/${appId}/public/data/evaluation_records`), {
                         ...formData,
                         submittedAt: new Date()
                     });
@@ -1435,28 +1458,10 @@
             document.getElementById('autofail-description').value = '';
             document.getElementById('duration').value = '';
             
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('review-date').value = today;
+            document.getElementById('review-date').value = new Date().toISOString().split('T')[0];
 
             document.querySelectorAll('#assessment-form textarea').forEach(el => el.value = '');
             renderQuestionsForRole(document.getElementById('cer-role').value);
-        }
-        
-        async function fetchAndSetLogo() {
-            try {
-                const docSnap = await getDoc(LOGO_DOC_REF);
-                if (docSnap.exists() && docSnap.data().url) {
-                    const logoUrl = docSnap.data().url;
-                    document.getElementById('login-logo').src = logoUrl;
-                    document.getElementById('header-logo').src = logoUrl;
-                    document.getElementById('audit-form-logo').src = logoUrl;
-                    document.getElementById('footer-logo').src = logoUrl;
-                } else {
-                    console.log("No logo URL found in Firestore, using placeholders.");
-                }
-            } catch (error) {
-                console.error("Error fetching logo:", error);
-            }
         }
 
     </script>
