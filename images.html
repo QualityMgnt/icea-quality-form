@@ -93,52 +93,33 @@
         </div>
     </main>
 
-    <script type="module">
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
-            authDomain: "icea-lion-qa.firebaseapp.com",
-            projectId: "icea-lion-qa",
-            storageBucket: "icea-lion-qa.firebasestorage.app",
-            messagingSenderId: "820082472004",
-            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
-        };
-        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
-        
-        let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
-            appInstance = getApp();
-        }
-        const db = getFirestore(appInstance);
-        const storage = getStorage(appInstance);
-
-        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
-
+    <script>
+        // --- DOM Elements ---
         const currentLogoPreview = document.getElementById('current-logo-preview');
         const headerLogo = document.getElementById('header-logo');
         const logoUploadInput = document.getElementById('logo-upload-input');
         const saveLogoBtn = document.getElementById('save-logo-btn');
         const uploadStatus = document.getElementById('upload-status');
+        
+        // --- Local Storage Key ---
+        const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
 
-        async function loadCurrentLogo() {
-            try {
-                const docSnap = await getDoc(LOGO_DOC_REF);
-                if (docSnap.exists() && docSnap.data().url) {
-                    const logoUrl = docSnap.data().url;
-                    currentLogoPreview.src = logoUrl;
-                    headerLogo.src = logoUrl;
-                }
-            } catch (error) {
-                console.error("Error loading current logo:", error);
+        /**
+         * Loads the logo from local storage and applies it to the image elements.
+         */
+        function loadCurrentLogo() {
+            const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
+            if (savedLogo) {
+                currentLogoPreview.src = savedLogo;
+                headerLogo.src = savedLogo;
             }
         }
 
-        saveLogoBtn.addEventListener('click', async () => {
+        /**
+         * Handles the save button click event. Reads the selected file,
+         * converts it to a Base64 Data URL, and saves it to local storage.
+         */
+        saveLogoBtn.addEventListener('click', () => {
             const file = logoUploadInput.files[0];
             if (!file) {
                 uploadStatus.textContent = "Please select a file first.";
@@ -146,27 +127,43 @@
                 return;
             }
 
-            uploadStatus.textContent = "Uploading...";
-            uploadStatus.className = "text-blue-600";
+            // Use FileReader to read the file as a Data URL (Base64)
+            const reader = new FileReader();
+            
+            reader.onloadstart = () => {
+                uploadStatus.textContent = "Processing image...";
+                uploadStatus.className = "text-blue-600";
+            };
 
-            try {
-                const storageRef = ref(storage, `logos/${appId}/company_logo`);
-                await uploadBytes(storageRef, file);
-                const downloadURL = await getDownloadURL(storageRef);
+            reader.onload = (event) => {
+                const dataUrl = event.target.result;
+                try {
+                    // Save the Base64 string to local storage
+                    localStorage.setItem(LOGO_STORAGE_KEY, dataUrl);
+                    
+                    uploadStatus.textContent = "Logo updated successfully!";
+                    uploadStatus.className = "text-green-600";
 
-                await setDoc(LOGO_DOC_REF, { url: downloadURL });
-                
-                uploadStatus.textContent = "Logo updated successfully!";
-                uploadStatus.className = "text-green-600";
-                loadCurrentLogo();
+                    // Reload the logo on the page immediately
+                    loadCurrentLogo();
+                } catch (error) {
+                    console.error("Error saving to local storage:", error);
+                    uploadStatus.textContent = `Error: Could not save image. Storage might be full.`;
+                    uploadStatus.className = "text-red-600";
+                }
+            };
 
-            } catch (error) {
-                console.error("Error uploading logo:", error);
-                uploadStatus.textContent = `Error: ${error.message}`;
+            reader.onerror = () => {
+                console.error("Error reading file.");
+                uploadStatus.textContent = `Error: Could not read the selected file.`;
                 uploadStatus.className = "text-red-600";
-            }
+            };
+
+            reader.readAsDataURL(file);
         });
 
+        // --- Initial Load ---
+        // Load the logo as soon as the page content is ready.
         document.addEventListener('DOMContentLoaded', loadCurrentLogo);
     </script>
 </body>
