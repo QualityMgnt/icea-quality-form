@@ -185,15 +185,15 @@
                 </div>
             </div>
             
-            <!-- Monthly Average Scores Table -->
+            <!-- Monthly Average Scores by CER Role Table -->
             <div class="dashboard-card mt-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold">Monthly Average Scores by CER Role</h2>
                     <div class="flex gap-2">
-                        <button id="downloadTableExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
+                        <button id="downloadRoleTableExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
                             <i class="fas fa-file-excel mr-2"></i>Download Excel
                         </button>
-                        <button id="generateTablePptBtn" class="bg-orange-500 text-white px-4 py-2 rounded-md shadow-sm hover:bg-orange-600">
+                        <button id="generateRoleTablePptBtn" class="bg-orange-500 text-white px-4 py-2 rounded-md shadow-sm hover:bg-orange-600">
                             <i class="fas fa-file-powerpoint mr-2"></i>Generate PPT
                         </button>
                     </div>
@@ -203,6 +203,32 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="p-4 text-sm font-semibold text-gray-600">CER Role</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Monthly Average Scores by CER Name Table -->
+            <div class="dashboard-card mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Monthly Average Scores by CER Name</h2>
+                    <div class="flex gap-2">
+                        <button id="downloadNameTableExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
+                            <i class="fas fa-file-excel mr-2"></i>Download Excel
+                        </button>
+                        <button id="generateNameTablePptBtn" class="bg-orange-500 text-white px-4 py-2 rounded-md shadow-sm hover:bg-orange-600">
+                            <i class="fas fa-file-powerpoint mr-2"></i>Generate PPT
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left" id="monthlyScoresByNameTable">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="p-4 text-sm font-semibold text-gray-600">CER Name</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -300,7 +326,8 @@
             document.getElementById('topAgent').textContent = agentAverages.length > 0 ? agentAverages[0].name : '-';
             
             updateCharts(data, agentAverages, averageScore, autofails);
-            renderMonthlyScoresTable(data);
+            renderMonthlyScoresByRoleTable(data);
+            renderMonthlyScoresByNameTable(data);
         }
         
         function updateCharts(data, agentAverages, averageScore, autofails) {
@@ -411,31 +438,39 @@
             gaugeContainer.appendChild(centerText);
         }
         
-        function renderMonthlyScoresTable(data) {
-            const table = document.getElementById('monthlyScoresByRoleTable');
+        function renderMonthlyScoresByRoleTable(data) {
+            renderMonthlyTable(data, 'monthlyScoresByRoleTable', 'CER Role');
+        }
+
+        function renderMonthlyScoresByNameTable(data) {
+            renderMonthlyTable(data, 'monthlyScoresByNameTable', 'CER Name');
+        }
+
+        function renderMonthlyTable(data, tableId, groupBy) {
+            const table = document.getElementById(tableId);
             const thead = table.querySelector('thead tr');
             const tbody = table.querySelector('tbody');
-            thead.innerHTML = '<th class="p-4 text-sm font-semibold text-gray-600">CER Role</th>';
+            thead.innerHTML = `<th class="p-4 text-sm font-semibold text-gray-600">${groupBy}</th>`;
             tbody.innerHTML = '';
 
             if (data.length === 0) return;
 
-            const scoresByRoleMonth = {};
+            const scoresByGroupMonth = {};
             const months = new Set();
-            const roles = new Set();
+            const groups = new Set();
 
             data.forEach(rec => {
-                if (rec.submittedAt?.toDate && rec['CER Role']) {
+                if (rec.submittedAt?.toDate && rec[groupBy]) {
                     const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
-                    const role = rec['CER Role'];
+                    const group = rec[groupBy];
                     months.add(month);
-                    roles.add(role);
+                    groups.add(group);
 
-                    if (!scoresByRoleMonth[role]) scoresByRoleMonth[role] = {};
-                    if (!scoresByRoleMonth[role][month]) scoresByRoleMonth[role][month] = { total: 0, count: 0 };
+                    if (!scoresByGroupMonth[group]) scoresByGroupMonth[group] = {};
+                    if (!scoresByGroupMonth[group][month]) scoresByGroupMonth[group][month] = { total: 0, count: 0 };
                     
-                    scoresByRoleMonth[role][month].total += parseFloat(rec['Overall Score']) || 0;
-                    scoresByRoleMonth[role][month].count++;
+                    scoresByGroupMonth[group][month].total += parseFloat(rec['Overall Score']) || 0;
+                    scoresByGroupMonth[group][month].count++;
                 }
             });
 
@@ -448,12 +483,12 @@
                 thead.appendChild(th);
             });
 
-            Array.from(roles).sort().forEach((role, index) => {
+            Array.from(groups).sort().forEach((group, index) => {
                 const tr = document.createElement('tr');
                 tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-                let rowHtml = `<td class="p-4 font-medium text-gray-800">${role}</td>`;
+                let rowHtml = `<td class="p-4 font-medium text-gray-800">${group}</td>`;
                 sortedMonths.forEach(month => {
-                    const data = scoresByRoleMonth[role]?.[month];
+                    const data = scoresByGroupMonth[group]?.[month];
                     const avg = data ? (data.total / data.count) : null;
                     let colorClass = 'text-gray-700';
                     if (avg !== null) {
@@ -572,8 +607,10 @@
             applyFilters();
         });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-        document.getElementById('downloadTableExcelBtn').addEventListener('click', () => downloadTableAsExcel('monthlyScoresByRoleTable', 'monthly_scores_by_role.csv'));
-        document.getElementById('generateTablePptBtn').addEventListener('click', () => generatePptFromTable('monthlyScoresByRoleTable', 'Monthly Average Scores by CER Role'));
+        document.getElementById('downloadRoleTableExcelBtn').addEventListener('click', () => downloadTableAsExcel('monthlyScoresByRoleTable', 'monthly_scores_by_role.csv'));
+        document.getElementById('generateRoleTablePptBtn').addEventListener('click', () => generatePptFromTable('monthlyScoresByRoleTable', 'Monthly Average Scores by CER Role'));
+        document.getElementById('downloadNameTableExcelBtn').addEventListener('click', () => downloadTableAsExcel('monthlyScoresByNameTable', 'monthly_scores_by_name.csv'));
+        document.getElementById('generateNameTablePptBtn').addEventListener('click', () => generatePptFromTable('monthlyScoresByNameTable', 'Monthly Average Scores by CER Name'));
         document.getElementById('generateFullPagePptBtn').addEventListener('click', generateFullPagePpt);
 
     </script>
