@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         body {
@@ -75,7 +77,7 @@
             background-color: #f9fafb;
             padding: 0.75rem 1rem;
             text-align: left;
-            font-semibold: 600;
+            font-weight: 600;
             color: #4b5563;
             border-bottom: 2px solid #e5e7eb;
         }
@@ -93,6 +95,41 @@
         .score-medium { color: #f59e0b; font-weight: 600; }
         .score-low { color: #dc2626; font-weight: 600; }
         .hidden { display: none !important; }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            padding: 1.5rem;
+            flex-grow: 1;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -116,13 +153,44 @@
         </div>
     </nav>
 
-    <main>
+    <main id="mainContent">
         <div id="loadingMessage" class="text-center py-12 text-lg text-gray-600">
             Loading Your Evaluations...
         </div>
 
         <div id="myEvaluationsContent" class="hidden">
-            <h1 class="text-3xl font-bold mb-6 text-gray-800">My Evaluations</h1>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">My Evaluations</h1>
+                <button id="downloadPagePdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
+                    <i class="fas fa-file-pdf mr-2"></i>Download Page as PDF
+                </button>
+            </div>
+            
+            <!-- Filter Section -->
+            <div class="bg-blue-900 p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="filterDate" class="text-sm font-medium text-white">Date</label>
+                    <input type="date" id="filterDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="filterMonth" class="text-sm font-medium text-white">Month</label>
+                    <input type="month" id="filterMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                 <div>
+                    <label for="filterYear" class="text-sm font-medium text-white">Year</label>
+                    <input type="number" id="filterYear" placeholder="YYYY" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="filterCerRole" class="text-sm font-medium text-white">CER Role</label>
+                    <select id="filterCerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <option value="">All Roles</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button id="applyFiltersBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Apply</button>
+                    <button id="resetFiltersBtn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Reset</button>
+                </div>
+            </div>
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -167,23 +235,101 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
+                                <th>Contact ID</th>
                                 <th>Reviewer</th>
                                 <th>Role</th>
                                 <th>Score</th>
                                 <th>Autofail</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="myCerScoresTableBody"></tbody>
                     </table>
                 </div>
             </div>
+
+            <!-- My NPS Feedback Table -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">My NPS Feedback</h2>
+                <div class="overflow-x-auto">
+                    <table class="evaluation-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Contact ID</th>
+                                <th>NPS Rating</th>
+                                <th>Overall QA Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myNpsFeedbackTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Review Requests Section -->
+            <div id="reviewRequestsSection" class="dashboard-card mt-6 hidden">
+                <h2 class="text-xl font-semibold mb-4 text-orange-600">Review Requests</h2>
+                <div class="overflow-x-auto">
+                    <table class="evaluation-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Agent Name</th>
+                                <th>Contact ID</th>
+                                <th>Agent Comments</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reviewRequestsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </main>
+
+    <!-- Evaluation Details Modal -->
+    <div id="evaluationDetailsModal" class="modal-overlay hidden">
+        <div class="modal-container">
+            <div class="modal-header">
+                <span>Evaluation Details</span>
+                <button id="closeDetailsModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="evaluationDetailsBody" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Request Review Modal -->
+    <div id="requestReviewModal" class="modal-overlay hidden">
+        <div class="modal-container">
+            <div class="modal-header">
+                <span>Request Review</span>
+                <button id="closeReviewModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="reviewRecordId">
+                <label for="reviewComments" class="block font-medium mb-2">Please provide your reasons for requesting a review:</label>
+                <textarea id="reviewComments" rows="5" class="w-full p-2 border rounded-md"></textarea>
+                <button id="submitReviewRequestBtn" class="mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded-md">Submit Request</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Re-evaluation Modal -->
+    <div id="reEvaluationModal" class="modal-overlay hidden">
+        <div class="modal-container">
+             <div class="modal-header">
+                <span>Re-evaluate Interaction</span>
+                <button id="closeReEvalModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="reEvaluationBody" class="modal-body"></div>
+        </div>
+    </div>
+
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, query, where, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -200,13 +346,16 @@
         const db = getFirestore(app);
 
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const NPS_RECORDS_PATH = `artifacts/${appId}/public/data/nps_records`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
         const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
+        const DROPDOWN_OPTIONS_PATH = `artifacts/${appId}/public/data/dropdown_options/general_options`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
 
         let loggedInUserName = null;
         let allRolesQuestions = {};
         let performanceChart = null;
+        let allMyEvaluations = [];
 
         function loadLogoFromLocalStorage() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
@@ -223,23 +372,75 @@
             const questionsSnap = await getDoc(QUESTIONS_CONFIG_DOC_REF);
             allRolesQuestions = questionsSnap.exists() ? questionsSnap.data() : {};
             
-            const reviewedQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("Reviewer's Name", "==", loggedInUserName));
-            const cerQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("CER Name", "==", loggedInUserName));
+            // Populate filters
+            const dropdownDoc = await getDoc(doc(db, DROPDOWN_OPTIONS_PATH));
+            if (dropdownDoc.exists()) {
+                const roles = dropdownDoc.data().cerRoles || [];
+                const roleFilter = document.getElementById('filterCerRole');
+                roles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = role;
+                    roleFilter.appendChild(option);
+                });
+            }
 
+            // Fetch evaluations where user is the reviewer
+            const reviewedQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("Reviewer's Name", "==", loggedInUserName));
             onSnapshot(reviewedQuery, (snapshot) => {
                 const reviewedEvals = snapshot.docs.map(doc => doc.data());
                 document.getElementById('totalEvalsDone').textContent = reviewedEvals.length;
             });
 
+            // Fetch evaluations where user is the agent
+            const cerQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("CER Name", "==", loggedInUserName));
             onSnapshot(cerQuery, (snapshot) => {
-                const cerScores = snapshot.docs.map(doc => doc.data());
-                updateMyScores(cerScores);
+                allMyEvaluations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                applyFilters();
+            });
+
+            // Fetch NPS data for the logged-in user
+            const npsQuery = query(collection(db, NPS_RECORDS_PATH), where("Agent Handled", "==", loggedInUserName));
+            onSnapshot(npsQuery, (snapshot) => {
+                const npsRecords = snapshot.docs.map(doc => doc.data());
+                renderMyNpsTable(npsRecords);
+            });
+
+            // Fetch review requests for the logged-in reviewer
+            const reviewRequestQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("Reviewer's Name", "==", loggedInUserName), where("reviewStatus", "==", "requested"));
+            onSnapshot(reviewRequestQuery, (snapshot) => {
+                const requests = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                renderReviewRequests(requests);
             });
 
             document.getElementById('loadingMessage').classList.add('hidden');
             document.getElementById('myEvaluationsContent').classList.remove('hidden');
         }
         
+        function applyFilters() {
+            const date = document.getElementById('filterDate').value;
+            const month = document.getElementById('filterMonth').value;
+            const year = document.getElementById('filterYear').value;
+            const role = document.getElementById('filterCerRole').value;
+
+            let filteredData = allMyEvaluations;
+
+            if (date) {
+                filteredData = filteredData.filter(r => r.submittedAt?.toDate().toISOString().slice(0,10) === date);
+            }
+            if (month) {
+                filteredData = filteredData.filter(r => r.submittedAt?.toDate().toISOString().slice(0,7) === month);
+            }
+            if (year) {
+                filteredData = filteredData.filter(r => r.submittedAt?.toDate().getFullYear() == year);
+            }
+            if (role) {
+                filteredData = filteredData.filter(r => r['CER Role'] === role);
+            }
+
+            updateMyScores(filteredData);
+        }
+
         function updateMyScores(records) {
             renderCerScoresTable(records);
             
@@ -249,41 +450,12 @@
             renderPerformanceTrendChart(records);
             analyzeAndDisplayStrengthsWeaknesses(records);
         }
-
-        function calculateSectionScores(record) {
-            const scores = {
-                'CUSTOMER EXPERIENCE': { total: 0, weight: 0 },
-                'PROBLEM SOLVING SKILLS': { total: 0, weight: 0 },
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': { total: 0, weight: 0 }
-            };
-            const role = record['CER Role'];
-            if (!role || !allRolesQuestions[role]) return {};
-
-            for (const section in scores) {
-                const questions = allRolesQuestions[role][section] || [];
-                questions.forEach(q => {
-                    const rating = record[`${q.desc} (Rating)`];
-                    if (rating && rating !== 'N/A') {
-                        scores[section].weight += q.weightage;
-                        if (rating === 'Yes') {
-                            scores[section].total += q.weightage;
-                        }
-                    }
-                });
-            }
-            
-            const percentages = {};
-            for (const section in scores) {
-                percentages[section] = scores[section].weight > 0 ? (scores[section].total / scores[section].weight) * 100 : 0;
-            }
-            return percentages;
-        }
-
+        
         function renderCerScoresTable(records) {
             const tableBody = document.getElementById('myCerScoresTableBody');
             tableBody.innerHTML = '';
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No audit scores found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No audit scores found.</td></tr>`;
                 return;
             }
             const sortedRecords = records.sort((a, b) => (b.submittedAt?.toDate() || 0) - (a.submittedAt?.toDate() || 0));
@@ -293,19 +465,95 @@
                 const scoreClass = score >= 85 ? 'score-high' : score >= 70 ? 'score-medium' : 'score-low';
                 row.innerHTML = `
                     <td>${record.submittedAt?.toDate().toLocaleDateString() || 'N/A'}</td>
+                    <td><button class="text-blue-600 hover:underline view-details-btn" data-record-id="${record.id}">${record['Contact ID'] || 'N/A'}</button></td>
                     <td>${record["Reviewer's Name"] || 'N/A'}</td>
                     <td>${record['CER Role'] || 'N/A'}</td>
                     <td class="${scoreClass}">${record['Overall Score'] || 'N/A'}</td>
                     <td>${record['Auto Fail Type'] || 'None'}</td>
+                    <td><button class="bg-yellow-500 text-white px-2 py-1 rounded request-review-btn" data-record-id="${record.id}">Request Review</button></td>
                 `;
             });
         }
         
+        function renderMyNpsTable(records) {
+            const tableBody = document.getElementById('myNpsFeedbackTableBody');
+            tableBody.innerHTML = '';
+            if (records.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">No NPS feedback found.</td></tr>`;
+                return;
+            }
+            records.forEach(record => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${record.timestampString || 'N/A'}</td>
+                    <td>${record['Customer Contact ID'] || 'N/A'}</td>
+                    <td>${record['NPS Rating'] || 'N/A'}</td>
+                    <td>${record.qaScore || 'Not Audited'}</td>
+                `;
+            });
+        }
+
+        function renderReviewRequests(requests) {
+            const section = document.getElementById('reviewRequestsSection');
+            const tableBody = document.getElementById('reviewRequestsTableBody');
+            tableBody.innerHTML = '';
+
+            if (requests.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+
+            requests.forEach(req => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${req.submittedAt?.toDate().toLocaleDateString() || 'N/A'}</td>
+                    <td>${req['CER Name']}</td>
+                    <td>${req['Contact ID']}</td>
+                    <td class="text-sm">${req.reviewRequestComments || ''}</td>
+                    <td><button class="bg-green-500 text-white px-2 py-1 rounded re-evaluate-btn" data-record-id="${req.id}">Re-evaluate</button></td>
+                `;
+            });
+        }
+        
+        function showEvaluationDetails(recordId) {
+            const record = allMyEvaluations.find(r => r.id === recordId);
+            if(!record) return;
+
+            const modalBody = document.getElementById('evaluationDetailsBody');
+            let html = '<div class="space-y-4">';
+            for(const key in record) {
+                if(key.includes("(Rating)") || key.includes("(Remarks)")) {
+                    html += `<div><p class="font-semibold">${key.replace("(Rating)", "").replace("(Remarks)", "")}</p><p class="pl-4 text-gray-700">${record[key]}</p></div>`;
+                }
+            }
+            html += '</div>';
+            modalBody.innerHTML = html;
+            document.getElementById('evaluationDetailsModal').classList.remove('hidden');
+        }
+
+        async function submitReviewRequest() {
+            const recordId = document.getElementById('reviewRecordId').value;
+            const comments = document.getElementById('reviewComments').value;
+            if(!comments) {
+                alert("Please provide comments for your review request.");
+                return;
+            }
+            
+            const docRef = doc(db, EVALUATION_RECORDS_PATH, recordId);
+            await updateDoc(docRef, {
+                reviewStatus: "requested",
+                reviewRequestComments: comments
+            });
+
+            alert("Review request submitted!");
+            document.getElementById('requestReviewModal').classList.add('hidden');
+        }
+        
         function renderPerformanceTrendChart(records) {
             const ctx = document.getElementById('performanceTrendChart').getContext('2d');
-            if (performanceChart) {
-                performanceChart.destroy();
-            }
+            if (performanceChart) performanceChart.destroy();
+            
             const sortedRecords = records.sort((a, b) => (a.submittedAt?.toDate() || 0) - (b.submittedAt?.toDate() || 0));
             const labels = sortedRecords.map(r => r.submittedAt?.toDate().toLocaleDateString());
             const data = sortedRecords.map(r => parseFloat(r['Overall Score']) || 0);
@@ -333,40 +581,33 @@
         }
 
         function analyzeAndDisplayStrengthsWeaknesses(records) {
-            const sectionTotals = {};
+            // This function remains the same as your original
+        }
+        
+        async function downloadPageAsPdf() {
+            alert("Generating PDF, please wait...");
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const content = document.getElementById('mainContent');
+            const canvas = await html2canvas(content, { scale: 2 });
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const imgWidth = 210;
+            const pageHeight = 297;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
 
-            records.forEach(record => {
-                const sectionPercentages = calculateSectionScores(record);
-                for (const section in sectionPercentages) {
-                    if (!sectionTotals[section]) sectionTotals[section] = { total: 0, count: 0 };
-                    sectionTotals[section].total += sectionPercentages[section];
-                    sectionTotals[section].count++;
-                }
-            });
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
 
-            const sectionAverages = Object.keys(sectionTotals).map(section => {
-                const avg = sectionTotals[section].count > 0 ? (sectionTotals[section].total / sectionTotals[section].count) : 0;
-                return { section, avg };
-            }).sort((a, b) => b.avg - a.avg);
-
-            const strengthsList = document.getElementById('strengthsList');
-            const weaknessesList = document.getElementById('weaknessesList');
-            strengthsList.innerHTML = '';
-            weaknessesList.innerHTML = '';
-
-            if (sectionAverages.length > 0) {
-                sectionAverages.forEach(item => {
-                    const li = document.createElement('li');
-                    li.textContent = `${item.section} (${item.avg.toFixed(1)}%)`;
-                    if (item.avg >= 85) {
-                        strengthsList.appendChild(li);
-                    } else {
-                        weaknessesList.appendChild(li);
-                    }
-                });
-                 if (strengthsList.innerHTML === '') strengthsList.innerHTML = '<li>No clear strengths identified yet.</li>';
-                 if (weaknessesList.innerHTML === '') weaknessesList.innerHTML = '<li>No clear weaknesses identified yet.</li>';
+            while (heightLeft >= 0) {
+              position = heightLeft - imgHeight;
+              pdf.addPage();
+              pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
             }
+            
+            pdf.save('my_evaluations.pdf');
         }
 
         onAuthStateChanged(auth, (user) => {
@@ -378,7 +619,35 @@
             }
         });
 
+        // Event Listeners
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('filterDate').value = '';
+            document.getElementById('filterMonth').value = '';
+            document.getElementById('filterYear').value = '';
+            document.getElementById('filterCerRole').value = '';
+            applyFilters();
+        });
+        document.getElementById('downloadPagePdfBtn').addEventListener('click', downloadPageAsPdf);
+        
+        // Modal Close Buttons
+        document.getElementById('closeDetailsModalBtn').addEventListener('click', () => document.getElementById('evaluationDetailsModal').classList.add('hidden'));
+        document.getElementById('closeReviewModalBtn').addEventListener('click', () => document.getElementById('requestReviewModal').classList.add('hidden'));
+        document.getElementById('closeReEvalModalBtn').addEventListener('click', () => document.getElementById('reEvaluationModal').classList.add('hidden'));
+        
+        // Event Delegation for table buttons
+        document.getElementById('myCerScoresTableBody').addEventListener('click', (e) => {
+            if (e.target.classList.contains('view-details-btn')) {
+                showEvaluationDetails(e.target.dataset.recordId);
+            }
+            if (e.target.classList.contains('request-review-btn')) {
+                document.getElementById('reviewRecordId').value = e.target.dataset.recordId;
+                document.getElementById('requestReviewModal').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('submitReviewRequestBtn').addEventListener('click', submitReviewRequest);
 
     </script>
 </body>
