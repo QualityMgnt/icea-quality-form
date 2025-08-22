@@ -135,33 +135,40 @@
         <div id="databaseContent" class="hidden">
             <h1 class="text-3xl font-bold mb-6 text-gray-800">Database Records</h1>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="dashboard-card text-center">
-                    <h2 class="text-lg font-semibold text-gray-500">Total Records</h2>
-                    <p id="totalRecords" class="text-4xl font-bold mt-2">0</p>
+            <!-- Filter Section -->
+            <div class="bg-blue-900 p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="filterDate" class="text-sm font-medium text-white">Date</label>
+                    <input type="date" id="filterDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                 </div>
-                <div class="dashboard-card text-center">
-                    <h2 class="text-lg font-semibold text-gray-500">Average Score</h2>
-                    <p id="averageScore" class="text-4xl font-bold mt-2">0%</p>
+                <div>
+                    <label for="filterMonth" class="text-sm font-medium text-white">Month</label>
+                    <input type="month" id="filterMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                 </div>
-                <div class="dashboard-card text-center">
-                    <h2 class="text-lg font-semibold text-gray-500">Total Autofails</h2>
-                    <p id="totalAutofails" class="text-4xl font-bold mt-2">0</p>
+                <div class="flex gap-2">
+                    <button id="applyFiltersBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Apply</button>
+                    <button id="resetFiltersBtn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Reset</button>
                 </div>
             </div>
 
             <div class="dashboard-card bg-white">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-gray-800">All Records</h2>
-                    <div class="relative">
-                        <input type="text" id="recordSearchInput" placeholder="Search records..." class="w-full max-w-xs p-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <div class="flex items-center gap-4">
+                        <div class="relative">
+                            <input type="text" id="recordSearchInput" placeholder="Search records..." class="w-full max-w-xs p-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <button id="downloadExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
+                            <i class="fas fa-file-excel mr-2"></i>Download Selected as Excel
+                        </button>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="database-table">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAllCheckbox"></th>
                                 <th>Date</th>
                                 <th>Contact ID</th>
                                 <th>Client Name</th>
@@ -180,7 +187,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -199,6 +206,7 @@
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
         let allRecords = [];
+        let currentFilteredData = [];
 
         function loadLogoFromLocalStorage() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
@@ -211,41 +219,111 @@
             const tableBody = document.getElementById('recordsTableBody');
             tableBody.innerHTML = '';
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">No records found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No records found.</td></tr>`;
                 return;
             }
             records.forEach(record => {
                 const row = tableBody.insertRow();
                 const submittedDate = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleDateString() : 'N/A';
                 const score = parseFloat(record['Overall Score']) || 0;
-                const scoreClass = score >= 85 ? 'score-high' : score >= 70 ? 'score-medium' : 'score-low';
+                const scoreClass = score >= 85 ? 'text-green-600' : score >= 70 ? 'text-yellow-600' : 'text-red-600';
 
                 row.innerHTML = `
+                    <td><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>
                     <td>${submittedDate}</td>
                     <td>${record['Contact ID'] || ''}</td>
                     <td>${record['Client Name'] || ''}</td>
                     <td>${record['CER Name'] || ''}</td>
-                    <td class="${scoreClass}">${record['Overall Score'] || ''}</td>
+                    <td class="font-bold ${scoreClass}">${record['Overall Score'] || ''}</td>
                     <td>
                         <button class="text-red-500 hover:text-red-700 delete-record-btn" data-record-id="${record.id}" title="Delete"><i class="fas fa-trash-alt"></i></button>
                     </td>
                 `;
             });
-
-            document.querySelectorAll('.delete-record-btn').forEach(b => b.addEventListener('click', e => {
-                if(confirm('Are you sure you want to delete this record?')) {
-                    deleteDoc(doc(db, EVALUATION_RECORDS_PATH, e.currentTarget.dataset.recordId));
-                }
-            }));
         }
         
-        function updateDashboard(records) {
-            document.getElementById('totalRecords').textContent = records.length;
-            const totalScore = records.reduce((sum, record) => sum + (parseFloat(record['Overall Score']) || 0), 0);
-            const avgScore = records.length > 0 ? (totalScore / records.length).toFixed(1) : 0;
-            document.getElementById('averageScore').textContent = `${avgScore}%`;
-            const totalAutofails = records.filter(r => r['Auto Fail Type'] && r['Auto Fail Type'] !== '').length;
-            document.getElementById('totalAutofails').textContent = totalAutofails;
+        function applyFilters() {
+            const date = document.getElementById('filterDate').value;
+            const month = document.getElementById('filterMonth').value;
+            const searchTerm = document.getElementById('recordSearchInput').value.toLowerCase();
+
+            let filtered = allRecords;
+
+            if (date) {
+                filtered = filtered.filter(r => r.submittedAt?.toDate().toISOString().slice(0,10) === date);
+            }
+            if (month) {
+                filtered = filtered.filter(r => r.submittedAt?.toDate().toISOString().slice(0,7) === month);
+            }
+            if (searchTerm) {
+                filtered = filtered.filter(r => 
+                    (r['Client Name'] || '').toLowerCase().includes(searchTerm) ||
+                    (r['Contact ID'] || '').toLowerCase().includes(searchTerm) ||
+                    (r['CER Name'] || '').toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            currentFilteredData = filtered;
+            renderRecordsTable(currentFilteredData);
+        }
+
+        function downloadSelectedAsExcel() {
+            const selectedIds = [...document.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.recordId);
+            if (selectedIds.length === 0) {
+                alert("Please select records to download.");
+                return;
+            }
+            const dataToExport = allRecords.filter(record => selectedIds.includes(record.id));
+            
+            const headers = ["Date", "Contact ID", "Client Name", "CER Name", "Score", "Autofail Type", "Autofail Description"];
+            const csvRows = [headers.join(',')];
+
+            dataToExport.forEach(record => {
+                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleDateString() : 'N/A';
+                const values = [
+                    `"${submittedAt}"`,
+                    `"${record['Contact ID'] || ''}"`,
+                    `"${record['Client Name'] || ''}"`,
+                    `"${record['CER Name'] || ''}"`,
+                    `"${record['Overall Score'] || ''}"`,
+                    `"${record['Auto Fail Type'] || ''}"`,
+                    `"${(record['Autofail Description'] || '').replace(/"/g, '""')}"`
+                ];
+                csvRows.push(values.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "database_records.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function deleteSelectedRecords(recordIds) {
+            if (!recordIds || recordIds.length === 0) {
+                const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+                recordIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
+            }
+            if (recordIds.length === 0) {
+                alert("Please select records to delete.");
+                return;
+            }
+            if (!confirm(`Are you sure you want to delete ${recordIds.length} record(s)?`)) {
+                return;
+            }
+
+            const batch = writeBatch(db);
+            recordIds.forEach(id => {
+                const docRef = doc(db, EVALUATION_RECORDS_PATH, id);
+                batch.delete(docRef);
+            });
+            await batch.commit();
+            alert("Records deleted successfully.");
         }
 
         onAuthStateChanged(auth, (user) => {
@@ -253,8 +331,7 @@
                 loadLogoFromLocalStorage();
                 onSnapshot(collection(db, EVALUATION_RECORDS_PATH), (snapshot) => {
                     allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderRecordsTable(allRecords);
-                    updateDashboard(allRecords);
+                    applyFilters();
                     document.getElementById('loadingMessage').classList.add('hidden');
                     document.getElementById('databaseContent').classList.remove('hidden');
                 });
@@ -263,14 +340,28 @@
             }
         });
 
-        document.getElementById('recordSearchInput').addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filtered = allRecords.filter(r => 
-                (r['Client Name'] || '').toLowerCase().includes(searchTerm) ||
-                (r['Contact ID'] || '').toLowerCase().includes(searchTerm) ||
-                (r['CER Name'] || '').toLowerCase().includes(searchTerm)
-            );
-            renderRecordsTable(filtered);
+        document.getElementById('recordSearchInput').addEventListener('input', applyFilters);
+        document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('filterDate').value = '';
+            document.getElementById('filterMonth').value = '';
+            document.getElementById('recordSearchInput').value = '';
+            applyFilters();
+        });
+        
+        document.getElementById('downloadExcelBtn').addEventListener('click', downloadSelectedAsExcel);
+        
+        document.getElementById('recordsTableBody').addEventListener('click', (e) => {
+            if (e.target.closest('.delete-record-btn')) {
+                const recordId = e.target.closest('.delete-record-btn').dataset.recordId;
+                deleteSelectedRecords([recordId]);
+            }
+        });
+
+        document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+            document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
         });
         
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
