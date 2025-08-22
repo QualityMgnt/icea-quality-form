@@ -3,264 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quality Assessment Form - ICEA LION GROUP</title>
+    <title>Dashboard - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
     <style>
-        /* Modern Base styles */
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f0f2f5;
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0s, opacity 0.3s ease;
+            font-family: 'Garamond', serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            margin: 0;
         }
-
-        body.loaded {
-            visibility: visible;
-            opacity: 1;
+        .main-content {
+            margin-left: 125px;
+            margin-top: 48px;
+            width: calc(100% - 125px);
+            padding: 1.5rem;
         }
-
-        /* Login Page Styles */
-        .login-container-wrapper {
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            background-color: #000080; /* Navy Blue */
+            color: white;
             display: flex;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background-image: url('https://images.unsplash.com/photo-1587560699334-cc426edb4ce8?q=80&w=2070&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2000;
-        }
-        
-        .login-card {
-            background-color: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .form-input {
-            background-color: #f0f2f5;
-            border: 2px solid transparent;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .form-input:focus {
-            border-color: #0056b3;
-            box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.25);
-            background-color: #fff;
-        }
-        
-        .login-button {
-            background: linear-gradient(90deg, #0056b3, #003366);
-            border: none;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .login-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 51, 102, 0.4);
-        }
-
-        /* General App Layout Styles */
-        .top-header {
-            background-color: #003366; /* Deep Navy Blue */
-            color: white;
-            padding: 1rem;
-            text-align: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
+            justify-content: space-between;
+            font-size: 1.125rem;
+            font-weight: 600;
             z-index: 1000;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            height: 64px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0 1rem;
         }
-        
+        .top-header img {
+            height: 40px;
+            width: auto;
+        }
         .main-nav {
-            background-color: #002347; /* Even Darker Navy for contrast */
+            width: 125px;
+            background-color: #000080; /* Navy Blue */
             color: white;
+            padding: 1rem 0;
+            height: calc(100vh - 48px);
             position: fixed;
-            top: 64px; /* Height of top-header */
+            top: 48px;
             left: 0;
-            height: calc(100% - 64px);
-            width: 256px; /* w-64 */
-            z-index: 999;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease-in-out;
+            z-index: 100;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
-
+        .sidebar ul { list-style: none; margin: 0; padding: 0; flex-grow: 1; }
         .sidebar ul li a {
-            transition: background-color 0.2s ease;
+            font-family: 'Garamond', serif;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.75rem 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            text-align: center;
+            transition: background-color: 0.3s ease;
         }
-
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
-            background-color: #004a8d;
+            background-color: #000050; /* Darker Navy */
         }
-
         .logout-button {
-            background-color: #ff6f61; /* A modern coral/orange */
+            background-color: #f57c00;
             color: white;
-            transition: background-color 0.2s ease;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background-color: 0.3s ease;
+            margin: 1rem auto;
+            width: calc(100% - 2rem);
+            font-size: 0.75rem;
         }
-        .logout-button:hover {
-            background-color: #e65a50;
+        .logout-button:hover { background-color: #e65100; }
+        .dashboard-card {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            color: #1f2937;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-
-        main {
-            padding-top: 80px; /* top-header height + margin */
-            padding-left: 272px; /* sidebar width + margin */
-            padding-right: 16px;
-            padding-bottom: 16px;
+        .summary-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .summary-card .icon {
+            font-size: 2rem;
+            padding: 1rem;
+            border-radius: 50%;
+            color: white;
+        }
+        .filter-section {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .filter-section label { font-weight: bold; color: #374151; display: block; margin-bottom: 0.5rem; }
+        .filter-section input, .filter-section select {
+            background-color: #f9fafb;
+            color: #333;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
             width: 100%;
         }
-        
-        /* Original App Styles (adapted for new layout) */
-        .icealion-blue {
-            background-color: #0056b3;
+        .filter-section button {
+            background-color: #1a73e8;
             color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            height: fit-content;
         }
-        .error-message {
-            color: #dc2626;
+        .chart-container {
+            height: 300px;
         }
-        .section-header-bg {
-            background-color: #0056b3;
-            color: white;
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #1a73e8;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
         }
-        .form-row-light { background-color: #f9fafb; }
-        .form-row-dark { background-color: #f3f4f6; }
-        .top-field-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #374151;
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .leaderboard-table, .monthly-table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        .form-grid-input, .points-input, .rating-select, .remarks-textarea {
-            border-color: #0056b3;
+        .leaderboard-table td, .monthly-table td, .monthly-table th {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
         }
-
-        /* Utility */
-        .hidden {
-            display: none !important;
+        .monthly-table th {
+            background-color: #eff6ff;
+            font-weight: bold;
         }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <!-- LOGIN PAGE (OVERLAY) -->
-    <div class="login-container-wrapper" id="loginPage">
-        <div class="login-card">
-            <div class="p-8">
-                <div class="text-center mb-8">
-                    <img src="https://placehold.co/150x60/003366/FFFFFF?text=ICEA+LION" alt="Company Logo" class="mx-auto mb-4 rounded">
-                    <h1 class="text-2xl font-bold text-gray-800">Quality Management System</h1>
-                    <p class="text-gray-600">Please sign in to continue</p>
+    <header class="top-header">
+        <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
+        <img id="header-logo" src="https://placehold.co/120x40/000080/FFFFFF?text=ICEA" alt="Company Logo">
+    </header>
+
+    <nav class="main-nav" id="mainNav">
+        <div class="sidebar">
+            <ul id="sidebar-menu">
+                <li><a href="index.html"><i class="fas fa-file-alt"></i> Evaluation Form</a></li>
+                <li><a href="myEvaluations.html"><i class="fas fa-user-check"></i> My Evaluations</a></li>
+                <li><a href="index.html#database"><i class="fas fa-database"></i> Database</a></li>
+                <li><a href="Dashboard.html" class="active"><i class="fas fa-chart-bar"></i> Dashboard</a></li>
+                <li><a href="autofails.html"><i class="fas fa-exclamation-triangle"></i> Autofails</a></li>
+                <li><a href="images.html"><i class="fas fa-image"></i> Images</a></li>
+                <li><a href="users.html"><i class="fas fa-users"></i> Users</a></li>
+                <li><a href="admin.html"><i class="fas fa-user-cog"></i> Admin</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button">Logout</button>
+        </div>
+    </nav>
+
+    <div class="main-content" id="mainContent">
+        <div id="loadingMessage" class="text-center py-12 text-lg text-gray-600">
+            <div class="spinner mx-auto mb-4"></div>
+            Loading Dashboard...
+        </div>
+
+        <div id="dashboardContent" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Performance Dashboard</h1>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <div>
+                    <label for="startDate">From</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div>
+                    <label for="endDate">To</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div>
+                    <label for="cerRoleFilter">CER Role</label>
+                    <select id="cerRoleFilter">
+                        <option value="">All Roles</option>
+                    </select>
+                </div>
+                <div>
+                    <button id="applyFilterBtn">Apply Filters</button>
+                    <button id="resetFiltersBtn" class="bg-gray-500 hover:bg-gray-600">Reset</button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="dashboard-card summary-card">
+                    <div class="icon bg-blue-500"><i class="fas fa-file-signature"></i></div>
+                    <div>
+                        <h2 class="text-lg font-semibold">Total Evaluations</h2>
+                        <p id="totalEvaluations" class="text-4xl font-bold">0</p>
+                    </div>
+                </div>
+                <div class="dashboard-card summary-card">
+                    <div class="icon bg-green-500"><i class="fas fa-star"></i></div>
+                    <div>
+                        <h2 class="text-lg font-semibold">Average Score</h2>
+                        <p id="averageScore" class="text-4xl font-bold">0%</p>
+                    </div>
+                </div>
+                <div class="dashboard-card summary-card">
+                    <div class="icon bg-red-500"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div>
+                        <h2 class="text-lg font-semibold">Total Autofails</h2>
+                        <p id="totalAutofails" class="text-4xl font-bold">0</p>
+                    </div>
+                </div>
+                <div class="dashboard-card summary-card">
+                    <div class="icon bg-purple-500"><i class="fas fa-user-ninja"></i></div>
+                    <div>
+                        <h2 class="text-lg font-semibold">Top Performing Agent</h2>
+                        <p id="topAgent" class="text-2xl font-bold">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Performance Trend Chart -->
+                <div class="dashboard-card lg:col-span-2">
+                    <h2 class="text-xl font-semibold mb-4">Performance Over Time</h2>
+                    <div class="chart-container">
+                        <canvas id="performanceTrendChart"></canvas>
+                    </div>
                 </div>
 
-                <form id="loginForm" class="space-y-6">
-                    <div>
-                        <label for="username" class="sr-only">Username</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-user text-gray-400"></i>
-                            </div>
-                            <input type="text" id="username" name="username"
-                                    class="form-input block w-full rounded-md shadow-sm p-3 pl-10 border"
-                                    required placeholder="Username">
-                        </div>
+                <!-- Leaderboards -->
+                <div class="space-y-6">
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-semibold mb-4">Top Performers</h2>
+                        <table id="topPerformersTable" class="leaderboard-table"></table>
                     </div>
-                    <div>
-                        <label for="password" class="sr-only">Password</label>
-                         <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-lock text-gray-400"></i>
-                            </div>
-                            <input type="password" id="password" name="password"
-                                    class="form-input block w-full rounded-md shadow-sm p-3 pl-10 border"
-                                    required placeholder="Password">
-                        </div>
+                    <div class="dashboard-card">
+                        <h2 class="text-xl font-semibold mb-4">Agents Needing Improvement</h2>
+                        <table id="needsImprovementTable" class="leaderboard-table"></table>
                     </div>
-                    <button type="button" id="loginButton"
-                            class="login-button w-full text-white font-bold py-3 px-4 rounded-md shadow-md">
-                        Login
-                    </button>
-                    <div class="text-center text-sm mt-4">
-                        <a href="#" id="forgotPasswordLink" class="font-medium text-blue-600 hover:underline">Forgot Password?</a>
-                    </div>
-                    <div class="text-center text-sm text-gray-600">
-                        Don't have an account? 
-                        <a href="signup.html" class="font-medium text-blue-600 hover:underline">Sign Up</a>
-                    </div>
-                    <div id="loginMessage" class="text-red-600 text-center text-sm mt-2 hidden"></div>
-                </form>
+                </div>
+            </div>
+            
+            <!-- Average Score by Agent Chart -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">Average Score by Agent</h2>
+                <div class="chart-container">
+                    <canvas id="averageScoreByAgentChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- NEW: Monthly Average Scores by CER Role -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">Monthly Average Scores by CER Role</h2>
+                <div class="overflow-x-auto">
+                    <table id="monthlyScoresByRoleTable" class="monthly-table">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- MAIN APP INTERFACE -->
-    <div id="mainApp" class="hidden">
-        <header class="top-header flex items-center justify-center">
-            <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
-        </header>
-
-        <nav class="main-nav" id="mainNav">
-            <div class="sidebar p-4 h-full relative">
-                <ul>
-                    <li class="nav-tab mb-2"><a href="home.html" id="homeTab" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
-                    <li class="nav-tab mb-2"><a href="Dashboard.html" id="reportsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
-                    <li class="nav-tab mb-2"><a href="#" id="auditFormTab" class="active flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
-                    <li class="nav-tab mb-2"><a href="myEvaluations.html" id="myEvaluationsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
-                    <li class="nav-tab mb-2"><a href="nps.html" id="npsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-comment-alt w-6 mr-2"></i> NPS</a></li>
-                    <li class="nav-tab mb-2"><a href="autofails.html" id="autofailsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
-                    <li class="nav-tab mb-2"><a href="#" id="databaseTab" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
-                    <li class="nav-tab mb-2"><a href="images.html" id="imagesTab" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
-                    <li class="nav-tab mb-2"><a href="users.html" id="usersTab" class="flex items-center p-2 rounded-md"><i class="fas fa-users w-6 mr-2"></i> Users</a></li>
-                    <li class="nav-tab mb-2"><a href="admin.html" id="adminTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-cog w-6 mr-2"></i> Admin</a></li>
-                </ul>
-                <div class="absolute bottom-4 w-full pr-8">
-                     <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md">Logout</button>
-                </div>
-            </div>
-        </nav>
-        
-        <main>
-            <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden" id="auditFormContent">
-                <!-- Audit Form Content will be populated by JS -->
-            </div>
-    
-            <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 hidden" id="databaseContent">
-                <!-- Database Content will be populated by JS -->
-            </div>
-    
-            <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 hidden" id="shareResponseContent">
-                <!-- Share Response Content will be populated by JS -->
-            </div>
-        </main>
-    </div>
-
-
     <script type="module">
-        // Firebase Imports
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, updateDoc, getDoc, setDoc, arrayUnion, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-storage.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // --- Firebase Configuration ---
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
             authDomain: "icea-lion-qa.firebaseapp.com",
@@ -268,803 +305,230 @@
             storageBucket: "icea-lion-qa.firebasestorage.app",
             messagingSenderId: "820082472004",
             appId: "1:820082472004:web:8caddf941e1b5b667faf811",
-            measurementId: "G-1RJJTT3QET"
         };
         const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
 
-        let appInstance;
-        if (!getApps().length) {
-            appInstance = initializeApp(firebaseConfig);
-        } else {
-            appInstance = getApp();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const DROPDOWN_OPTIONS_PATH = `artifacts/${appId}/public/data/dropdown_options/general_options`;
+
+        let allEvaluations = [];
+        let charts = {};
+
+        async function fetchData() {
+            const querySnapshot = await getDocs(collection(db, EVALUATION_RECORDS_PATH));
+            allEvaluations = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            const dropdownDoc = await getDoc(doc(db, DROPDOWN_OPTIONS_PATH));
+            if (dropdownDoc.exists()) {
+                const roles = dropdownDoc.data().cerRoles || [];
+                const roleFilter = document.getElementById('cerRoleFilter');
+                roles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = role;
+                    roleFilter.appendChild(option);
+                });
+            }
         }
-        const auth = getAuth(appInstance);
-        const db = getFirestore(appInstance);
-        const storage = getStorage(appInstance);
+
+        function updateDashboard(data) {
+            document.getElementById('totalEvaluations').textContent = data.length;
+            
+            const totalScore = data.reduce((sum, record) => sum + (parseFloat(record['Overall Score']) || 0), 0);
+            const averageScore = data.length > 0 ? (totalScore / data.length).toFixed(1) + '%' : '0%';
+            document.getElementById('averageScore').textContent = averageScore;
+
+            const totalAutofails = data.filter(r => r['Auto Fail Type']).length;
+            document.getElementById('totalAutofails').textContent = totalAutofails;
+            
+            const agentScores = {};
+            data.forEach(rec => {
+                const agent = rec['CER Name'];
+                if(agent) {
+                    if(!agentScores[agent]) agentScores[agent] = { total: 0, count: 0 };
+                    agentScores[agent].total += parseFloat(rec['Overall Score']) || 0;
+                    agentScores[agent].count++;
+                }
+            });
+
+            const agentAverages = Object.keys(agentScores).map(agent => ({
+                name: agent,
+                avg: agentScores[agent].total / agentScores[agent].count
+            })).sort((a, b) => b.avg - a.avg);
+
+            document.getElementById('topAgent').textContent = agentAverages.length > 0 ? agentAverages[0].name : '-';
+            renderLeaderboards(agentAverages);
+            updateCharts(data, agentAverages);
+            renderMonthlyScoresTable(data);
+        }
         
-        // --- Firebase Collection Paths ---
-        const EVALUATION_RECORDS_COLLECTION_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        const WEBHOOKS_COLLECTION_PATH = `artifacts/${appId}/public/data/webhooks`;
-        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
-        const DROPDOWN_DATA_DOC_REF = doc(db, `artifacts/${appId}/public/data/dropdown_options`, 'general_options');
-        const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
-        const CUSTOM_FIELDS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/custom_form_fields`, 'field_configurations');
-        const LOGO_DOC_REF = doc(db, `artifacts/${appId}/public/data/logo`, 'logo_settings');
+        function renderLeaderboards(agentAverages) {
+            const topTable = document.getElementById('topPerformersTable');
+            const bottomTable = document.getElementById('needsImprovementTable');
+            topTable.innerHTML = '';
+            bottomTable.innerHTML = '';
 
-        // --- DOM Elements ---
-        const loginPage = document.getElementById('loginPage');
-        const mainApp = document.getElementById('mainApp');
-        const loginButton = document.getElementById('loginButton');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const loginMessage = document.getElementById('loginMessage');
-        const auditFormContent = document.getElementById('auditFormContent');
-        const databaseContent = document.getElementById('databaseContent');
-        const shareResponseContent = document.getElementById('shareResponseContent');
+            agentAverages.slice(0, 5).forEach(agent => {
+                topTable.innerHTML += `<tr><td>${agent.name}</td><td class="text-right font-bold text-green-600">${agent.avg.toFixed(1)}%</td></tr>`;
+            });
+
+            agentAverages.slice(-5).reverse().forEach(agent => {
+                bottomTable.innerHTML += `<tr><td>${agent.name}</td><td class="text-right font-bold text-red-600">${agent.avg.toFixed(1)}%</td></tr>`;
+            });
+        }
+
+        function updateCharts(data, agentAverages) {
+            const trendData = {};
+            data.forEach(rec => {
+                if(rec.submittedAt?.toDate){
+                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                    if(!trendData[month]) trendData[month] = { total: 0, count: 0 };
+                    trendData[month].total += parseFloat(rec['Overall Score']) || 0;
+                    trendData[month].count++;
+                }
+            });
+            const trendLabels = Object.keys(trendData).sort((a,b) => new Date(a) - new Date(b));
+            const trendScores = trendLabels.map(label => (trendData[label].total / trendData[label].count).toFixed(1));
+            renderChart('performanceTrendChart', 'line', trendLabels, trendScores, 'Average Score Over Time');
+
+            const agentLabels = agentAverages.map(a => a.name);
+            const agentData = agentAverages.map(a => a.avg.toFixed(1));
+            const backgroundColors = agentData.map(score => {
+                if (score >= 90) return 'rgba(34, 197, 94, 0.7)'; // Green
+                if (score >= 79) return 'rgba(245, 158, 11, 0.7)'; // Amber
+                return 'rgba(239, 68, 68, 0.7)'; // Red
+            });
+            renderChart('averageScoreByAgentChart', 'bar', agentLabels, agentData, 'Average Score by Agent', backgroundColors);
+        }
+
+        function renderChart(canvasId, type, labels, data, label, colors) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: colors || 'rgba(26, 115, 232, 0.1)',
+                        borderColor: colors ? colors.map(c => c.replace('0.1', '1').replace('0.7', '1')) : '#1a73e8',
+                        fill: type === 'line',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: type !== 'bar' },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: (value) => value + '%',
+                            color: '#333',
+                            font: { weight: 'bold' }
+                        }
+                    },
+                    scales: { y: { beginAtZero: true, max: 100 } }
+                },
+                plugins: [ChartDataLabels]
+            });
+        }
         
-        // --- GLOBAL DATA STORES & STATE VARIABLES ---
-        let allRecords = [];
-        let allWebhooks = [];
-        let dropdownOptions = { 
-            'cerNames': [],
-            'cerRoles': [],
-            'reviewerNames': [],
-            'autofailTypes': []
-        };
-        let allRolesQuestions = {};
-        let customFormFields = [];
-        let cerNameEmailsMap = {};
-        let filterableRecords = [];
-        let unsubscribeRecords = null;
-        let unsubscribeWebhooks = null;
-        let unsubscribeDropdowns = null;
-        let unsubscribeQuestions = null;
-        let unsubscribeCustomFields = null;
-        let currentUserRole = null;
-        let currentUserId = null;
-        let isAuthReady = false;
-        let loggedInUserName = "Quality Evaluation Team";
-        let loggedInUserEmail = "anonymous";
-        let globalTotalPoints = 0;
-        let globalMaxPossiblePoints = 0;
-        let globalBusinessComplianceAccuracyValue = 0;
-        let latestSavedRecordId = null;
+        function renderMonthlyScoresTable(data) {
+            const table = document.getElementById('monthlyScoresByRoleTable');
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
 
-        // --- AUTHENTICATION & APP INITIALIZATION ---
+            if (data.length === 0) return;
 
-        onAuthStateChanged(auth, async (user) => {
+            const scoresByRoleMonth = {};
+            const months = new Set();
+            const roles = new Set();
+
+            data.forEach(rec => {
+                if (rec.submittedAt?.toDate && rec['CER Role']) {
+                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                    const role = rec['CER Role'];
+                    months.add(month);
+                    roles.add(role);
+
+                    if (!scoresByRoleMonth[role]) scoresByRoleMonth[role] = {};
+                    if (!scoresByRoleMonth[role][month]) scoresByRoleMonth[role][month] = { total: 0, count: 0 };
+                    
+                    scoresByRoleMonth[role][month].total += parseFloat(rec['Overall Score']) || 0;
+                    scoresByRoleMonth[role][month].count++;
+                }
+            });
+
+            const sortedMonths = Array.from(months).sort((a, b) => new Date(a) - new Date(b));
+            
+            let headerHtml = '<tr><th>CER Role</th>';
+            sortedMonths.forEach(month => headerHtml += `<th>${month}</th>`);
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+
+            Array.from(roles).sort().forEach(role => {
+                let rowHtml = `<tr><td>${role}</td>`;
+                sortedMonths.forEach(month => {
+                    const data = scoresByRoleMonth[role]?.[month];
+                    const avg = data ? (data.total / data.count).toFixed(1) + '%' : '-';
+                    rowHtml += `<td>${avg}</td>`;
+                });
+                rowHtml += '</tr>';
+                tbody.innerHTML += rowHtml;
+            });
+        }
+
+        function applyFilters() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const role = document.getElementById('cerRoleFilter').value;
+
+            let filteredData = allEvaluations;
+
+            if (startDate) {
+                filteredData = filteredData.filter(r => r['Evaluation Date'] && r['Evaluation Date'] >= startDate);
+            }
+            if (endDate) {
+                filteredData = filteredData.filter(r => r['Evaluation Date'] && r['Evaluation Date'] <= endDate);
+            }
+            if (role) {
+                filteredData = filteredData.filter(r => r['CER Role'] === role);
+            }
+            
+            updateDashboard(filteredData);
+        }
+
+        onAuthStateChanged(auth, (user) => {
             if (user) {
-                currentUserId = user.uid;
-                loggedInUserEmail = user.email || "anonymous";
-                console.log("Firebase Auth State Changed: User logged in:", currentUserId);
-
-                const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
-                try {
-                    const userDocSnap = await getDoc(userProfileDocRef);
-                    if (userDocSnap.exists()) {
-                        currentUserRole = userDocSnap.data().role;
-                        loggedInUserName = userDocSnap.data().name || user.email || "Quality Evaluation Team";
-                    } else {
-                        currentUserRole = 'Agent'; 
-                        loggedInUserName = user.email || "New User";
-                    }
-                } catch (error) {
-                    console.error("Error fetching user role:", error);
-                    currentUserRole = 'Agent'; 
-                    loggedInUserName = user.email || "User";
-                }
-                
-                showMainApp();
-                initializeAppData();
+                fetchData().then(() => {
+                    document.getElementById('loadingMessage').classList.add('hidden');
+                    document.getElementById('dashboardContent').classList.remove('hidden');
+                    updateDashboard(allEvaluations);
+                });
             } else {
-                console.log("Firebase Auth State Changed: No user logged in.");
-                currentUserId = null;
-                currentUserRole = null;
-                sessionStorage.removeItem('loggedIn');
-                showLoginPage();
-            }
-            isAuthReady = true;
-            document.body.classList.add('loaded');
-        });
-
-        function showLoginPage() {
-            loginPage.classList.remove('hidden');
-            mainApp.classList.add('hidden');
-        }
-
-        function showMainApp() {
-            loginPage.classList.add('hidden');
-            mainApp.classList.remove('hidden');
-            populateContentHolders();
-        }
-        
-        function populateContentHolders() {
-            if (auditFormContent.innerHTML.trim() === '') {
-                auditFormContent.innerHTML = `
-                    <div class="icealion-blue p-4 flex items-center justify-between">
-                        <div class="text-xl font-semibold">Quality Assessment Form - ICEA LION GROUP Contact Centre</div>
-                        <img id="audit-form-logo" src="https://placehold.co/95x57/1a73e8/FFFFFF?text=Logo" alt="ICEALION Logo" style="height: 1.5cm; width: 2.5cm; object-fit: contain;">
-                    </div>
-                    <!-- Rest of the audit form HTML structure -->
-                `;
-            }
-            // Similarly populate other content holders if needed
-        }
-
-        function initializeAppData() {
-            renderNavigationForRole(currentUserRole);
-            fetchDropdownOptionsData();
-            fetchQuestionsData();
-            fetchCustomFieldsData();
-            fetchRecordsAndWebhooks();
-            fetchAgentUsersForDropdown();
-            fetchAndSetLogo();
-            
-            // Set default reviewer name
-            const reviewerNameInput = document.getElementById('reviewer-name');
-            if (reviewerNameInput) {
-                reviewerNameInput.value = loggedInUserName;
-            }
-        }
-
-        loginButton.addEventListener('click', async () => {
-            const email = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
-            loginMessage.textContent = '';
-            loginMessage.classList.add('hidden');
-
-            if (!email || !pass) {
-                loginMessage.textContent = "Please enter both username and password.";
-                loginMessage.classList.remove('hidden');
-                return;
-            }
-
-            try {
-                await signInWithEmailAndPassword(auth, email, pass);
-            } catch (e) {
-                loginMessage.textContent = "Error: " + e.message;
-                loginMessage.classList.remove('hidden');
+                window.location.href = 'index.html';
             }
         });
 
-        logoutBtn.addEventListener('click', async () => {
-            await signOut(auth);
+        document.getElementById('applyFilterBtn').addEventListener('click', applyFilters);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('cerRoleFilter').value = '';
+            applyFilters();
         });
-
-        // --- UI & TAB MANAGEMENT ---
-
-        function renderNavigationForRole() {
-            const allNavTabs = document.querySelectorAll('.nav-tab');
-            allNavTabs.forEach(tab => {
-                tab.style.display = 'block'; // Show all tabs to all users for now
-            });
-        }
-
-        function showTab(tabName) {
-            const allTabs = document.querySelectorAll('.sidebar ul li a');
-            allTabs.forEach(tab => tab.classList.remove('active'));
-            
-            auditFormContent.classList.add('hidden');
-            databaseContent.classList.add('hidden');
-            shareResponseContent.classList.add('hidden');
-
-            if (tabName === 'auditForm') {
-                document.getElementById('auditFormTab')?.classList.add('active');
-                auditFormContent.classList.remove('hidden');
-            } else if (tabName === 'database') {
-                document.getElementById('databaseTab')?.classList.add('active');
-                databaseContent.classList.remove('hidden');
-            } else if (tabName === 'shareResponse') {
-                // Assuming shareResponseTab exists
-                // document.getElementById('shareResponseTab')?.classList.add('active');
-                shareResponseContent.classList.remove('hidden');
-                // populateShareResponseDropdown();
-            }
-        }
-
-        // --- ALL ORIGINAL APPLICATION FUNCTIONS ---
-
-        function calculateScore() {
-            const cerRoleSelect = document.getElementById('cer-role');
-            const overallScoreDisplay = document.getElementById('overall-score-display');
-            const businessComplianceAccuracyDisplay = document.getElementById('business-compliance-accuracy');
-            const totalPtsPercentageDisplay = document.getElementById('total-pts-percentage');
-            const overallFinalPercentageDisplay = document.getElementById('overall-final-percentage-display');
-            const autofailTypeSelect = document.getElementById('autofail-type');
-
-            let currentTotalPoints = 0;
-            let currentMaxPossiblePoints = 0;
-            let autofailQuestionTriggered = false;
-            let autofailTypeSelected = (autofailTypeSelect && autofailTypeSelect.value !== '');
-
-            let complianceCurrentPoints = 0;
-            let complianceMaxPoints = 0;
-
-            const allRatingSelects = document.querySelectorAll('.rating-select');
-
-            allRatingSelects.forEach(selectElement => {
-                const rowDiv = selectElement.closest('.grid.grid-cols-12.gap-2.py-2');
-                if (!rowDiv) return;
-
-                const pointsElement = rowDiv.querySelector('.points-input');
-                const weightageDisplay = rowDiv.querySelector('.weightage-display');
-                const isAutofailQuestion = selectElement.hasAttribute('data-autofail-question');
-                const questionText = selectElement.name.replace(' (Rating)', '');
-                
-                if (!pointsElement || !weightageDisplay) {
-                    console.warn(`Missing associated elements for select: ${selectElement.name}`);
-                    return;
-                }
-
-                const rating = selectElement.value;
-                const weightage = parseFloat(weightageDisplay.dataset.weightage);
-                let pointsForThisQuestion = 0;
-
-                pointsElement.style.backgroundColor = '#e9ecef';
-                pointsElement.style.color = '#555';
-
-                if (rating === 'Yes' || rating === 'N/A') {
-                    pointsForThisQuestion = weightage;
-                    pointsElement.readOnly = false;
-                    pointsElement.style.backgroundColor = '#fff';
-                } else if (rating === 'No') {
-                    pointsForThisQuestion = 0;
-                    pointsElement.readOnly = true;
-
-                    if (isAutofailQuestion) {
-                        pointsElement.style.backgroundColor = '#fca5a5';
-                        pointsElement.style.color = '#dc2626';
-                        autofailQuestionTriggered = true;
-                    } else {
-                        pointsElement.style.backgroundColor = '#e0e0e0';
-                    }
-                } else {
-                    pointsForThisQuestion = 0;
-                    pointsElement.readOnly = true;
-                    pointsElement.style.backgroundColor = '#e9ecef';
-                }
-
-                pointsElement.value = pointsForThisQuestion;
-                currentTotalPoints += pointsForThisQuestion;
-
-                if (rating !== '') {
-                    currentMaxPossiblePoints += weightage;
-                }
-
-                const currentRole = cerRoleSelect.value;
-                if (currentRole && allRolesQuestions[currentRole] && allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY']) {
-                    const complianceQuestions = allRolesQuestions[currentRole]['COMPLIANCE AND BUSINESS CRITICAL ACCURACY'].map(q => q.desc);
-                    if (complianceQuestions.includes(questionText)) {
-                        if (rating === 'Yes' || rating === 'N/A') {
-                            complianceCurrentPoints += weightage;
-                        }
-                        if (rating !== '') {
-                                complianceMaxPoints += weightage;
-                        }
-                    }
-                }
-            });
-
-            let calculatedOverallPercentageBeforeAutofail = 0;
-            if (currentMaxPossiblePoints > 0) {
-                calculatedOverallPercentageBeforeAutofail = ((currentTotalPoints / currentMaxPossiblePoints) * 100).toFixed(0);
-            }
-
-            let finalOverallPercentage = calculatedOverallPercentageBeforeAutofail;
-            if (autofailQuestionTriggered || autofailTypeSelected) {
-                finalOverallPercentage = 0;
-            }
-            
-            overallScoreDisplay.textContent = `${finalOverallPercentage}%`;
-            overallFinalPercentageDisplay.textContent = `${finalOverallPercentage}%`;
-            totalPtsPercentageDisplay.textContent = `${currentTotalPoints}`; 
-
-            let businessCompliancePct = 0;
-            if (complianceMaxPoints > 0) {
-                businessCompliancePct = ((complianceCurrentPoints / complianceMaxPoints) * 100).toFixed(0);
-            } else {
-                businessCompliancePct = 0;
-            }
-            businessComplianceAccuracyDisplay.textContent = `${businessCompliancePct}%`;
-
-            globalTotalPoints = currentTotalPoints;
-            globalMaxPossiblePoints = currentMaxPossiblePoints;
-            globalBusinessComplianceAccuracyValue = businessCompliancePct;
-        }
-
-        function renderQuestionsForRole(role) {
-            const cxQuestionsContainer = document.getElementById('cxQuestionsContainer');
-            const psQuestionsContainer = document.getElementById('psQuestionsContainer');
-            const caQuestionsContainer = document.getElementById('caQuestionsContainer');
-
-            const questionContainers = {
-                'CUSTOMER EXPERIENCE': cxQuestionsContainer,
-                'PROBLEM SOLVING SKILLS': psQuestionsContainer,
-                'COMPLIANCE AND BUSINESS CRITICAL ACCURACY': caQuestionsContainer
-            };
-
-            console.log("Rendering questions for role:", role);
-
-            for (const key in questionContainers) {
-                if (questionContainers[key]) {
-                    questionContainers[key].innerHTML = '';
-                }
-            }
-
-            const roleQuestions = allRolesQuestions[role] || allRolesQuestions['Default'] || {};
-
-            if (Object.keys(roleQuestions).length === 0) {
-                console.warn(`No questions defined for role: ${role} or 'Default'. Displaying empty sections.`);
-                for (const key in questionContainers) {
-                    if (questionContainers[key]) {
-                        questionContainers[key].innerHTML = `<div class="text-center text-gray-500 py-4">No questions configured for this section.</div>`;
-                    }
-                }
-                calculateScore();
-                return;
-            }
-
-            for (const sectionTitle in roleQuestions) {
-                const questions = roleQuestions[sectionTitle];
-                const container = questionContainers[sectionTitle];
-
-                if (!container) {
-                    console.error(`Container not found for section: ${sectionTitle}`);
-                    continue;
-                }
-
-                let sectionQuestionNumber = 1;
-
-                questions.forEach(q => {
-                    const rowDiv = document.createElement('div');
-                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${sectionQuestionNumber % 2 === 1 ? 'form-row-light' : 'form-row-dark'}`;
-
-                    let iconColorClass;
-                    const iconIndex = (sectionQuestionNumber - 1) % 4;
-                    if (iconIndex === 0) iconColorClass = 'bg-orange-500';
-                    else if (iconIndex === 1) iconColorClass = 'bg-blue-500';
-                    else if (iconIndex === 2) iconColorClass = 'bg-green-500';
-                    else if (iconIndex === 3) iconColorClass = 'bg-yellow-500';
-
-                    const yesSelected = q.defaultRating === 'Yes' ? 'selected' : '';
-                    const noSelected = q.defaultRating === 'No' ? 'selected' : '';
-                    const naSelected = q.defaultRating === 'N/A' ? 'selected' : '';
-
-                    rowDiv.innerHTML = `
-                        <div class="col-span-6 flex items-center gap-2">
-                            <span class="${iconColorClass} rounded-full p-1 text-white text-xs inline-flex items-center justify-center w-6 h-6">${sectionQuestionNumber}</span> ${q.desc}
-                        </div>
-                        <div class="col-span-2">
-                            <select name="${q.desc} (Rating)" class="w-full rounded-md shadow-sm p-1 text-center border rating-select border-blue-600" ${q.autofail ? 'data-autofail-question="true"' : ''} data-has-na="${q.hasNA}">
-                                <option value="">Select Rating</option>
-                                <option value="Yes" ${yesSelected}>Yes</option>
-                                <option value="No" ${noSelected}>No</option>
-                                <option value="N/A" ${naSelected}>N/A</option>
-                            </select>
-                        </div>
-                        <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
-                        <div class="col-span-1 text-center">
-                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input border-blue-600" value="0" readonly placeholder="0">
-                        </div>
-                        <div class="col-span-2">
-                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md shadow-sm p-1 border remarks-textarea border-blue-600" oninput="autoExpandTextarea(this)"></textarea>
-                        </div>
-                    `;
-                    container.appendChild(rowDiv);
-
-                    const newSelect = rowDiv.querySelector('.rating-select');
-                    if (newSelect) {
-                        newSelect.addEventListener('change', calculateScore);
-                    }
-                    sectionQuestionNumber++;
-                });
-            }
-            calculateScore();
-            document.querySelectorAll('.remarks-textarea').forEach(textarea => {
-                autoExpandTextarea(textarea);
-            });
-        }
-        
-        function showMessageBox(title, message, isError = false, showSpinner = false, showCloseButton = true, onClose = null) {
-            // This function needs a corresponding HTML structure for the message box.
-            // For now, it will use alerts.
-            alert(`${title}\n\n${message}`);
-            if(onClose) onClose();
-        }
-
-        function hideMessageBox() {
-            // Logic to hide a custom message box
-        }
-
-        async function fetchRecordsAndWebhooks() {
-            if (!db || !currentUserId) return;
-            if (unsubscribeRecords) unsubscribeRecords();
-            if (unsubscribeWebhooks) unsubscribeWebhooks();
-            try {
-                const recordsColRef = collection(db, EVALUATION_RECORDS_COLLECTION_PATH);
-                unsubscribeRecords = onSnapshot(recordsColRef, (snapshot) => {
-                    allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderRecordsTable(allRecords);
-                });
-                const webhooksColRef = collection(db, WEBHOOKS_COLLECTION_PATH);
-                unsubscribeWebhooks = onSnapshot(webhooksColRef, (snapshot) => {
-                    allWebhooks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderWebhookList(allWebhooks);
-                });
-            } catch (error) {
-                console.error("Error setting up Firestore listeners:", error);
-            }
-        }
-        
-        function renderRecordsTable(records) {
-            const recordsTableBody = document.getElementById('recordsTableBody');
-            if (!recordsTableBody) return;
-            recordsTableBody.innerHTML = '';
-            if (records.length === 0) {
-                recordsTableBody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-gray-500">No records found.</td></tr>`;
-                return;
-            }
-            records.forEach(record => {
-                const row = recordsTableBody.insertRow();
-                let submittedDateFormatted = 'N/A';
-                if (record.submittedAt) {
-                    const dateObj = record.submittedAt.toDate ? record.submittedAt.toDate() : new Date(record.submittedAt);
-                    submittedDateFormatted = dateObj.toLocaleString();
-                }
-                const hasPdfAttachment = record.pdfAttachmentUrl && record.pdfAttachmentUrl.length > 0;
-                const pdfButtonHtml = hasPdfAttachment
-                    ? `<button class="download-pdf-btn bg-purple-600 text-white p-1 rounded" data-record-id="${record.id}"><i class="fas fa-file-pdf"></i> PDF</button>`
-                    : `<span>N/A</span>`;
-
-                row.innerHTML = `
-                    <td class="py-2 px-4"><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>
-                    <td class="py-2 px-4">${submittedDateFormatted}</td>
-                    <td class="py-2 px-4">${record['Contact ID'] || ''}</td>
-                    <td class="py-2 px-4">${record['Client Name'] || ''}</td>
-                    <td class="py-2 px-4">${record['CER Name'] || ''}</td>
-                    <td class="py-2 px-4">${record['Overall Score'] || ''}</td>
-                    <td class="py-2 px-4">${pdfButtonHtml}</td>
-                    <td class="py-2 px-4 whitespace-nowrap">
-                        <button class="delete-record-btn bg-red-500 text-white p-1 rounded" data-record-id="${record.id}">Delete</button>
-                    </td>
-                    <td class="py-2 px-4"><button class="view-record-btn bg-blue-500 text-white p-1 rounded" data-record-id="${record.id}">View</button></td>
-                    <td class="py-2 px-4"><button class="email-record-btn bg-orange-500 text-white p-1 rounded" data-record-id="${record.id}">Email</button></td>
-                    <td class="py-2 px-4"><button class="download-record-btn bg-green-500 text-white p-1 rounded" data-record-id="${record.id}">Download</button></td>
-                `;
-            });
-            document.querySelectorAll('.record-checkbox').forEach(c => c.addEventListener('change', updateDeleteButtonState));
-            document.querySelectorAll('.delete-record-btn').forEach(b => b.addEventListener('click', e => deleteSelectedRecords([e.currentTarget.dataset.recordId])));
-            document.querySelectorAll('.view-record-btn').forEach(b => b.addEventListener('click', e => viewRecordDetails(e.currentTarget.dataset.recordId)));
-            document.querySelectorAll('.email-record-btn').forEach(b => b.addEventListener('click', e => sendRecordEmail(e.currentTarget.dataset.recordId)));
-            document.querySelectorAll('.download-record-btn').forEach(b => b.addEventListener('click', e => downloadRecordData(e.currentTarget.dataset.recordId)));
-            document.querySelectorAll('.download-pdf-btn').forEach(b => b.addEventListener('click', e => downloadPdfAttachment(e.currentTarget.dataset.recordId)));
-            updateDeleteButtonState();
-        }
-
-        function updateDeleteButtonState() {
-            const deleteBtn = document.getElementById('deleteSelectedRecordsBtn');
-            if(deleteBtn) {
-                const checkedCount = document.querySelectorAll('.record-checkbox:checked').length;
-                deleteBtn.disabled = checkedCount === 0;
-            }
-        }
-
-        async function deleteSelectedRecords(recordIdsToDelete) {
-            if (recordIdsToDelete.length === 0) {
-                showMessageBox("No Records Selected", "Please select at least one record to delete.");
-                return;
-            }
-            if (!confirm(`Are you sure you want to delete ${recordIdsToDelete.length} record(s)?`)) {
-                return;
-            }
-            showMessageBox("Deleting", "Deleting records...", false, true, false);
-            try {
-                const deletePromises = recordIdsToDelete.map(id => deleteDoc(doc(db, EVALUATION_RECORDS_COLLECTION_PATH, id)));
-                await Promise.all(deletePromises);
-                showMessageBox("Success", "Selected records deleted.");
-            } catch (e) {
-                showMessageBox("Deletion Failed", `Error: ${e.message}`, true);
-            }
-        }
-        
-        function renderWebhookList(webhooks) {
-            const webhookList = document.getElementById('webhookList');
-            if(!webhookList) return;
-            webhookList.innerHTML = '';
-            if (webhooks.length === 0) {
-                webhookList.innerHTML = '<p class="text-sm text-gray-500 text-center">No webhooks added yet.</p>';
-                return;
-            }
-            webhooks.forEach(hook => {
-                const div = document.createElement('div');
-                div.innerHTML = `<span>${hook.url}</span><button class="delete-webhook-btn bg-red-500 text-white p-1 rounded" data-webhook-id="${hook.id}">Delete</button>`;
-                webhookList.appendChild(div);
-            });
-            document.querySelectorAll('.delete-webhook-btn').forEach(b => b.addEventListener('click', async e => {
-                const id = e.currentTarget.dataset.webhookId;
-                if(confirm('Delete this webhook?')) {
-                    await deleteDoc(doc(db, WEBHOOKS_COLLECTION_PATH, id));
-                }
-            }));
-        }
-
-        async function addWebhook() {
-            const input = document.getElementById('newWebhookUrlInput');
-            const url = input.value.trim();
-            if (url && url.startsWith('https://')) {
-                await addDoc(collection(db, WEBHOOKS_COLLECTION_PATH), { url });
-                input.value = '';
-            } else {
-                alert('Please enter a valid HTTPS URL.');
-            }
-        }
-
-        function viewRecordDetails(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) {
-                showMessageBox("Error", "Record not found.", true);
-                return;
-            }
-            let detailsHtml = '';
-            for (const key in record) {
-                let value = record[key];
-                if (key === 'submittedAt' && value?.toDate) {
-                    value = value.toDate().toLocaleString();
-                }
-                detailsHtml += `${key}: ${JSON.stringify(value, null, 2)}\n`;
-            }
-            showMessageBox('Record Details', detailsHtml);
-        }
-
-        function sendRecordEmail(recordId) {
-            alert("Email functionality not yet implemented.");
-        }
-
-        function downloadRecordData(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (!record) return;
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(record, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `record_${recordId}.json`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-        }
-
-        async function downloadPdfAttachment(recordId) {
-            const record = allRecords.find(r => r.id === recordId);
-            if (record && record.pdfAttachmentUrl) {
-                window.open(record.pdfAttachmentUrl, '_blank');
-            } else {
-                alert("No PDF attachment found for this record.");
-            }
-        }
-        
-        async function fetchDropdownOptionsData() {
-            if (!db) return;
-            if (unsubscribeDropdowns) unsubscribeDropdowns();
-            unsubscribeDropdowns = onSnapshot(DROPDOWN_DATA_DOC_REF, (docSnap) => {
-                if (docSnap.exists()) {
-                    dropdownOptions = docSnap.data();
-                }
-                populateAllDropdownsInForm();
-            });
-        }
-        
-        async function fetchQuestionsData() {
-             if (!db) return;
-            if (unsubscribeQuestions) unsubscribeQuestions();
-            unsubscribeQuestions = onSnapshot(QUESTIONS_CONFIG_DOC_REF, (docSnap) => {
-                allRolesQuestions = docSnap.exists() ? docSnap.data() : {};
-                const cerRoleSelect = document.getElementById('cer-role');
-                if (cerRoleSelect && cerRoleSelect.value) {
-                    renderQuestionsForRole(cerRoleSelect.value);
-                }
-            });
-        }
-
-        async function fetchCustomFieldsData() {
-            if (!db) return;
-            if (unsubscribeCustomFields) unsubscribeCustomFields();
-            unsubscribeCustomFields = onSnapshot(CUSTOM_FIELDS_CONFIG_DOC_REF, (docSnap) => {
-                customFormFields = (docSnap.exists() && docSnap.data().fields) ? docSnap.data().fields.sort((a,b) => a.order - b.order) : [];
-                renderCustomFormFields();
-            });
-        }
-
-        function populateAllDropdownsInForm() {
-            const cerNameSelect = document.getElementById('cer-name');
-            const cerRoleSelect = document.getElementById('cer-role');
-            const autofailTypeSelect = document.getElementById('autofail-type');
-
-            const populate = (el, opts, type) => {
-                if (!el || !Array.isArray(opts)) return;
-                const currentVal = el.value;
-                el.innerHTML = `<option value="">Select ${type}</option>`;
-                opts.forEach(opt => {
-                    const value = (typeof opt === 'object' && opt.name) ? opt.name : opt;
-                    const text = value;
-                    el.innerHTML += `<option value="${value}" ${currentVal === value ? 'selected' : ''}>${text}</option>`;
-                });
-            };
-            
-            populate(cerNameSelect, dropdownOptions.cerNames, 'CER');
-            populate(cerRoleSelect, dropdownOptions.cerRoles, 'Role');
-            populate(autofailTypeSelect, dropdownOptions.autofailTypes, 'Autofail');
-        }
-
-        function renderCustomFormFields() {
-            const container = document.getElementById('customFieldsContainer');
-            if(!container) return;
-            container.innerHTML = '';
-            customFormFields.forEach(field => {
-                const div = document.createElement('div');
-                div.innerHTML = `<label for="${field.id}" class="block top-field-label">${field.label}</label>`;
-                if(field.type === 'text') {
-                    div.innerHTML += `<input type="text" id="${field.id}" name="${field.label}" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border border-blue-600">`;
-                } else if (field.type === 'select') {
-                    let optionsHtml = (field.options || []).map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                    div.innerHTML += `<select id="${field.id}" name="${field.label}" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border border-blue-600"><option value="">-- Select --</option>${optionsHtml}</select>`;
-                }
-                container.appendChild(div);
-            });
-        }
-
-        async function fetchLastThreeEvaluations(cerName) {
-            const tableBody = document.getElementById('lastEvaluationsTableBody');
-            if(!tableBody) return;
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Loading...</td></tr>';
-            const q = query(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), where('CER Name', '==', cerName), orderBy('submittedAt', 'desc'), limit(3));
-            onSnapshot(q, (snapshot) => {
-                tableBody.innerHTML = '';
-                if(snapshot.empty) {
-                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No previous evaluations found.</td></tr>';
-                    return;
-                }
-                snapshot.forEach(doc => {
-                    const record = doc.data();
-                    const row = tableBody.insertRow();
-                    row.innerHTML = `
-                        <td>${record['CER Name'] || 'N/A'}</td>
-                        <td>${record['Overall Score'] || 'N/A'}</td>
-                        <td>${record['CER Role'] || 'N/A'}</td>
-                        <td>${record['Contact ID'] || 'N/A'}</td>
-                        <td>${record.submittedAt.toDate().toLocaleDateString()}</td>
-                    `;
-                });
-            });
-        }
-        
-        async function fetchAgentUsersForDropdown() {
-            const q = query(collection(db, USERS_PROFILE_COLLECTION_PATH), where("role", "==", "Agent"));
-            const querySnapshot = await getDocs(q);
-            const agentUsers = [];
-            querySnapshot.forEach((doc) => {
-                agentUsers.push({ name: doc.data().name, email: doc.data().email });
-            });
-            
-            dropdownOptions.cerNames = agentUsers;
-            cerNameEmailsMap = {};
-            agentUsers.forEach(user => {
-                cerNameEmailsMap[user.name] = user.email;
-            });
-            
-            populateAllDropdownsInForm();
-        }
-
-        async function saveFormDataOnly() {
-            const formData = collectFormData();
-            if (formData) {
-                showMessageBox("Saving...", "Saving your evaluation data.", false, true, false);
-                try {
-                    await addDoc(collection(db, EVALUATION_RECORDS_COLLECTION_PATH), {
-                        ...formData,
-                        submittedAt: new Date()
-                    });
-                    showMessageBox("Success", "Form data saved successfully!");
-                    resetFormFieldsButKeepRole();
-                } catch(e) {
-                    showMessageBox("Error", `Failed to save data: ${e.message}`, true);
-                }
-            }
-        }
-
-        async function generateAndDownloadPdf() {
-            showMessageBox("Generating PDF", "Please wait...", false, true, false);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-            const canvas = await html2canvas(document.getElementById('auditFormContent'), { scale: 2 });
-            const imgData = canvas.toDataURL('image/jpeg', 1.0);
-            const imgWidth = 210;
-            const pageHeight = 297;
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-              position = heightLeft - imgHeight;
-              pdf.addPage();
-              pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-              heightLeft -= pageHeight;
-            }
-            
-            pdf.save(`Evaluation_Report_${Date.now()}.pdf`);
-            hideMessageBox();
-        }
-
-        function collectFormData() {
-            const requiredFields = ['contact-id', 'client-name', 'cer-name', 'cer-role', 'call-date-time', 'reviewer-name', 'review-date'];
-            for (const id of requiredFields) {
-                const el = document.getElementById(id);
-                if (!el || !el.value) {
-                    showMessageBox("Validation Error", `Please fill the "${el.labels[0].textContent}" field.`, true);
-                    return null;
-                }
-            }
-            
-            const formData = {};
-            const inputs = document.querySelectorAll('#auditFormContent input, #auditFormContent select, #auditFormContent textarea');
-            inputs.forEach(input => {
-                if (input.name) {
-                    formData[input.name] = input.value;
-                }
-            });
-
-            formData['Overall Score'] = document.getElementById('overall-score-display').textContent;
-            formData['Business & Compliance Accuracy'] = document.getElementById('business-compliance-accuracy').textContent;
-            formData['Total Pts.'] = globalTotalPoints;
-            formData['Max Possible Pts.'] = globalMaxPossiblePoints;
-
-            return formData;
-        }
-
-        function resetFormFieldsButKeepRole() {
-            document.getElementById('contact-id').value = '';
-            document.getElementById('client-name').value = '';
-            document.getElementById('cer-name').value = '';
-            document.getElementById('cer-email').value = '';
-            document.getElementById('call-date-time').value = '';
-            document.getElementById('autofail-type').value = '';
-            document.getElementById('autofail-description').value = '';
-            document.getElementById('duration').value = '';
-            
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('review-date').value = today;
-
-            document.querySelectorAll('#assessment-form textarea').forEach(el => el.value = '');
-            renderQuestionsForRole(document.getElementById('cer-role').value);
-        }
-        
-        async function fetchAndSetLogo() {
-            // Placeholder for logo fetching logic
-        }
-
-        window.autoExpandTextarea = function(element) {
-            element.style.height = 'auto';
-            element.style.height = (element.scrollHeight) + 'px';
-        };
-
-        // --- EVENT LISTENERS ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initial check in case auth state is already known
-            if (sessionStorage.getItem('loggedIn') === 'true' && auth.currentUser) {
-                showMainApp();
-                initializeAppData();
-            } else {
-                showLoginPage();
-            }
-
-            const auditFormTab = document.getElementById('auditFormTab');
-            const databaseTab = document.getElementById('databaseTab');
-            
-            auditFormTab?.addEventListener('click', e => { e.preventDefault(); showTab('auditForm'); });
-            databaseTab?.addEventListener('click', e => { e.preventDefault(); showTab('database'); });
-
-            // Event listeners for form elements will be added dynamically when the form is rendered
-        });
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
     </script>
 </body>
