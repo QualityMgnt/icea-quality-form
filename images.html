@@ -42,6 +42,12 @@
         .sidebar ul li a.active {
             background-color: #004a8d;
         }
+        .preview-container {
+            width: 100%;
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+        }
     </style>
 </head>
 <body>
@@ -61,20 +67,21 @@
     </nav>
 
     <main>
-        <div class="container mx-auto p-6">
+        <div class="container mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Logo Management Card -->
             <div class="bg-white p-8 rounded-lg shadow-lg">
                 <h1 class="text-2xl font-bold text-gray-800 mb-6">Manage Company Logo</h1>
                 
                 <div class="mb-6">
                     <h2 class="text-lg font-semibold mb-2">Current Logo</h2>
-                    <div class="p-4 border rounded-md bg-gray-50 flex justify-center">
-                        <img id="current-logo-preview" src="https://placehold.co/200x80/003366/FFFFFF?text=ICEA+LION" alt="Current Logo" class="max-h-24">
+                    <div class="p-4 border rounded-md bg-gray-50 flex justify-center items-center h-40">
+                        <img id="current-logo-preview" src="https://placehold.co/200x80/003366/FFFFFF?text=ICEA+LION" alt="Current Logo" class="max-h-full max-w-full">
                     </div>
                 </div>
 
                 <div>
                     <h2 class="text-lg font-semibold mb-2">Upload New Logo</h2>
-                    <p class="text-sm text-gray-600 mb-4">Select a new image file to update the company logo across the application.</p>
+                    <p class="text-sm text-gray-600 mb-4">Select a new image file to update the company logo.</p>
                     <div class="flex items-center space-x-4">
                         <input type="file" id="logo-upload-input" accept="image/*" class="block w-full text-sm text-gray-500
                             file:mr-4 file:py-2 file:px-4
@@ -84,10 +91,39 @@
                             hover:file:bg-blue-100
                         "/>
                         <button id="save-logo-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
-                            <i class="fas fa-save mr-2"></i>Save Logo
+                            <i class="fas fa-save mr-2"></i>Save
                         </button>
                     </div>
-                    <div id="upload-status" class="mt-4 text-sm"></div>
+                    <div id="logo-upload-status" class="mt-4 text-sm"></div>
+                </div>
+            </div>
+
+            <!-- Background Image Management Card -->
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <h1 class="text-2xl font-bold text-gray-800 mb-6">Manage Login Background</h1>
+                
+                <div class="mb-6">
+                    <h2 class="text-lg font-semibold mb-2">Current Background</h2>
+                    <div id="current-bg-preview" class="p-4 border rounded-md bg-gray-50 flex justify-center items-center preview-container" style="background-image: url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop');">
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="text-lg font-semibold mb-2">Upload New Background</h2>
+                    <p class="text-sm text-gray-600 mb-4">Select a new image for the login screen background.</p>
+                    <div class="flex items-center space-x-4">
+                        <input type="file" id="bg-upload-input" accept="image/*" class="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-green-50 file:text-green-700
+                            hover:file:bg-green-100
+                        "/>
+                        <button id="save-bg-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
+                            <i class="fas fa-save mr-2"></i>Save
+                        </button>
+                    </div>
+                    <div id="bg-upload-status" class="mt-4 text-sm"></div>
                 </div>
             </div>
         </div>
@@ -95,17 +131,72 @@
 
     <script>
         // --- DOM Elements ---
-        const currentLogoPreview = document.getElementById('current-logo-preview');
         const headerLogo = document.getElementById('header-logo');
+        
+        // Logo Elements
+        const currentLogoPreview = document.getElementById('current-logo-preview');
         const logoUploadInput = document.getElementById('logo-upload-input');
         const saveLogoBtn = document.getElementById('save-logo-btn');
-        const uploadStatus = document.getElementById('upload-status');
+        const logoUploadStatus = document.getElementById('logo-upload-status');
         
-        // --- Local Storage Key ---
+        // Background Elements
+        const currentBgPreview = document.getElementById('current-bg-preview');
+        const bgUploadInput = document.getElementById('bg-upload-input');
+        const saveBgBtn = document.getElementById('save-bg-btn');
+        const bgUploadStatus = document.getElementById('bg-upload-status');
+        
+        // --- Local Storage Keys ---
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
+        const BG_STORAGE_KEY = 'loginBackgroundDataUrl';
 
         /**
-         * Loads the logo from local storage and applies it to the image elements.
+         * Generic function to save an image file to local storage.
+         * @param {File} file - The image file to save.
+         * @param {string} storageKey - The key to use for local storage.
+         * @param {HTMLElement} statusElement - The element to display upload status.
+         * @param {function} onSuccess - Callback function to run on successful save.
+         */
+        function saveImageToLocalStorage(file, storageKey, statusElement, onSuccess) {
+            if (!file) {
+                statusElement.textContent = "Please select a file first.";
+                statusElement.className = "text-red-600";
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onloadstart = () => {
+                statusElement.textContent = "Processing image...";
+                statusElement.className = "text-blue-600";
+            };
+
+            reader.onload = (event) => {
+                const dataUrl = event.target.result;
+                try {
+                    localStorage.setItem(storageKey, dataUrl);
+                    statusElement.textContent = "Image updated successfully!";
+                    statusElement.className = "text-green-600";
+                    if (onSuccess) {
+                        onSuccess();
+                    }
+                } catch (error) {
+                    console.error("Error saving to local storage:", error);
+                    statusElement.textContent = `Error: Could not save image. Storage might be full.`;
+                    statusElement.className = "text-red-600";
+                }
+            };
+
+            reader.onerror = () => {
+                console.error("Error reading file.");
+                statusElement.textContent = `Error: Could not read the selected file.`;
+                statusElement.className = "text-red-600";
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        /**
+         * Loads the logo from local storage and applies it.
          */
         function loadCurrentLogo() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
@@ -116,55 +207,31 @@
         }
 
         /**
-         * Handles the save button click event. Reads the selected file,
-         * converts it to a Base64 Data URL, and saves it to local storage.
+         * Loads the background image from local storage and applies it.
          */
+        function loadCurrentBackground() {
+            const savedBg = localStorage.getItem(BG_STORAGE_KEY);
+            if (savedBg) {
+                currentBgPreview.style.backgroundImage = `url(${savedBg})`;
+            }
+        }
+
+        // --- Event Listeners ---
         saveLogoBtn.addEventListener('click', () => {
             const file = logoUploadInput.files[0];
-            if (!file) {
-                uploadStatus.textContent = "Please select a file first.";
-                uploadStatus.className = "text-red-600";
-                return;
-            }
+            saveImageToLocalStorage(file, LOGO_STORAGE_KEY, logoUploadStatus, loadCurrentLogo);
+        });
 
-            // Use FileReader to read the file as a Data URL (Base64)
-            const reader = new FileReader();
-            
-            reader.onloadstart = () => {
-                uploadStatus.textContent = "Processing image...";
-                uploadStatus.className = "text-blue-600";
-            };
-
-            reader.onload = (event) => {
-                const dataUrl = event.target.result;
-                try {
-                    // Save the Base64 string to local storage
-                    localStorage.setItem(LOGO_STORAGE_KEY, dataUrl);
-                    
-                    uploadStatus.textContent = "Logo updated successfully!";
-                    uploadStatus.className = "text-green-600";
-
-                    // Reload the logo on the page immediately
-                    loadCurrentLogo();
-                } catch (error) {
-                    console.error("Error saving to local storage:", error);
-                    uploadStatus.textContent = `Error: Could not save image. Storage might be full.`;
-                    uploadStatus.className = "text-red-600";
-                }
-            };
-
-            reader.onerror = () => {
-                console.error("Error reading file.");
-                uploadStatus.textContent = `Error: Could not read the selected file.`;
-                uploadStatus.className = "text-red-600";
-            };
-
-            reader.readAsDataURL(file);
+        saveBgBtn.addEventListener('click', () => {
+            const file = bgUploadInput.files[0];
+            saveImageToLocalStorage(file, BG_STORAGE_KEY, bgUploadStatus, loadCurrentBackground);
         });
 
         // --- Initial Load ---
-        // Load the logo as soon as the page content is ready.
-        document.addEventListener('DOMContentLoaded', loadCurrentLogo);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCurrentLogo();
+            loadCurrentBackground();
+        });
     </script>
 </body>
 </html>
