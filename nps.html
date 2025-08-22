@@ -226,9 +226,14 @@
             <div class="dashboard-card">
                 <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
                     <h2 class="text-xl font-semibold text-gray-800">NPS Records</h2>
-                    <button id="syncButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
-                        <i class="fas fa-sync-alt mr-2"></i>Sync with Google Sheet
-                    </button>
+                    <div class="flex gap-2">
+                        <button id="deleteSelectedBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
+                            <i class="fas fa-trash-alt mr-2"></i>Delete Selected
+                        </button>
+                        <button id="syncButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
+                            <i class="fas fa-sync-alt mr-2"></i>Sync with Google Sheet
+                        </button>
+                    </div>
                 </div>
                 <!-- Filters -->
                 <div class="bg-blue-900 p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-end gap-4">
@@ -274,7 +279,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, writeBatch, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, writeBatch, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // --- Firebase Config and Init ---
         const firebaseConfig = { apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs", authDomain: "icea-lion-qa.firebaseapp.com", projectId: "icea-lion-qa", storageBucket: "icea-lion-qa.appspot.com", messagingSenderId: "820082472004", appId: "1:820082472004:web:8caddf941e1b5b667faf811" };
@@ -352,19 +357,19 @@
             tableBody.innerHTML = '';
 
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="${tableHeaders.length + 3}" class="text-center py-4">No records match the current filters.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="${tableHeaders.length + 4}" class="text-center py-4">No records match the current filters.</td></tr>`;
                 return;
             }
 
-            const headers = [...tableHeaders, "NPS Category", "QA Rating", "Review"];
+            const headers = ["<input type='checkbox' id='selectAllCheckbox'>", ...tableHeaders, "NPS Category", "QA Rating", "Eligible for Review", "Review"];
             let headerHtml = '<tr>';
             headers.forEach(h => headerHtml += `<th class="p-2">${h}</th>`);
             headerHtml += '</tr>';
             tableHead.innerHTML = headerHtml;
             
-            records.forEach(record => {
+            records.forEach((record, index) => {
                 const row = tableBody.insertRow();
-                let rowHtml = '';
+                let rowHtml = `<td><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>`;
 
                 tableHeaders.forEach(header => {
                     let cellValue = record[header] || '';
@@ -383,9 +388,19 @@
 
                 rowHtml += `<td><span class="${categoryClass}">${category}</span></td>`;
                 rowHtml += `<td>${record.qaScore || 'N/A'}</td>`;
+                
+                const isEligible = (index + 1) % 5 === 0;
+                rowHtml += `<td><input type="checkbox" ${isEligible ? 'checked' : ''} disabled></td>`;
+                
                 rowHtml += `<td><button class="review-btn bg-blue-500 text-white px-3 py-1 rounded" data-record-id="${record.id}" data-contact-id="${record['Customer Contact ID']}">Review</button></td>`;
                 
                 row.innerHTML = rowHtml;
+            });
+
+            document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+                document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                    checkbox.checked = e.target.checked;
+                });
             });
         }
 
@@ -501,6 +516,20 @@
             }
         }
 
+        async function deleteSelectedRecords() {
+            const selectedIds = [...document.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.recordId);
+            if (selectedIds.length === 0) {
+                alert("Please select records to delete.");
+                return;
+            }
+            if (confirm(`Are you sure you want to delete ${selectedIds.length} record(s)?`)) {
+                for (const id of selectedIds) {
+                    await deleteDoc(doc(db, NPS_RECORDS_PATH, id));
+                }
+                alert("Selected records deleted successfully.");
+            }
+        }
+
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
             onAuthStateChanged(auth, (user) => {
@@ -536,6 +565,7 @@
             });
             
             document.getElementById('syncButton').addEventListener('click', fetchAndSyncNpsRecords);
+            document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedRecords);
             document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
             // Filter listeners
