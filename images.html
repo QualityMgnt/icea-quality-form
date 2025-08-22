@@ -3,23 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Management - ICEA LION GROUP</title>
+    <title>Quality Assessment Form - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
-        /* Modern Base styles from index.html */
+        /* Modern Base styles */
         body {
             font-family: 'Poppins', sans-serif;
             background-color: #f0f2f5;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
+
+        body.loaded {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Login Page Styles */
+        .login-container-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-image: url('https://images.unsplash.com/photo-1587560699334-cc426edb4ce8?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+        }
+        
+        .login-card {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .form-input {
+            background-color: #f0f2f5;
+            border: 2px solid transparent;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .form-input:focus {
+            border-color: #0056b3;
+            box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.25);
+            background-color: #fff;
+        }
+        
+        .login-button {
+            background: linear-gradient(90deg, #0056b3, #003366);
+            border: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 51, 102, 0.4);
         }
 
         /* General App Layout Styles */
         .top-header {
-            background-color: #003366;
+            background-color: #003366; /* Deep Navy Blue */
             color: white;
             padding: 1rem;
             text-align: center;
@@ -33,13 +93,13 @@
         }
         
         .main-nav {
-            background-color: #002347;
+            background-color: #002347; /* Even Darker Navy for contrast */
             color: white;
             position: fixed;
-            top: 64px;
+            top: 64px; /* Height of top-header */
             left: 0;
             height: calc(100% - 64px);
-            width: 256px;
+            width: 256px; /* w-64 */
             z-index: 999;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
@@ -54,7 +114,7 @@
         }
 
         .logout-button {
-            background-color: #ff6f61;
+            background-color: #ff6f61; /* A modern coral/orange */
             color: white;
             transition: background-color 0.2s ease;
         }
@@ -63,117 +123,521 @@
         }
 
         main {
-            padding-top: 80px;
-            padding-left: 272px;
+            padding-top: 80px; /* top-header height + margin */
+            padding-left: 272px; /* sidebar width + margin */
             padding-right: 16px;
             padding-bottom: 16px;
             width: 100%;
         }
         
-        .hidden { display: none !important; }
+        /* Original App Styles (adapted for new layout) */
+        .icealion-blue {
+            background-color: #0056b3;
+            color: white;
+        }
+        .error-message {
+            color: #dc2626;
+        }
+        .section-header-bg {
+            background-color: #0056b3;
+            color: white;
+        }
+        .form-row-light { background-color: #f9fafb; }
+        .form-row-dark { background-color: #f3f4f6; }
+        .top-field-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        /* UPDATED: Textbox sizing and wrapping */
+        .form-grid-input, .points-input, .rating-select, .remarks-textarea {
+            border-color: #0056b3;
+            height: 1.5cm;
+            padding: 0.5rem; /* Add padding for better text visibility */
+            word-wrap: break-word; /* Ensure text wraps */
+        }
+        select.form-grid-input {
+             -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+        .remarks-textarea {
+            min-height: 1.5cm; /* Use min-height for auto-expansion */
+            width: 100%; /* Remarks should be wider */
+            resize: vertical;
+        }
+
+
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
-    <header class="top-header flex items-center justify-center">
-        <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
-        <img id="header-logo" src="https://placehold.co/150x60/003366/FFFFFF?text=Logo" alt="Company Logo" class="absolute right-4 h-12 w-auto">
-    </header>
+    <!-- LOGIN PAGE (OVERLAY) -->
+    <div class="login-container-wrapper" id="loginPage">
+        <div class="login-card">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <img id="login-logo" src="https://placehold.co/150x60/003366/FFFFFF?text=ICEA+LION" alt="Company Logo" class="mx-auto mb-4 rounded h-16 w-auto">
+                    <h1 class="text-2xl font-bold text-gray-800">Quality Management System</h1>
+                    <p class="text-gray-600">Please sign in to continue</p>
+                </div>
 
-    <nav class="main-nav" id="mainNav">
-        <div class="sidebar p-4 h-full relative">
-            <ul>
-                <li class="nav-tab mb-2"><a href="index.html" id="auditFormTab" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
-                <li class="nav-tab mb-2"><a href="#" id="imagesTab" class="active flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
-                <!-- Add other nav links here, pointing to their respective .html files -->
-            </ul>
-            <div class="absolute bottom-4 w-full pr-8">
-                 <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md">Logout</button>
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label for="username" class="sr-only">Username</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-gray-400"></i>
+                            </div>
+                            <input type="text" id="username" name="username"
+                                    class="form-input block w-full rounded-md shadow-sm p-3 pl-10 border"
+                                    required placeholder="Username">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="password" class="sr-only">Password</label>
+                         <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400"></i>
+                            </div>
+                            <input type="password" id="password" name="password"
+                                    class="form-input block w-full rounded-md shadow-sm p-3 pl-10 border"
+                                    required placeholder="Password">
+                        </div>
+                    </div>
+                    <button type="button" id="loginButton"
+                            class="login-button w-full text-white font-bold py-3 px-4 rounded-md shadow-md">
+                        Login
+                    </button>
+                    <div class="text-center text-sm mt-4">
+                        <a href="#" id="forgotPasswordLink" class="font-medium text-blue-600 hover:underline">Forgot Password?</a>
+                    </div>
+                    <div class="text-center text-sm text-gray-600">
+                        Don't have an account? 
+                        <a href="signup.html" class="font-medium text-blue-600 hover:underline">Sign Up</a>
+                    </div>
+                    <div id="loginMessage" class="text-red-600 text-center text-sm mt-2 hidden"></div>
+                </form>
             </div>
         </div>
-    </nav>
-    
-    <main>
-        <div class="container mx-auto bg-white p-8 rounded-lg shadow-lg">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">Image Management</h1>
-            <p class="text-gray-600 mb-8">Upload a company logo. This logo will be saved in your browser and will appear in the header.</p>
-            
-            <div class="border-2 border-dashed border-gray-300 p-8 rounded-lg text-center">
-                <input type="file" id="logoUploadInput" class="hidden" accept="image/png, image/jpeg, image/gif">
-                <button id="uploadButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                    <i class="fas fa-upload mr-2"></i>Select Logo
-                </button>
-                <div id="previewContainer" class="mt-8 flex flex-col items-center">
-                    <p class="font-semibold mb-2 text-gray-700">Current Logo:</p>
-                    <img id="currentLogo" class="rounded-md border p-2 max-w-xs h-auto" src="https://placehold.co/200x80/f0f2f5/cccccc?text=No+Logo" alt="Current Logo">
+    </div>
+
+    <!-- MAIN APP INTERFACE -->
+    <div id="mainApp" class="hidden">
+        <header class="top-header flex items-center justify-center">
+            <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
+            <img id="header-logo" src="https://placehold.co/150x60/003366/FFFFFF?text=Logo" alt="Company Logo" class="absolute right-4 h-12 w-auto">
+        </header>
+
+        <nav class="main-nav" id="mainNav">
+            <div class="sidebar p-4 h-full relative">
+                <ul>
+                    <li class="nav-tab mb-2"><a href="index.html" id="auditFormTab" class="active flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
+                    <li class="nav-tab mb-2"><a href="images.html" id="imagesTab" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
+                    <!-- Add other nav links here -->
+                </ul>
+                <div class="absolute bottom-4 w-full pr-8">
+                     <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md">Logout</button>
                 </div>
             </div>
-        </div>
-    </main>
+        </nav>
+        
+        <main>
+            <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden" id="auditFormContent">
+                <div class="icealion-blue p-4 flex items-center justify-between">
+                    <div class="text-xl font-semibold">Quality Assessment Form - ICEA LION GROUP Contact Centre</div>
+                    <img id="audit-form-logo" src="https://placehold.co/95x57/1a73e8/FFFFFF?text=Logo" alt="ICEALION Logo" style="height: 1.5cm; width: 2.5cm; object-fit: contain;">
+                </div>
 
-    <script>
-        // --- Logo Management using LocalStorage ---
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="contact-id" class="block top-field-label">Contact ID</label>
+                        <input type="text" id="contact-id" name="Contact ID" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" required>
+                    </div>
+                    <div>
+                        <label for="client-name" class="block top-field-label">Client Name</label>
+                        <input type="text" id="client-name" name="Client Name" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" placeholder="e.g., John Doe" required>
+                    </div>
+                    <div>
+                        <label for="cer-name" class="block top-field-label">CER Name</label>
+                        <select id="cer-name" name="CER Name" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" required>
+                            <option value="">Select CER</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="cer-email" class="block top-field-label">CER Email</label>
+                        <input type="email" id="cer-email" name="CER Email" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" placeholder="e.g., cer.name@icealion.com" readonly required>
+                    </div>
+                    <div>
+                        <label for="cer-role" class="block top-field-label">CER Role</label>
+                        <select id="cer-role" name="CER Role" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" required>
+                            <option value="">Select Role</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="call-date-time" class="block top-field-label">Call Date and Time</label>
+                        <input type="datetime-local" id="call-date-time" name="Call Date and Time" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" required>
+                    </div>
+                    <div>
+                        <label for="reviewer-name" class="block top-field-label">Reviewer's Name</label>
+                        <input type="text" id="reviewer-name" name="Reviewer's Name" class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 form-grid-input border" readonly>
+                    </div>
+                    <div>
+                        <label for="autofail-type" class="block top-field-label">Auto Fail Type</label>
+                        <select id="autofail-type" name="Auto Fail Type" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border">
+                            <option value="">Select Autofail Type</option>
+                        </select>
+                    </div>
+                    <div id="autofailDescriptionContainer" class="hidden">
+                        <label for="autofail-description" class="block top-field-label">Autofail Description</label>
+                        <textarea id="autofail-description" name="Autofail Description" rows="1" class="mt-1 block w-full rounded-md shadow-sm remarks-textarea border" placeholder="Provide details about the autofail" oninput="autoExpandTextarea(this)"></textarea>
+                    </div>
+                    <div>
+                        <label for="review-date" class="block top-field-label">Evaluation Date</label>
+                        <input type="date" id="review-date" name="Evaluation Date" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" required>
+                    </div>
+                    <div>
+                        <label for="duration" class="block top-field-label">Call Duration</label>
+                        <input type="text" id="duration" name="Call Duration" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" placeholder="e.g., 30 mins">
+                    </div>
 
+                    <div id="customFieldsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 col-span-full">
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-lg shadow-sm flex flex-col items-center justify-center space-y-2 bg-gray-50 mx-6 mb-4">
+                    <div class="text-sm font-medium text-gray-600">Scores:</div>
+                    <div class="flex justify-around w-full gap-2">
+                        <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
+                            <div class="text-xs font-medium text-gray-600 mb-1">Overall Score</div>
+                            <div class="text-xl font-bold text-blue-600" id="overall-score-display">0%</div>
+                        </div>
+                        <div class="flex-1 text-center bg-gray-50 p-2 rounded-md">
+                            <div class="text-xs font-medium text-gray-600 mb-1">Business & Compliance Accuracy</div>
+                            <div class="text-xl font-bold text-blue-600" id="business-compliance-accuracy">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="assessment-form">
+                    <!-- Question sections will be populated by JS -->
+                </form>
+                    
+                <div class="p-6 flex flex-col items-end">
+                    <div class="w-full md:w-1/2 lg:w-1/3 bg-white rounded-lg shadow-md border border-gray-200 p-4">
+                        <div class="flex justify-between items-center py-2 border-b">
+                            <span class="font-medium text-gray-600">Total Pts.</span>
+                            <span id="total-pts-percentage" class="font-semibold text-gray-800">0</span>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b">
+                            <span class="font-medium text-gray-600">Available Pts.</span>
+                            <span class="font-semibold text-gray-800">100%</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-2">
+                            <span class="font-bold text-orange-500">Overall Score</span>
+                            <span id="overall-final-percentage-display" class="font-bold text-xl text-orange-500">0%</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between w-full mt-6">
+                        <img id="footer-logo" src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
+                        <div class="flex space-x-2">
+                            <button type="button" id="saveDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Save Data</button>
+                            <button type="button" id="downloadPdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Download PDF</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.firebasestorage.app",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // --- DOM Elements ---
+        const loginPage = document.getElementById('loginPage');
+        const mainApp = document.getElementById('mainApp');
+        const loginButton = document.getElementById('loginButton');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginMessage = document.getElementById('loginMessage');
+        
+        // --- LOGO MANAGEMENT (from localStorage) ---
         const LOGO_STORAGE_KEY = 'companyLogoUrl';
 
         function loadAndSetLogo() {
             const savedLogoUrl = localStorage.getItem(LOGO_STORAGE_KEY);
             if (savedLogoUrl) {
                 document.getElementById('header-logo').src = savedLogoUrl;
-                document.getElementById('currentLogo').src = savedLogoUrl;
+                document.getElementById('login-logo').src = savedLogoUrl;
+                document.getElementById('audit-form-logo').src = savedLogoUrl;
+                document.getElementById('footer-logo').src = savedLogoUrl;
             }
         }
 
-        function handleLogoSelection(event) {
-            const fileInput = event.target;
-            const file = fileInput.files[0];
+        // --- AUTHENTICATION & APP INITIALIZATION ---
 
-            if (!file) {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                showMainApp();
+                initializeAppData(); 
+            } else {
+                showLoginPage();
+            }
+            document.body.classList.add('loaded');
+        });
+
+        function showLoginPage() {
+            loginPage.classList.remove('hidden');
+            mainApp.classList.add('hidden');
+            loadAndSetLogo(); // Load logo for the login page
+        }
+
+        function showMainApp() {
+            loginPage.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            loadAndSetLogo(); // Load logo for the main app header
+        }
+
+        loginButton.addEventListener('click', async () => {
+            const email = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            loginMessage.textContent = '';
+            loginMessage.classList.add('hidden');
+
+            if (!email || !pass) {
+                loginMessage.textContent = "Please enter both username and password.";
+                loginMessage.classList.remove('hidden');
                 return;
             }
 
-            const reader = new FileReader();
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (e) {
+                loginMessage.textContent = "Error: " + e.message;
+                loginMessage.classList.remove('hidden');
+            }
+        });
 
-            reader.onload = function(e) {
-                const logoDataUrl = e.target.result;
-                // Save the new logo to localStorage
-                localStorage.setItem(LOGO_STORAGE_KEY, logoDataUrl);
-                // Immediately update the logos on the page
-                loadAndSetLogo();
-                alert("Logo updated successfully!");
-            };
+        logoutBtn.addEventListener('click', () => signOut(auth));
+        
+        // --- NEW & MODIFIED FUNCTIONS ---
 
-            reader.onerror = function() {
-                alert("Error reading file. Please try again.");
-            };
+        window.autoExpandTextarea = function(element) {
+            element.style.height = 'auto';
+            element.style.height = (element.scrollHeight) + 'px';
+        };
+        
+        async function generateAndDownloadPdf() {
+            const cerName = document.getElementById('cer-name').value;
+            const evalDate = document.getElementById('review-date').value;
+            if (!cerName || !evalDate) {
+                alert("Please select a CER Name and Evaluation Date before generating the PDF.");
+                return;
+            }
+            const filename = `Audit Feedback - ${cerName} - ${evalDate}.pdf`;
+            
+            alert("Generating PDF, please wait...");
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const canvas = await html2canvas(document.getElementById('auditFormContent'), { scale: 2 });
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const imgWidth = 210;
+            const pageHeight = 297;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
 
-            // Read the file as a Data URL (Base64 string)
-            reader.readAsDataURL(file);
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+              position = heightLeft - imgHeight;
+              pdf.addPage();
+              pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+            }
+            
+            pdf.save(filename);
         }
 
-        // --- Event Listeners ---
+        // --- ALL ORIGINAL JAVASCRIPT FUNCTIONS ---
+        
+        let allRolesQuestions = {};
+        let cerNameEmailsMap = {};
 
+        function initializeAppData() {
+            // This function will kickstart all data fetching
+            fetchDropdownOptionsData();
+            fetchQuestionsData();
+        }
+
+        async function fetchDropdownOptionsData() {
+            // In a real app, you'd fetch this from Firestore
+            const dropdownOptions = {
+                cerNames: ["Alice", "Bob", "Charlie"],
+                cerRoles: ["Agent", "Supervisor", "Manager"],
+                autofailTypes: ["Security Breach", "Gross Misconduct"]
+            };
+            cerNameEmailsMap = { "Alice": "alice@example.com", "Bob": "bob@example.com", "Charlie": "charlie@example.com" };
+            populateAllDropdownsInForm(dropdownOptions);
+        }
+
+        async function fetchQuestionsData() {
+            // In a real app, you'd fetch this from Firestore
+            allRolesQuestions = {
+                "Agent": {
+                    "CUSTOMER EXPERIENCE": [
+                        { desc: "Greeting was professional and friendly.", weightage: 10 },
+                        { desc: "Actively listened to the customer.", weightage: 15 }
+                    ],
+                    "PROBLEM SOLVING SKILLS": [
+                        { desc: "Correctly identified the customer's issue.", weightage: 20 }
+                    ],
+                    "COMPLIANCE AND BUSINESS CRITICAL ACCURACY": [
+                        { desc: "Followed all security protocols.", weightage: 25, autofail: true }
+                    ]
+                }
+                // ... other roles
+            };
+            // Initial render based on default or selected role
+            const cerRoleSelect = document.getElementById('cer-role');
+            if (cerRoleSelect.value) {
+                renderQuestionsForRole(cerRoleSelect.value);
+            }
+        }
+
+        function populateAllDropdownsInForm(dropdownOptions) {
+            const cerNameSelect = document.getElementById('cer-name');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+
+            const populate = (el, opts) => {
+                if (!el) return;
+                opts.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt;
+                    option.textContent = opt;
+                    el.appendChild(option);
+                });
+            };
+            
+            populate(cerNameSelect, dropdownOptions.cerNames);
+            populate(cerRoleSelect, dropdownOptions.cerRoles);
+            populate(autofailTypeSelect, dropdownOptions.autofailTypes);
+        }
+        
+        function renderQuestionsForRole(role) {
+            const form = document.getElementById('assessment-form');
+            form.innerHTML = ''; // Clear previous questions
+
+            const roleQuestions = allRolesQuestions[role] || {};
+
+            for (const sectionTitle in roleQuestions) {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'mt-4';
+                sectionDiv.innerHTML = `
+                    <div class="section-header-bg text-white p-3 font-semibold flex items-center gap-2">
+                        ${sectionTitle}
+                    </div>
+                    <div class="p-4" id="${sectionTitle.replace(/\s+/g, '')}Container">
+                        <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-2">
+                            <div class="col-span-6">Description</div>
+                            <div class="col-span-2 text-center">Rating</div>
+                            <div class="col-span-1 text-center">Weight</div>
+                            <div class="col-span-1 text-center">Pnts</div>
+                            <div class="col-span-2">Remarks</div>
+                        </div>
+                    </div>
+                `;
+                form.appendChild(sectionDiv);
+
+                const container = document.getElementById(`${sectionTitle.replace(/\s+/g, '')}Container`);
+                const questions = roleQuestions[sectionTitle];
+                
+                questions.forEach((q, index) => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = `grid grid-cols-12 gap-2 py-2 items-center rounded-md mb-2 p-2 ${index % 2 === 0 ? 'form-row-light' : 'form-row-dark'}`;
+                    
+                    rowDiv.innerHTML = `
+                        <div class="col-span-6 flex items-center gap-2">${q.desc}</div>
+                        <div class="col-span-2">
+                            <select name="${q.desc} (Rating)" class="w-full rounded-md shadow-sm p-1 text-center border rating-select form-grid-input">
+                                <option value="">Select</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                                <option value="N/A">N/A</option>
+                            </select>
+                        </div>
+                        <div class="col-span-1 text-center weightage-display" data-weightage="${q.weightage}">${q.weightage}</div>
+                        <div class="col-span-1 text-center">
+                            <input type="number" name="${q.desc} (Points)" class="w-full text-center p-1 border rounded-md points-input form-grid-input" value="0" readonly>
+                        </div>
+                        <div class="col-span-2">
+                            <textarea name="${q.desc} (Remarks)" rows="1" class="w-full rounded-md shadow-sm p-1 border remarks-textarea" oninput="autoExpandTextarea(this)"></textarea>
+                        </div>
+                    `;
+                    container.appendChild(rowDiv);
+                });
+            }
+        }
+        
+        // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Load any saved logo as soon as the page is ready
             loadAndSetLogo();
 
-            const uploadButton = document.getElementById('uploadButton');
-            const logoUploadInput = document.getElementById('logoUploadInput');
-            const logoutBtn = document.getElementById('logoutBtn');
+            const autofailTypeSelect = document.getElementById('autofail-type');
+            const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+            const cerRoleSelect = document.getElementById('cer-role');
+            const cerNameSelect = document.getElementById('cer-name');
 
-            uploadButton.addEventListener('click', () => {
-                logoUploadInput.click();
+            autofailTypeSelect?.addEventListener('change', e => {
+                const descContainer = document.getElementById('autofailDescriptionContainer');
+                const descTextarea = document.getElementById('autofail-description');
+                if (e.target.value) {
+                    descContainer.classList.remove('hidden');
+                    descTextarea.required = true;
+                } else {
+                    descContainer.classList.add('hidden');
+                    descTextarea.required = false;
+                }
             });
 
-            logoUploadInput.addEventListener('change', handleLogoSelection);
-
-            // Note: This logout button is for UI consistency. 
-            // It doesn't need full Firebase logic on this page.
-            logoutBtn.addEventListener('click', () => {
-                // You might want to clear the logo or just redirect
-                // For now, it just redirects to the main page.
-                window.location.href = './index.html';
+            downloadPdfBtn?.addEventListener('click', generateAndDownloadPdf);
+            
+            cerRoleSelect?.addEventListener('change', e => renderQuestionsForRole(e.target.value));
+            
+            cerNameSelect?.addEventListener('change', e => {
+                const selectedName = e.target.value;
+                document.getElementById('cer-email').value = cerNameEmailsMap[selectedName] || '';
             });
         });
+
     </script>
 </body>
 </html>
