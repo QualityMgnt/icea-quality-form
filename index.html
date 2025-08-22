@@ -187,6 +187,7 @@
     </style>
 </head>
 <body>
+    <!-- LOGIN PAGE (OVERLAY) -->
     <div class="login-container-wrapper" id="loginPage">
         <div class="login-card">
             <div class="p-8">
@@ -236,6 +237,7 @@
         </div>
     </div>
 
+    <!-- MAIN APP INTERFACE -->
     <div id="mainApp" class="hidden">
         <header class="top-header flex items-center justify-center relative">
             <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
@@ -264,6 +266,7 @@
         </nav>
         
         <main>
+            <!-- Home Content -->
             <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8" id="homeContent">
                 <div class="icealion-blue p-4 text-xl font-semibold text-center">
                     Welcome to the Quality Management System
@@ -274,6 +277,7 @@
                 </div>
             </div>
 
+            <!-- Audit Form Content -->
             <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden hidden" id="auditFormContent">
                 <div class="icealion-blue p-4 flex items-center justify-between">
                     <div class="text-xl font-semibold">Quality Assessment Form - ICEA LION GROUP Contact Centre</div>
@@ -306,8 +310,8 @@
                         </select>
                     </div>
                     <div>
-                        <label for="call-date-time" class="block top-field-label">Call Date and Time</label>
-                        <input type="datetime-local" id="call-date-time" name="Call Date and Time" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" required>
+                        <label for="call-date" class="block top-field-label">Call Date</label>
+                        <input type="date" id="call-date" name="Call Date" class="mt-1 block w-full rounded-md shadow-sm form-grid-input border" required>
                     </div>
                     <div>
                         <label for="reviewer-name" class="block top-field-label">Reviewer's Name</label>
@@ -424,9 +428,10 @@
                         <img id="footer-logo" src="https://placehold.co/150x50/1a73e8/FFFFFF?text=ICEALION" alt="ICEALION Logo" class="h-12 rounded-md">
                         <div class="flex space-x-2">
                             <button type="button" id="saveDataBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Save Data</button>
-                            <button type="button" id="downloadPdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Download PDF</button>
-                            <button type="button" id="shareBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Share</button>
-                            <button type="button" id="shareViaEmailBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md shadow-md">Share via Email</button>
+                            <button type="button" id="resetBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-md shadow-md">Reset</button>
+                            <button type="button" id="downloadPdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Download PDF</button>
+                            <button type="button" id="shareBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Share</button>
+                            <button type="button" id="shareViaEmailBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md shadow-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>Share via Email</button>
                         </div>
                     </div>
                 </div>
@@ -456,6 +461,7 @@
                 </div>
             </div>
     
+            <!-- Database Content -->
             <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 hidden" id="databaseContent">
                 <div class="icealion-blue p-4 text-xl font-semibold text-center">
                     Database Records
@@ -511,6 +517,7 @@
                 </div>
             </div>
     
+            <!-- Share Response Content -->
             <div class="container mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8 hidden" id="shareResponseContent">
                 <div class="icealion-blue p-4 text-xl font-semibold text-center">
                     Share Evaluation Response
@@ -872,6 +879,7 @@
             const shareViaEmailBtn = document.getElementById('shareViaEmailBtn');
             const autofailTypeSelect = document.getElementById('autofail-type');
             const sendEmailBtn = document.getElementById('sendEmailBtn');
+            const resetBtn = document.getElementById('resetBtn');
 
             homeTab?.addEventListener('click', e => { e.preventDefault(); window.location.href = 'home.html'; });
             auditFormTab?.addEventListener('click', e => { e.preventDefault(); showTab('auditForm'); });
@@ -898,6 +906,7 @@
             });
 
             saveDataBtn?.addEventListener('click', saveFormDataOnly);
+            resetBtn?.addEventListener('click', resetForm);
             downloadPdfBtn?.addEventListener('click', generateAndDownloadPdf);
             
             shareBtn?.addEventListener('click', () => {
@@ -938,6 +947,14 @@
                     }
                 }
                 window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
+            });
+
+            // Disable share/download buttons on form change
+            const formInputs = document.querySelectorAll('#auditFormContent input, #auditFormContent select, #auditFormContent textarea');
+            formInputs.forEach(input => {
+                input.addEventListener('change', () => {
+                    setShareButtonsState(false);
+                });
             });
         }
 
@@ -1428,6 +1445,12 @@
             
             populateAllDropdownsInForm();
         }
+        
+        function setShareButtonsState(enabled) {
+            document.getElementById('downloadPdfBtn').disabled = !enabled;
+            document.getElementById('shareBtn').disabled = !enabled;
+            document.getElementById('shareViaEmailBtn').disabled = !enabled;
+        }
 
         async function saveFormDataOnly() {
             const formData = collectFormData();
@@ -1439,7 +1462,7 @@
                         submittedAt: new Date()
                     });
                     showMessageBox("Success", "Form data saved successfully!");
-                    resetFormFieldsButKeepRole();
+                    setShareButtonsState(true); // Enable buttons after successful save
                 } catch(e) {
                     showMessageBox("Error", `Failed to save data: ${e.message}`, true);
                 }
@@ -1447,7 +1470,7 @@
         }
 
         function collectFormData() {
-            const requiredFields = ['contact-id', 'client-name', 'cer-name', 'cer-role', 'call-date-time', 'reviewer-name', 'review-date'];
+            const requiredFields = ['contact-id', 'client-name', 'cer-name', 'cer-role', 'call-date', 'reviewer-name', 'review-date'];
             for (const id of requiredFields) {
                 const el = document.getElementById(id);
                 if (!el || !el.value) {
@@ -1472,12 +1495,12 @@
             return formData;
         }
 
-        function resetFormFieldsButKeepRole() {
+        function resetForm() {
             document.getElementById('contact-id').value = '';
             document.getElementById('client-name').value = '';
             document.getElementById('cer-name').value = '';
             document.getElementById('cer-email').value = '';
-            document.getElementById('call-date-time').value = '';
+            document.getElementById('call-date').value = '';
             document.getElementById('autofail-type').value = '';
             document.getElementById('autofail-description').value = '';
             document.getElementById('duration').value = '';
@@ -1486,6 +1509,7 @@
 
             document.querySelectorAll('#assessment-form textarea').forEach(el => el.value = '');
             renderQuestionsForRole(document.getElementById('cer-role').value);
+            setShareButtonsState(false);
         }
 
     </script>
