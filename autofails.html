@@ -223,11 +223,17 @@
             </div>
 
             <div class="dashboard-card bg-white mt-6">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">Autofail Records Details</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Autofail Records Details</h2>
+                    <button id="downloadExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
+                        <i class="fas fa-file-excel mr-2"></i>Download Selected as Excel
+                    </button>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="autofail-table">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAllCheckbox"></th>
                                 <th>Date</th>
                                 <th>Contact ID</th>
                                 <th>Client Name</th>
@@ -268,6 +274,7 @@
 
         let allAutofailData = [];
         let charts = {};
+        let currentFilteredData = [];
 
         function loadLogoFromLocalStorage() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
@@ -326,9 +333,10 @@
                 filteredData = filteredData.filter(r => r['CER Role'] === cerRole);
             }
             
-            updateDashboard(filteredData);
-            renderTable(filteredData);
-            renderMonthlyTables(filteredData);
+            currentFilteredData = filteredData;
+            updateDashboard(currentFilteredData);
+            renderTable(currentFilteredData);
+            renderMonthlyTables(currentFilteredData);
         }
 
         async function fetchDataAndRender() {
@@ -356,7 +364,7 @@
             const tableBody = document.getElementById('autofailRecordsTableBody');
             tableBody.innerHTML = '';
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No autofail records found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">No autofail records found for the selected filters.</td></tr>`;
                 return;
             }
 
@@ -364,6 +372,7 @@
                 const row = tableBody.insertRow();
                 const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleDateString() : 'N/A';
                 row.innerHTML = `
+                    <td><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>
                     <td>${submittedAt}</td>
                     <td>${record['Contact ID'] || 'N/A'}</td>
                     <td>${record['Client Name'] || 'N/A'}</td>
@@ -506,6 +515,41 @@
                 tbody.appendChild(tr);
             });
         }
+
+        function downloadExcel(data) {
+            if (data.length === 0) {
+                alert("No records selected to download.");
+                return;
+            }
+
+            const headers = ["Date", "Contact ID", "Client Name", "CER Name", "Reason for Autofail"];
+            const csvRows = [headers.join(',')];
+
+            data.forEach(record => {
+                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleDateString() : 'N/A';
+                const reason = (record['Autofail Description'] || record['Auto Fail Type'] || '').replace(/"/g, '""');
+                
+                const values = [
+                    `"${submittedAt}"`,
+                    `"${record['Contact ID'] || ''}"`,
+                    `"${record['Client Name'] || ''}"`,
+                    `"${record['CER Name'] || ''}"`,
+                    `"${reason}"`
+                ];
+                csvRows.push(values.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "autofail_records.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
         
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -525,6 +569,18 @@
             applyFilters();
         });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        
+        document.getElementById('downloadExcelBtn').addEventListener('click', () => {
+            const selectedIds = [...document.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.recordId);
+            const selectedRecords = currentFilteredData.filter(record => selectedIds.includes(record.id));
+            downloadExcel(selectedRecords);
+        });
+
+        document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+            document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+        });
 
     </script>
 </body>
