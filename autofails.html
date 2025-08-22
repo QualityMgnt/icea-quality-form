@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autofail Records - ICEA LION GROUP</title>
+    <title>Dashboard - Quality Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,33 +67,16 @@
             border-radius: 0.75rem;
             padding: 1.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         .chart-container {
-            height: 400px;
+            position: relative;
+            height: 350px;
         }
-        .autofail-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .autofail-table thead th {
-            background-color: #f9fafb;
-            padding: 0.75rem 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: #4b5563;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        .autofail-table tbody td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .autofail-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-        .autofail-table tbody tr:hover {
-            background-color: #f9fafb;
-        }
-        .hidden { display: none !important; }
         .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
             border-left-color: #0056b3;
@@ -103,6 +86,7 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -112,70 +96,94 @@
     </header>
 
     <nav class="main-nav" id="mainNav">
-        <div class="sidebar p-4 h-full flex flex-col">
-            <ul class="flex-grow">
-                <li class="nav-tab mb-2"><a href="home.html" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
-                <li class="nav-tab mb-2"><a href="Dashboard.html" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
-                <li class="nav-tab mb-2"><a href="index.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
-                <li class="nav-tab mb-2"><a href="myEvaluations.html" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
-                <li class="nav-tab mb-2"><a href="autofails.html" class="active flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
-                <li class="nav-tab mb-2"><a href="images.html" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
+        <div class="sidebar p-4 h-full relative">
+            <ul>
+                <li class="nav-tab mb-2"><a href="home.html" id="homeTab" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
+                <li class="nav-tab mb-2"><a href="Dashboard.html" id="reportsTab" class="active flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
+                <li class="nav-tab mb-2"><a href="index.html" id="auditFormTab" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
+                <li class="nav-tab mb-2"><a href="myEvaluations.html" id="myEvaluationsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
+                <li class="nav-tab mb-2"><a href="nps.html" id="npsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-comment-alt w-6 mr-2"></i> NPS</a></li>
+                <li class="nav-tab mb-2"><a href="autofails.html" id="autofailsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
+                <li class="nav-tab mb-2"><a href="database.html" id="databaseTab" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
+                <li class="nav-tab mb-2"><a href="images.html" id="imagesTab" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
+                <li class="nav-tab mb-2"><a href="users.html" id="usersTab" class="flex items-center p-2 rounded-md"><i class="fas fa-users w-6 mr-2"></i> Users</a></li>
+                <li class="nav-tab mb-2"><a href="admin.html" id="adminTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-cog w-6 mr-2"></i> Admin</a></li>
             </ul>
-            <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md mt-auto">Logout</button>
+            <div class="absolute bottom-4 w-full pr-8">
+                 <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md">Logout</button>
+            </div>
         </div>
     </nav>
 
-    <main id="mainContent">
+    <main>
         <div id="loadingMessage" class="flex flex-col items-center justify-center h-[calc(100vh-100px)]">
             <div class="spinner"></div>
-            <p class="mt-4 text-lg text-gray-600">Loading Autofail Data...</p>
+            <p class="mt-4 text-lg text-gray-600">Loading Dashboard...</p>
         </div>
 
-        <div id="autofailContent" class="hidden">
-            <h1 class="text-3xl font-bold mb-6 text-gray-800">Autofail Dashboard</h1>
-            
+        <div id="dashboardContent" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Performance Dashboard</h1>
+
+            <!-- Filter Section -->
+            <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="startDate" class="text-sm font-medium text-gray-700">From</label>
+                    <input type="date" id="startDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="endDate" class="text-sm font-medium text-gray-700">To</label>
+                    <input type="date" id="endDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="cerRoleFilter" class="text-sm font-medium text-gray-700">CER Role</label>
+                    <select id="cerRoleFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">All Roles</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button id="applyFilterBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Apply</button>
+                    <button id="resetFiltersBtn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Reset</button>
+                </div>
+            </div>
+
             <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="dashboard-card text-center">
-                    <h2 class="text-lg font-semibold text-gray-500">Total Autofails</h2>
-                    <p id="totalAutofails" class="text-4xl font-bold mt-2">0</p>
-                </div>
-                <div class="dashboard-card text-center">
-                    <h2 class="text-lg font-semibold text-gray-500">Top Autofail Reason</h2>
-                    <p id="topAutofailReason" class="text-2xl font-bold mt-2">-</p>
-                </div>
-                <div class="dashboard-card text-center">
-                    <h2 class="text-lg font-semibold text-gray-500">Agent with Most Autofails</h2>
-                    <p id="topAgent" class="text-2xl font-bold mt-2">-</p>
-                </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="dashboard-card"><h2 class="text-lg font-semibold text-gray-500">Total Evaluations</h2><p id="totalEvaluations" class="text-4xl font-bold mt-2">0</p></div>
+                <div class="dashboard-card"><h2 class="text-lg font-semibold text-gray-500">Total Autofails</h2><p id="totalAutofails" class="text-4xl font-bold mt-2">0</p></div>
+                <div class="dashboard-card"><h2 class="text-lg font-semibold text-gray-500">Top Agent</h2><p id="topAgent" class="text-2xl font-bold mt-2">-</p></div>
+                <div class="dashboard-card relative h-40"><canvas id="averageScoreGauge"></canvas></div>
             </div>
 
-            <div class="dashboard-card bg-white mb-6">
-                 <h2 class="text-xl font-semibold mb-4 text-gray-800">Autofail Analytics</h2>
-                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Performance Trend Chart -->
+                <div class="dashboard-card lg:col-span-2">
+                    <h2 class="text-xl font-semibold mb-4">Performance Over Time</h2>
                     <div class="chart-container">
-                        <canvas id="autofailTrendChart"></canvas>
+                        <canvas id="performanceTrendChart"></canvas>
                     </div>
+                </div>
+
+                <!-- Autofail Breakdown Chart -->
+                <div class="dashboard-card">
+                    <h2 class="text-xl font-semibold mb-4">Autofail Reasons</h2>
                     <div class="chart-container">
-                        <canvas id="autofailByTypeChart"></canvas>
+                        <canvas id="autofailReasonChart"></canvas>
                     </div>
                 </div>
             </div>
-
-            <div class="dashboard-card bg-white">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">Autofail Records Details</h2>
+            
+            <!-- Monthly Average Scores Table -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">Monthly Average Scores by CER Role</h2>
                 <div class="overflow-x-auto">
-                    <table class="autofail-table">
-                        <thead>
+                    <table class="w-full text-left" id="monthlyScoresByRoleTable">
+                        <thead class="bg-gray-50">
                             <tr>
-                                <th>Date</th>
-                                <th>Contact ID</th>
-                                <th>Client Name</th>
-                                <th>CER Name</th>
-                                <th>Reason for Autofail</th>
+                                <th class="p-4 text-sm font-semibold text-gray-600">CER Role</th>
                             </tr>
                         </thead>
-                        <tbody id="autofailRecordsTableBody"></tbody>
+                        <tbody>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -185,7 +193,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -202,9 +210,10 @@
         const db = getFirestore(app);
 
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const DROPDOWN_OPTIONS_PATH = `artifacts/${appId}/public/data/dropdown_options/general_options`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
 
-        let allAutofailData = [];
+        let allEvaluations = [];
         let charts = {};
 
         function loadLogoFromLocalStorage() {
@@ -214,96 +223,88 @@
             }
         }
 
-        async function fetchDataAndRender() {
-            const loadingMessage = document.getElementById('loadingMessage');
-            const autofailContent = document.getElementById('autofailContent');
+        async function fetchData() {
+            const querySnapshot = await getDocs(collection(db, EVALUATION_RECORDS_PATH));
+            allEvaluations = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
-            try {
-                const q = query(collection(db, EVALUATION_RECORDS_PATH), where("Auto Fail Type", "!=", ""));
-                const querySnapshot = await getDocs(q);
-                allAutofailData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                renderTable(allAutofailData);
-                updateDashboard(allAutofailData);
-
-                loadingMessage.classList.add('hidden');
-                autofailContent.classList.remove('hidden');
-
-            } catch (error) {
-                console.error("Error fetching autofail data: ", error);
-                loadingMessage.textContent = "Failed to load data. Please try again.";
+            const dropdownDoc = await getDoc(doc(db, DROPDOWN_OPTIONS_PATH));
+            if (dropdownDoc.exists()) {
+                const roles = dropdownDoc.data().cerRoles || [];
+                const roleFilter = document.getElementById('cerRoleFilter');
+                roles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = role;
+                    roleFilter.appendChild(option);
+                });
             }
         }
 
-        function renderTable(records) {
-            const tableBody = document.getElementById('autofailRecordsTableBody');
-            tableBody.innerHTML = '';
-            if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No autofail records found.</td></tr>`;
-                return;
-            }
-
-            records.forEach(record => {
-                const row = tableBody.insertRow();
-                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleDateString() : 'N/A';
-                row.innerHTML = `
-                    <td>${submittedAt}</td>
-                    <td>${record['Contact ID'] || 'N/A'}</td>
-                    <td>${record['Client Name'] || 'N/A'}</td>
-                    <td>${record['CER Name'] || 'N/A'}</td>
-                    <td>${record['Autofail Description'] || record['Auto Fail Type'] || 'N/A'}</td>
-                `;
+        function updateDashboard(data) {
+            document.getElementById('totalEvaluations').textContent = data.length;
+            
+            const totalScore = data.reduce((sum, record) => sum + (parseFloat(record['Overall Score']) || 0), 0);
+            const averageScore = data.length > 0 ? (totalScore / data.length) : 0;
+            
+            const autofails = data.filter(r => r['Auto Fail Type'] && r['Auto Fail Type'] !== '');
+            document.getElementById('totalAutofails').textContent = autofails.length;
+            
+            const agentScores = {};
+            data.forEach(rec => {
+                const agent = rec['CER Name'];
+                if(agent) {
+                    if(!agentScores[agent]) agentScores[agent] = { total: 0, count: 0 };
+                    agentScores[agent].total += parseFloat(rec['Overall Score']) || 0;
+                    agentScores[agent].count++;
+                }
             });
+
+            const agentAverages = Object.keys(agentScores).map(agent => ({
+                name: agent,
+                avg: agentScores[agent].total / agentScores[agent].count
+            })).sort((a, b) => b.avg - a.avg);
+
+            document.getElementById('topAgent').textContent = agentAverages.length > 0 ? agentAverages[0].name : '-';
+            
+            updateCharts(data, agentAverages, averageScore, autofails);
+            renderMonthlyScoresTable(data);
         }
         
-        function updateDashboard(data) {
-            document.getElementById('totalAutofails').textContent = data.length;
-            
-            const reasonCounts = data.reduce((acc, record) => {
-                const reason = record['Auto Fail Type'] || 'Unknown';
-                acc[reason] = (acc[reason] || 0) + 1;
-                return acc;
-            }, {});
-            const topReason = Object.keys(reasonCounts).reduce((a, b) => reasonCounts[a] > reasonCounts[b] ? a : b, '-');
-            document.getElementById('topAutofailReason').textContent = topReason;
-
-            const agentCounts = data.reduce((acc, record) => {
-                const agent = record['CER Name'] || 'Unknown';
-                acc[agent] = (acc[agent] || 0) + 1;
-                return acc;
-            }, {});
-            const topAgent = Object.keys(agentCounts).reduce((a, b) => agentCounts[a] > agentCounts[b] ? a : b, '-');
-            document.getElementById('topAgent').textContent = topAgent;
-
-            updateCharts(data);
-        }
-
-        function updateCharts(data) {
+        function updateCharts(data, agentAverages, averageScore, autofails) {
+            // Performance Trend
             const trendData = {};
             data.forEach(rec => {
                 if(rec.submittedAt?.toDate){
                     const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
-                    if(!trendData[month]) trendData[month] = 0;
-                    trendData[month]++;
+                    if(!trendData[month]) trendData[month] = { total: 0, count: 0 };
+                    trendData[month].total += parseFloat(rec['Overall Score']) || 0;
+                    trendData[month].count++;
                 }
             });
             const trendLabels = Object.keys(trendData).sort((a,b) => new Date(a) - new Date(b));
-            const trendScores = trendLabels.map(label => trendData[label]);
-            renderChart('autofailTrendChart', 'line', trendLabels, trendScores, 'Autofails Over Time');
+            const trendScores = trendLabels.map(label => (trendData[label].total / trendData[label].count));
+            renderChart('performanceTrendChart', 'line', trendLabels, trendScores, 'Average Score');
 
-            const autofailByType = {};
-            data.forEach(rec => {
-                const type = rec['Auto Fail Type'] || 'Unknown';
-                autofailByType[type] = (autofailByType[type] || 0) + 1;
+            // Autofail Reasons
+            const autofailCounts = {};
+            autofails.forEach(fail => {
+                const reason = fail['Auto Fail Type'];
+                autofailCounts[reason] = (autofailCounts[reason] || 0) + 1;
             });
-            renderChart('autofailByTypeChart', 'doughnut', Object.keys(autofailByType), Object.values(autofailByType), 'Autofails by Type');
+            const reasonLabels = Object.keys(autofailCounts);
+            const reasonData = Object.values(autofailCounts);
+            renderChart('autofailReasonChart', 'doughnut', reasonLabels, reasonData, 'Autofail Reasons');
+
+            // Average Score Gauge
+            renderGaugeChart('averageScoreGauge', averageScore, 'Average Score');
         }
 
         function renderChart(canvasId, type, labels, data, label) {
             const ctx = document.getElementById(canvasId).getContext('2d');
-            if (charts[canvasId]) {
-                charts[canvasId].destroy();
-            }
+            if (charts[canvasId]) charts[canvasId].destroy();
+
+            const chartColors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+            
             charts[canvasId] = new Chart(ctx, {
                 type: type,
                 data: {
@@ -311,12 +312,15 @@
                     datasets: [{
                         label: label,
                         data: data,
-                        backgroundColor: [
-                            '#EF4444', '#F59E0B', '#8B5CF6', '#3B82F6', '#10B981', '#EC4899'
-                        ],
-                        borderColor: type === 'line' ? '#EF4444' : 'white',
+                        backgroundColor: type === 'line' ? 'rgba(59, 130, 246, 0.1)' : chartColors,
+                        borderColor: type === 'line' ? '#3B82F6' : 'white',
                         fill: type === 'line',
-                        tension: 0.4
+                        tension: 0.4,
+                        pointBackgroundColor: '#3B82F6',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 7,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#3B82F6'
                     }]
                 },
                 options: {
@@ -330,21 +334,153 @@
                             font: { weight: 'bold' }
                         }
                     },
-                    scales: type === 'line' ? { y: { beginAtZero: true } } : {}
+                    scales: { y: { beginAtZero: true, max: 100, display: type === 'line' } }
                 },
                 plugins: [ChartDataLabels]
             });
         }
+
+        function renderGaugeChart(canvasId, value, label) {
+            const gaugeContainer = document.getElementById(canvasId).parentNode;
+            // Clear previous text if it exists
+            const existingText = gaugeContainer.querySelector('.gauge-center-text');
+            if (existingText) {
+                existingText.remove();
+            }
+
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [label, ''],
+                    datasets: [{
+                        data: [value, 100 - value],
+                        backgroundColor: ['#10B981', '#E5E7EB'],
+                        borderColor: ['#10B981', '#E5E7EB'],
+                        circumference: 180,
+                        rotation: 270,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '80%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false },
+                        datalabels: { display: false }
+                    }
+                }
+            });
+
+            // Add center text
+            const centerText = document.createElement('div');
+            centerText.className = 'gauge-center-text absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center';
+            centerText.innerHTML = `<p class="text-3xl font-bold text-gray-800">${value.toFixed(1)}%</p><p class="text-sm text-gray-500">${label}</p>`;
+            gaugeContainer.appendChild(centerText);
+        }
         
+        function renderMonthlyScoresTable(data) {
+            const table = document.getElementById('monthlyScoresByRoleTable');
+            const thead = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
+            thead.innerHTML = '<th class="p-4 text-sm font-semibold text-gray-600">CER Role</th>';
+            tbody.innerHTML = '';
+
+            if (data.length === 0) return;
+
+            const scoresByRoleMonth = {};
+            const months = new Set();
+            const roles = new Set();
+
+            data.forEach(rec => {
+                if (rec.submittedAt?.toDate && rec['CER Role']) {
+                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                    const role = rec['CER Role'];
+                    months.add(month);
+                    roles.add(role);
+
+                    if (!scoresByRoleMonth[role]) scoresByRoleMonth[role] = {};
+                    if (!scoresByRoleMonth[role][month]) scoresByRoleMonth[role][month] = { total: 0, count: 0 };
+                    
+                    scoresByRoleMonth[role][month].total += parseFloat(rec['Overall Score']) || 0;
+                    scoresByRoleMonth[role][month].count++;
+                }
+            });
+
+            const sortedMonths = Array.from(months).sort((a, b) => new Date(a) - new Date(b));
+            
+            sortedMonths.forEach(month => {
+                const th = document.createElement('th');
+                th.className = "p-4 text-sm font-semibold text-gray-600 text-right";
+                th.textContent = month;
+                thead.appendChild(th);
+            });
+
+            Array.from(roles).sort().forEach((role, index) => {
+                const tr = document.createElement('tr');
+                tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                let rowHtml = `<td class="p-4 font-medium text-gray-800">${role}</td>`;
+                sortedMonths.forEach(month => {
+                    const data = scoresByRoleMonth[role]?.[month];
+                    const avg = data ? (data.total / data.count) : null;
+                    let colorClass = 'text-gray-700';
+                    if (avg !== null) {
+                        if (avg >= 90) colorClass = 'text-green-600';
+                        else if (avg < 80) colorClass = 'text-red-600';
+                    }
+                    rowHtml += `<td class="p-4 text-right font-semibold ${colorClass}">${avg !== null ? avg.toFixed(1) + '%' : '-'}</td>`;
+                });
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function applyFilters() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const role = document.getElementById('cerRoleFilter').value;
+
+            let filteredData = allEvaluations;
+
+            if (startDate) {
+                const start = new Date(startDate);
+                filteredData = filteredData.filter(r => r.submittedAt?.toDate() >= start);
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999); // Include the whole day
+                filteredData = filteredData.filter(r => r.submittedAt?.toDate() <= end);
+            }
+            if (role) {
+                filteredData = filteredData.filter(r => r['CER Role'] === role);
+            }
+            
+            updateDashboard(filteredData);
+        }
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 loadLogoFromLocalStorage();
-                fetchDataAndRender();
+                fetchData().then(() => {
+                    document.getElementById('loadingMessage').classList.add('hidden');
+                    document.getElementById('dashboardContent').classList.remove('hidden');
+                    updateDashboard(allEvaluations);
+                });
             } else {
-                window.location.href = 'index.html';
+                window.location.href = './index.html';
             }
         });
 
+        document.getElementById('applyFilterBtn').addEventListener('click', applyFilters);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('cerRoleFilter').value = '';
+            applyFilters();
+        });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
 
     </script>
