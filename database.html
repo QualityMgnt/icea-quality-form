@@ -40,9 +40,6 @@
             z-index: 999;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
-        .sidebar ul li a {
-            transition: background-color: 0.2s ease;
-        }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
             background-color: #004a8d;
@@ -50,7 +47,6 @@
         .logout-button {
             background-color: #ff6f61;
             color: white;
-            transition: background-color: 0.2s ease;
         }
         .logout-button:hover {
             background-color: #e65a50;
@@ -83,9 +79,6 @@
             padding: 0.75rem 1rem;
             border-bottom: 1px solid #e5e7eb;
         }
-        .database-table tbody tr:last-child td {
-            border-bottom: none;
-        }
         .database-table tbody tr:hover {
             background-color: #f9fafb;
         }
@@ -99,6 +92,28 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -131,6 +146,37 @@
         <div id="databaseContent" class="hidden">
             <h1 class="text-3xl font-bold mb-6 text-gray-800">Database Management</h1>
             
+             <!-- Filter Section -->
+            <div class="dashboard-card mb-6">
+                <h2 class="text-xl font-semibold mb-4">Filters</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label for="startDateFilter" class="block text-sm font-medium text-gray-700">Start Date</label>
+                        <input type="date" id="startDateFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label for="endDateFilter" class="block text-sm font-medium text-gray-700">End Date</label>
+                        <input type="date" id="endDateFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label for="cerNameFilter" class="block text-sm font-medium text-gray-700">CER Name</label>
+                        <select id="cerNameFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"><option value="">All</option></select>
+                    </div>
+                    <div>
+                        <label for="cerRoleFilter" class="block text-sm font-medium text-gray-700">CER Role</label>
+                        <select id="cerRoleFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"><option value="">All</option></select>
+                    </div>
+                     <div>
+                        <label for="reviewerNameFilter" class="block text-sm font-medium text-gray-700">Reviewer's Name</label>
+                        <select id="reviewerNameFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"><option value="">All</option></select>
+                    </div>
+                </div>
+                 <div class="mt-4 flex gap-2">
+                    <button id="applyFilterBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Apply Filters</button>
+                    <button id="resetFiltersBtn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Reset</button>
+                </div>
+            </div>
+
             <div class="dashboard-card bg-white">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-gray-800">All Records</h2>
@@ -167,10 +213,53 @@
         </div>
     </main>
 
+    <!-- View Record Modal -->
+    <div id="viewRecordModal" class="modal-overlay hidden">
+        <div class="modal-container p-6">
+            <div class="flex justify-between items-center mb-4">
+                 <h2 class="text-2xl font-bold">Record Details</h2>
+                 <button id="closeViewModalBtn" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="viewRecordContent" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- Edit Record Modal -->
+    <div id="editRecordModal" class="modal-overlay hidden">
+        <div class="modal-container p-6">
+             <h2 class="text-2xl font-bold mb-4">Edit Record</h2>
+             <form id="editRecordForm" class="space-y-4">
+                <input type="hidden" id="editRecordId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="editClientName" class="block text-sm font-medium">Client Name</label>
+                        <input type="text" id="editClientName" class="mt-1 w-full p-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label for="editContactId" class="block text-sm font-medium">Contact ID</label>
+                        <input type="text" id="editContactId" class="mt-1 w-full p-2 border rounded-md">
+                    </div>
+                     <div>
+                        <label for="editCerName" class="block text-sm font-medium">CER Name</label>
+                        <input type="text" id="editCerName" class="mt-1 w-full p-2 border rounded-md">
+                    </div>
+                     <div>
+                        <label for="editCerRole" class="block text-sm font-medium">CER Role</label>
+                        <input type="text" id="editCerRole" class="mt-1 w-full p-2 border rounded-md">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" id="cancelEditBtn" class="bg-gray-200 px-4 py-2 rounded-md">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md">Save Changes</button>
+                </div>
+             </form>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, deleteDoc, doc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -189,6 +278,7 @@
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
         let allRecords = [];
+        let currentFilteredRecords = [];
 
         function loadLogoFromLocalStorage() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
@@ -218,17 +308,52 @@
                     <td>${record['Client Name'] || ''}</td>
                     <td>${record['CER Name'] || ''}</td>
                     <td class="font-bold ${scoreClass}">${record['Overall Score'] || ''}</td>
-                    <td>
+                    <td class="space-x-2">
+                        <button class="text-blue-500 hover:text-blue-700 view-record-btn" data-record-id="${record.id}" title="View"><i class="fas fa-eye"></i></button>
+                        <button class="text-yellow-500 hover:text-yellow-700 edit-record-btn" data-record-id="${record.id}" title="Edit"><i class="fas fa-edit"></i></button>
                         <button class="text-red-500 hover:text-red-700 delete-record-btn" data-record-id="${record.id}" title="Delete"><i class="fas fa-trash-alt"></i></button>
                     </td>
                 `;
             });
         }
         
+        function populateFilters(records) {
+            const cerNameFilter = document.getElementById('cerNameFilter');
+            const cerRoleFilter = document.getElementById('cerRoleFilter');
+            const reviewerNameFilter = document.getElementById('reviewerNameFilter');
+
+            const names = [...new Set(records.map(r => r['CER Name']).filter(Boolean))];
+            const roles = [...new Set(records.map(r => r['CER Role']).filter(Boolean))];
+            const reviewers = [...new Set(records.map(r => r["Reviewer's Name"]).filter(Boolean))];
+
+            names.forEach(name => cerNameFilter.innerHTML += `<option value="${name}">${name}</option>`);
+            roles.forEach(role => cerRoleFilter.innerHTML += `<option value="${role}">${role}</option>`);
+            reviewers.forEach(name => reviewerNameFilter.innerHTML += `<option value="${name}">${name}</option>`);
+        }
+
         function applyFilters() {
             const searchTerm = document.getElementById('recordSearchInput').value.toLowerCase();
+            const startDate = document.getElementById('startDateFilter').value;
+            const endDate = document.getElementById('endDateFilter').value;
+            const cerName = document.getElementById('cerNameFilter').value;
+            const cerRole = document.getElementById('cerRoleFilter').value;
+            const reviewerName = document.getElementById('reviewerNameFilter').value;
+
             let filtered = allRecords;
 
+            if (startDate) {
+                const start = new Date(startDate);
+                filtered = filtered.filter(r => r.submittedAt?.toDate() >= start);
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                filtered = filtered.filter(r => r.submittedAt?.toDate() <= end);
+            }
+            if (cerName) filtered = filtered.filter(r => r['CER Name'] === cerName);
+            if (cerRole) filtered = filtered.filter(r => r['CER Role'] === cerRole);
+            if (reviewerName) filtered = filtered.filter(r => r["Reviewer's Name"] === reviewerName);
+            
             if (searchTerm) {
                 filtered = filtered.filter(r => 
                     Object.values(r).some(val => 
@@ -236,7 +361,8 @@
                     )
                 );
             }
-            renderRecordsTable(filtered);
+            currentFilteredRecords = filtered;
+            renderRecordsTable(currentFilteredRecords);
         }
 
         function downloadExcel(records) {
@@ -298,6 +424,57 @@
             }
         }
 
+        function viewRecord(recordId) {
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) return;
+
+            const contentDiv = document.getElementById('viewRecordContent');
+            let html = '';
+            for (const [key, value] of Object.entries(record)) {
+                if (key !== 'id' && value) {
+                     html += `<div class="grid grid-cols-3 gap-4 border-b pb-2">
+                                <strong class="col-span-1">${key}</strong>
+                                <span class="col-span-2">${value.toDate ? value.toDate().toLocaleString() : value}</span>
+                              </div>`;
+                }
+            }
+            contentDiv.innerHTML = html;
+            document.getElementById('viewRecordModal').classList.remove('hidden');
+        }
+
+        function openEditModal(recordId) {
+            const record = allRecords.find(r => r.id === recordId);
+            if (!record) return;
+
+            document.getElementById('editRecordId').value = record.id;
+            document.getElementById('editClientName').value = record['Client Name'] || '';
+            document.getElementById('editContactId').value = record['Contact ID'] || '';
+            document.getElementById('editCerName').value = record['CER Name'] || '';
+            document.getElementById('editCerRole').value = record['CER Role'] || '';
+
+            document.getElementById('editRecordModal').classList.remove('hidden');
+        }
+
+        async function saveRecordChanges(e) {
+            e.preventDefault();
+            const recordId = document.getElementById('editRecordId').value;
+            const updatedData = {
+                'Client Name': document.getElementById('editClientName').value,
+                'Contact ID': document.getElementById('editContactId').value,
+                'CER Name': document.getElementById('editCerName').value,
+                'CER Role': document.getElementById('editCerRole').value,
+            };
+
+            try {
+                const docRef = doc(db, EVALUATION_RECORDS_PATH, recordId);
+                await updateDoc(docRef, updatedData);
+                alert("Record updated successfully!");
+                document.getElementById('editRecordModal').classList.add('hidden');
+            } catch (error) {
+                console.error("Update Error: ", error);
+                alert(`Failed to update record: ${error.message}`);
+            }
+        }
 
         // --- Event Listeners ---
         onAuthStateChanged(auth, (user) => {
@@ -305,7 +482,9 @@
                 loadLogoFromLocalStorage();
                 onSnapshot(collection(db, EVALUATION_RECORDS_PATH), (snapshot) => {
                     allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    applyFilters();
+                    currentFilteredRecords = allRecords;
+                    renderRecordsTable(allRecords);
+                    populateFilters(allRecords);
                     document.getElementById('loadingMessage').classList.add('hidden');
                     document.getElementById('databaseContent').classList.remove('hidden');
                 });
@@ -315,17 +494,30 @@
         });
 
         document.getElementById('recordSearchInput').addEventListener('input', applyFilters);
+        document.getElementById('applyFilterBtn').addEventListener('click', applyFilters);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('recordSearchInput').value = '';
+            document.getElementById('startDateFilter').value = '';
+            document.getElementById('endDateFilter').value = '';
+            document.getElementById('cerNameFilter').value = '';
+            document.getElementById('cerRoleFilter').value = '';
+            document.getElementById('reviewerNameFilter').value = '';
+            applyFilters();
+        });
         document.getElementById('downloadExcelBtn').addEventListener('click', () => {
              const selectedIds = [...document.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.recordId);
-             const recordsToDownload = selectedIds.length > 0 ? allRecords.filter(r => selectedIds.includes(r.id)) : allRecords;
+             const recordsToDownload = selectedIds.length > 0 ? currentFilteredRecords.filter(r => selectedIds.includes(r.id)) : currentFilteredRecords;
              downloadExcel(recordsToDownload);
         });
         document.getElementById('deleteSelectedBtn').addEventListener('click', () => deleteSelectedRecords());
         document.getElementById('recordsTableBody').addEventListener('click', (e) => {
-            if (e.target.closest('.delete-record-btn')) {
-                const recordId = e.target.closest('.delete-record-btn').dataset.recordId;
-                deleteSelectedRecords([recordId]);
-            }
+            const viewBtn = e.target.closest('.view-record-btn');
+            const editBtn = e.target.closest('.edit-record-btn');
+            const deleteBtn = e.target.closest('.delete-record-btn');
+
+            if (viewBtn) viewRecord(viewBtn.dataset.recordId);
+            if (editBtn) openEditModal(editBtn.dataset.recordId);
+            if (deleteBtn) deleteSelectedRecords([deleteBtn.dataset.recordId]);
         });
         document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
             document.querySelectorAll('.record-checkbox').forEach(checkbox => {
@@ -333,6 +525,11 @@
             });
         });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+        // Modal close buttons
+        document.getElementById('closeViewModalBtn').addEventListener('click', () => document.getElementById('viewRecordModal').classList.add('hidden'));
+        document.getElementById('cancelEditBtn').addEventListener('click', () => document.getElementById('editRecordModal').classList.add('hidden'));
+        document.getElementById('editRecordForm').addEventListener('submit', saveRecordChanges);
 
     </script>
 </body>
