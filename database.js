@@ -99,43 +99,6 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Wizard Styles */
-        .wizard-step {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 999px;
-            border: 2px solid #e5e7eb;
-            color: #6b7280;
-            transition: all 0.3s ease;
-        }
-        .wizard-step.active {
-            border-color: #3b82f6;
-            background-color: #3b82f6;
-            color: white;
-            font-weight: 600;
-        }
-        .wizard-step .step-circle {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.75rem;
-            background-color: #e5e7eb;
-            color: #4b5563;
-        }
-        .wizard-step.active .step-circle {
-            background-color: white;
-            color: #3b82f6;
-        }
-        .wizard-connector {
-            flex-grow: 1;
-            height: 2px;
-            background-color: #e5e7eb;
-        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -226,7 +189,6 @@
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
         let allRecords = [];
-        let parsedCsvData = [];
 
         function loadLogoFromLocalStorage() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
