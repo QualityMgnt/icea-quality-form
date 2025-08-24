@@ -364,13 +364,18 @@
                 return;
             }
 
-            const batch = writeBatch(db);
-            recordIds.forEach(id => {
-                const docRef = doc(db, EVALUATION_RECORDS_PATH, id);
-                batch.delete(docRef);
-            });
-            await batch.commit();
-            alert("Records deleted successfully.");
+            try {
+                const batch = writeBatch(db);
+                recordIds.forEach(id => {
+                    const docRef = doc(db, EVALUATION_RECORDS_PATH, id);
+                    batch.delete(docRef);
+                });
+                await batch.commit();
+                alert("Records deleted successfully.");
+            } catch (error) {
+                console.error("Deletion Error:", error);
+                alert(`Failed to delete records: ${error.message}`);
+            }
         }
 
         // --- Upload Wizard Logic ---
