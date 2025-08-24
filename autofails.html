@@ -42,7 +42,7 @@
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
         .sidebar ul li a {
-            transition: background-color 0.2s ease;
+            transition: background-color: 0.2s ease;
         }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
@@ -51,7 +51,7 @@
         .logout-button {
             background-color: #ff6f61;
             color: white;
-            transition: background-color 0.2s ease;
+            transition: background-color: 0.2s ease;
         }
         .logout-button:hover {
             background-color: #e65a50;
@@ -163,7 +163,7 @@
             </div>
 
             <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <div class="dashboard-card text-center">
                     <h2 class="text-lg font-semibold text-gray-500">Total Autofails</h2>
                     <p id="totalAutofails" class="text-4xl font-bold mt-2">0</p>
@@ -172,9 +172,11 @@
                     <h2 class="text-lg font-semibold text-gray-500">Top Autofail Reason</h2>
                     <p id="topAutofailReason" class="text-2xl font-bold mt-2">-</p>
                 </div>
-                <div class="dashboard-card text-center">
-                    <h2 class="text-lg font-semibold text-gray-500">Agent with Most Autofails</h2>
-                    <p id="topAgent" class="text-2xl font-bold mt-2">-</p>
+                <div class="dashboard-card text-center lg:col-span-2">
+                    <h2 class="text-lg font-semibold text-gray-500 mb-2">Autofail Hotspots</h2>
+                    <div id="autofailHotspots" class="space-y-2">
+                        <!-- Hotspots will be populated here -->
+                    </div>
                 </div>
             </div>
 
@@ -234,7 +236,7 @@
                         <thead>
                             <tr>
                                 <th><input type="checkbox" id="selectAllCheckbox"></th>
-                                <th>Date</th>
+                                <th>Evaluation Date</th>
                                 <th>Contact ID</th>
                                 <th>Client Name</th>
                                 <th>CER Name</th>
@@ -283,11 +285,20 @@
             }
         }
 
+        // --- NEW HELPER FUNCTION ---
+        function getEvaluationDate(record) {
+            const evalDateValue = record['Evaluation Date'];
+            if (!evalDateValue) return null;
+            if (evalDateValue.toDate) return evalDateValue.toDate();
+            if (typeof evalDateValue === 'string') return new Date(evalDateValue + 'T00:00:00');
+            if (evalDateValue instanceof Date) return evalDateValue;
+            return null;
+        }
+
         async function populateFilters() {
             const cerNameFilter = document.getElementById('cerNameFilter');
             const cerRoleFilter = document.getElementById('cerRoleFilter');
 
-            // Populate CER Names from users collection
             const usersSnapshot = await getDocs(collection(db, USERS_PATH));
             usersSnapshot.forEach(doc => {
                 const option = document.createElement('option');
@@ -296,7 +307,6 @@
                 cerNameFilter.appendChild(option);
             });
 
-            // Populate CER Roles from dropdown options
             const dropdownDoc = await getDoc(doc(db, DROPDOWN_OPTIONS_PATH));
             if (dropdownDoc.exists()) {
                 const roles = dropdownDoc.data().cerRoles || [];
@@ -319,12 +329,12 @@
 
             if (startDate) {
                 const start = new Date(startDate);
-                filteredData = filteredData.filter(r => r.submittedAt?.toDate() >= start);
+                filteredData = filteredData.filter(r => getEvaluationDate(r) >= start);
             }
             if (endDate) {
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
-                filteredData = filteredData.filter(r => r.submittedAt?.toDate() <= end);
+                filteredData = filteredData.filter(r => getEvaluationDate(r) <= end);
             }
             if (cerName) {
                 filteredData = filteredData.filter(r => r['CER Name'] === cerName);
@@ -344,7 +354,8 @@
             const autofailContent = document.getElementById('autofailContent');
             
             try {
-                const q = query(collection(db, EVALUATION_RECORDS_PATH), where("Auto Fail Type", "!=", ""));
+                // UPDATED QUERY: Fetches records where the score is "0%"
+                const q = query(collection(db, EVALUATION_RECORDS_PATH), where("Overall Score", "==", "0%"));
                 const querySnapshot = await getDocs(q);
                 allAutofailData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -370,10 +381,11 @@
 
             records.forEach(record => {
                 const row = tableBody.insertRow();
-                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleDateString() : 'N/A';
+                const evalDate = getEvaluationDate(record);
+                const formattedDate = evalDate ? evalDate.toLocaleDateString() : 'N/A';
                 row.innerHTML = `
                     <td><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>
-                    <td>${submittedAt}</td>
+                    <td>${formattedDate}</td>
                     <td>${record['Contact ID'] || 'N/A'}</td>
                     <td>${record['Client Name'] || 'N/A'}</td>
                     <td>${record['CER Name'] || 'N/A'}</td>
@@ -382,6 +394,35 @@
             });
         }
         
+        function renderAutofailHotspots(agentCounts) {
+            const hotspotsContainer = document.getElementById('autofailHotspots');
+            hotspotsContainer.innerHTML = '';
+
+            const topAgents = Object.entries(agentCounts)
+                                .sort(([,a],[,b]) => b-a)
+                                .slice(0, 3);
+
+            if (topAgents.length === 0) {
+                hotspotsContainer.innerHTML = `<p class="text-gray-500">No autofail data to display hotspots.</p>`;
+                return;
+            }
+
+            topAgents.forEach(([name, count], index) => {
+                const colorClasses = ['bg-red-100 text-red-800', 'bg-yellow-100 text-yellow-800', 'bg-blue-100 text-blue-800'];
+                const iconClasses = ['fa-fire', 'fa-bolt', 'fa-star'];
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between p-2 rounded-lg ${colorClasses[index]}`;
+                item.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas ${iconClasses[index]} w-5 text-center mr-3"></i>
+                        <span class="font-bold">${name}</span>
+                    </div>
+                    <span class="font-bold text-lg">${count}</span>
+                `;
+                hotspotsContainer.appendChild(item);
+            });
+        }
+
         function updateDashboard(data) {
             document.getElementById('totalAutofails').textContent = data.length;
             
@@ -398,17 +439,17 @@
                 acc[agent] = (acc[agent] || 0) + 1;
                 return acc;
             }, {});
-            const topAgent = Object.keys(agentCounts).reduce((a, b) => agentCounts[a] > agentCounts[b] ? a : b, '-');
-            document.getElementById('topAgent').textContent = topAgent;
-
+            
+            renderAutofailHotspots(agentCounts); // New function call
             updateCharts(data);
         }
 
         function updateCharts(data) {
             const trendData = {};
             data.forEach(rec => {
-                if(rec.submittedAt?.toDate){
-                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                const evalDate = getEvaluationDate(rec);
+                if(evalDate){
+                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' });
                     if(!trendData[month]) trendData[month] = 0;
                     trendData[month]++;
                 }
@@ -481,8 +522,9 @@
             const groups = new Set();
 
             data.forEach(rec => {
-                if (rec.submittedAt?.toDate && rec[groupBy]) {
-                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                const evalDate = getEvaluationDate(rec);
+                if (evalDate && rec[groupBy]) {
+                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' });
                     const group = rec[groupBy];
                     months.add(month);
                     groups.add(group);
@@ -522,15 +564,16 @@
                 return;
             }
 
-            const headers = ["Date", "Contact ID", "Client Name", "CER Name", "Reason for Autofail"];
+            const headers = ["Evaluation Date", "Contact ID", "Client Name", "CER Name", "Reason for Autofail"];
             const csvRows = [headers.join(',')];
 
             data.forEach(record => {
-                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleDateString() : 'N/A';
+                const evalDate = getEvaluationDate(record);
+                const formattedDate = evalDate ? evalDate.toLocaleDateString() : 'N/A';
                 const reason = (record['Autofail Description'] || record['Auto Fail Type'] || '').replace(/"/g, '""');
                 
                 const values = [
-                    `"${submittedAt}"`,
+                    `"${formattedDate}"`,
                     `"${record['Contact ID'] || ''}"`,
                     `"${record['Client Name'] || ''}"`,
                     `"${record['CER Name'] || ''}"`,
