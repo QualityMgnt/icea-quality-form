@@ -42,9 +42,6 @@
             z-index: 999;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
-        .sidebar ul li a {
-            transition: background-color 0.2s ease;
-        }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
             background-color: #004a8d;
@@ -52,10 +49,6 @@
         .logout-button {
             background-color: #ff6f61;
             color: white;
-            transition: background-color 0.2s ease;
-        }
-        .logout-button:hover {
-            background-color: #e65a50;
         }
         main {
             padding-top: 80px;
@@ -85,15 +78,6 @@
             padding: 0.75rem 1rem;
             border-bottom: 1px solid #e5e7eb;
         }
-        .evaluation-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-        .evaluation-table tbody tr:hover {
-            background-color: #f9fafb;
-        }
-        .score-high { color: #16a34a; font-weight: 600; }
-        .score-medium { color: #f59e0b; font-weight: 600; }
-        .score-low { color: #dc2626; font-weight: 600; }
         .hidden { display: none !important; }
         .modal-overlay {
             position: fixed;
@@ -114,28 +98,27 @@
             max-width: 800px;
             max-height: 90vh;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
         }
-        .modal-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            font-size: 1.25rem;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .modal-body {
-            padding: 1.5rem;
-            flex-grow: 1;
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 10px;
         }
     </style>
 </head>
 <body class="bg-gray-100">
-    <header class="top-header flex items-center justify-center relative">
+    <header class="top-header flex items-center justify-between px-4">
+        <div></div>
         <span class="text-xl font-semibold">ICEA LION QUALITY EVALUATION AND MONITORING</span>
-        <img id="header-logo" src="https://placehold.co/150x60/FFFFFF/003366?text=Logo" alt="Company Logo" class="absolute right-4 h-12 w-auto">
+        <div class="relative">
+            <i class="fas fa-bell text-2xl"></i>
+            <span id="notification-badge" class="notification-badge hidden">0</span>
+        </div>
     </header>
 
     <nav class="main-nav" id="mainNav">
@@ -159,74 +142,8 @@
         </div>
 
         <div id="myEvaluationsContent" class="hidden">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">My Evaluations</h1>
-                <button id="downloadPagePdfBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md">
-                    <i class="fas fa-file-pdf mr-2"></i>Download Page as PDF
-                </button>
-            </div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">My Evaluations</h1>
             
-            <!-- Filter Section -->
-            <div class="bg-blue-900 p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-end gap-4">
-                <div>
-                    <label for="filterDate" class="text-sm font-medium text-white">Date</label>
-                    <input type="date" id="filterDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                </div>
-                <div>
-                    <label for="filterMonth" class="text-sm font-medium text-white">Month</label>
-                    <input type="month" id="filterMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                </div>
-                 <div>
-                    <label for="filterYear" class="text-sm font-medium text-white">Year</label>
-                    <input type="number" id="filterYear" placeholder="YYYY" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                </div>
-                <div>
-                    <label for="filterCerRole" class="text-sm font-medium text-white">CER Role</label>
-                    <select id="filterCerRole" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        <option value="">All Roles</option>
-                    </select>
-                </div>
-                <div class="flex gap-2">
-                    <button id="applyFiltersBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Apply</button>
-                    <button id="resetFiltersBtn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Reset</button>
-                </div>
-            </div>
-
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="dashboard-card text-center">
-                    <h2 class="text-lg font-semibold text-gray-500">Total Evals as Reviewer</h2>
-                    <p id="totalEvalsDone" class="text-4xl font-bold mt-2">0</p>
-                </div>
-                <div class="dashboard-card text-center">
-                    <h2 class="text-lg font-semibold text-gray-500">My Average Score</h2>
-                    <p id="myAverageScore" class="text-4xl font-bold mt-2">0%</p>
-                </div>
-                <div class="dashboard-card text-center">
-                     <h2 class="text-lg font-semibold text-gray-500">Pending NPS Audits</h2>
-                    <p id="pendingNpsAudits" class="text-4xl font-bold mt-2">0</p>
-                </div>
-            </div>
-
-            <!-- New Insights Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="dashboard-card">
-                    <h2 class="text-xl font-semibold mb-4">My Performance Trend</h2>
-                    <div class="h-64">
-                        <canvas id="performanceTrendChart"></canvas>
-                    </div>
-                </div>
-                <div class="dashboard-card">
-                    <h2 class="text-xl font-semibold mb-4">My Strengths & Weaknesses</h2>
-                    <div>
-                        <h3 class="font-bold text-green-600">Strengths (Top Areas)</h3>
-                        <ul id="strengthsList" class="list-disc list-inside text-gray-700"><li>-</li></ul>
-                        <h3 class="font-bold text-red-600 mt-4">Weaknesses (Lowest Areas)</h3>
-                        <ul id="weaknessesList" class="list-disc list-inside text-gray-700"><li>-</li></ul>
-                    </div>
-                </div>
-            </div>
-
             <!-- My QA Audit Scores Table -->
             <div class="dashboard-card">
                 <h2 class="text-xl font-semibold mb-4">My QA Audit Scores</h2>
@@ -237,9 +154,8 @@
                                 <th>Date</th>
                                 <th>Contact ID</th>
                                 <th>Reviewer</th>
-                                <th>Role</th>
                                 <th>Score</th>
-                                <th>Autofail</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -248,25 +164,7 @@
                 </div>
             </div>
 
-            <!-- My NPS Feedback Table -->
-            <div class="dashboard-card mt-6">
-                <h2 class="text-xl font-semibold mb-4">My NPS Feedback</h2>
-                <div class="overflow-x-auto">
-                    <table class="evaluation-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Contact ID</th>
-                                <th>NPS Rating</th>
-                                <th>Overall QA Score</th>
-                            </tr>
-                        </thead>
-                        <tbody id="myNpsFeedbackTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Review Requests Section -->
+            <!-- Review Requests Section (for reviewers) -->
             <div id="reviewRequestsSection" class="dashboard-card mt-6 hidden">
                 <h2 class="text-xl font-semibold mb-4 text-orange-600">Review Requests</h2>
                 <div class="overflow-x-auto">
@@ -287,41 +185,29 @@
         </div>
     </main>
 
-    <!-- Evaluation Details Modal -->
-    <div id="evaluationDetailsModal" class="modal-overlay hidden">
-        <div class="modal-container">
-            <div class="modal-header">
-                <span>Evaluation Details</span>
-                <button id="closeDetailsModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
-            </div>
-            <div id="evaluationDetailsBody" class="modal-body"></div>
-        </div>
-    </div>
-
     <!-- Request Review Modal -->
     <div id="requestReviewModal" class="modal-overlay hidden">
-        <div class="modal-container">
-            <div class="modal-header">
-                <span>Request Review</span>
-                <button id="closeReviewModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="reviewRecordId">
-                <label for="reviewComments" class="block font-medium mb-2">Please provide your reasons for requesting a review:</label>
-                <textarea id="reviewComments" rows="5" class="w-full p-2 border rounded-md"></textarea>
-                <button id="submitReviewRequestBtn" class="mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded-md">Submit Request</button>
+        <div class="modal-container p-6">
+            <h2 class="text-2xl font-bold mb-4">Request Review</h2>
+            <input type="hidden" id="reviewRecordId">
+            <label for="reviewComments" class="block font-medium mb-2">Please provide your reasons for requesting a review:</label>
+            <textarea id="reviewComments" rows="5" class="w-full p-2 border rounded-md"></textarea>
+            <div class="flex justify-end gap-4 mt-4">
+                <button id="closeReviewModalBtn" class="bg-gray-200 px-4 py-2 rounded-md">Cancel</button>
+                <button id="submitReviewRequestBtn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md">Submit Request</button>
             </div>
         </div>
     </div>
     
     <!-- Re-evaluation Modal -->
     <div id="reEvaluationModal" class="modal-overlay hidden">
-        <div class="modal-container">
-             <div class="modal-header">
-                <span>Re-evaluate Interaction</span>
-                <button id="closeReEvalModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+        <div class="modal-container p-6">
+            <h2 class="text-2xl font-bold mb-4">Re-evaluate Interaction</h2>
+            <div id="reEvaluationBody" class="space-y-4"></div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="closeReEvalModalBtn" class="bg-gray-200 px-4 py-2 rounded-md">Cancel</button>
+                <button id="submitReEvaluationBtn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-md">Submit Re-evaluation</button>
             </div>
-            <div id="reEvaluationBody" class="modal-body"></div>
         </div>
     </div>
 
@@ -346,23 +232,13 @@
         const db = getFirestore(app);
 
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        const NPS_RECORDS_PATH = `artifacts/${appId}/public/data/nps_records`;
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
         const QUESTIONS_CONFIG_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
-        const DROPDOWN_OPTIONS_PATH = `artifacts/${appId}/public/data/dropdown_options/general_options`;
-        const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
-
+        
         let loggedInUserName = null;
         let allRolesQuestions = {};
-        let performanceChart = null;
         let allMyEvaluations = [];
-
-        function loadLogoFromLocalStorage() {
-            const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
-            if (savedLogo) {
-                document.getElementById('header-logo').src = savedLogo;
-            }
-        }
+        let currentReEvalRecordId = null;
 
         async function fetchData(user) {
             const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
@@ -371,128 +247,51 @@
 
             const questionsSnap = await getDoc(QUESTIONS_CONFIG_DOC_REF);
             allRolesQuestions = questionsSnap.exists() ? questionsSnap.data() : {};
-            
-            // Populate filters
-            const dropdownDoc = await getDoc(doc(db, DROPDOWN_OPTIONS_PATH));
-            if (dropdownDoc.exists()) {
-                const roles = dropdownDoc.data().cerRoles || [];
-                const roleFilter = document.getElementById('filterCerRole');
-                roles.forEach(role => {
-                    const option = document.createElement('option');
-                    option.value = role;
-                    option.textContent = role;
-                    roleFilter.appendChild(option);
-                });
-            }
 
-            // Fetch evaluations where user is the reviewer
-            const reviewedQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("Reviewer's Name", "==", loggedInUserName));
-            onSnapshot(reviewedQuery, (snapshot) => {
-                const reviewedEvals = snapshot.docs.map(doc => doc.data());
-                document.getElementById('totalEvalsDone').textContent = reviewedEvals.length;
-            });
-
-            // Fetch evaluations where user is the agent
             const cerQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("CER Name", "==", loggedInUserName));
             onSnapshot(cerQuery, (snapshot) => {
                 allMyEvaluations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                applyFilters();
+                renderCerScoresTable(allMyEvaluations);
             });
 
-            // Fetch NPS data for the logged-in user
-            const npsQuery = query(collection(db, NPS_RECORDS_PATH), where("Agent Handled", "==", loggedInUserName));
-            onSnapshot(npsQuery, (snapshot) => {
-                const npsRecords = snapshot.docs.map(doc => doc.data());
-                renderMyNpsTable(npsRecords);
-            });
-
-            // Fetch review requests for the logged-in reviewer
-            const reviewRequestQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("Reviewer's Name", "==", loggedInUserName), where("reviewStatus", "==", "requested"));
+            const reviewRequestQuery = query(collection(db, EVALUATION_RECORDS_PATH), where("Reviewer's Name", "==", loggedInUserName), where("reviewStatus", "==", "Under Review"));
             onSnapshot(reviewRequestQuery, (snapshot) => {
                 const requests = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                 renderReviewRequests(requests);
+                updateNotificationBell(requests.length);
             });
 
             document.getElementById('loadingMessage').classList.add('hidden');
             document.getElementById('myEvaluationsContent').classList.remove('hidden');
         }
         
-        function applyFilters() {
-            const date = document.getElementById('filterDate').value;
-            const month = document.getElementById('filterMonth').value;
-            const year = document.getElementById('filterYear').value;
-            const role = document.getElementById('filterCerRole').value;
-
-            let filteredData = allMyEvaluations;
-
-            if (date) {
-                filteredData = filteredData.filter(r => r.submittedAt?.toDate().toISOString().slice(0,10) === date);
-            }
-            if (month) {
-                filteredData = filteredData.filter(r => r.submittedAt?.toDate().toISOString().slice(0,7) === month);
-            }
-            if (year) {
-                filteredData = filteredData.filter(r => r.submittedAt?.toDate().getFullYear() == year);
-            }
-            if (role) {
-                filteredData = filteredData.filter(r => r['CER Role'] === role);
-            }
-
-            updateMyScores(filteredData);
-        }
-
-        function updateMyScores(records) {
-            renderCerScoresTable(records);
-            
-            const totalScore = records.reduce((sum, rec) => sum + (parseFloat(rec['Overall Score']) || 0), 0);
-            document.getElementById('myAverageScore').textContent = records.length > 0 ? `${(totalScore / records.length).toFixed(1)}%` : '0%';
-            
-            renderPerformanceTrendChart(records);
-            analyzeAndDisplayStrengthsWeaknesses(records);
-        }
-        
         function renderCerScoresTable(records) {
             const tableBody = document.getElementById('myCerScoresTableBody');
             tableBody.innerHTML = '';
             if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No audit scores found.</td></tr>`;
-                return;
-            }
-            const sortedRecords = records.sort((a, b) => (b.submittedAt?.toDate() || 0) - (a.submittedAt?.toDate() || 0));
-            sortedRecords.forEach(record => {
-                const row = tableBody.insertRow();
-                const score = parseFloat(record['Overall Score']) || 0;
-                const scoreClass = score >= 85 ? 'score-high' : score >= 70 ? 'score-medium' : 'score-low';
-                row.innerHTML = `
-                    <td>${record.submittedAt?.toDate().toLocaleDateString() || 'N/A'}</td>
-                    <td><button class="text-blue-600 hover:underline view-details-btn" data-record-id="${record.id}">${record['Contact ID'] || 'N/A'}</button></td>
-                    <td>${record["Reviewer's Name"] || 'N/A'}</td>
-                    <td>${record['CER Role'] || 'N/A'}</td>
-                    <td class="${scoreClass}">${record['Overall Score'] || 'N/A'}</td>
-                    <td>${record['Auto Fail Type'] || 'None'}</td>
-                    <td><button class="bg-yellow-500 text-white px-2 py-1 rounded request-review-btn" data-record-id="${record.id}">Request Review</button></td>
-                `;
-            });
-        }
-        
-        function renderMyNpsTable(records) {
-            const tableBody = document.getElementById('myNpsFeedbackTableBody');
-            tableBody.innerHTML = '';
-            if (records.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">No NPS feedback found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">No audit scores found.</td></tr>`;
                 return;
             }
             records.forEach(record => {
                 const row = tableBody.insertRow();
+                const status = record.reviewStatus || 'Completed';
+                let statusClass = '';
+                if (status === 'Under Review') statusClass = 'text-yellow-600';
+                if (status === 'Review Completed') statusClass = 'text-green-600';
+
                 row.innerHTML = `
-                    <td>${record.timestampString || 'N/A'}</td>
-                    <td>${record['Customer Contact ID'] || 'N/A'}</td>
-                    <td>${record['NPS Rating'] || 'N/A'}</td>
-                    <td>${record.qaScore || 'Not Audited'}</td>
+                    <td>${record.submittedAt?.toDate().toLocaleDateString() || 'N/A'}</td>
+                    <td>${record['Contact ID'] || 'N/A'}</td>
+                    <td>${record["Reviewer's Name"] || 'N/A'}</td>
+                    <td>${record['Overall Score'] || 'N/A'}</td>
+                    <td class="font-bold ${statusClass}">${status}</td>
+                    <td>
+                        <button class="bg-blue-500 text-white px-2 py-1 rounded request-review-btn" data-record-id="${record.id}" ${status !== 'Completed' ? 'disabled' : ''}>Request Review</button>
+                    </td>
                 `;
             });
         }
-
+        
         function renderReviewRequests(requests) {
             const section = document.getElementById('reviewRequestsSection');
             const tableBody = document.getElementById('reviewRequestsTableBody');
@@ -515,21 +314,15 @@
                 `;
             });
         }
-        
-        function showEvaluationDetails(recordId) {
-            const record = allMyEvaluations.find(r => r.id === recordId);
-            if(!record) return;
 
-            const modalBody = document.getElementById('evaluationDetailsBody');
-            let html = '<div class="space-y-4">';
-            for(const key in record) {
-                if(key.includes("(Rating)") || key.includes("(Remarks)")) {
-                    html += `<div><p class="font-semibold">${key.replace("(Rating)", "").replace("(Remarks)", "")}</p><p class="pl-4 text-gray-700">${record[key]}</p></div>`;
-                }
+        function updateNotificationBell(count) {
+            const badge = document.getElementById('notification-badge');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
             }
-            html += '</div>';
-            modalBody.innerHTML = html;
-            document.getElementById('evaluationDetailsModal').classList.remove('hidden');
         }
 
         async function submitReviewRequest() {
@@ -542,77 +335,80 @@
             
             const docRef = doc(db, EVALUATION_RECORDS_PATH, recordId);
             await updateDoc(docRef, {
-                reviewStatus: "requested",
+                reviewStatus: "Under Review",
                 reviewRequestComments: comments
             });
 
             alert("Review request submitted!");
             document.getElementById('requestReviewModal').classList.add('hidden');
         }
-        
-        function renderPerformanceTrendChart(records) {
-            const ctx = document.getElementById('performanceTrendChart').getContext('2d');
-            if (performanceChart) performanceChart.destroy();
-            
-            const sortedRecords = records.sort((a, b) => (a.submittedAt?.toDate() || 0) - (b.submittedAt?.toDate() || 0));
-            const labels = sortedRecords.map(r => r.submittedAt?.toDate().toLocaleDateString());
-            const data = sortedRecords.map(r => parseFloat(r['Overall Score']) || 0);
 
-            performanceChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Overall Score Trend',
-                        data: data,
-                        borderColor: '#3B82F6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100 } },
-                    plugins: { legend: { display: false } }
+        function openReEvaluationModal(recordId) {
+            currentReEvalRecordId = recordId;
+            const record = allMyEvaluations.find(r => r.id === recordId);
+            if (!record) return;
+
+            const body = document.getElementById('reEvaluationBody');
+            body.innerHTML = '';
+            const role = record['CER Role'];
+            if (role && allRolesQuestions[role]) {
+                Object.entries(allRolesQuestions[role]).forEach(([section, questions]) => {
+                    body.innerHTML += `<h3 class="text-xl font-bold mt-4">${section}</h3>`;
+                    questions.forEach(q => {
+                        const rating = record[`${q.desc} (Rating)`] || '';
+                        const remarks = record[`${q.desc} (Remarks)`] || '';
+                        body.innerHTML += `
+                            <div class="p-2 border rounded-md">
+                                <p class="font-semibold">${q.desc}</p>
+                                <select class="w-full p-1 border mt-1" data-question="${q.desc}">
+                                    <option value="Yes" ${rating === 'Yes' ? 'selected' : ''}>Yes</option>
+                                    <option value="No" ${rating === 'No' ? 'selected' : ''}>No</option>
+                                    <option value="N/A" ${rating === 'N/A' ? 'selected' : ''}>N/A</option>
+                                </select>
+                                <textarea class="w-full p-1 border mt-1" rows="2" data-question="${q.desc}">${remarks}</textarea>
+                            </div>
+                        `;
+                    });
+                });
+            }
+            document.getElementById('reEvaluationModal').classList.remove('hidden');
+        }
+
+        async function submitReEvaluation() {
+            if (!currentReEvalRecordId) return;
+
+            const updatedData = { reviewStatus: 'Review Completed' };
+            const reEvalBody = document.getElementById('reEvaluationBody');
+            
+            reEvalBody.querySelectorAll('select').forEach(select => {
+                updatedData[`${select.dataset.question} (Rating)`] = select.value;
+            });
+            reEvalBody.querySelectorAll('textarea').forEach(textarea => {
+                updatedData[`${textarea.dataset.question} (Remarks)`] = textarea.value;
+            });
+
+            // Recalculate score (simplified for this example)
+            // A full implementation would use the question weights
+            let yesCount = 0;
+            let totalApplicable = 0;
+            Object.entries(updatedData).forEach(([key, value]) => {
+                if(key.includes('(Rating)') && (value === 'Yes' || value === 'No')) {
+                    totalApplicable++;
+                    if(value === 'Yes') yesCount++;
                 }
             });
-        }
+            updatedData['Overall Score'] = totalApplicable > 0 ? `${((yesCount / totalApplicable) * 100).toFixed(1)}%` : '0%';
 
-        function analyzeAndDisplayStrengthsWeaknesses(records) {
-            // This function remains the same as your original
+            const docRef = doc(db, EVALUATION_RECORDS_PATH, currentReEvalRecordId);
+            await updateDoc(docRef, updatedData);
+
+            alert("Re-evaluation submitted!");
+            document.getElementById('reEvaluationModal').classList.add('hidden');
         }
         
-        async function downloadPageAsPdf() {
-            alert("Generating PDF, please wait...");
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-            const content = document.getElementById('mainContent');
-            const canvas = await html2canvas(content, { scale: 2 });
-            const imgData = canvas.toDataURL('image/jpeg', 1.0);
-            const imgWidth = 210;
-            const pageHeight = 297;
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-              position = heightLeft - imgHeight;
-              pdf.addPage();
-              pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-              heightLeft -= pageHeight;
-            }
-            
-            pdf.save('my_evaluations.pdf');
-        }
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                loadLogoFromLocalStorage();
                 fetchData(user);
             } else {
                 window.location.href = 'index.html';
@@ -621,33 +417,24 @@
 
         // Event Listeners
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-        document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
-        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
-            document.getElementById('filterDate').value = '';
-            document.getElementById('filterMonth').value = '';
-            document.getElementById('filterYear').value = '';
-            document.getElementById('filterCerRole').value = '';
-            applyFilters();
-        });
-        document.getElementById('downloadPagePdfBtn').addEventListener('click', downloadPageAsPdf);
-        
-        // Modal Close Buttons
-        document.getElementById('closeDetailsModalBtn').addEventListener('click', () => document.getElementById('evaluationDetailsModal').classList.add('hidden'));
         document.getElementById('closeReviewModalBtn').addEventListener('click', () => document.getElementById('requestReviewModal').classList.add('hidden'));
         document.getElementById('closeReEvalModalBtn').addEventListener('click', () => document.getElementById('reEvaluationModal').classList.add('hidden'));
         
-        // Event Delegation for table buttons
         document.getElementById('myCerScoresTableBody').addEventListener('click', (e) => {
-            if (e.target.classList.contains('view-details-btn')) {
-                showEvaluationDetails(e.target.dataset.recordId);
-            }
             if (e.target.classList.contains('request-review-btn')) {
                 document.getElementById('reviewRecordId').value = e.target.dataset.recordId;
                 document.getElementById('requestReviewModal').classList.remove('hidden');
             }
         });
 
+        document.getElementById('reviewRequestsTableBody').addEventListener('click', (e) => {
+            if (e.target.classList.contains('re-evaluate-btn')) {
+                openReEvaluationModal(e.target.dataset.recordId);
+            }
+        });
+
         document.getElementById('submitReviewRequestBtn').addEventListener('click', submitReviewRequest);
+        document.getElementById('submitReEvaluationBtn').addEventListener('click', submitReEvaluation);
 
     </script>
 </body>
