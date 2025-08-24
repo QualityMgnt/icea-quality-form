@@ -148,11 +148,11 @@
                         <h3 class="font-semibold mb-2">Evaluations Completed</h3>
                         <p id="evalsCompleted" class="text-3xl font-bold">0</p>
                     </div>
-                    <div class="dashboard-card" style="height: 5in;">
+                    <div class="dashboard-card" style="height: 250px;">
                         <h3 class="font-semibold mb-2">Pass vs Fail Rate</h3>
                         <canvas id="passFailChart"></canvas>
                     </div>
-                    <div class="dashboard-card" style="height: 5in; overflow-y: auto;">
+                    <div class="dashboard-card" style="height: 250px; overflow-y: auto;">
                         <h3 class="font-semibold mb-2">Top 5 Strength Areas</h3>
                         <ul id="strengthAreas" class="list-disc list-inside"></ul>
                     </div>
@@ -261,12 +261,121 @@
         }
 
         function processAndRenderAnalytics(data) {
-            // ... (rest of the function remains the same)
+            // 1. Overall Quality Performance
+            const totalScore = data.reduce((sum, rec) => sum + parseFloat(rec['Overall Score'] || 0), 0);
+            const avgScore = data.length > 0 ? (totalScore / data.length).toFixed(1) : 0;
+            document.getElementById('avgQualityScore').textContent = `${avgScore}%`;
+
+            // Score by Channel (Assuming a 'channel' field exists)
+            const scoreByChannel = data.reduce((acc, rec) => {
+                const channel = rec.channel || 'Unknown';
+                if (!acc[channel]) acc[channel] = { total: 0, count: 0 };
+                acc[channel].total += parseFloat(rec['Overall Score'] || 0);
+                acc[channel].count++;
+                return acc;
+            }, {});
+            const channelLabels = Object.keys(scoreByChannel);
+            const channelData = channelLabels.map(c => (scoreByChannel[c].total / scoreByChannel[c].count));
+            renderBarChart('scoreByChannelChart', 'Score by Channel', channelLabels, channelData);
+
+            // Score Trend Over Time
+            const trendData = data.reduce((acc, rec) => {
+                const date = rec['Evaluation Date']?.toDate ? rec['Evaluation Date'].toDate() : new Date(rec['Evaluation Date']);
+                if (!isNaN(date)) {
+                    const month = date.toISOString().slice(0, 7); // YYYY-MM
+                    if (!acc[month]) acc[month] = { total: 0, count: 0 };
+                    acc[month].total += parseFloat(rec['Overall Score'] || 0);
+                    acc[month].count++;
+                }
+                return acc;
+            }, {});
+            const trendLabels = Object.keys(trendData).sort();
+            const trendScores = trendLabels.map(m => (trendData[m].total / trendData[m].count));
+            renderLineChart('scoreTrendChart', 'Score Trend', trendLabels, trendScores);
+
+            // 2. Evaluation Insights
+            document.getElementById('evalsCompleted').textContent = data.length;
+            
+            const passFail = data.reduce((acc, rec) => {
+                const score = parseFloat(rec['Overall Score'] || 0);
+                if (score >= 85) acc.pass++;
+                else acc.fail++;
+                return acc;
+            }, { pass: 0, fail: 0 });
+            renderDoughnutChart('passFailChart', 'Pass vs Fail', ['Pass', 'Fail'], [passFail.pass, passFail.fail]);
+
+            // Top 5 Strength Areas (based on questions answered 'Yes')
+            const questionScores = data.reduce((acc, rec) => {
+                Object.entries(rec).forEach(([key, value]) => {
+                    if (key.includes('(Rating)') && value === 'Yes') {
+                        const question = key.replace(' (Rating)', '');
+                        acc[question] = (acc[question] || 0) + 1;
+                    }
+                });
+                return acc;
+            }, {});
+            const topStrengths = Object.entries(questionScores).sort(([,a],[,b]) => b-a).slice(0, 5);
+            const strengthList = document.getElementById('strengthAreas');
+            strengthList.innerHTML = topStrengths.map(([q]) => `<li>${q}</li>`).join('');
+
+            // 3. Agent Scorecards
+            const agentData = data.reduce((acc, rec) => {
+                const agent = rec['CER Name'];
+                if (!agent) return acc;
+                if (!acc[agent]) acc[agent] = { scores: [] };
+                acc[agent].scores.push(parseFloat(rec['Overall Score'] || 0));
+                return acc;
+            }, {});
+
+            const agentTable = document.getElementById('agentScorecards');
+            agentTable.innerHTML = '';
+            Object.entries(agentData).forEach(([name, {scores}]) => {
+                const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                const trend = scores.length > 1 ? (scores[scores.length - 1] > scores[0] ? 'up' : 'down') : 'neutral';
+                const status = avg >= 90 ? 'green' : avg >= 80 ? 'amber' : 'red';
+                
+                const row = agentTable.insertRow();
+                row.innerHTML = `
+                    <td class="p-2">${name}</td>
+                    <td class="p-2 font-bold">${avg.toFixed(1)}%</td>
+                    <td class="p-2"><i class="fas fa-arrow-${trend} text-${status}-500"></i></td>
+                    <td class="p-2"><div class="kpi-light kpi-${status}"></div></td>
+                `;
+            });
             renderPassRateByRoleTable(data);
             renderPassRateByAgentTable(data);
         }
         
-        // ... (rest of the chart and analytics functions)
+        // --- Chart Rendering Functions ---
+        function renderBarChart(canvasId, label, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [{ label, data, backgroundColor: '#3B82F6' }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderLineChart(canvasId, label, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets: [{ label, data, borderColor: '#10B981', tension: 0.1 }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderDoughnutChart(canvasId, label, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data, backgroundColor: ['#10B981', '#EF4444'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
 
         function renderPassRateByRoleTable(data) {
             const thead = document.getElementById('passRateByRoleHead');
