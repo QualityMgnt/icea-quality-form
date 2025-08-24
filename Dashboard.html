@@ -44,7 +44,7 @@
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
         .sidebar ul li a {
-            transition: background-color 0.2s ease;
+            transition: background-color: 0.2s ease;
         }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
@@ -53,7 +53,7 @@
         .logout-button {
             background-color: #ff6f61;
             color: white;
-            transition: background-color 0.2s ease;
+            transition: background-color: 0.2s ease;
         }
         .logout-button:hover {
             background-color: #e65a50;
@@ -273,6 +273,24 @@
             }
         }
 
+        // --- NEW HELPER FUNCTION ---
+        function getEvaluationDate(record) {
+            const evalDateValue = record['Evaluation Date'];
+            if (!evalDateValue) return null;
+
+            if (evalDateValue.toDate && typeof evalDateValue.toDate === 'function') {
+                return evalDateValue.toDate();
+            }
+            if (typeof evalDateValue === 'string') {
+                return new Date(evalDateValue + 'T00:00:00');
+            }
+            if (evalDateValue instanceof Date) {
+                return evalDateValue;
+            }
+            return null;
+        }
+
+
         async function fetchData() {
             const querySnapshot = await getDocs(collection(db, EVALUATION_RECORDS_PATH));
             allEvaluations = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -334,8 +352,9 @@
             // Performance Trend
             const trendData = {};
             data.forEach(rec => {
-                if(rec.submittedAt?.toDate){
-                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                const evalDate = getEvaluationDate(rec); // UPDATED
+                if(evalDate){
+                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' }); // UPDATED
                     if(!trendData[month]) trendData[month] = { total: 0, count: 0 };
                     trendData[month].total += parseFloat(rec['Overall Score']) || 0;
                     trendData[month].count++;
@@ -460,8 +479,9 @@
             const groups = new Set();
 
             data.forEach(rec => {
-                if (rec.submittedAt?.toDate && rec[groupBy]) {
-                    const month = rec.submittedAt.toDate().toLocaleString('default', { month: 'short', year: 'numeric' });
+                const evalDate = getEvaluationDate(rec); // UPDATED
+                if (evalDate && rec[groupBy]) {
+                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' }); // UPDATED
                     const group = rec[groupBy];
                     months.add(month);
                     groups.add(group);
@@ -511,13 +531,12 @@
             let filteredData = allEvaluations;
 
             if (startDate) {
-                const start = new Date(startDate);
-                filteredData = filteredData.filter(r => r.submittedAt?.toDate() >= start);
+                const start = new Date(startDate + 'T00:00:00'); // UPDATED
+                filteredData = filteredData.filter(r => getEvaluationDate(r) >= start); // UPDATED
             }
             if (endDate) {
-                const end = new Date(endDate);
-                end.setHours(23, 59, 59, 999); // Include the whole day
-                filteredData = filteredData.filter(r => r.submittedAt?.toDate() <= end);
+                const end = new Date(endDate + 'T23:59:59'); // UPDATED
+                filteredData = filteredData.filter(r => getEvaluationDate(r) <= end); // UPDATED
             }
             if (role) {
                 filteredData = filteredData.filter(r => r['CER Role'] === role);
