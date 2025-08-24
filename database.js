@@ -168,45 +168,6 @@
         <div id="databaseContent" class="hidden">
             <h1 class="text-3xl font-bold mb-6 text-gray-800">Database Management</h1>
             
-            <!-- Upload Wizard -->
-            <div id="uploadWizard" class="dashboard-card mb-6">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Upload Wizard</h2>
-                <!-- Step Indicators -->
-                <div class="flex items-center mb-6">
-                    <div id="step1Indicator" class="wizard-step active"><span class="step-circle">1</span> Download Template</div>
-                    <div class="wizard-connector"></div>
-                    <div id="step2Indicator" class="wizard-step"><span class="step-circle">2</span> Preview Data</div>
-                    <div class="wizard-connector"></div>
-                    <div id="step3Indicator" class="wizard-step"><span class="step-circle">3</span> Confirm & Upload</div>
-                </div>
-
-                <!-- Step Content -->
-                <div id="step1Content" class="">
-                    <h3 class="text-lg font-medium">Step 1: Get Your Template</h3>
-                    <p class="text-gray-600 my-2">Download the CSV template to ensure your data is in the correct format before uploading.</p>
-                    <button id="generateTemplateBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
-                        <i class="fas fa-file-csv mr-2"></i>Generate Template
-                    </button>
-                </div>
-
-                <div id="step2Content" class="hidden">
-                    <h3 class="text-lg font-medium">Step 2: Upload & Preview Your Data</h3>
-                    <p class="text-gray-600 my-2">Select your completed CSV file. We'll show you a preview before importing.</p>
-                    <input type="file" id="csvFileInput" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
-                    <div id="previewContainer" class="mt-4 overflow-auto max-h-64 border rounded-lg"></div>
-                </div>
-
-                <div id="step3Content" class="hidden">
-                    <h3 class="text-lg font-medium">Step 3: Confirm and Upload</h3>
-                    <p class="text-gray-600 my-2">Your data is ready to be uploaded. We found <strong id="recordCount">0</strong> records.</p>
-                    <div id="uploadStatus" class="my-2"></div>
-                    <button id="confirmUploadBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">
-                        <i class="fas fa-check-circle mr-2"></i>Start Upload
-                    </button>
-                </div>
-            </div>
-
-            <!-- Data Table Section -->
             <div class="dashboard-card bg-white">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-gray-800">All Records</h2>
@@ -347,9 +308,11 @@
             document.body.removeChild(link);
         }
 
-        async function deleteSelectedRecords() {
-            const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-            const recordIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
+        async function deleteSelectedRecords(recordIds) {
+            if (!recordIds || recordIds.length === 0) {
+                const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+                recordIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
+            }
             
             if (recordIds.length === 0) {
                 alert("Please select records to delete.");
@@ -370,90 +333,6 @@
             } catch (error) {
                 console.error("Deletion Error:", error);
                 alert(`Failed to delete records: ${error.message}`);
-            }
-        }
-
-        // --- Upload Wizard Logic ---
-        function setWizardStep(activeStep) {
-            ['1', '2', '3'].forEach(step => {
-                document.getElementById(`step${step}Indicator`).classList.remove('active');
-                document.getElementById(`step${step}Content`).classList.add('hidden');
-            });
-            document.getElementById(`step${activeStep}Indicator`).classList.add('active');
-            document.getElementById(`step${activeStep}Content`).classList.remove('hidden');
-        }
-
-        function generateTemplate() {
-            const headers = ["Contact ID", "Client Name", "CER Name", "CER Email", "CER Role", "Call Date", "Reviewer's Name", "Evaluation Date", "Overall Score"];
-            const csvString = headers.join(',');
-            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "evaluation_template.csv";
-            link.click();
-            setWizardStep('2');
-        }
-
-        function previewCsv(file) {
-            if (!file) return;
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    parsedCsvData = results.data;
-                    const previewContainer = document.getElementById('previewContainer');
-                    previewContainer.innerHTML = '';
-
-                    if (results.errors.length > 0) {
-                        previewContainer.innerHTML = `<div class="p-4 text-red-600">Error parsing file: ${results.errors[0].message}</div>`;
-                        return;
-                    }
-
-                    const table = document.createElement('table');
-                    table.className = 'w-full text-sm text-left';
-                    const thead = table.createTHead();
-                    const tbody = table.createTBody();
-                    thead.innerHTML = `<tr class="bg-gray-100">${Object.keys(parsedCsvData[0]).map(h => `<th>${h}</th>`).join('')}</tr>`;
-                    
-                    parsedCsvData.slice(0, 10).forEach(row => {
-                        const tr = tbody.insertRow();
-                        tr.innerHTML = Object.values(row).map(val => `<td>${val}</td>`).join('');
-                    });
-                    
-                    previewContainer.appendChild(table);
-                    document.getElementById('recordCount').textContent = parsedCsvData.length;
-                    setWizardStep('3');
-                }
-            });
-        }
-
-        async function uploadData() {
-            if (parsedCsvData.length === 0) {
-                alert("No data to upload.");
-                return;
-            }
-            const statusDiv = document.getElementById('uploadStatus');
-            statusDiv.innerHTML = `<div class="flex items-center gap-2 text-blue-600"><div class="spinner w-5 h-5"></div> Uploading...</div>`;
-            document.getElementById('confirmUploadBtn').disabled = true;
-
-            try {
-                const batch = writeBatch(db);
-                parsedCsvData.forEach(record => {
-                    const docRef = doc(collection(db, EVALUATION_RECORDS_PATH));
-                    // Convert date strings to Firestore Timestamps if they exist
-                    if (record["Evaluation Date"]) record["Evaluation Date"] = new Date(record["Evaluation Date"]);
-                    if (record["Call Date"]) record["Call Date"] = new Date(record["Call Date"]);
-                    
-                    batch.set(docRef, { ...record, submittedAt: serverTimestamp() });
-                });
-                await batch.commit();
-                statusDiv.innerHTML = `<div class="text-green-600 font-semibold">Successfully uploaded ${parsedCsvData.length} records!</div>`;
-                parsedCsvData = []; // Clear data after upload
-            } catch (error) {
-                console.error("Upload error:", error);
-                statusDiv.innerHTML = `<div class="text-red-600 font-semibold">Upload failed: ${error.message}</div>`;
-            } finally {
-                 document.getElementById('confirmUploadBtn').disabled = false;
             }
         }
 
@@ -479,7 +358,7 @@
              const recordsToDownload = selectedIds.length > 0 ? allRecords.filter(r => selectedIds.includes(r.id)) : allRecords;
              downloadExcel(recordsToDownload);
         });
-        document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedRecords);
+        document.getElementById('deleteSelectedBtn').addEventListener('click', () => deleteSelectedRecords());
         document.getElementById('recordsTableBody').addEventListener('click', (e) => {
             if (e.target.closest('.delete-record-btn')) {
                 const recordId = e.target.closest('.delete-record-btn').dataset.recordId;
@@ -492,15 +371,6 @@
             });
         });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-
-        // Wizard Buttons
-        document.getElementById('showUploadWizardBtn').addEventListener('click', () => {
-             document.getElementById('uploadWizard').classList.toggle('hidden');
-             setWizardStep('1');
-        });
-        document.getElementById('generateTemplateBtn').addEventListener('click', generateTemplate);
-        document.getElementById('csvFileInput').addEventListener('change', (e) => previewCsv(e.target.files[0]));
-        document.getElementById('confirmUploadBtn').addEventListener('click', uploadData);
 
     </script>
 </body>
