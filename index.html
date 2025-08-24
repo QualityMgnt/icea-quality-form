@@ -246,18 +246,19 @@
 
         <nav class="main-nav" id="mainNav">
             <div class="sidebar p-4 h-full relative">
-                <ul>
-                    <li class="nav-tab mb-2"><a href="home.html" id="homeTab" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
-                    <li class="nav-tab mb-2"><a href="Dashboard.html" id="reportsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
-                    <li class="nav-tab mb-2"><a href="#" id="auditFormTab" class="active flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
-                    <li class="nav-tab mb-2"><a href="#" id="shareResponseTab" class="flex items-center p-2 rounded-md"><i class="fas fa-share-alt w-6 mr-2"></i> Share</a></li>
-                    <li class="nav-tab mb-2"><a href="myEvaluations.html" id="myEvaluationsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
-                    <li class="nav-tab mb-2"><a href="nps.html" id="npsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-comment-alt w-6 mr-2"></i> NPS</a></li>
-                    <li class="nav-tab mb-2"><a href="autofails.html" id="autofailsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
-                    <li class="nav-tab mb-2"><a href="database.html" id="databaseTab" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
-                    <li class="nav-tab mb-2"><a href="images.html" id="imagesTab" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
-                    <li class="nav-tab mb-2"><a href="users.html" id="usersTab" class="flex items-center p-2 rounded-md"><i class="fas fa-users w-6 mr-2"></i> Users</a></li>
-                    <li class="nav-tab mb-2"><a href="admin.html" id="adminTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-cog w-6 mr-2"></i> Admin</a></li>
+                <ul id="nav-menu">
+                    <li class="nav-tab mb-2" data-tab-id="home"><a href="home.html" id="homeTab" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="dashboard"><a href="Dashboard.html" id="reportsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="evaluation"><a href="#" id="auditFormTab" class="active flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="share"><a href="#" id="shareResponseTab" class="flex items-center p-2 rounded-md"><i class="fas fa-share-alt w-6 mr-2"></i> Share</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="my_evaluations"><a href="myEvaluations.html" id="myEvaluationsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="nps"><a href="nps.html" id="npsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-comment-alt w-6 mr-2"></i> NPS</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="autofails"><a href="autofails.html" id="autofailsTab" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="database"><a href="database.html" id="databaseTab" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="images"><a href="images.html" id="imagesTab" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="users"><a href="users.html" id="usersTab" class="flex items-center p-2 rounded-md"><i class="fas fa-users w-6 mr-2"></i> Users</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="admin"><a href="admin.html" id="adminTab" class="flex items-center p-2 rounded-md"><i class="fas fa-user-cog w-6 mr-2"></i> Admin</a></li>
+                    <li class="nav-tab mb-2" data-tab-id="managedata"><a href="managedata.html" class="flex items-center p-2 rounded-md"><i class="fas fa-tasks w-6 mr-2"></i> Manage Data</a></li>
                 </ul>
                 <div class="absolute bottom-4 w-full pr-8">
                      <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md">Logout</button>
@@ -699,8 +700,8 @@
 
         function initializeAppData() {
             loadLogoFromLocalStorage();
-            renderNavigationForRole(currentUserRole);
-            showTab('auditForm'); // Default to evaluation form tab
+            setupNavigation(currentUserRole); // Use the new setup function
+            showTab('auditForm'); // Default to home tab
             fetchDropdownOptionsData();
             fetchQuestionsData();
             fetchCustomFieldsData();
@@ -732,8 +733,7 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-                // On successful login, redirect to home.html
-                window.location.href = 'home.html';
+                 window.location.href = 'home.html';
             } catch (e) {
                 loginMessage.textContent = "Error: " + e.message;
                 loginMessage.classList.remove('hidden');
@@ -745,13 +745,21 @@
         });
 
         // --- UI & TAB MANAGEMENT ---
+        function setupNavigation(role) {
+            const adminTabs = ['users', 'admin', 'managedata'];
+            const navMenu = document.getElementById('nav-menu');
+            const allTabs = navMenu.querySelectorAll('.nav-tab');
 
-        function renderNavigationForRole() {
-            const allNavTabs = document.querySelectorAll('.nav-tab');
-            allNavTabs.forEach(tab => {
-                tab.style.display = 'block'; 
+            allTabs.forEach(tab => {
+                const tabId = tab.dataset.tabId;
+                if (adminTabs.includes(tabId) && role !== 'Admin') {
+                    tab.classList.add('hidden');
+                } else {
+                    tab.classList.remove('hidden');
+                }
             });
         }
+
 
         function showTab(tabName) {
             const allNavLinks = document.querySelectorAll('.sidebar ul li a');
@@ -888,7 +896,7 @@
 
             homeTab?.addEventListener('click', e => { e.preventDefault(); window.location.href = 'home.html'; });
             auditFormTab?.addEventListener('click', e => { e.preventDefault(); showTab('auditForm'); });
-            databaseTab?.addEventListener('click', e => { e.preventDefault(); showTab('database'); });
+            databaseTab?.addEventListener('click', e => { e.preventDefault(); window.location.href = 'database.html'; });
             shareResponseTab?.addEventListener('click', e => { e.preventDefault(); showTab('shareResponse'); });
 
             cerRoleSelect?.addEventListener('change', e => renderQuestionsForRole(e.target.value));
