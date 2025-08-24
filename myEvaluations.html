@@ -379,8 +379,9 @@
 
         function loadLogoFromLocalStorage() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
-            if (savedLogo) {
-                document.getElementById('header-logo').src = savedLogo;
+            const logoElement = document.getElementById('header-logo');
+            if (savedLogo && logoElement) {
+                logoElement.src = savedLogo;
             }
         }
 
@@ -724,30 +725,39 @@
         });
         document.getElementById('downloadPagePdfBtn').addEventListener('click', downloadPageAsPdf);
         
-        // Modal Close Buttons
-        document.getElementById('closeDetailsModalBtn').addEventListener('click', () => document.getElementById('evaluationDetailsModal').classList.add('hidden'));
-        document.getElementById('closeReviewModalBtn').addEventListener('click', () => document.getElementById('requestReviewModal').classList.add('hidden'));
-        document.getElementById('closeReEvalModalBtn').addEventListener('click', () => document.getElementById('reEvaluationModal').classList.add('hidden'));
-        
-        // Event Delegation for table buttons
-        document.getElementById('myCerScoresTableBody').addEventListener('click', (e) => {
-            if (e.target.classList.contains('view-details-btn')) {
-                showEvaluationDetails(e.target.dataset.recordId);
+        // Use event delegation for all dynamically created content
+        document.body.addEventListener('click', (e) => {
+            // Modal Close Buttons
+            if (e.target.id === 'closeDetailsModalBtn') {
+                document.getElementById('evaluationDetailsModal').classList.add('hidden');
             }
-            if (e.target.classList.contains('request-review-btn')) {
-                document.getElementById('reviewRecordId').value = e.target.dataset.recordId;
+            if (e.target.id === 'closeReviewModalBtn') {
+                document.getElementById('requestReviewModal').classList.add('hidden');
+            }
+            if (e.target.id === 'closeReEvalModalBtn' || e.target.id === 'cancelReEvalBtn') {
+                document.getElementById('reEvaluationModal').classList.add('hidden');
+            }
+
+            // Table buttons
+            if (e.target.closest('.view-details-btn')) {
+                showEvaluationDetails(e.target.closest('.view-details-btn').dataset.recordId);
+            }
+            if (e.target.closest('.request-review-btn')) {
+                document.getElementById('reviewRecordId').value = e.target.closest('.request-review-btn').dataset.recordId;
                 document.getElementById('requestReviewModal').classList.remove('hidden');
             }
-        });
-
-        document.getElementById('reviewRequestsTableBody').addEventListener('click', (e) => {
-            if (e.target.classList.contains('re-evaluate-btn')) {
-                openReEvaluationModal(e.target.dataset.recordId);
+            if (e.target.closest('.re-evaluate-btn')) {
+                openReEvaluationModal(e.target.closest('.re-evaluate-btn').dataset.recordId);
+            }
+            
+            // Modal Submit Buttons
+            if (e.target.id === 'submitReviewRequestBtn') {
+                submitReviewRequest();
+            }
+            if (e.target.id === 'submitReEvaluationBtn') {
+                submitReEvaluation();
             }
         });
-
-        document.getElementById('submitReviewRequestBtn').addEventListener('click', submitReviewRequest);
-        document.getElementById('submitReEvaluationBtn').addEventListener('click', submitReEvaluation);
 
     </script>
 </body>
