@@ -285,7 +285,6 @@
             }
         }
 
-        // --- NEW HELPER FUNCTION ---
         function getEvaluationDate(record) {
             const evalDateValue = record['Evaluation Date'];
             if (!evalDateValue) return null;
@@ -354,10 +353,18 @@
             const autofailContent = document.getElementById('autofailContent');
             
             try {
-                // UPDATED QUERY: Fetches records where the score is "0%"
-                const q = query(collection(db, EVALUATION_RECORDS_PATH), where("Overall Score", "==", "0%"));
+                // Fetch all evaluation records
+                const q = query(collection(db, EVALUATION_RECORDS_PATH));
                 const querySnapshot = await getDocs(q);
-                allAutofailData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                let allData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Filter for records with a score less than 5% on the client-side
+                allAutofailData = allData.filter(record => {
+                    const scoreString = record['Overall Score'] || '0%';
+                    const score = parseFloat(scoreString.replace('%', ''));
+                    return !isNaN(score) && score < 5;
+                });
+
 
                 await populateFilters();
                 applyFilters();
