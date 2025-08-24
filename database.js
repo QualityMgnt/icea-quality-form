@@ -50,7 +50,7 @@
         .logout-button {
             background-color: #ff6f61;
             color: white;
-            transition: background-color 0.2s ease;
+            transition: background-color: 0.2s ease;
         }
         .logout-button:hover {
             background-color: #e65a50;
@@ -166,15 +166,10 @@
         </div>
 
         <div id="databaseContent" class="hidden">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">Database Management</h1>
-                <button id="showUploadWizardBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-indigo-700">
-                    <i class="fas fa-upload mr-2"></i>Upload from Excel/CSV
-                </button>
-            </div>
-
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Database Management</h1>
+            
             <!-- Upload Wizard -->
-            <div id="uploadWizard" class="dashboard-card mb-6 hidden">
+            <div id="uploadWizard" class="dashboard-card mb-6">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4">Upload Wizard</h2>
                 <!-- Step Indicators -->
                 <div class="flex items-center mb-6">
