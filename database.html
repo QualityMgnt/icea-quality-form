@@ -216,7 +216,7 @@
     <!-- View Record Modal -->
     <div id="viewRecordModal" class="modal-overlay hidden">
         <div class="modal-container p-6">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
                  <h2 class="text-2xl font-bold">Record Details</h2>
                  <button id="closeViewModalBtn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
             </div>
@@ -263,7 +263,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, writeBatch, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -280,8 +280,10 @@
         const db = getFirestore(app);
 
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const QUESTIONS_PATH = `artifacts/${appId}/public/data/questions`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
         let allRecords = [];
+        let allQuestions = {};
         let currentFilteredRecords = [];
 
         function loadLogoFromLocalStorage() {
@@ -289,6 +291,13 @@
             if (savedLogo) {
                 document.getElementById('header-logo').src = savedLogo;
             }
+        }
+
+        async function fetchQuestionsData() {
+            const questionsSnapshot = await getDocs(collection(db, QUESTIONS_PATH));
+            questionsSnapshot.forEach(doc => {
+                allQuestions = {...allQuestions, ...doc.data()};
+            });
         }
 
         function renderRecordsTable(records) {
@@ -437,16 +446,35 @@
             if (!record) return;
 
             const contentDiv = document.getElementById('viewRecordContent');
-            let html = '';
-            for (const [key, value] of Object.entries(record)) {
-                if (key !== 'id' && value) {
-                     html += `<div class="grid grid-cols-3 gap-4 border-b pb-2">
-                                <strong class="col-span-1">${key}</strong>
-                                <span class="col-span-2">${value.toDate ? value.toDate().toLocaleString() : value}</span>
-                              </div>`;
-                }
+            let mainInfoHtml = '<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">';
+            const mainFields = ['Client Name', 'CER Name', 'Overall Score', 'Evaluation Date', "Reviewer's Name", 'Contact ID'];
+            mainFields.forEach(field => {
+                mainInfoHtml += `<div><strong class="block text-sm text-gray-500">${field}</strong><span class="text-lg">${record[field] || 'N/A'}</span></div>`;
+            });
+            mainInfoHtml += '</div>';
+
+            let questionsHtml = '';
+            const role = record['CER Role'];
+            if (role && allQuestions[role]) {
+                Object.entries(allQuestions[role]).forEach(([section, questions]) => {
+                    questionsHtml += `<h3 class="text-xl font-bold mt-4 border-t pt-2">${section}</h3>`;
+                    questionsHtml += '<div class="space-y-2 mt-2">';
+                    questions.forEach(q => {
+                        const rating = record[`${q.desc} (Rating)`] || 'N/A';
+                        const remarks = record[`${q.desc} (Remarks)`] || 'No remarks.';
+                        questionsHtml += `<div class="p-2 rounded-md bg-gray-50">
+                                            <p class="font-semibold">${q.desc}</p>
+                                            <p><strong>Rating:</strong> ${rating}</p>
+                                            <p><strong>Remarks:</strong> ${remarks}</p>
+                                         </div>`;
+                    });
+                    questionsHtml += '</div>';
+                });
+            } else {
+                questionsHtml = '<p>No question breakdown available for this record.</p>';
             }
-            contentDiv.innerHTML = html;
+
+            contentDiv.innerHTML = mainInfoHtml + questionsHtml;
             document.getElementById('viewRecordModal').classList.remove('hidden');
         }
 
@@ -487,9 +515,10 @@
         }
 
         // --- Event Listeners ---
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 loadLogoFromLocalStorage();
+                await fetchQuestionsData(); // Fetch questions first
                 onSnapshot(collection(db, EVALUATION_RECORDS_PATH), (snapshot) => {
                     allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     currentFilteredRecords = allRecords;
