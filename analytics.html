@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Quality Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .top-header {
+            background-color: #003366;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 64px;
+        }
+        .main-nav {
+            background-color: #002347;
+            color: white;
+            position: fixed;
+            top: 64px;
+            left: 0;
+            height: calc(100% - 64px);
+            width: 256px;
+            z-index: 999;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background-color: #004a8d;
+        }
+        .logout-button {
+            background-color: #ff6f61;
+            color: white;
+        }
+        main {
+            padding-top: 80px;
+            padding-left: 272px;
+            padding-right: 16px;
+            padding-bottom: 16px;
+        }
+        .dashboard-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .kpi-light {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+        .kpi-green { background-color: #10B981; }
+        .kpi-amber { background-color: #F59E0B; }
+        .kpi-red { background-color: #EF4444; }
+        .hidden { display: none; }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #0056b3;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <header class="top-header flex items-center justify-center relative">
+        <span class="text-xl font-semibold">ICEA LION ANALYTICS DASHBOARD</span>
+        <img id="header-logo" src="https://placehold.co/150x60/FFFFFF/003366?text=Logo" alt="Company Logo" class="absolute right-4 h-12 w-auto">
+    </header>
+
+    <nav class="main-nav" id="mainNav">
+        <div class="sidebar p-4 h-full flex flex-col">
+            <ul class="flex-grow">
+                <li class="nav-tab mb-2"><a href="home.html" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
+                <li class="nav-tab mb-2"><a href="Dashboard.html" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
+                <li class="nav-tab mb-2"><a href="analytics.html" class="active flex items-center p-2 rounded-md"><i class="fas fa-chart-pie w-6 mr-2"></i> Analytics</a></li>
+                <li class="nav-tab mb-2"><a href="index.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
+                <li class="nav-tab mb-2"><a href="autofails.html" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
+                <li class="nav-tab mb-2"><a href="database.html" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md mt-auto">Logout</button>
+        </div>
+    </nav>
+
+    <main id="mainContent">
+        <div id="loadingMessage" class="flex flex-col items-center justify-center h-[calc(100vh-100px)]">
+            <div class="spinner"></div>
+            <p class="mt-4 text-lg text-gray-600">Loading Analytics...</p>
+        </div>
+
+        <div id="analyticsContent" class="hidden">
+            <!-- Filters -->
+            <div class="dashboard-card mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
+                    <div class="lg:col-span-1"><label class="text-sm font-medium">Start Date</label><input type="date" id="startDateFilter" class="p-2 border rounded-md w-full"></div>
+                    <div class="lg:col-span-1"><label class="text-sm font-medium">End Date</label><input type="date" id="endDateFilter" class="p-2 border rounded-md w-full"></div>
+                    <div class="lg:col-span-1"><label class="text-sm font-medium">Channel</label><select id="channelFilter" class="p-2 border rounded-md w-full"><option value="">All Channels</option></select></div>
+                    <div class="lg:col-span-1"><label class="text-sm font-medium">CER Name</label><select id="cerNameFilter" class="p-2 border rounded-md w-full"><option value="">All Names</option></select></div>
+                    <div class="lg:col-span-1"><label class="text-sm font-medium">CER Role</label><select id="cerRoleFilter" class="p-2 border rounded-md w-full"><option value="">All Roles</option></select></div>
+                    <div class="flex gap-2">
+                        <button id="applyFilters" class="bg-blue-600 text-white p-2 rounded-md w-full">Apply</button>
+                        <button id="resetFilters" class="bg-gray-300 text-gray-700 p-2 rounded-md w-full">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Quality Performance -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">Overall Quality Performance</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="dashboard-card text-center">
+                        <h3 class="text-lg font-semibold text-gray-500">Average Quality Score</h3>
+                        <p id="avgQualityScore" class="text-4xl font-bold mt-2">0%</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <canvas id="scoreByChannelChart" height="150"></canvas>
+                    </div>
+                    <div class="dashboard-card md:col-span-2">
+                        <canvas id="scoreTrendChart" height="150"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Evaluation Insights -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">Evaluation Insights</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="dashboard-card">
+                        <h3 class="font-semibold mb-2">Evaluations Completed</h3>
+                        <p id="evalsCompleted" class="text-3xl font-bold">0</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 class="font-semibold mb-2">Pass vs Fail Rate</h3>
+                        <canvas id="passFailChart" height="120"></canvas>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 class="font-semibold mb-2">Top 5 Strength Areas</h3>
+                        <ul id="strengthAreas" class="list-disc list-inside"></ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Agent/Team Breakdown -->
+            <section class="mb-8">
+                 <h2 class="text-2xl font-bold mb-4">Agent & Team Breakdown</h2>
+                 <div class="dashboard-card">
+                    <h3 class="font-semibold mb-4">Agent Scorecards</h3>
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="p-2">Agent</th>
+                                <th class="p-2">Score</th>
+                                <th class="p-2">Trend</th>
+                                <th class="p-2">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agentScorecards"></tbody>
+                    </table>
+                 </div>
+            </section>
+            
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.appspot.com",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
+        };
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        let allEvaluations = [];
+        let charts = {};
+
+        // --- Data Fetching and Processing ---
+        async function fetchData() {
+            const q = query(collection(db, EVALUATION_RECORDS_PATH));
+            const querySnapshot = await getDocs(q);
+            allEvaluations = querySnapshot.docs.map(doc => doc.data());
+            
+            populateFilters(allEvaluations);
+            processAndRenderAnalytics(allEvaluations);
+
+            document.getElementById('loadingMessage').classList.add('hidden');
+            document.getElementById('analyticsContent').classList.remove('hidden');
+        }
+
+        function populateFilters(data) {
+            const cerNameFilter = document.getElementById('cerNameFilter');
+            const cerRoleFilter = document.getElementById('cerRoleFilter');
+            const channelFilter = document.getElementById('channelFilter');
+
+            const names = [...new Set(data.map(r => r['CER Name']).filter(Boolean))];
+            const roles = [...new Set(data.map(r => r['CER Role']).filter(Boolean))];
+            const channels = [...new Set(data.map(r => r.channel || 'Unknown').filter(Boolean))];
+
+            names.forEach(name => cerNameFilter.innerHTML += `<option value="${name}">${name}</option>`);
+            roles.forEach(role => cerRoleFilter.innerHTML += `<option value="${role}">${role}</option>`);
+            channels.forEach(channel => channelFilter.innerHTML += `<option value="${channel}">${channel}</option>`);
+        }
+
+        function processAndRenderAnalytics(data) {
+            // 1. Overall Quality Performance
+            const totalScore = data.reduce((sum, rec) => sum + parseFloat(rec['Overall Score'] || 0), 0);
+            const avgScore = data.length > 0 ? (totalScore / data.length).toFixed(1) : 0;
+            document.getElementById('avgQualityScore').textContent = `${avgScore}%`;
+
+            // Score by Channel
+            const scoreByChannel = data.reduce((acc, rec) => {
+                const channel = rec.channel || 'Unknown';
+                if (!acc[channel]) acc[channel] = { total: 0, count: 0 };
+                acc[channel].total += parseFloat(rec['Overall Score'] || 0);
+                acc[channel].count++;
+                return acc;
+            }, {});
+            const channelLabels = Object.keys(scoreByChannel);
+            const channelData = channelLabels.map(c => (scoreByChannel[c].total / scoreByChannel[c].count));
+            renderBarChart('scoreByChannelChart', 'Score by Channel', channelLabels, channelData);
+
+            // Score Trend Over Time
+            const trendData = data.reduce((acc, rec) => {
+                const date = rec['Evaluation Date']?.toDate ? rec['Evaluation Date'].toDate() : new Date(rec['Evaluation Date']);
+                if (!isNaN(date)) {
+                    const month = date.toISOString().slice(0, 7); // YYYY-MM
+                    if (!acc[month]) acc[month] = { total: 0, count: 0 };
+                    acc[month].total += parseFloat(rec['Overall Score'] || 0);
+                    acc[month].count++;
+                }
+                return acc;
+            }, {});
+            const trendLabels = Object.keys(trendData).sort();
+            const trendScores = trendLabels.map(m => (trendData[m].total / trendData[m].count));
+            renderLineChart('scoreTrendChart', 'Score Trend', trendLabels, trendScores);
+
+            // 2. Evaluation Insights
+            document.getElementById('evalsCompleted').textContent = data.length;
+            
+            const passFail = data.reduce((acc, rec) => {
+                const score = parseFloat(rec['Overall Score'] || 0);
+                if (score >= 85) acc.pass++;
+                else acc.fail++;
+                return acc;
+            }, { pass: 0, fail: 0 });
+            renderDoughnutChart('passFailChart', 'Pass vs Fail', ['Pass', 'Fail'], [passFail.pass, passFail.fail]);
+
+            // Top 5 Strength Areas
+            const questionScores = data.reduce((acc, rec) => {
+                Object.entries(rec).forEach(([key, value]) => {
+                    if (key.includes('(Rating)') && value === 'Yes') {
+                        const question = key.replace(' (Rating)', '');
+                        acc[question] = (acc[question] || 0) + 1;
+                    }
+                });
+                return acc;
+            }, {});
+            const topStrengths = Object.entries(questionScores).sort(([,a],[,b]) => b-a).slice(0, 5);
+            const strengthList = document.getElementById('strengthAreas');
+            strengthList.innerHTML = topStrengths.map(([q]) => `<li>${q}</li>`).join('');
+
+            // 3. Agent Scorecards
+            const agentData = data.reduce((acc, rec) => {
+                const agent = rec['CER Name'];
+                if (!agent) return acc;
+                if (!acc[agent]) acc[agent] = { scores: [] };
+                acc[agent].scores.push(parseFloat(rec['Overall Score'] || 0));
+                return acc;
+            }, {});
+
+            const agentTable = document.getElementById('agentScorecards');
+            agentTable.innerHTML = '';
+            Object.entries(agentData).forEach(([name, {scores}]) => {
+                const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                const trend = scores.length > 1 ? (scores[scores.length - 1] > scores[0] ? 'up' : 'down') : 'neutral';
+                const status = avg >= 90 ? 'green' : avg >= 80 ? 'amber' : 'red';
+                
+                const row = agentTable.insertRow();
+                row.innerHTML = `
+                    <td class="p-2">${name}</td>
+                    <td class="p-2 font-bold">${avg.toFixed(1)}%</td>
+                    <td class="p-2"><i class="fas fa-arrow-${trend} text-${status}-500"></i></td>
+                    <td class="p-2"><div class="kpi-light kpi-${status}"></div></td>
+                `;
+            });
+        }
+
+        // --- Chart Rendering Functions ---
+        function renderBarChart(canvasId, label, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [{ label, data, backgroundColor: '#3B82F6' }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderLineChart(canvasId, label, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets: [{ label, data, borderColor: '#10B981', tension: 0.1 }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderDoughnutChart(canvasId, label, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data, backgroundColor: ['#10B981', '#EF4444'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // --- Event Listeners ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                fetchData();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        document.getElementById('applyFilters').addEventListener('click', () => {
+            const startDate = document.getElementById('startDateFilter').value;
+            const endDate = document.getElementById('endDateFilter').value;
+            const channel = document.getElementById('channelFilter').value;
+            const cerName = document.getElementById('cerNameFilter').value;
+            const cerRole = document.getElementById('cerRoleFilter').value;
+            
+            let filteredData = allEvaluations;
+
+            if (startDate) {
+                filteredData = filteredData.filter(rec => new Date(rec['Evaluation Date']) >= new Date(startDate));
+            }
+            if (endDate) {
+                filteredData = filteredData.filter(rec => new Date(rec['Evaluation Date']) <= new Date(endDate));
+            }
+            if (channel) {
+                filteredData = filteredData.filter(rec => (rec.channel || 'Unknown') === channel);
+            }
+            if (cerName) {
+                filteredData = filteredData.filter(r => r['CER Name'] === cerName);
+            }
+            if (cerRole) {
+                filteredData = filteredData.filter(r => r['CER Role'] === cerRole);
+            }
+            processAndRenderAnalytics(filteredData);
+        });
+
+        document.getElementById('resetFilters').addEventListener('click', () => {
+            document.getElementById('startDateFilter').value = '';
+            document.getElementById('endDateFilter').value = '';
+            document.getElementById('channelFilter').value = '';
+            document.getElementById('cerNameFilter').value = '';
+            document.getElementById('cerRoleFilter').value = '';
+            processAndRenderAnalytics(allEvaluations);
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+    </script>
+</body>
+</html>
