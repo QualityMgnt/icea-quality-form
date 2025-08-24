@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Data - Quality Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .top-header {
+            background-color: #003366;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 64px;
+        }
+        .main-nav {
+            background-color: #002347;
+            color: white;
+            position: fixed;
+            top: 64px;
+            left: 0;
+            height: calc(100% - 64px);
+            width: 256px;
+            z-index: 999;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        .sidebar ul li a:hover, .sidebar ul li a.active {
+            background-color: #004a8d;
+        }
+        .logout-button {
+            background-color: #ff6f61;
+            color: white;
+        }
+        .logout-button:hover {
+            background-color: #e65a50;
+        }
+        main {
+            padding-top: 80px;
+            padding-left: 272px;
+            padding-right: 16px;
+            padding-bottom: 16px;
+        }
+        .dashboard-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .hidden { display: none !important; }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #0056b3;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Wizard Styles */
+        .wizard-step {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            border: 2px solid #e5e7eb;
+            color: #6b7280;
+            transition: all 0.3s ease;
+        }
+        .wizard-step.active {
+            border-color: #3b82f6;
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 600;
+        }
+        .wizard-step .step-circle {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+        .wizard-step.active .step-circle {
+            background-color: white;
+            color: #3b82f6;
+        }
+        .wizard-connector {
+            flex-grow: 1;
+            height: 2px;
+            background-color: #e5e7eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <header class="top-header flex items-center justify-center relative">
+        <span class="text-xl font-semibold">ICEA LION QUALITY DASHBOARD</span>
+        <img id="header-logo" src="https://placehold.co/150x60/FFFFFF/003366?text=Logo" alt="Company Logo" class="absolute right-4 h-12 w-auto">
+    </header>
+
+    <nav class="main-nav" id="mainNav">
+        <div class="sidebar p-4 h-full flex flex-col">
+             <ul id="nav-menu">
+                <li class="nav-tab mb-2" data-tab-id="home"><a href="home.html" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
+                <li class="nav-tab mb-2" data-tab-id="dashboard"><a href="Dashboard.html" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
+                <li class="nav-tab mb-2" data-tab-id="evaluation"><a href="index.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
+                <li class="nav-tab mb-2" data-tab-id="my_evaluations"><a href="myEvaluations.html" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
+                <li class="nav-tab mb-2" data-tab-id="autofails"><a href="autofails.html" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
+                <li class="nav-tab mb-2" data-tab-id="database"><a href="database.html" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
+                <li class="nav-tab mb-2" data-tab-id="users"><a href="users.html" class="flex items-center p-2 rounded-md"><i class="fas fa-users w-6 mr-2"></i> Users</a></li>
+                <li class="nav-tab mb-2" data-tab-id="admin"><a href="admin.html" class="flex items-center p-2 rounded-md"><i class="fas fa-user-cog w-6 mr-2"></i> Admin</a></li>
+                <li class="nav-tab mb-2" data-tab-id="managedata"><a href="managedata.html" class="active flex items-center p-2 rounded-md"><i class="fas fa-tasks w-6 mr-2"></i> Manage Data</a></li>
+            </ul>
+            <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md mt-auto">Logout</button>
+        </div>
+    </nav>
+
+    <main id="mainContent">
+        <div id="loadingMessage" class="flex flex-col items-center justify-center h-[calc(100vh-100px)]">
+            <div class="spinner !w-12 !h-12"></div>
+            <p class="mt-4 text-lg text-gray-600">Verifying admin access...</p>
+        </div>
+
+        <div id="adminContent" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Manage Data</h1>
+             <!-- Upload Wizard -->
+            <div id="uploadWizard" class="dashboard-card mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Upload Wizard</h2>
+                <!-- Step Indicators -->
+                <div class="flex items-center mb-6">
+                    <div id="step1Indicator" class="wizard-step active"><span class="step-circle">1</span> Download Template</div>
+                    <div class="wizard-connector"></div>
+                    <div id="step2Indicator" class="wizard-step"><span class="step-circle">2</span> Preview Data</div>
+                    <div class="wizard-connector"></div>
+                    <div id="step3Indicator" class="wizard-step"><span class="step-circle">3</span> Confirm & Upload</div>
+                </div>
+
+                <!-- Step Content -->
+                <div id="step1Content">
+                    <h3 class="text-lg font-medium">Step 1: Get Your Template</h3>
+                    <p class="text-gray-600 my-2">Download the CSV template to ensure your data is in the correct format before uploading. This helps prevent errors during the import process.</p>
+                    <button id="generateTemplateBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
+                        <i class="fas fa-file-csv mr-2"></i>Generate Template
+                    </button>
+                </div>
+
+                <div id="step2Content" class="hidden">
+                    <h3 class="text-lg font-medium">Step 2: Upload & Preview Your Data</h3>
+                    <p class="text-gray-600 my-2">Select your completed CSV file. We'll show a preview of the first 10 rows to verify the columns and data.</p>
+                    <input type="file" id="csvFileInput" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                    <div id="previewContainer" class="mt-4 overflow-auto max-h-64 border rounded-lg"></div>
+                     <div class="mt-4 flex gap-2">
+                        <button id="backToStep1Btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Back</button>
+                    </div>
+                </div>
+
+                <div id="step3Content" class="hidden">
+                    <h3 class="text-lg font-medium">Step 3: Confirm and Upload</h3>
+                    <p class="text-gray-600 my-2">Your data is ready to be uploaded. We found <strong id="recordCount">0</strong> records.</p>
+                    <div id="uploadStatus" class="my-2"></div>
+                    <div class="flex gap-2">
+                        <button id="backToStep2Btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Back</button>
+                        <button id="confirmUploadBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 flex items-center gap-2">
+                            <i class="fas fa-check-circle"></i>Start Upload
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="accessDeniedMessage" class="hidden text-center py-12">
+            <h1 class="text-3xl font-bold text-red-600">Access Denied</h1>
+            <p class="text-lg text-gray-700 mt-4">You do not have permission to view this page.</p>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
+            authDomain: "icea-lion-qa.firebaseapp.com",
+            projectId: "icea-lion-qa",
+            storageBucket: "icea-lion-qa.appspot.com",
+            messagingSenderId: "820082472004",
+            appId: "1:820082472004:web:8caddf941e1b5b667faf811",
+        };
+        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : firebaseConfig.appId;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
+        const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
+        const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
+        let parsedCsvData = [];
+
+        function loadLogoFromLocalStorage() {
+            const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
+            if (savedLogo) {
+                document.getElementById('header-logo').src = savedLogo;
+            }
+        }
+
+        async function checkAdminRole(user) {
+            if (!user) return false;
+            const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
+            try {
+                const docSnap = await getDoc(userProfileDocRef);
+                return docSnap.exists() && docSnap.data().role === 'Admin';
+            } catch (error) {
+                console.error("Error checking admin role:", error);
+                return false;
+            }
+        }
+
+        // --- Wizard Logic ---
+        function setWizardStep(activeStep) {
+            [1, 2, 3].forEach(step => {
+                document.getElementById(`step${step}Indicator`).classList.remove('active');
+                document.getElementById(`step${step}Content`).classList.add('hidden');
+            });
+            document.getElementById(`step${activeStep}Indicator`).classList.add('active');
+            document.getElementById(`step${activeStep}Content`).classList.remove('hidden');
+        }
+
+        function generateTemplate() {
+            const headers = ["Contact ID", "Client Name", "CER Name", "CER Email", "CER Role", "Call Date", "Reviewer's Name", "Evaluation Date", "Overall Score", "Auto Fail Type", "Autofail Description"];
+            const csvString = headers.join(',');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "evaluation_template.csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setWizardStep(2);
+        }
+
+        function previewCsv(file) {
+            if (!file) return;
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    parsedCsvData = results.data;
+                    const previewContainer = document.getElementById('previewContainer');
+                    previewContainer.innerHTML = '';
+
+                    if (results.errors.length > 0) {
+                        previewContainer.innerHTML = `<div class="p-4 text-red-600 bg-red-50 rounded-lg"><strong>Error parsing file:</strong> ${results.errors[0].message}</div>`;
+                        return;
+                    }
+                    if (parsedCsvData.length === 0) {
+                         previewContainer.innerHTML = `<div class="p-4 text-yellow-600 bg-yellow-50 rounded-lg"><strong>Warning:</strong> No data found in the file.</div>`;
+                        return;
+                    }
+
+                    const table = document.createElement('table');
+                    table.className = 'w-full text-sm text-left';
+                    const thead = table.createTHead();
+                    const tbody = table.createTBody();
+                    thead.innerHTML = `<tr class="bg-gray-100">${Object.keys(parsedCsvData[0]).map(h => `<th class="p-2">${h}</th>`).join('')}</tr>`;
+                    
+                    parsedCsvData.slice(0, 10).forEach(row => {
+                        const tr = tbody.insertRow();
+                        tr.innerHTML = Object.values(row).map(val => `<td class="p-2 border-t">${val}</td>`).join('');
+                    });
+                    
+                    previewContainer.appendChild(table);
+                    document.getElementById('recordCount').textContent = parsedCsvData.length;
+                    setWizardStep(3);
+                }
+            });
+        }
+
+        async function uploadData() {
+            if (parsedCsvData.length === 0) {
+                alert("No data to upload.");
+                return;
+            }
+            const statusDiv = document.getElementById('uploadStatus');
+            const uploadBtn = document.getElementById('confirmUploadBtn');
+            statusDiv.innerHTML = `<div class="flex items-center gap-2 text-blue-600"><div class="spinner"></div> Uploading... Please wait.</div>`;
+            uploadBtn.disabled = true;
+
+            try {
+                // Firestore allows a maximum of 500 operations in a single batch.
+                const batchSize = 400;
+                for (let i = 0; i < parsedCsvData.length; i += batchSize) {
+                    const batch = writeBatch(db);
+                    const chunk = parsedCsvData.slice(i, i + batchSize);
+                    
+                    chunk.forEach(record => {
+                        const docRef = doc(collection(db, EVALUATION_RECORDS_PATH));
+                        // Convert relevant date strings to Date objects for Firestore
+                        if (record["Evaluation Date"]) {
+                            const evalDate = new Date(record["Evaluation Date"]);
+                            if (!isNaN(evalDate)) record["Evaluation Date"] = evalDate;
+                        }
+                        if (record["Call Date"]) {
+                           const callDate = new Date(record["Call Date"]);
+                           if (!isNaN(callDate)) record["Call Date"] = callDate;
+                        }
+                        
+                        batch.set(docRef, { ...record, submittedAt: serverTimestamp() });
+                    });
+                    
+                    await batch.commit();
+                    statusDiv.innerHTML = `<div class="text-blue-600 font-semibold">Uploaded ${i + chunk.length} of ${parsedCsvData.length} records...</div>`;
+                }
+
+                statusDiv.innerHTML = `<div class="text-green-600 font-semibold">Successfully uploaded all ${parsedCsvData.length} records!</div>`;
+                parsedCsvData = []; // Clear data after upload
+                document.getElementById('csvFileInput').value = ''; // Reset file input
+            } catch (error) {
+                console.error("Upload error:", error);
+                statusDiv.innerHTML = `<div class="text-red-600 font-semibold">Upload failed: ${error.message}</div>`;
+            } finally {
+                 uploadBtn.disabled = false;
+            }
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                loadLogoFromLocalStorage();
+                const isAdmin = await checkAdminRole(user);
+                if (isAdmin) {
+                    document.getElementById('loadingMessage').classList.add('hidden');
+                    document.getElementById('adminContent').classList.remove('hidden');
+                } else {
+                    document.getElementById('loadingMessage').classList.add('hidden');
+                    document.getElementById('accessDeniedMessage').classList.remove('hidden');
+                }
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // --- Event Listeners ---
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        document.getElementById('generateTemplateBtn').addEventListener('click', generateTemplate);
+        document.getElementById('csvFileInput').addEventListener('change', (e) => previewCsv(e.target.files[0]));
+        document.getElementById('confirmUploadBtn').addEventListener('click', uploadData);
+        document.getElementById('backToStep1Btn').addEventListener('click', () => setWizardStep(1));
+        document.getElementById('backToStep2Btn').addEventListener('click', () => setWizardStep(2));
+
+    </script>
+</body>
+</html>
