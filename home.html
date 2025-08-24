@@ -39,7 +39,7 @@
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
         .sidebar ul li a {
-            transition: background-color 0.2s ease;
+            transition: background-color: 0.2s ease;
         }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
@@ -48,7 +48,7 @@
         .logout-button {
             background-color: #ff6f61;
             color: white;
-            transition: background-color 0.2s ease;
+            transition: background-color: 0.2s ease;
         }
         .logout-button:hover {
             background-color: #e65a50;
@@ -99,9 +99,15 @@
     </nav>
 
     <main>
-        <!-- Welcome Header -->
-        <div class="mb-8">
+        <!-- Welcome Header & Filters -->
+        <div class="mb-8 flex justify-between items-center">
              <p id="welcome-message" class="text-xl text-gray-700">Welcome back! Let’s work together to deliver exceptional customer experiences today.</p>
+             <div>
+                <label for="monthFilter" class="text-sm font-medium text-gray-700">Filter by Month:</label>
+                <select id="monthFilter" class="mt-1 rounded-md border-gray-300 shadow-sm p-2">
+                    <option value="">All Months</option>
+                </select>
+             </div>
         </div>
 
         <!-- Quick Stats Section -->
@@ -218,6 +224,8 @@
         const USERS_PROFILE_COLLECTION_PATH = `artifacts/${appId}/users`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
 
+        let allEvaluations = [];
+
         function loadLogoFromLocalStorage() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
             if (savedLogo) {
@@ -233,42 +241,78 @@
             document.getElementById('date').textContent = dateString;
         }
 
+        function populateMonthFilter(evaluations) {
+            const monthFilter = document.getElementById('monthFilter');
+            const months = new Set();
+            evaluations.forEach(rec => {
+                if (rec.submittedAt?.toDate) {
+                    const monthYear = rec.submittedAt.toDate().toLocaleString('default', { month: 'long', year: 'numeric' });
+                    months.add(monthYear);
+                }
+            });
+
+            monthFilter.innerHTML = '<option value="">All Months</option>';
+            [...months].sort((a, b) => new Date(b) - new Date(a)).forEach(month => {
+                monthFilter.innerHTML += `<option value="${month}">${month}</option>`;
+            });
+        }
+
+        function applyHomeFilter() {
+            const selectedMonth = document.getElementById('monthFilter').value;
+            let filteredEvaluations = allEvaluations;
+
+            if (selectedMonth) {
+                filteredEvaluations = allEvaluations.filter(rec => {
+                    if (!rec.submittedAt?.toDate) return false;
+                    const monthYear = rec.submittedAt.toDate().toLocaleString('default', { month: 'long', year: 'numeric' });
+                    return monthYear === selectedMonth;
+                });
+            }
+            updateDashboardUI(filteredEvaluations);
+        }
+
+        function updateDashboardUI(evaluations) {
+            // Calculate stats
+            const totalEvals = evaluations.length;
+            const totalScoreSum = evaluations.reduce((sum, rec) => sum + parseFloat(rec['Overall Score'] || 0), 0);
+            const avgScore = totalEvals > 0 ? (totalScoreSum / totalEvals) : 0;
+            
+            const agentScores = {};
+            evaluations.forEach(rec => {
+                const agent = rec['CER Name'];
+                const score = parseFloat(rec['Overall Score']);
+                if (agent && !isNaN(score)) {
+                    if (!agentScores[agent]) {
+                        agentScores[agent] = { totalScore: 0, count: 0 };
+                    }
+                    agentScores[agent].totalScore += score;
+                    agentScores[agent].count++;
+                }
+            });
+
+            const activeAgents = Object.keys(agentScores).length;
+
+            // Update UI elements
+            document.getElementById('total-evals').textContent = totalEvals;
+            document.getElementById('avg-score').textContent = `${avgScore.toFixed(1)}%`;
+            document.getElementById('active-agents').textContent = activeAgents;
+
+            const agentAverages = Object.keys(agentScores).map(agent => ({
+                name: agent,
+                avg: agentScores[agent].totalScore / agentScores[agent].count
+            })).sort((a, b) => b.avg - a.avg);
+
+            renderLeaderboard(agentAverages.slice(0, 3));
+        }
+
         async function fetchDashboardData() {
             try {
                 const querySnapshot = await getDocs(collection(db, EVALUATION_RECORDS_PATH));
-                const evaluations = querySnapshot.docs.map(doc => doc.data());
-
-                // Calculate stats
-                const totalEvals = evaluations.length;
-                const totalScoreSum = evaluations.reduce((sum, rec) => sum + parseFloat(rec['Overall Score'] || 0), 0);
-                const avgScore = totalEvals > 0 ? (totalScoreSum / totalEvals) : 0;
+                allEvaluations = querySnapshot.docs.map(doc => doc.data());
                 
-                const agentScores = {};
-                evaluations.forEach(rec => {
-                    const agent = rec['CER Name'];
-                    const score = parseFloat(rec['Overall Score']);
-                    if (agent && !isNaN(score)) {
-                        if (!agentScores[agent]) {
-                            agentScores[agent] = { totalScore: 0, count: 0 };
-                        }
-                        agentScores[agent].totalScore += score;
-                        agentScores[agent].count++;
-                    }
-                });
+                populateMonthFilter(allEvaluations);
+                updateDashboardUI(allEvaluations); // Initial render with all data
 
-                const activeAgents = Object.keys(agentScores).length;
-
-                // Update UI
-                document.getElementById('total-evals').textContent = totalEvals;
-                document.getElementById('avg-score').textContent = `${avgScore.toFixed(1)}%`;
-                document.getElementById('active-agents').textContent = activeAgents;
-
-                const agentAverages = Object.keys(agentScores).map(agent => ({
-                    name: agent,
-                    avg: agentScores[agent].totalScore / agentScores[agent].count
-                })).sort((a, b) => b.avg - a.avg);
-
-                renderLeaderboard(agentAverages.slice(0, 3));
             } catch(error) {
                 console.error("Error fetching dashboard data:", error);
                 document.getElementById('leaderboard').innerHTML = `<p class="text-center col-span-3 text-red-500">Could not load leaderboard data.</p>`;
@@ -325,6 +369,7 @@
         });
 
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        document.getElementById('monthFilter').addEventListener('change', applyHomeFilter);
     </script>
 </body>
 </html>
