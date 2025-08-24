@@ -273,7 +273,6 @@
             }
         }
 
-        // --- NEW HELPER FUNCTION ---
         function getEvaluationDate(record) {
             const evalDateValue = record['Evaluation Date'];
             if (!evalDateValue) return null;
@@ -323,7 +322,11 @@
             const totalScore = data.reduce((sum, record) => sum + (parseFloat(record['Overall Score']) || 0), 0);
             const averageScore = data.length > 0 ? (totalScore / data.length) : 0;
             
-            const autofails = data.filter(r => r['Auto Fail Type'] && r['Auto Fail Type'] !== '');
+            const autofails = data.filter(r => {
+                const scoreString = r['Overall Score'] || '0%';
+                const score = parseFloat(scoreString.replace('%',''));
+                return !isNaN(score) && score < 5;
+            });
             document.getElementById('totalAutofails').textContent = autofails.length;
             
             const agentScores = {};
@@ -349,12 +352,11 @@
         }
         
         function updateCharts(data, agentAverages, averageScore, autofails) {
-            // Performance Trend
             const trendData = {};
             data.forEach(rec => {
-                const evalDate = getEvaluationDate(rec); // UPDATED
+                const evalDate = getEvaluationDate(rec);
                 if(evalDate){
-                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' }); // UPDATED
+                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' });
                     if(!trendData[month]) trendData[month] = { total: 0, count: 0 };
                     trendData[month].total += parseFloat(rec['Overall Score']) || 0;
                     trendData[month].count++;
@@ -364,17 +366,15 @@
             const trendScores = trendLabels.map(label => (trendData[label].total / trendData[label].count));
             renderChart('performanceTrendChart', 'line', trendLabels, trendScores, 'Average Score');
 
-            // Autofail Reasons
             const autofailCounts = {};
             autofails.forEach(fail => {
-                const reason = fail['Auto Fail Type'];
+                const reason = fail['Auto Fail Type'] || 'Score < 5%';
                 autofailCounts[reason] = (autofailCounts[reason] || 0) + 1;
             });
             const reasonLabels = Object.keys(autofailCounts);
             const reasonData = Object.values(autofailCounts);
             renderChart('autofailReasonChart', 'doughnut', reasonLabels, reasonData, 'Autofail Reasons');
 
-            // Average Score Gauge
             renderGaugeChart('averageScoreGauge', averageScore, 'Average Score');
         }
 
@@ -479,9 +479,9 @@
             const groups = new Set();
 
             data.forEach(rec => {
-                const evalDate = getEvaluationDate(rec); // UPDATED
+                const evalDate = getEvaluationDate(rec);
                 if (evalDate && rec[groupBy]) {
-                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' }); // UPDATED
+                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' });
                     const group = rec[groupBy];
                     months.add(month);
                     groups.add(group);
@@ -531,12 +531,12 @@
             let filteredData = allEvaluations;
 
             if (startDate) {
-                const start = new Date(startDate + 'T00:00:00'); // UPDATED
-                filteredData = filteredData.filter(r => getEvaluationDate(r) >= start); // UPDATED
+                const start = new Date(startDate + 'T00:00:00');
+                filteredData = filteredData.filter(r => getEvaluationDate(r) >= start);
             }
             if (endDate) {
-                const end = new Date(endDate + 'T23:59:59'); // UPDATED
-                filteredData = filteredData.filter(r => getEvaluationDate(r) <= end); // UPDATED
+                const end = new Date(endDate + 'T23:59:59');
+                filteredData = filteredData.filter(r => getEvaluationDate(r) <= end);
             }
             if (role) {
                 filteredData = filteredData.filter(r => r['CER Role'] === role);
