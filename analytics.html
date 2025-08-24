@@ -161,13 +161,24 @@
                 </div>
             </section>
 
-            <!-- Pass Rate Analysis by Month -->
+            <!-- Pass Rate Analysis by Role -->
             <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4">Pass Rate Analysis by Month</h2>
+                <h2 class="text-2xl font-bold mb-4">Pass Rate Analysis by Role</h2>
                 <div class="dashboard-card overflow-x-auto">
                     <table class="w-full text-left text-sm">
-                        <thead id="passRateByMonthHead"></thead>
-                        <tbody id="passRateByMonthBody"></tbody>
+                        <thead id="passRateByRoleHead"></thead>
+                        <tbody id="passRateByRoleBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Pass Rate Analysis by Agent -->
+            <section class="mb-8">
+                <h2 class="text-2xl font-bold mb-4">Pass Rate Analysis by Agent</h2>
+                <div class="dashboard-card overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead id="passRateByAgentHead"></thead>
+                        <tbody id="passRateByAgentBody"></tbody>
                     </table>
                 </div>
             </section>
@@ -252,9 +263,74 @@
         }
 
         function processAndRenderAnalytics(data) {
-            // ... (rest of the function remains the same)
-            renderPassRateByMonthTable(data);
+            // 1. Overall Quality Performance
+            const totalScore = data.reduce((sum, rec) => sum + parseFloat(rec['Overall Score'] || 0), 0);
+            const avgScore = data.length > 0 ? (totalScore / data.length).toFixed(1) : 0;
+            document.getElementById('avgQualityScore').textContent = `${avgScore}%`;
+
+            const scoreByChannel = data.reduce((acc, rec) => {
+                const channel = rec.channel || 'Unknown';
+                if (!acc[channel]) acc[channel] = { total: 0, count: 0 };
+                acc[channel].total += parseFloat(rec['Overall Score'] || 0);
+                acc[channel].count++;
+                return acc;
+            }, {});
+            const channelLabels = Object.keys(scoreByChannel);
+            const channelData = channelLabels.map(c => (scoreByChannel[c].total / scoreByChannel[c].count));
+            renderBarChart('scoreByChannelChart', 'Score by Channel', channelLabels, channelData);
+
+            const trendData = data.reduce((acc, rec) => {
+                const date = rec['Evaluation Date']?.toDate ? rec['Evaluation Date'].toDate() : new Date(rec['Evaluation Date']);
+                if (!isNaN(date)) {
+                    const month = date.toISOString().slice(0, 7);
+                    if (!acc[month]) acc[month] = { total: 0, count: 0 };
+                    acc[month].total += parseFloat(rec['Overall Score'] || 0);
+                    acc[month].count++;
+                }
+                return acc;
+            }, {});
+            const trendLabels = Object.keys(trendData).sort();
+            const trendScores = trendLabels.map(m => (trendData[m].total / trendData[m].count));
+            renderLineChart('scoreTrendChart', 'Score Trend', trendLabels, trendScores);
+
+            // 2. Evaluation Insights
+            document.getElementById('evalsCompleted').textContent = data.length;
             
+            const passFail = data.reduce((acc, rec) => {
+                const score = parseFloat(rec['Overall Score'] || 0);
+                if (score >= 85) acc.pass++;
+                else acc.fail++;
+                return acc;
+            }, { pass: 0, fail: 0 });
+            renderDoughnutChart('passFailChart', 'Pass vs Fail', ['Pass', 'Fail'], [passFail.pass, passFail.fail]);
+
+            const questionStats = data.reduce((acc, rec) => {
+                Object.entries(rec).forEach(([key, value]) => {
+                    if (key.includes('(Rating)')) {
+                        const question = key.replace(' (Rating)', '');
+                        if (!acc[question]) acc[question] = { yes: 0, no: 0, total: 0 };
+                        if (value === 'Yes') acc[question].yes++;
+                        if (value === 'No') acc[question].no++;
+                        if (value === 'Yes' || value === 'No') acc[question].total++;
+                    }
+                });
+                return acc;
+            }, {});
+
+            const questionRates = Object.entries(questionStats).map(([question, stats]) => {
+                const passRate = stats.total > 0 ? (stats.yes / stats.total) * 100 : 0;
+                const failRate = stats.total > 0 ? (stats.no / stats.total) * 100 : 0;
+                return { question, passRate, failRate };
+            });
+
+            const topStrengths = questionRates.sort((a, b) => b.passRate - a.passRate).slice(0, 5);
+            const strengthList = document.getElementById('strengthAreas');
+            strengthList.innerHTML = topStrengths.map(q => `<li>${q.question} <span class="font-bold text-green-600">(${q.passRate.toFixed(1)}% pass)</span></li>`).join('');
+
+            const topWeaknesses = questionRates.sort((a, b) => b.failRate - a.failRate).slice(0, 5);
+            const weakList = document.getElementById('weakAreas');
+            weakList.innerHTML = topWeaknesses.map(q => `<li>${q.question} <span class="font-bold text-red-600">(${q.failRate.toFixed(1)}% fail)</span></li>`).join('');
+
             // 3. Agent Scorecards
             const agentData = data.reduce((acc, rec) => {
                 const agent = rec['CER Name'];
@@ -279,39 +355,62 @@
                     <td class="p-2"><div class="kpi-light kpi-${status}"></div></td>
                 `;
             });
+            renderPassRateByRoleTable(data);
+            renderPassRateByAgentTable(data);
         }
         
-        // ... (rest of the chart and analytics functions)
+        // --- Chart Rendering Functions ---
+        function renderBarChart(canvasId, label, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [{ label, data, backgroundColor: '#3B82F6' }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
 
-        function renderPassRateByMonthTable(data) {
-            const thead = document.getElementById('passRateByMonthHead');
-            const tbody = document.getElementById('passRateByMonthBody');
+        function renderLineChart(canvasId, label, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets: [{ label, data, borderColor: '#10B981', tension: 0.1 }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderDoughnutChart(canvasId, label, labels, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data, backgroundColor: ['#10B981', '#EF4444'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderPassRateByRoleTable(data) {
+            const thead = document.getElementById('passRateByRoleHead');
+            const tbody = document.getElementById('passRateByRoleBody');
             thead.innerHTML = '';
             tbody.innerHTML = '';
 
-            const months = [...new Set(data.map(r => {
-                const date = r['Evaluation Date']?.toDate ? r['Evaluation Date'].toDate() : new Date(r['Evaluation Date']);
-                return !isNaN(date) ? date.toISOString().slice(0, 7) : null;
-            }).filter(Boolean))].sort();
+            const roles = [...new Set(data.map(r => r['CER Role']).filter(Boolean))].sort();
             
             let headerHtml = '<tr><th class="p-2 border">Question/Section</th>';
-            months.forEach(month => headerHtml += `<th class="p-2 border text-center">${month}</th>`);
+            roles.forEach(role => headerHtml += `<th class="p-2 border text-center">${role}</th>`);
             headerHtml += '</tr>';
             thead.innerHTML = headerHtml;
 
-            const uniqueRolesInData = [...new Set(data.map(r => r['CER Role']))];
-            
-            uniqueRolesInData.forEach(role => {
-                if(allQuestions[role]){
-                    Object.entries(allQuestions[role]).forEach(([sectionName, questions]) => {
-                        tbody.innerHTML += `<tr><td class="p-2 border font-bold bg-gray-100" colspan="${months.length + 1}">${sectionName}</td></tr>`;
+            Object.entries(allQuestions).forEach(([role, sections]) => {
+                if(roles.includes(role)){
+                    Object.entries(sections).forEach(([sectionName, questions]) => {
+                        tbody.innerHTML += `<tr><td class="p-2 border font-bold bg-gray-100" colspan="${roles.length + 1}">${sectionName}</td></tr>`;
                         questions.forEach(q => {
                             let rowHtml = `<tr><td class="p-2 border">${q.desc}</td>`;
-                            months.forEach(m => {
-                                const relevantEvals = data.filter(e => {
-                                    const date = e['Evaluation Date']?.toDate ? e['Evaluation Date'].toDate() : new Date(e['Evaluation Date']);
-                                    return !isNaN(date) && date.toISOString().slice(0, 7) === m;
-                                });
+                            roles.forEach(r => {
+                                const relevantEvals = data.filter(e => e['CER Role'] === r);
                                 const questionRatings = relevantEvals.map(e => e[`${q.desc} (Rating)`]).filter(Boolean);
                                 const passCount = questionRatings.filter(rating => rating === 'Yes').length;
                                 const totalCount = questionRatings.length;
@@ -325,6 +424,44 @@
                 }
             });
         }
+
+        function renderPassRateByAgentTable(data) {
+            const thead = document.getElementById('passRateByAgentHead');
+            const tbody = document.getElementById('passRateByAgentBody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            const agents = [...new Set(data.map(r => r['CER Name']).filter(Boolean))].sort();
+            
+            let headerHtml = '<tr><th class="p-2 border">Question/Section</th>';
+            agents.forEach(agent => headerHtml += `<th class="p-2 border text-center">${agent}</th>`);
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+
+            const uniqueRolesInData = [...new Set(data.map(r => r['CER Role']))];
+
+            uniqueRolesInData.forEach(role => {
+                 if(allQuestions[role]){
+                    Object.entries(allQuestions[role]).forEach(([sectionName, questions]) => {
+                        tbody.innerHTML += `<tr><td class="p-2 border font-bold bg-gray-100" colspan="${agents.length + 1}">${sectionName}</td></tr>`;
+                        questions.forEach(q => {
+                            let rowHtml = `<tr><td class="p-2 border">${q.desc}</td>`;
+                            agents.forEach(agent => {
+                                const relevantEvals = data.filter(e => e['CER Name'] === agent);
+                                const questionRatings = relevantEvals.map(e => e[`${q.desc} (Rating)`]).filter(Boolean);
+                                const passCount = questionRatings.filter(rating => rating === 'Yes').length;
+                                const totalCount = questionRatings.length;
+                                const passRate = totalCount > 0 ? ((passCount / totalCount) * 100).toFixed(1) : '-';
+                                rowHtml += `<td class="p-2 border text-center">${passRate}%</td>`;
+                            });
+                            rowHtml += '</tr>';
+                            tbody.innerHTML += rowHtml;
+                        });
+                    });
+                 }
+            });
+        }
+
 
         // --- Event Listeners ---
         onAuthStateChanged(auth, (user) => {
