@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics Dashboard - Quality Management System</title>
+    <title>Autofail Records - ICEA LION GROUP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
     <style>
         body {
@@ -41,6 +41,9 @@
             z-index: 999;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
+        .sidebar ul li a {
+            transition: background-color: 0.2s ease;
+        }
         .sidebar ul li a:hover,
         .sidebar ul li a.active {
             background-color: #004a8d;
@@ -48,6 +51,10 @@
         .logout-button {
             background-color: #ff6f61;
             color: white;
+            transition: background-color: 0.2s ease;
+        }
+        .logout-button:hover {
+            background-color: #e65a50;
         }
         main {
             padding-top: 80px;
@@ -61,15 +68,32 @@
             padding: 1.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        .kpi-light {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
+        .chart-container {
+            height: 400px;
         }
-        .kpi-green { background-color: #10B981; }
-        .kpi-amber { background-color: #F59E0B; }
-        .kpi-red { background-color: #EF4444; }
-        .hidden { display: none; }
+        .autofail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .autofail-table thead th {
+            background-color: #f9fafb;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #4b5563;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .autofail-table tbody td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .autofail-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .autofail-table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+        .hidden { display: none !important; }
         .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
             border-left-color: #0056b3;
@@ -83,7 +107,7 @@
 </head>
 <body class="bg-gray-100">
     <header class="top-header flex items-center justify-center relative">
-        <span class="text-xl font-semibold">ICEA LION ANALYTICS DASHBOARD</span>
+        <span class="text-xl font-semibold">ICEA LION QUALITY DASHBOARD</span>
         <img id="header-logo" src="https://placehold.co/150x60/FFFFFF/003366?text=Logo" alt="Company Logo" class="absolute right-4 h-12 w-auto">
     </header>
 
@@ -92,10 +116,10 @@
             <ul class="flex-grow">
                 <li class="nav-tab mb-2"><a href="home.html" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
                 <li class="nav-tab mb-2"><a href="Dashboard.html" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
-                <li class="nav-tab mb-2"><a href="analytics.html" class="active flex items-center p-2 rounded-md"><i class="fas fa-chart-pie w-6 mr-2"></i> Analytics</a></li>
                 <li class="nav-tab mb-2"><a href="index.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
-                <li class="nav-tab mb-2"><a href="autofails.html" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
-                <li class="nav-tab mb-2"><a href="database.html" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
+                <li class="nav-tab mb-2"><a href="myEvaluations.html" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
+                <li class="nav-tab mb-2"><a href="autofails.html" class="active flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
+                <li class="nav-tab mb-2"><a href="images.html" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md mt-auto">Logout</button>
         </div>
@@ -104,111 +128,130 @@
     <main id="mainContent">
         <div id="loadingMessage" class="flex flex-col items-center justify-center h-[calc(100vh-100px)]">
             <div class="spinner"></div>
-            <p class="mt-4 text-lg text-gray-600">Loading Analytics...</p>
+            <p class="mt-4 text-lg text-gray-600">Loading Autofail Data...</p>
         </div>
 
-        <div id="analyticsContent" class="hidden">
-            <!-- Filters -->
-            <div class="dashboard-card mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
-                    <div class="lg:col-span-1"><label class="text-sm font-medium">Start Date</label><input type="date" id="startDateFilter" class="p-2 border rounded-md w-full"></div>
-                    <div class="lg:col-span-1"><label class="text-sm font-medium">End Date</label><input type="date" id="endDateFilter" class="p-2 border rounded-md w-full"></div>
-                    <div class="lg:col-span-1"><label class="text-sm font-medium">Channel</label><select id="channelFilter" class="p-2 border rounded-md w-full"><option value="">All Channels</option></select></div>
-                    <div class="lg:col-span-1"><label class="text-sm font-medium">CER Name</label><select id="cerNameFilter" class="p-2 border rounded-md w-full"><option value="">All Names</option></select></div>
-                    <div class="lg:col-span-1"><label class="text-sm font-medium">CER Role</label><select id="cerRoleFilter" class="p-2 border rounded-md w-full"><option value="">All Roles</option></select></div>
-                    <div class="flex gap-2">
-                        <button id="applyFilters" class="bg-blue-600 text-white p-2 rounded-md w-full">Apply</button>
-                        <button id="resetFilters" class="bg-gray-300 text-gray-700 p-2 rounded-md w-full">Reset</button>
+        <div id="autofailContent" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Autofail Dashboard</h1>
+            
+            <!-- Filter Section -->
+            <div class="bg-blue-900 p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="startDate" class="text-sm font-medium text-white">From</label>
+                    <input type="date" id="startDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="endDate" class="text-sm font-medium text-white">To</label>
+                    <input type="date" id="endDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="cerNameFilter" class="text-sm font-medium text-white">CER Name</label>
+                    <select id="cerNameFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">All Names</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="cerRoleFilter" class="text-sm font-medium text-white">CER Role</label>
+                    <select id="cerRoleFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">All Roles</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button id="applyFilterBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Apply</button>
+                    <button id="resetFiltersBtn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Reset</button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="dashboard-card text-center">
+                    <h2 class="text-lg font-semibold text-gray-500">Total Autofails</h2>
+                    <p id="totalAutofails" class="text-4xl font-bold mt-2">0</p>
+                </div>
+                <div class="dashboard-card text-center">
+                    <h2 class="text-lg font-semibold text-gray-500">Top Autofail Reason</h2>
+                    <p id="topAutofailReason" class="text-2xl font-bold mt-2">-</p>
+                </div>
+                <div class="dashboard-card text-center lg:col-span-2">
+                    <h2 class="text-lg font-semibold text-gray-500 mb-2">Autofail Hotspots</h2>
+                    <div id="autofailHotspots" class="space-y-2">
+                        <!-- Hotspots will be populated here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Overall Quality Performance -->
-            <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4">Overall Quality Performance</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="dashboard-card text-center">
-                        <h3 class="text-lg font-semibold text-gray-500">Average Quality Score</h3>
-                        <p id="avgQualityScore" class="text-4xl font-bold mt-2">0%</p>
+            <div class="dashboard-card bg-white mb-6">
+                 <h2 class="text-xl font-semibold mb-4 text-gray-800">Autofail Analytics</h2>
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="chart-container">
+                        <canvas id="autofailTrendChart"></canvas>
                     </div>
-                    <div class="dashboard-card">
-                        <canvas id="scoreByChannelChart" height="150"></canvas>
-                    </div>
-                    <div class="dashboard-card md:col-span-2">
-                        <canvas id="scoreTrendChart" height="150"></canvas>
+                    <div class="chart-container">
+                        <canvas id="autofailByTypeChart"></canvas>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- Evaluation Insights -->
-            <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4">Evaluation Insights</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="dashboard-card text-center">
-                        <h3 class="text-lg font-semibold text-gray-500">Evaluations Completed</h3>
-                        <p id="evalsCompleted" class="text-4xl font-bold mt-2">0</p>
-                    </div>
-                    <div class="dashboard-card" style="height: 5in; width: 5in;">
-                        <h3 class="font-semibold text-center mb-2">Pass vs Fail Rate</h3>
-                        <canvas id="passFailChart"></canvas>
-                    </div>
-                    <div class="dashboard-card md:col-span-2">
-                        <h3 class="font-semibold mb-2">Top 5 Strength Areas</h3>
-                        <ul id="strengthAreas" class="list-none space-y-2"></ul>
-                        <h3 class="font-semibold mb-2 mt-4">Top 5 Weak Areas</h3>
-                        <ul id="weakAreas" class="list-none space-y-2"></ul>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Pass Rate Analysis by Role -->
-            <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4">Pass Rate Analysis by Role</h2>
-                <div class="dashboard-card overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead id="passRateByRoleHead"></thead>
-                        <tbody id="passRateByRoleBody"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Pass Rate Analysis by Agent -->
-            <section class="mb-8">
-                <h2 class="text-2xl font-bold mb-4">Pass Rate Analysis by Agent</h2>
-                <div class="dashboard-card overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead id="passRateByAgentHead"></thead>
-                        <tbody id="passRateByAgentBody"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Agent/Team Breakdown -->
-            <section class="mb-8">
-                 <h2 class="text-2xl font-bold mb-4">Agent & Team Breakdown</h2>
-                 <div class="dashboard-card">
-                    <h3 class="font-semibold mb-4">Agent Scorecards</h3>
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="border-b">
-                                <th class="p-2">Agent</th>
-                                <th class="p-2">Score</th>
-                                <th class="p-2">Trend</th>
-                                <th class="p-2">Status</th>
+            <!-- Autofails by CER Role Table -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">Monthly Autofails by CER Role</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left" id="monthlyAutofailsByRoleTable">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="p-4 text-sm font-semibold text-gray-600">CER Role</th>
                             </tr>
                         </thead>
-                        <tbody id="agentScorecards"></tbody>
+                        <tbody id="monthlyAutofailsByRoleBody"></tbody>
                     </table>
-                 </div>
-            </section>
-            
+                </div>
+            </div>
+
+            <!-- Autofails by CER Name Table -->
+            <div class="dashboard-card mt-6">
+                <h2 class="text-xl font-semibold mb-4">Monthly Autofails by CER Name</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left" id="monthlyAutofailsByNameTable">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="p-4 text-sm font-semibold text-gray-600">CER Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyAutofailsByNameBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="dashboard-card bg-white mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Autofail Records Details</h2>
+                    <button id="downloadExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
+                        <i class="fas fa-file-excel mr-2"></i>Download Selected as Excel
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="autofail-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAllCheckbox"></th>
+                                <th>Evaluation Date</th>
+                                <th>Contact ID</th>
+                                <th>Client Name</th>
+                                <th>CER Name</th>
+                                <th>Reason for Autofail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="autofailRecordsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -225,270 +268,70 @@
         const db = getFirestore(app);
 
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
-        const QUESTIONS_DOC_REF = doc(db, `artifacts/${appId}/public/data/questions`, 'question_configurations');
+        const DROPDOWN_OPTIONS_PATH = `artifacts/${appId}/public/data/dropdown_options/general_options`;
+        const USERS_PATH = `artifacts/${appId}/users`;
+        const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
 
-        let allEvaluations = [];
-        let allQuestions = {};
+        let allAutofailData = [];
         let charts = {};
+        let currentFilteredData = [];
 
-        // --- Data Fetching and Processing ---
-        async function fetchData() {
-            const evalsSnapshot = await getDocs(query(collection(db, EVALUATION_RECORDS_PATH)));
-            allEvaluations = evalsSnapshot.docs.map(doc => doc.data());
-            
-            const questionsSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/questions`));
-            questionsSnapshot.forEach(doc => {
-                allQuestions = {...allQuestions, ...doc.data()};
-            });
-
-            populateFilters(allEvaluations);
-            processAndRenderAnalytics(allEvaluations);
-
-            document.getElementById('loadingMessage').classList.add('hidden');
-            document.getElementById('analyticsContent').classList.remove('hidden');
+        function loadLogoFromLocalStorage() {
+            const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
+            if (savedLogo) {
+                document.getElementById('header-logo').src = savedLogo;
+            }
         }
 
-        function populateFilters(data) {
+        function getEvaluationDate(record) {
+            const evalDateValue = record['Evaluation Date'];
+            if (!evalDateValue) return null;
+            if (evalDateValue.toDate) return evalDateValue.toDate();
+            if (typeof evalDateValue === 'string') return new Date(evalDateValue + 'T00:00:00');
+            if (evalDateValue instanceof Date) return evalDateValue;
+            return null;
+        }
+
+        async function populateFilters() {
             const cerNameFilter = document.getElementById('cerNameFilter');
             const cerRoleFilter = document.getElementById('cerRoleFilter');
-            const channelFilter = document.getElementById('channelFilter');
 
-            const names = [...new Set(data.map(r => r['CER Name']).filter(Boolean))];
-            const roles = [...new Set(data.map(r => r['CER Role']).filter(Boolean))];
-            const channels = [...new Set(data.map(r => r.channel || 'Unknown').filter(Boolean))];
+            const usersSnapshot = await getDocs(collection(db, USERS_PATH));
+            usersSnapshot.forEach(doc => {
+                const option = document.createElement('option');
+                option.value = doc.data().name;
+                option.textContent = doc.data().name;
+                cerNameFilter.appendChild(option);
+            });
 
-            names.forEach(name => cerNameFilter.innerHTML += `<option value="${name}">${name}</option>`);
-            roles.forEach(role => cerRoleFilter.innerHTML += `<option value="${role}">${role}</option>`);
-            channels.forEach(channel => channelFilter.innerHTML += `<option value="${channel}">${channel}</option>`);
-        }
-
-        function processAndRenderAnalytics(data) {
-            // 1. Overall Quality Performance
-            const totalScore = data.reduce((sum, rec) => sum + parseFloat(rec['Overall Score'] || 0), 0);
-            const avgScore = data.length > 0 ? (totalScore / data.length).toFixed(1) : 0;
-            document.getElementById('avgQualityScore').textContent = `${avgScore}%`;
-
-            const scoreByChannel = data.reduce((acc, rec) => {
-                const channel = rec.channel || 'Unknown';
-                if (!acc[channel]) acc[channel] = { total: 0, count: 0 };
-                acc[channel].total += parseFloat(rec['Overall Score'] || 0);
-                acc[channel].count++;
-                return acc;
-            }, {});
-            const channelLabels = Object.keys(scoreByChannel);
-            const channelData = channelLabels.map(c => (scoreByChannel[c].total / scoreByChannel[c].count));
-            renderBarChart('scoreByChannelChart', 'Score by Channel', channelLabels, channelData);
-
-            const trendData = data.reduce((acc, rec) => {
-                const date = rec['Evaluation Date']?.toDate ? rec['Evaluation Date'].toDate() : new Date(rec['Evaluation Date']);
-                if (!isNaN(date)) {
-                    const month = date.toISOString().slice(0, 7);
-                    if (!acc[month]) acc[month] = { total: 0, count: 0 };
-                    acc[month].total += parseFloat(rec['Overall Score'] || 0);
-                    acc[month].count++;
-                }
-                return acc;
-            }, {});
-            const trendLabels = Object.keys(trendData).sort();
-            const trendScores = trendLabels.map(m => (trendData[m].total / trendData[m].count));
-            renderLineChart('scoreTrendChart', 'Score Trend', trendLabels, trendScores);
-
-            // 2. Evaluation Insights
-            document.getElementById('evalsCompleted').textContent = data.length;
-            
-            const passFail = data.reduce((acc, rec) => {
-                const score = parseFloat(rec['Overall Score'] || 0);
-                if (score >= 85) acc.pass++;
-                else acc.fail++;
-                return acc;
-            }, { pass: 0, fail: 0 });
-            renderDoughnutChart('passFailChart', 'Pass vs Fail', ['Pass', 'Fail'], [passFail.pass, passFail.fail]);
-
-            const questionStats = data.reduce((acc, rec) => {
-                Object.entries(rec).forEach(([key, value]) => {
-                    if (key.includes('(Rating)')) {
-                        const question = key.replace(' (Rating)', '');
-                        if (!acc[question]) acc[question] = { yes: 0, no: 0, total: 0 };
-                        if (value === 'Yes') acc[question].yes++;
-                        if (value === 'No') acc[question].no++;
-                        if (value === 'Yes' || value === 'No') acc[question].total++;
-                    }
+            const dropdownDoc = await getDoc(doc(db, DROPDOWN_OPTIONS_PATH));
+            if (dropdownDoc.exists()) {
+                const roles = dropdownDoc.data().cerRoles || [];
+                roles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = role;
+                    cerRoleFilter.appendChild(option);
                 });
-                return acc;
-            }, {});
-
-            const questionRates = Object.entries(questionStats).map(([question, stats]) => {
-                const passRate = stats.total > 0 ? (stats.yes / stats.total) * 100 : 0;
-                const failRate = stats.total > 0 ? (stats.no / stats.total) * 100 : 0;
-                return { question, passRate, failRate };
-            });
-
-            const topStrengths = questionRates.sort((a, b) => b.passRate - a.passRate).slice(0, 5);
-            const strengthList = document.getElementById('strengthAreas');
-            strengthList.innerHTML = topStrengths.map(q => `<li>${q.question} <span class="font-bold text-green-600">(${q.passRate.toFixed(1)}% pass)</span></li>`).join('');
-
-            const topWeaknesses = questionRates.sort((a, b) => b.failRate - a.failRate).slice(0, 5);
-            const weakList = document.getElementById('weakAreas');
-            weakList.innerHTML = topWeaknesses.map(q => `<li>${q.question} <span class="font-bold text-red-600">(${q.failRate.toFixed(1)}% fail)</span></li>`).join('');
-
-            // 3. Agent Scorecards
-            const agentData = data.reduce((acc, rec) => {
-                const agent = rec['CER Name'];
-                if (!agent) return acc;
-                if (!acc[agent]) acc[agent] = { scores: [] };
-                acc[agent].scores.push(parseFloat(rec['Overall Score'] || 0));
-                return acc;
-            }, {});
-
-            const agentTable = document.getElementById('agentScorecards');
-            agentTable.innerHTML = '';
-            Object.entries(agentData).forEach(([name, {scores}]) => {
-                const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-                const trend = scores.length > 1 ? (scores[scores.length - 1] > scores[0] ? 'up' : 'down') : 'neutral';
-                const status = avg >= 90 ? 'green' : avg >= 80 ? 'amber' : 'red';
-                
-                const row = agentTable.insertRow();
-                row.innerHTML = `
-                    <td class="p-2">${name}</td>
-                    <td class="p-2 font-bold">${avg.toFixed(1)}%</td>
-                    <td class="p-2"><i class="fas fa-arrow-${trend} text-${status}-500"></i></td>
-                    <td class="p-2"><div class="kpi-light kpi-${status}"></div></td>
-                `;
-            });
-            renderPassRateByRoleTable(data);
-            renderPassRateByAgentTable(data);
+            }
         }
         
-        // --- Chart Rendering Functions ---
-        function renderBarChart(canvasId, label, labels, data) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            if (charts[canvasId]) charts[canvasId].destroy();
-            charts[canvasId] = new Chart(ctx, {
-                type: 'bar',
-                data: { labels, datasets: [{ label, data, backgroundColor: '#3B82F6' }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-
-        function renderLineChart(canvasId, label, labels, data) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            if (charts[canvasId]) charts[canvasId].destroy();
-            charts[canvasId] = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets: [{ label, data, borderColor: '#10B981', tension: 0.1 }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-
-        function renderDoughnutChart(canvasId, label, labels, data) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            if (charts[canvasId]) charts[canvasId].destroy();
-            charts[canvasId] = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: ['#10B981', '#EF4444'] }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-
-        function renderPassRateByRoleTable(data) {
-            const thead = document.getElementById('passRateByRoleHead');
-            const tbody = document.getElementById('passRateByRoleBody');
-            thead.innerHTML = '';
-            tbody.innerHTML = '';
-
-            const roles = [...new Set(data.map(r => r['CER Role']).filter(Boolean))].sort();
-            
-            let headerHtml = '<tr><th class="p-2 border">Question/Section</th>';
-            roles.forEach(role => headerHtml += `<th class="p-2 border text-center">${role}</th>`);
-            headerHtml += '</tr>';
-            thead.innerHTML = headerHtml;
-
-            Object.entries(allQuestions).forEach(([role, sections]) => {
-                if(roles.includes(role)){
-                    Object.entries(sections).forEach(([sectionName, questions]) => {
-                        tbody.innerHTML += `<tr><td class="p-2 border font-bold bg-gray-100" colspan="${roles.length + 1}">${sectionName}</td></tr>`;
-                        questions.forEach(q => {
-                            let rowHtml = `<tr><td class="p-2 border">${q.desc}</td>`;
-                            roles.forEach(r => {
-                                const relevantEvals = data.filter(e => e['CER Role'] === r);
-                                const questionRatings = relevantEvals.map(e => e[`${q.desc} (Rating)`]).filter(Boolean);
-                                const passCount = questionRatings.filter(rating => rating === 'Yes').length;
-                                const totalCount = questionRatings.length;
-                                const passRate = totalCount > 0 ? ((passCount / totalCount) * 100).toFixed(1) : '-';
-                                rowHtml += `<td class="p-2 border text-center">${passRate}%</td>`;
-                            });
-                            rowHtml += '</tr>';
-                            tbody.innerHTML += rowHtml;
-                        });
-                    });
-                }
-            });
-        }
-
-        function renderPassRateByAgentTable(data) {
-            const thead = document.getElementById('passRateByAgentHead');
-            const tbody = document.getElementById('passRateByAgentBody');
-            thead.innerHTML = '';
-            tbody.innerHTML = '';
-
-            const agents = [...new Set(data.map(r => r['CER Name']).filter(Boolean))].sort();
-            
-            let headerHtml = '<tr><th class="p-2 border">Question/Section</th>';
-            agents.forEach(agent => headerHtml += `<th class="p-2 border text-center">${agent}</th>`);
-            headerHtml += '</tr>';
-            thead.innerHTML = headerHtml;
-
-            const uniqueRolesInData = [...new Set(data.map(r => r['CER Role']))];
-
-            uniqueRolesInData.forEach(role => {
-                 if(allQuestions[role]){
-                    Object.entries(allQuestions[role]).forEach(([sectionName, questions]) => {
-                        tbody.innerHTML += `<tr><td class="p-2 border font-bold bg-gray-100" colspan="${agents.length + 1}">${sectionName}</td></tr>`;
-                        questions.forEach(q => {
-                            let rowHtml = `<tr><td class="p-2 border">${q.desc}</td>`;
-                            agents.forEach(agent => {
-                                const relevantEvals = data.filter(e => e['CER Name'] === agent);
-                                const questionRatings = relevantEvals.map(e => e[`${q.desc} (Rating)`]).filter(Boolean);
-                                const passCount = questionRatings.filter(rating => rating === 'Yes').length;
-                                const totalCount = questionRatings.length;
-                                const passRate = totalCount > 0 ? ((passCount / totalCount) * 100).toFixed(1) : '-';
-                                rowHtml += `<td class="p-2 border text-center">${passRate}%</td>`;
-                            });
-                            rowHtml += '</tr>';
-                            tbody.innerHTML += rowHtml;
-                        });
-                    });
-                 }
-            });
-        }
-
-
-        // --- Event Listeners ---
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                fetchData();
-            } else {
-                window.location.href = 'index.html';
-            }
-        });
-
-        document.getElementById('applyFilters').addEventListener('click', () => {
-            const startDate = document.getElementById('startDateFilter').value;
-            const endDate = document.getElementById('endDateFilter').value;
-            const channel = document.getElementById('channelFilter').value;
+        function applyFilters() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
             const cerName = document.getElementById('cerNameFilter').value;
             const cerRole = document.getElementById('cerRoleFilter').value;
-            
-            let filteredData = allEvaluations;
+
+            let filteredData = allAutofailData;
 
             if (startDate) {
-                filteredData = filteredData.filter(rec => new Date(rec['Evaluation Date']) >= new Date(startDate));
+                const start = new Date(startDate);
+                filteredData = filteredData.filter(r => getEvaluationDate(r) >= start);
             }
             if (endDate) {
-                filteredData = filteredData.filter(rec => new Date(rec['Evaluation Date']) <= new Date(endDate));
-            }
-            if (channel) {
-                filteredData = filteredData.filter(rec => (rec.channel || 'Unknown') === channel);
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                filteredData = filteredData.filter(r => getEvaluationDate(r) <= end);
             }
             if (cerName) {
                 filteredData = filteredData.filter(r => r['CER Name'] === cerName);
@@ -496,19 +339,294 @@
             if (cerRole) {
                 filteredData = filteredData.filter(r => r['CER Role'] === cerRole);
             }
-            processAndRenderAnalytics(filteredData);
+            
+            currentFilteredData = filteredData;
+            updateDashboard(currentFilteredData);
+            renderTable(currentFilteredData);
+            renderMonthlyTables(currentFilteredData);
+        }
+
+        async function fetchDataAndRender() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            const autofailContent = document.getElementById('autofailContent');
+            
+            try {
+                const q = query(collection(db, EVALUATION_RECORDS_PATH));
+                const querySnapshot = await getDocs(q);
+                let allData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                allAutofailData = allData.filter(record => {
+                    const scoreString = record['Overall Score'] || '0%';
+                    const score = parseFloat(scoreString.replace('%', ''));
+                    return !isNaN(score) && score < 5;
+                });
+
+
+                await populateFilters();
+                applyFilters();
+
+                loadingMessage.classList.add('hidden');
+                autofailContent.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Error fetching autofail data: ", error);
+                loadingMessage.textContent = "Failed to load data. Please try again.";
+            }
+        }
+
+        function renderTable(records) {
+            const tableBody = document.getElementById('autofailRecordsTableBody');
+            tableBody.innerHTML = '';
+            if (records.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">No autofail records found for the selected filters.</td></tr>`;
+                return;
+            }
+
+            records.forEach(record => {
+                const row = tableBody.insertRow();
+                const evalDate = getEvaluationDate(record);
+                const formattedDate = evalDate ? evalDate.toLocaleDateString() : 'N/A';
+                row.innerHTML = `
+                    <td><input type="checkbox" class="record-checkbox" data-record-id="${record.id}"></td>
+                    <td>${formattedDate}</td>
+                    <td>${record['Contact ID'] || 'N/A'}</td>
+                    <td>${record['Client Name'] || 'N/A'}</td>
+                    <td>${record['CER Name'] || 'N/A'}</td>
+                    <td>${record['Autofail Description'] || record['Auto Fail Type'] || 'N/A'}</td>
+                `;
+            });
+        }
+        
+        function renderAutofailHotspots(agentCounts) {
+            const hotspotsContainer = document.getElementById('autofailHotspots');
+            hotspotsContainer.innerHTML = '';
+
+            const topAgents = Object.entries(agentCounts)
+                                .sort(([,a],[,b]) => b-a)
+                                .slice(0, 3);
+
+            if (topAgents.length === 0) {
+                hotspotsContainer.innerHTML = `<p class="text-gray-500">No autofail data to display hotspots.</p>`;
+                return;
+            }
+
+            topAgents.forEach(([name, count], index) => {
+                const colorClasses = ['bg-red-100 text-red-800', 'bg-yellow-100 text-yellow-800', 'bg-blue-100 text-blue-800'];
+                const iconClasses = ['fa-fire', 'fa-bolt', 'fa-star'];
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between p-2 rounded-lg ${colorClasses[index]}`;
+                item.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas ${iconClasses[index]} w-5 text-center mr-3"></i>
+                        <span class="font-bold">${name}</span>
+                    </div>
+                    <span class="font-bold text-lg">${count}</span>
+                `;
+                hotspotsContainer.appendChild(item);
+            });
+        }
+
+        function updateDashboard(data) {
+            document.getElementById('totalAutofails').textContent = data.length;
+            
+            const reasonCounts = data.reduce((acc, record) => {
+                const reason = record['Auto Fail Type'] || 'Unknown';
+                acc[reason] = (acc[reason] || 0) + 1;
+                return acc;
+            }, {});
+            const topReason = Object.keys(reasonCounts).reduce((a, b) => reasonCounts[a] > reasonCounts[b] ? a : b, '-');
+            document.getElementById('topAutofailReason').textContent = topReason;
+
+            const agentCounts = data.reduce((acc, record) => {
+                const agent = record['CER Name'] || 'Unknown';
+                acc[agent] = (acc[agent] || 0) + 1;
+                return acc;
+            }, {});
+            
+            renderAutofailHotspots(agentCounts); // New function call
+            updateCharts(data);
+        }
+
+        function updateCharts(data) {
+            const trendData = {};
+            data.forEach(rec => {
+                const evalDate = getEvaluationDate(rec);
+                if(evalDate){
+                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                    if(!trendData[month]) trendData[month] = 0;
+                    trendData[month]++;
+                }
+            });
+            const trendLabels = Object.keys(trendData).sort((a,b) => new Date(a) - new Date(b));
+            const trendScores = trendLabels.map(label => trendData[label]);
+            renderChart('autofailTrendChart', 'line', trendLabels, trendScores, 'Autofails Over Time');
+
+            const autofailByType = {};
+            data.forEach(rec => {
+                const type = rec['Auto Fail Type'] || 'Unknown';
+                autofailByType[type] = (autofailByType[type] || 0) + 1;
+            });
+            renderChart('autofailByTypeChart', 'doughnut', Object.keys(autofailByType), Object.values(autofailByType), 'Autofails by Type');
+        }
+
+        function renderChart(canvasId, type, labels, data, label) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: [
+                            '#EF4444', '#F59E0B', '#8B5CF6', '#3B82F6', '#10B981', '#EC4899'
+                        ],
+                        borderColor: type === 'line' ? '#EF4444' : 'white',
+                        fill: type === 'line',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: type !== 'line', position: 'bottom' },
+                        datalabels: {
+                            display: type !== 'line',
+                            color: 'white',
+                            font: { weight: 'bold' }
+                        }
+                    },
+                    scales: type === 'line' ? { y: { beginAtZero: true } } : {}
+                },
+                plugins: [ChartDataLabels]
+            });
+        }
+        
+        function renderMonthlyTables(data) {
+            renderMonthlyTable(data, 'monthlyAutofailsByRoleTable', 'CER Role');
+            renderMonthlyTable(data, 'monthlyAutofailsByNameTable', 'CER Name');
+        }
+
+        function renderMonthlyTable(data, tableId, groupBy) {
+            const table = document.getElementById(tableId);
+            const thead = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
+            thead.innerHTML = `<th class="p-4 text-sm font-semibold text-gray-600">${groupBy}</th>`;
+            tbody.innerHTML = '';
+
+            if (data.length === 0) return;
+
+            const counts = {};
+            const months = new Set();
+            const groups = new Set();
+
+            data.forEach(rec => {
+                const evalDate = getEvaluationDate(rec);
+                if (evalDate && rec[groupBy]) {
+                    const month = evalDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                    const group = rec[groupBy];
+                    months.add(month);
+                    groups.add(group);
+
+                    if (!counts[group]) counts[group] = {};
+                    if (!counts[group][month]) counts[group][month] = 0;
+                    
+                    counts[group][month]++;
+                }
+            });
+
+            const sortedMonths = Array.from(months).sort((a, b) => new Date(a) - new Date(b));
+            
+            sortedMonths.forEach(month => {
+                const th = document.createElement('th');
+                th.className = "p-4 text-sm font-semibold text-gray-600 text-right";
+                th.textContent = month;
+                thead.appendChild(th);
+            });
+
+            Array.from(groups).sort().forEach((group, index) => {
+                const tr = document.createElement('tr');
+                tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                let rowHtml = `<td class="p-4 font-medium text-gray-800">${group}</td>`;
+                sortedMonths.forEach(month => {
+                    const count = counts[group]?.[month] || 0;
+                    rowHtml += `<td class="p-4 text-right font-semibold">${count}</td>`;
+                });
+                tr.innerHTML = rowHtml;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function downloadExcel(data) {
+            if (data.length === 0) {
+                alert("No records selected to download.");
+                return;
+            }
+
+            const headers = ["Evaluation Date", "Contact ID", "Client Name", "CER Name", "Reason for Autofail"];
+            const csvRows = [headers.join(',')];
+
+            data.forEach(record => {
+                const evalDate = getEvaluationDate(record);
+                const formattedDate = evalDate ? evalDate.toLocaleDateString() : 'N/A';
+                const reason = (record['Autofail Description'] || record['Auto Fail Type'] || '').replace(/"/g, '""');
+                
+                const values = [
+                    `"${formattedDate}"`,
+                    `"${record['Contact ID'] || ''}"`,
+                    `"${record['Client Name'] || ''}"`,
+                    `"${record['CER Name'] || ''}"`,
+                    `"${reason}"`
+                ];
+                csvRows.push(values.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "autofail_records.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loadLogoFromLocalStorage();
+                fetchDataAndRender();
+            } else {
+                window.location.href = 'index.html';
+            }
         });
 
-        document.getElementById('resetFilters').addEventListener('click', () => {
-            document.getElementById('startDateFilter').value = '';
-            document.getElementById('endDateFilter').value = '';
-            document.getElementById('channelFilter').value = '';
+        document.getElementById('applyFilterBtn').addEventListener('click', applyFilters);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
             document.getElementById('cerNameFilter').value = '';
             document.getElementById('cerRoleFilter').value = '';
-            processAndRenderAnalytics(allEvaluations);
+            applyFilters();
+        });
+        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        
+        document.getElementById('downloadExcelBtn').addEventListener('click', () => {
+            const selectedIds = [...document.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.recordId);
+            const selectedRecords = currentFilteredData.filter(record => selectedIds.includes(record.id));
+            downloadExcel(selectedRecords);
         });
 
-        document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+        document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+            document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+        });
 
     </script>
 </body>
