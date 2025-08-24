@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 
     <style>
         body {
@@ -67,9 +67,6 @@
             padding: 1.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        .chart-container {
-            height: 400px;
-        }
         .database-table {
             width: 100%;
             border-collapse: collapse;
@@ -102,6 +99,43 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Wizard Styles */
+        .wizard-step {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            border: 2px solid #e5e7eb;
+            color: #6b7280;
+            transition: all 0.3s ease;
+        }
+        .wizard-step.active {
+            border-color: #3b82f6;
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 600;
+        }
+        .wizard-step .step-circle {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+        .wizard-step.active .step-circle {
+            background-color: white;
+            color: #3b82f6;
+        }
+        .wizard-connector {
+            flex-grow: 1;
+            height: 2px;
+            background-color: #e5e7eb;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -118,7 +152,6 @@
                 <li class="nav-tab mb-2"><a href="index.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
                 <li class="nav-tab mb-2"><a href="myEvaluations.html" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
                 <li class="nav-tab mb-2"><a href="autofails.html" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
-                <li class="nav-tab mb-2"><a href="reports.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-contract w-6 mr-2"></i> Reports</a></li>
                 <li class="nav-tab mb-2"><a href="database.html" class="active flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
                 <li class="nav-tab mb-2"><a href="images.html" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
             </ul>
@@ -133,24 +166,52 @@
         </div>
 
         <div id="databaseContent" class="hidden">
-            <h1 class="text-3xl font-bold mb-6 text-gray-800">Database Records</h1>
-            
-            <!-- Filter Section -->
-            <div class="bg-blue-900 p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-end gap-4">
-                <div>
-                    <label for="filterDate" class="text-sm font-medium text-white">Date</label>
-                    <input type="date" id="filterDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Database Management</h1>
+                <button id="showUploadWizardBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-indigo-700">
+                    <i class="fas fa-upload mr-2"></i>Upload from Excel/CSV
+                </button>
+            </div>
+
+            <!-- Upload Wizard -->
+            <div id="uploadWizard" class="dashboard-card mb-6 hidden">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Upload Wizard</h2>
+                <!-- Step Indicators -->
+                <div class="flex items-center mb-6">
+                    <div id="step1Indicator" class="wizard-step active"><span class="step-circle">1</span> Download Template</div>
+                    <div class="wizard-connector"></div>
+                    <div id="step2Indicator" class="wizard-step"><span class="step-circle">2</span> Preview Data</div>
+                    <div class="wizard-connector"></div>
+                    <div id="step3Indicator" class="wizard-step"><span class="step-circle">3</span> Confirm & Upload</div>
                 </div>
-                <div>
-                    <label for="filterMonth" class="text-sm font-medium text-white">Month</label>
-                    <input type="month" id="filterMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+
+                <!-- Step Content -->
+                <div id="step1Content" class="">
+                    <h3 class="text-lg font-medium">Step 1: Get Your Template</h3>
+                    <p class="text-gray-600 my-2">Download the CSV template to ensure your data is in the correct format before uploading.</p>
+                    <button id="generateTemplateBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
+                        <i class="fas fa-file-csv mr-2"></i>Generate Template
+                    </button>
                 </div>
-                <div class="flex gap-2">
-                    <button id="applyFiltersBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Apply</button>
-                    <button id="resetFiltersBtn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md shadow-sm hover:bg-gray-300">Reset</button>
+
+                <div id="step2Content" class="hidden">
+                    <h3 class="text-lg font-medium">Step 2: Upload & Preview Your Data</h3>
+                    <p class="text-gray-600 my-2">Select your completed CSV file. We'll show you a preview before importing.</p>
+                    <input type="file" id="csvFileInput" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                    <div id="previewContainer" class="mt-4 overflow-auto max-h-64 border rounded-lg"></div>
+                </div>
+
+                <div id="step3Content" class="hidden">
+                    <h3 class="text-lg font-medium">Step 3: Confirm and Upload</h3>
+                    <p class="text-gray-600 my-2">Your data is ready to be uploaded. We found <strong id="recordCount">0</strong> records.</p>
+                    <div id="uploadStatus" class="my-2"></div>
+                    <button id="confirmUploadBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">
+                        <i class="fas fa-check-circle mr-2"></i>Start Upload
+                    </button>
                 </div>
             </div>
 
+            <!-- Data Table Section -->
             <div class="dashboard-card bg-white">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-gray-800">All Records</h2>
@@ -160,7 +221,10 @@
                             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         </div>
                         <button id="downloadExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-green-700">
-                            <i class="fas fa-file-excel mr-2"></i>Download Selected as Excel
+                            <i class="fas fa-file-excel mr-2"></i>Download Selected
+                        </button>
+                         <button id="deleteSelectedBtn" class="bg-red-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-red-700">
+                            <i class="fas fa-trash-alt mr-2"></i>Delete Selected
                         </button>
                     </div>
                 </div>
@@ -187,7 +251,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, deleteDoc, doc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -206,7 +270,7 @@
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
         let allRecords = [];
-        let currentFilteredData = [];
+        let parsedCsvData = [];
 
         function loadLogoFromLocalStorage() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
@@ -222,6 +286,7 @@
                 tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No records found.</td></tr>`;
                 return;
             }
+            records.sort((a, b) => (b.submittedAt?.toDate() || 0) - (a.submittedAt?.toDate() || 0));
             records.forEach(record => {
                 const row = tableBody.insertRow();
                 const submittedDate = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleDateString() : 'N/A';
@@ -243,52 +308,35 @@
         }
         
         function applyFilters() {
-            const date = document.getElementById('filterDate').value;
-            const month = document.getElementById('filterMonth').value;
             const searchTerm = document.getElementById('recordSearchInput').value.toLowerCase();
-
             let filtered = allRecords;
 
-            if (date) {
-                filtered = filtered.filter(r => r.submittedAt?.toDate().toISOString().slice(0,10) === date);
-            }
-            if (month) {
-                filtered = filtered.filter(r => r.submittedAt?.toDate().toISOString().slice(0,7) === month);
-            }
             if (searchTerm) {
                 filtered = filtered.filter(r => 
-                    (r['Client Name'] || '').toLowerCase().includes(searchTerm) ||
-                    (r['Contact ID'] || '').toLowerCase().includes(searchTerm) ||
-                    (r['CER Name'] || '').toLowerCase().includes(searchTerm)
+                    Object.values(r).some(val => 
+                        String(val).toLowerCase().includes(searchTerm)
+                    )
                 );
             }
-            
-            currentFilteredData = filtered;
-            renderRecordsTable(currentFilteredData);
+            renderRecordsTable(filtered);
         }
 
-        function downloadSelectedAsExcel() {
-            const selectedIds = [...document.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.recordId);
-            if (selectedIds.length === 0) {
-                alert("Please select records to download.");
+        function downloadExcel(records) {
+            if (records.length === 0) {
+                alert("No records selected to download.");
                 return;
             }
-            const dataToExport = allRecords.filter(record => selectedIds.includes(record.id));
-            
-            const headers = ["Date", "Contact ID", "Client Name", "CER Name", "Score", "Autofail Type", "Autofail Description"];
+            const headers = Object.keys(records[0]).filter(k => k !== 'id');
             const csvRows = [headers.join(',')];
 
-            dataToExport.forEach(record => {
-                const submittedAt = record.submittedAt?.toDate ? record.submittedAt.toDate().toLocaleDateString() : 'N/A';
-                const values = [
-                    `"${submittedAt}"`,
-                    `"${record['Contact ID'] || ''}"`,
-                    `"${record['Client Name'] || ''}"`,
-                    `"${record['CER Name'] || ''}"`,
-                    `"${record['Overall Score'] || ''}"`,
-                    `"${record['Auto Fail Type'] || ''}"`,
-                    `"${(record['Autofail Description'] || '').replace(/"/g, '""')}"`
-                ];
+            records.forEach(record => {
+                const values = headers.map(header => {
+                    let value = record[header] || '';
+                    if (header === 'submittedAt' && value.toDate) {
+                        value = value.toDate().toISOString();
+                    }
+                    return `"${String(value).replace(/"/g, '""')}"`;
+                });
                 csvRows.push(values.join(','));
             });
 
@@ -304,11 +352,10 @@
             document.body.removeChild(link);
         }
 
-        async function deleteSelectedRecords(recordIds) {
-            if (!recordIds || recordIds.length === 0) {
-                const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
-                recordIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
-            }
+        async function deleteSelectedRecords() {
+            const selectedCheckboxes = document.querySelectorAll('.record-checkbox:checked');
+            const recordIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.recordId);
+            
             if (recordIds.length === 0) {
                 alert("Please select records to delete.");
                 return;
@@ -326,6 +373,92 @@
             alert("Records deleted successfully.");
         }
 
+        // --- Upload Wizard Logic ---
+        function setWizardStep(activeStep) {
+            ['1', '2', '3'].forEach(step => {
+                document.getElementById(`step${step}Indicator`).classList.remove('active');
+                document.getElementById(`step${step}Content`).classList.add('hidden');
+            });
+            document.getElementById(`step${activeStep}Indicator`).classList.add('active');
+            document.getElementById(`step${activeStep}Content`).classList.remove('hidden');
+        }
+
+        function generateTemplate() {
+            const headers = ["Contact ID", "Client Name", "CER Name", "CER Email", "CER Role", "Call Date", "Reviewer's Name", "Evaluation Date", "Overall Score"];
+            const csvString = headers.join(',');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "evaluation_template.csv";
+            link.click();
+            setWizardStep('2');
+        }
+
+        function previewCsv(file) {
+            if (!file) return;
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    parsedCsvData = results.data;
+                    const previewContainer = document.getElementById('previewContainer');
+                    previewContainer.innerHTML = '';
+
+                    if (results.errors.length > 0) {
+                        previewContainer.innerHTML = `<div class="p-4 text-red-600">Error parsing file: ${results.errors[0].message}</div>`;
+                        return;
+                    }
+
+                    const table = document.createElement('table');
+                    table.className = 'w-full text-sm text-left';
+                    const thead = table.createTHead();
+                    const tbody = table.createTBody();
+                    thead.innerHTML = `<tr class="bg-gray-100">${Object.keys(parsedCsvData[0]).map(h => `<th>${h}</th>`).join('')}</tr>`;
+                    
+                    parsedCsvData.slice(0, 10).forEach(row => {
+                        const tr = tbody.insertRow();
+                        tr.innerHTML = Object.values(row).map(val => `<td>${val}</td>`).join('');
+                    });
+                    
+                    previewContainer.appendChild(table);
+                    document.getElementById('recordCount').textContent = parsedCsvData.length;
+                    setWizardStep('3');
+                }
+            });
+        }
+
+        async function uploadData() {
+            if (parsedCsvData.length === 0) {
+                alert("No data to upload.");
+                return;
+            }
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.innerHTML = `<div class="flex items-center gap-2 text-blue-600"><div class="spinner w-5 h-5"></div> Uploading...</div>`;
+            document.getElementById('confirmUploadBtn').disabled = true;
+
+            try {
+                const batch = writeBatch(db);
+                parsedCsvData.forEach(record => {
+                    const docRef = doc(collection(db, EVALUATION_RECORDS_PATH));
+                    // Convert date strings to Firestore Timestamps if they exist
+                    if (record["Evaluation Date"]) record["Evaluation Date"] = new Date(record["Evaluation Date"]);
+                    if (record["Call Date"]) record["Call Date"] = new Date(record["Call Date"]);
+                    
+                    batch.set(docRef, { ...record, submittedAt: serverTimestamp() });
+                });
+                await batch.commit();
+                statusDiv.innerHTML = `<div class="text-green-600 font-semibold">Successfully uploaded ${parsedCsvData.length} records!</div>`;
+                parsedCsvData = []; // Clear data after upload
+            } catch (error) {
+                console.error("Upload error:", error);
+                statusDiv.innerHTML = `<div class="text-red-600 font-semibold">Upload failed: ${error.message}</div>`;
+            } finally {
+                 document.getElementById('confirmUploadBtn').disabled = false;
+            }
+        }
+
+
+        // --- Event Listeners ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 loadLogoFromLocalStorage();
@@ -341,30 +474,33 @@
         });
 
         document.getElementById('recordSearchInput').addEventListener('input', applyFilters);
-        document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
-        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
-            document.getElementById('filterDate').value = '';
-            document.getElementById('filterMonth').value = '';
-            document.getElementById('recordSearchInput').value = '';
-            applyFilters();
+        document.getElementById('downloadExcelBtn').addEventListener('click', () => {
+             const selectedIds = [...document.querySelectorAll('.record-checkbox:checked')].map(cb => cb.dataset.recordId);
+             const recordsToDownload = selectedIds.length > 0 ? allRecords.filter(r => selectedIds.includes(r.id)) : allRecords;
+             downloadExcel(recordsToDownload);
         });
-        
-        document.getElementById('downloadExcelBtn').addEventListener('click', downloadSelectedAsExcel);
-        
+        document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedRecords);
         document.getElementById('recordsTableBody').addEventListener('click', (e) => {
             if (e.target.closest('.delete-record-btn')) {
                 const recordId = e.target.closest('.delete-record-btn').dataset.recordId;
                 deleteSelectedRecords([recordId]);
             }
         });
-
         document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
             document.querySelectorAll('.record-checkbox').forEach(checkbox => {
                 checkbox.checked = e.target.checked;
             });
         });
-        
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+        // Wizard Buttons
+        document.getElementById('showUploadWizardBtn').addEventListener('click', () => {
+             document.getElementById('uploadWizard').classList.toggle('hidden');
+             setWizardStep('1');
+        });
+        document.getElementById('generateTemplateBtn').addEventListener('click', generateTemplate);
+        document.getElementById('csvFileInput').addEventListener('change', (e) => previewCsv(e.target.files[0]));
+        document.getElementById('confirmUploadBtn').addEventListener('click', uploadData);
 
     </script>
 </body>
