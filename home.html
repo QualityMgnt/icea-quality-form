@@ -240,18 +240,43 @@
             document.getElementById('clock').textContent = timeString;
             document.getElementById('date').textContent = dateString;
         }
+        
+        // --- UPDATED LOGIC STARTS HERE ---
+
+        // Helper function to safely get a JS Date from either a Firestore Timestamp or a date string.
+        function getEvaluationDate(record) {
+            const evalDateValue = record['Evaluation Date'];
+            if (!evalDateValue) return null;
+
+            // Check if it's a Firestore Timestamp object
+            if (evalDateValue.toDate && typeof evalDateValue.toDate === 'function') {
+                return evalDateValue.toDate();
+            }
+            // Check if it's a date string (e.g., "2024-08-23")
+            if (typeof evalDateValue === 'string') {
+                // Appending T00:00:00 prevents timezone issues where new Date() might shift the date.
+                return new Date(evalDateValue + 'T00:00:00');
+            }
+            // If it's already a JS Date object (from some uploads)
+            if (evalDateValue instanceof Date) {
+                return evalDateValue;
+            }
+            return null; // Return null if the format is unrecognized
+        }
 
         function populateMonthFilter(evaluations) {
             const monthFilter = document.getElementById('monthFilter');
             const months = new Set();
             evaluations.forEach(rec => {
-                if (rec.submittedAt?.toDate) {
-                    const monthYear = rec.submittedAt.toDate().toLocaleString('default', { month: 'long', year: 'numeric' });
+                const evalDate = getEvaluationDate(rec); // Use the helper function
+                if (evalDate) {
+                    const monthYear = evalDate.toLocaleString('default', { month: 'long', year: 'numeric' });
                     months.add(monthYear);
                 }
             });
 
             monthFilter.innerHTML = '<option value="">All Months</option>';
+            // Sort months chronologically, most recent first
             [...months].sort((a, b) => new Date(b) - new Date(a)).forEach(month => {
                 monthFilter.innerHTML += `<option value="${month}">${month}</option>`;
             });
@@ -263,13 +288,17 @@
 
             if (selectedMonth) {
                 filteredEvaluations = allEvaluations.filter(rec => {
-                    if (!rec.submittedAt?.toDate) return false;
-                    const monthYear = rec.submittedAt.toDate().toLocaleString('default', { month: 'long', year: 'numeric' });
+                    const evalDate = getEvaluationDate(rec); // Use the helper function
+                    if (!evalDate) return false;
+                    const monthYear = evalDate.toLocaleString('default', { month: 'long', year: 'numeric' });
                     return monthYear === selectedMonth;
                 });
             }
             updateDashboardUI(filteredEvaluations);
         }
+
+        // --- UPDATED LOGIC ENDS HERE ---
+
 
         function updateDashboardUI(evaluations) {
             // Calculate stats
@@ -308,7 +337,14 @@
         async function fetchDashboardData() {
             try {
                 const querySnapshot = await getDocs(collection(db, EVALUATION_RECORDS_PATH));
-                allEvaluations = querySnapshot.docs.map(doc => doc.data());
+                // Convert Firestore Timestamps for 'Evaluation Date' right after fetching
+                allEvaluations = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    if (data['Evaluation Date'] && data['Evaluation Date'].toDate) {
+                        data['Evaluation Date'] = data['Evaluation Date'].toDate();
+                    }
+                    return data;
+                });
                 
                 populateMonthFilter(allEvaluations);
                 updateDashboardUI(allEvaluations); // Initial render with all data
