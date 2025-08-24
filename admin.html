@@ -109,16 +109,16 @@
 
     <nav class="main-nav" id="mainNav">
         <div class="sidebar p-4 h-full flex flex-col">
-            <ul class="flex-grow">
-                <li class="nav-tab mb-2"><a href="home.html" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
-                <li class="nav-tab mb-2"><a href="Dashboard.html" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
-                <li class="nav-tab mb-2"><a href="index.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
-                <li class="nav-tab mb-2"><a href="myEvaluations.html" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
-                <li class="nav-tab mb-2"><a href="autofails.html" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
-                <li class="nav-tab mb-2"><a href="reports.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-contract w-6 mr-2"></i> Reports</a></li>
-                <li class="nav-tab mb-2"><a href="database.html" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
-                <li class="nav-tab mb-2"><a href="images.html" class="flex items-center p-2 rounded-md"><i class="fas fa-image w-6 mr-2"></i> Images</a></li>
-                <li class="nav-tab mb-2"><a href="admin.html" class="active flex items-center p-2 rounded-md"><i class="fas fa-user-cog w-6 mr-2"></i> Admin</a></li>
+            <ul id="nav-menu" class="flex-grow">
+                <li class="nav-tab mb-2" data-tab-id="home"><a href="home.html" class="flex items-center p-2 rounded-md"><i class="fas fa-home w-6 mr-2"></i> Home</a></li>
+                <li class="nav-tab mb-2" data-tab-id="dashboard"><a href="Dashboard.html" class="flex items-center p-2 rounded-md"><i class="fas fa-chart-bar w-6 mr-2"></i> Dashboard</a></li>
+                <li class="nav-tab mb-2" data-tab-id="evaluation"><a href="index.html" class="flex items-center p-2 rounded-md"><i class="fas fa-file-alt w-6 mr-2"></i> Evaluation Form</a></li>
+                <li class="nav-tab mb-2" data-tab-id="my_evaluations"><a href="myEvaluations.html" class="flex items-center p-2 rounded-md"><i class="fas fa-user-check w-6 mr-2"></i> My Evaluations</a></li>
+                <li class="nav-tab mb-2" data-tab-id="autofails"><a href="autofails.html" class="flex items-center p-2 rounded-md"><i class="fas fa-exclamation-triangle w-6 mr-2"></i> Autofails</a></li>
+                <li class="nav-tab mb-2" data-tab-id="database"><a href="database.html" class="flex items-center p-2 rounded-md"><i class="fas fa-database w-6 mr-2"></i> Database</a></li>
+                <li class="nav-tab mb-2" data-tab-id="users"><a href="users.html" class="flex items-center p-2 rounded-md"><i class="fas fa-users w-6 mr-2"></i> Users</a></li>
+                <li class="nav-tab mb-2" data-tab-id="admin"><a href="admin.html" class="active flex items-center p-2 rounded-md"><i class="fas fa-user-cog w-6 mr-2"></i> Admin</a></li>
+                <li class="nav-tab mb-2" data-tab-id="managedata"><a href="managedata.html" class="flex items-center p-2 rounded-md"><i class="fas fa-tasks w-6 mr-2"></i> Manage Data</a></li>
             </ul>
             <button id="logoutBtn" class="logout-button w-full font-bold py-2 px-4 rounded-md shadow-md mt-auto">Logout</button>
         </div>
@@ -254,6 +254,7 @@
 
         let allRolesQuestions = {};
         let dropdownOptions = {};
+        let currentUserRole = null;
 
         function loadLogoFromLocalStorage() {
             const savedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
@@ -263,16 +264,34 @@
         }
 
         async function checkAdminRole(user) {
-            if (!user) return false;
+            if (!user) return 'Agent'; // Default to least privileged role
             const userProfileDocRef = doc(db, USERS_PROFILE_COLLECTION_PATH, user.uid);
             try {
                 const docSnap = await getDoc(userProfileDocRef);
-                return docSnap.exists() && docSnap.data().role === 'Admin';
+                currentUserRole = docSnap.exists() ? docSnap.data().role : 'Agent';
+                return currentUserRole;
             } catch (error) {
-                console.error("Error checking admin role:", error);
-                return false;
+                console.error("Error checking user role:", error);
+                return 'Agent';
             }
         }
+        
+        // --- NEW: Function to manage navigation visibility based on role ---
+        function setupNavigation(role) {
+            const adminTabs = ['users', 'admin', 'managedata'];
+            const navMenu = document.getElementById('nav-menu');
+            const allTabs = navMenu.querySelectorAll('.nav-tab');
+
+            allTabs.forEach(tab => {
+                const tabId = tab.dataset.tabId;
+                if (adminTabs.includes(tabId) && role !== 'Admin') {
+                    tab.classList.add('hidden');
+                } else {
+                    tab.classList.remove('hidden');
+                }
+            });
+        }
+
 
         function renderDropdowns() {
             const cerRolesList = document.getElementById('cerRolesList');
@@ -396,8 +415,9 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 loadLogoFromLocalStorage();
-                const isAdmin = await checkAdminRole(user);
-                if (isAdmin) {
+                const userRole = await checkAdminRole(user);
+                setupNavigation(userRole); // Call navigation setup
+                if (userRole === 'Admin') {
                     showAdminContent();
                 } else {
                     showAccessDenied();
