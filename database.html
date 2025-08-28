@@ -191,6 +191,10 @@
                          <button id="deleteSelectedBtn" class="bg-red-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-red-700">
                             <i class="fas fa-trash-alt mr-2"></i>Delete Selected
                         </button>
+                        <!-- Add Webhook Button -->
+                        <button id="addWebhookBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-indigo-700">
+                            <i class="fas fa-plus mr-2"></i>Add Webhook
+                        </button>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
@@ -210,25 +214,6 @@
                     </table>
                 </div>
             </div>
-
-            <!-- Webhook Management Section -->
-            <div class="dashboard-card bg-white mt-6">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">Webhook Management</h2>
-                <p class="text-sm text-gray-600 mb-4">Add webhook URLs to send evaluation data to other services automatically when a new record is created. This requires a Cloud Function to be deployed.</p>
-                <div class="flex gap-4 mb-4">
-                    <input type="url" id="newWebhookUrlInput" placeholder="Enter new webhook URL (e.g., https://...)" class="flex-grow p-2 border rounded-md">
-                    <button id="addWebhookBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">
-                        <i class="fas fa-plus mr-2"></i>Add Webhook
-                    </button>
-                </div>
-                <div id="webhookListContainer">
-                    <h3 class="font-semibold text-gray-700 mb-2">Configured Webhooks:</h3>
-                    <ul id="webhookList" class="list-disc pl-5 space-y-2">
-                        <!-- Webhooks will be listed here -->
-                    </ul>
-                </div>
-            </div>
-
         </div>
     </main>
 
@@ -278,11 +263,30 @@
              </form>
         </div>
     </div>
+    
+    <!-- Add Webhook Modal -->
+    <div id="webhookModal" class="modal-overlay hidden">
+        <div class="modal-container p-6 max-w-lg">
+             <h2 class="text-2xl font-bold mb-4">Add/Update Webhook</h2>
+             <div class="space-y-4">
+                <div>
+                    <label for="webhookUrl" class="block text-sm font-medium">Webhook URL</label>
+                    <input type="url" id="webhookUrl" placeholder="https://script.google.com/macros/s/..." class="mt-1 w-full p-2 border rounded-md">
+                    <p class="text-xs text-gray-500 mt-1">This webhook will receive new evaluation data.</p>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" id="cancelWebhookBtn" class="bg-gray-200 px-4 py-2 rounded-md">Cancel</button>
+                    <button type="button" id="saveWebhookBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md">Save Webhook</button>
+                </div>
+             </div>
+        </div>
+    </div>
+
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, writeBatch, updateDoc, getDocs, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, writeBatch, updateDoc, getDocs, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCw4nE6cvBJ9QmPp8wxyL-Jdm6hWQ0dVjs",
@@ -300,7 +304,8 @@
 
         const EVALUATION_RECORDS_PATH = `artifacts/${appId}/public/data/evaluation_records`;
         const QUESTIONS_PATH = `artifacts/${appId}/public/data/questions`;
-        const WEBHOOKS_PATH = `artifacts/${appId}/public/data/webhooks`; // New path for webhooks
+        // Path to store webhook configuration
+        const WEBHOOK_CONFIG_PATH = `artifacts/${appId}/public/data/webhook_config`;
         const LOGO_STORAGE_KEY = 'companyLogoDataUrl';
         let allRecords = [];
         let allQuestions = {};
@@ -319,6 +324,60 @@
                 allQuestions = {...allQuestions, ...doc.data()};
             });
         }
+        
+        // --- Webhook Functions ---
+        async function loadWebhookUrl() {
+            try {
+                const docRef = doc(db, WEBHOOK_CONFIG_PATH, 'main');
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    document.getElementById('webhookUrl').value = docSnap.data().url || '';
+                }
+            } catch (error) {
+                console.error("Error loading webhook URL:", error);
+            }
+        }
+
+        async function saveWebhookUrl() {
+            const url = document.getElementById('webhookUrl').value;
+            if (!url || !url.startsWith('https://script.google.com/macros/s/')) {
+                alert("Please enter a valid Google Apps Script webhook URL.");
+                return;
+            }
+            try {
+                const docRef = doc(db, WEBHOOK_CONFIG_PATH, 'main');
+                await setDoc(docRef, { url: url });
+                alert("Webhook URL saved successfully!");
+                document.getElementById('webhookModal').classList.add('hidden');
+            } catch (error) {
+                console.error("Error saving webhook URL:", error);
+                alert("Failed to save webhook URL. See console for details.");
+            }
+        }
+        
+        // This function should be called from your evaluation form's submission logic
+        async function sendDataToWebhook(recordData) {
+            try {
+                const docRef = doc(db, WEBHOOK_CONFIG_PATH, 'main');
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && docSnap.data().url) {
+                    const webhookUrl = docSnap.data().url;
+                    await fetch(webhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors', // Important for Google Apps Script webhooks
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(recordData)
+                    });
+                    console.log("Data sent to webhook successfully.");
+                }
+            } catch (error) {
+                console.error("Error sending data to webhook:", error);
+            }
+        }
+        // --- End Webhook Functions ---
+
 
         function renderRecordsTable(records) {
             const tableBody = document.getElementById('recordsTableBody');
@@ -533,71 +592,13 @@
                 alert(`Failed to update record: ${error.message}`);
             }
         }
-        
-        // --- Webhook Functions ---
-        function renderWebhookList(webhooks) {
-            const listElement = document.getElementById('webhookList');
-            listElement.innerHTML = ''; // Clear current list
-            if (webhooks.length === 0) {
-                listElement.innerHTML = '<li class="text-gray-500">No webhooks configured.</li>';
-                return;
-            }
-            webhooks.forEach(hook => {
-                const li = document.createElement('li');
-                li.className = 'flex justify-between items-center bg-gray-100 p-2 rounded';
-                li.innerHTML = `
-                    <span class="text-sm truncate">${hook.url}</span>
-                    <button class="text-red-500 hover:text-red-700 delete-webhook-btn" data-id="${hook.id}" title="Delete Webhook">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                `;
-                listElement.appendChild(li);
-            });
-
-            // Re-attach event listeners for delete buttons
-            document.querySelectorAll('.delete-webhook-btn').forEach(button => {
-                button.addEventListener('click', deleteWebhook);
-            });
-        }
-
-        async function addWebhook() {
-            const input = document.getElementById('newWebhookUrlInput');
-            const url = input.value.trim();
-            if (url && url.startsWith('https://')) {
-                try {
-                    await addDoc(collection(db, WEBHOOKS_PATH), { url: url });
-                    input.value = ''; // Clear input on success
-                    alert('Webhook added successfully!');
-                } catch (error) {
-                    console.error("Error adding webhook:", error);
-                    alert(`Failed to add webhook: ${error.message}`);
-                }
-            } else {
-                alert('Please enter a valid URL starting with https://');
-            }
-        }
-
-        async function deleteWebhook(event) {
-            const webhookId = event.currentTarget.dataset.id;
-            if (confirm('Are you sure you want to delete this webhook?')) {
-                try {
-                    await deleteDoc(doc(db, WEBHOOKS_PATH, webhookId));
-                    alert('Webhook deleted.');
-                } catch (error) {
-                    console.error("Error deleting webhook:", error);
-                    alert(`Failed to delete webhook: ${error.message}`);
-                }
-            }
-        }
-
 
         // --- Event Listeners ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 loadLogoFromLocalStorage();
                 await fetchQuestionsData(); // Fetch questions first
-                
-                // Listen for evaluation records
+                await loadWebhookUrl(); // Load saved webhook URL
                 onSnapshot(collection(db, EVALUATION_RECORDS_PATH), (snapshot) => {
                     allRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     currentFilteredRecords = allRecords;
@@ -606,13 +607,6 @@
                     document.getElementById('loadingMessage').classList.add('hidden');
                     document.getElementById('databaseContent').classList.remove('hidden');
                 });
-
-                // Listen for webhooks
-                onSnapshot(collection(db, WEBHOOKS_PATH), (snapshot) => {
-                    const webhooks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderWebhookList(webhooks);
-                });
-
             } else {
                 window.location.href = 'index.html';
             }
@@ -650,15 +644,17 @@
             });
         });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-        
-        // Webhook button listener
-        document.getElementById('addWebhookBtn').addEventListener('click', addWebhook);
-
 
         // Modal close buttons
         document.getElementById('closeViewModalBtn').addEventListener('click', () => document.getElementById('viewRecordModal').classList.add('hidden'));
         document.getElementById('cancelEditBtn').addEventListener('click', () => document.getElementById('editRecordModal').classList.add('hidden'));
         document.getElementById('editRecordForm').addEventListener('submit', saveRecordChanges);
+        
+        // Webhook Modal Listeners
+        document.getElementById('addWebhookBtn').addEventListener('click', () => document.getElementById('webhookModal').classList.remove('hidden'));
+        document.getElementById('cancelWebhookBtn').addEventListener('click', () => document.getElementById('webhookModal').classList.add('hidden'));
+        document.getElementById('saveWebhookBtn').addEventListener('click', saveWebhookUrl);
+
 
     </script>
 </body>
